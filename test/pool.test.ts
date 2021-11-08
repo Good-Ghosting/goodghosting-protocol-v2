@@ -50,6 +50,7 @@ describe("Pool using Aave strategy", () => {
         false,
         true,
       );
+      console.log("hereeee");
       await ethers.provider.send("evm_increaseTime", [segmentLength]);
       await ethers.provider.send("evm_mine", []);
       const accounts = await ethers.getSigners();
@@ -155,7 +156,7 @@ describe("Pool using Aave strategy", () => {
       await ethers.provider.send("evm_increaseTime", [segmentLength]);
       await ethers.provider.send("evm_mine", []);
       await approveToken(contracts.inboundToken, player1, contracts.goodGhosting.address, segmentPayment);
-      await expect(contracts.goodGhosting.connect(player1).makeDeposit(0)).to.be.revertedWith(
+      await expect(contracts.goodGhosting.connect(player1).makeDeposit(0, segmentPayment)).to.be.revertedWith(
         "Player already withdraw from game",
       );
     });

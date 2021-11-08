@@ -27,7 +27,7 @@ export const deployPool = async (
   isIncentiveToken: boolean,
   isInvestmentStrategy: boolean,
 ) => {
-  const [deployer, treasury, player1, player2] = await ethers.getSigners();
+  const [deployer, player1, player2] = await ethers.getSigners();
   const lendingPoolAddressProvider = new LendingPoolAddressesProviderMock__factory(deployer);
   let inboundToken: any = ZERO_ADDRESS;
 
@@ -191,8 +191,8 @@ export const unableToJoinGame = async (
   inboundToken: MintableERC20,
   player: any,
   amount: string,
-  revertReason: string,
   depositAmount: string,
+  revertReason: string,
 ) => {
   await approveToken(inboundToken, player, goodGhosting.address, amount);
   await expect(goodGhosting.connect(player).joinGame(0, depositAmount)).to.be.revertedWith(revertReason);
@@ -214,8 +214,8 @@ export const shouldNotBeAbleToDeposit = async (
   inboundToken: MintableERC20,
   player: any,
   amount: string,
-  revertReason: string,
   depositAmount: string,
+  revertReason: string,
 ) => {
   await approveToken(inboundToken, player, goodGhosting.address, amount);
   await expect(goodGhosting.connect(player).makeDeposit(0, depositAmount)).to.be.revertedWith(revertReason);

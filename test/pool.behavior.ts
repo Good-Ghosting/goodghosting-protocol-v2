@@ -80,7 +80,7 @@ export const shouldBehaveLikeGGPool = async (strategyType: string) => {
 
   it("reverts if the contract is deployed with invalid inbound token address", async () => {
     await expect(
-      deployPool(segmentCount, segmentLength, segmentPayment, 1, 0, maxPlayersCount, false, false, true),
+      deployPool(segmentCount, segmentLength, segmentPayment, 1, 0, maxPlayersCount, true, false, true),
     ).to.be.revertedWith("invalid _inboundCurrency address");
   });
 
