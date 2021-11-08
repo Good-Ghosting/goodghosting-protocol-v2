@@ -12,6 +12,7 @@ import "./strategies/IStrategy.sol";
 contract Pool is Ownable, Pausable {
     using LowGasSafeMath for uint256;
 
+    /// @notice Multiplier used for calculating playerIndex to avoid precision issues
     uint256 public constant multiplier = 10**5;
 
     /// @notice Stores the total amount of net interest received in the game.
@@ -23,14 +24,20 @@ contract Pool is Ownable, Pausable {
     /// @notice performance fee amount allocated to the admin
     uint256 public adminFeeAmount;
 
+    /// @notice player index sum
+    uint256 public sum;
+
     /// @notice total amount of incentive tokens to be distributed among winners
     uint256 public totalIncentiveAmount = 0;
 
     /// @notice Controls the amount of active players in the game (ignores players that early withdraw)
     uint256 public activePlayersCount = 0;
 
+    /// @notice winner counter to track no of winners
+    uint256 public winnerCount = 0;
+
     /// @notice The amount to be paid on each segment
-    uint256 public immutable segmentPayment;
+    uint256 public segmentPayment;
 
     /// @notice The number of segments in the game (segment count)
     uint256 public immutable lastSegment;
@@ -53,11 +60,11 @@ contract Pool is Ownable, Pausable {
     /// @notice Defines the max quantity of players allowed in the game
     uint256 public immutable maxPlayersCount;
 
-    /// @notice player index sum
-    uint256 public sum;
-
     /// @notice Controls if tokens were redeemed or not from the pool
     bool public redeemed;
+
+    /// @notice Flag which determines whether the segment payment is fixed or not
+    bool public immutable flexibleSegmentPayment;
 
     /// @notice controls if admin withdrew or not the performance fee.
     bool public adminWithdraw;
@@ -93,9 +100,6 @@ contract Pool is Ownable, Pausable {
 
     /// @notice list of players
     address[] public iterablePlayers;
-
-    /// @notice winner counter to track no of winners
-    uint256 public winnerCount = 0;
 
     event JoinedGame(address indexed player, uint256 amount);
 
@@ -160,9 +164,11 @@ contract Pool is Ownable, Pausable {
         uint128 _earlyWithdrawalFee,
         uint128 _customFee,
         uint256 _maxPlayersCount,
+        bool _flexibleSegmentPayment,
         IERC20 _incentiveToken,
         IStrategy _strategy
     ) {
+        flexibleSegmentPayment = _flexibleSegmentPayment;
         require(_customFee <= 20, "_customFee must be less than or equal to 20%");
         require(_earlyWithdrawalFee <= 10, "_earlyWithdrawalFee must be less than or equal to 10%");
         require(_earlyWithdrawalFee > 0, "_earlyWithdrawalFee must be greater than zero");
@@ -172,7 +178,11 @@ contract Pool is Ownable, Pausable {
         require(_segmentCount > 0, "_segmentCount must be greater than zero");
         require(_segmentLength > 0, "_segmentLength must be greater than zero");
         require(_waitingRoundSegmentLength > 0, "_waitingRoundSegmentLength must be greater than zero");
-        require(_segmentPayment > 0, "_segmentPayment must be greater than zero");
+        if (_flexibleSegmentPayment) {
+            require(_segmentPayment > 0, "_segmentPayment must be greater than zero");
+        } else {
+            require(_segmentPayment == 0, "_segmentPayment should be 0");
+        }
 
         // Initializes default variables
         firstSegmentStart = block.timestamp; //gets current time
@@ -278,12 +288,12 @@ contract Pool is Ownable, Pausable {
     }
 
     /// @notice Allows a player to join the game
-    function joinGame(uint256 _minAmount) external virtual whenNotPaused {
-        _joinGame(_minAmount);
+    function joinGame(uint256 _minAmount, uint256 _depositAmount) external virtual whenNotPaused {
+        _joinGame(_minAmount, _depositAmount);
     }
 
     /// @notice Allows a player to join the game and controls
-    function _joinGame(uint256 _minAmount) internal virtual {
+    function _joinGame(uint256 _minAmount, uint256 _depositAmount) internal virtual {
         require(getCurrentSegment() == 0, "Game has already started");
         require(
             players[msg.sender].addr != msg.sender || players[msg.sender].canRejoin,
@@ -306,9 +316,11 @@ contract Pool is Ownable, Pausable {
         if (!canRejoin) {
             iterablePlayers.push(msg.sender);
         }
-
+        if (flexibleSegmentPayment) {
+            segmentPayment = _depositAmount;
+        }
         emit JoinedGame(msg.sender, segmentPayment);
-        _transferDaiToContract(_minAmount);
+        _transferDaiToContract(_minAmount, _depositAmount);
     }
 
     /// @notice Allows a player to withdraws funds before the game ends. An early withdrawl fee is charged.
@@ -420,7 +432,7 @@ contract Pool is Ownable, Pausable {
     }
 
     /// @notice Allows players to make deposits for the game segments, after joining the game.
-    function makeDeposit(uint256 _minAmount) external whenNotPaused {
+    function makeDeposit(uint256 _minAmount, uint256 _depositAmount) external whenNotPaused {
         require(!players[msg.sender].withdrawn, "Player already withdraw from game");
         // only registered players can deposit
         require(players[msg.sender].addr == msg.sender, "Sender is not a player");
@@ -447,8 +459,11 @@ contract Pool is Ownable, Pausable {
             "Player didn't pay the previous segment - game over!"
         );
 
+        if (flexibleSegmentPayment) {
+            segmentPayment = _depositAmount;
+        }
         emit Deposit(msg.sender, currentSegment, segmentPayment);
-        _transferDaiToContract(_minAmount);
+        _transferDaiToContract(_minAmount, _depositAmount);
     }
 
     /// @notice Redeems funds from the external pool and updates the internal accounting controls related to the game stats.
@@ -518,7 +533,10 @@ contract Pool is Ownable, Pausable {
         @dev Manages the transfer of funds from the player to the contract, recording
         the required accounting operations to control the user's position in the pool.
      */
-    function _transferDaiToContract(uint256 _minAmount) internal virtual {
+    function _transferDaiToContract(uint256 _minAmount, uint256 _depositAmount) internal virtual {
+        if (flexibleSegmentPayment) {
+            segmentPayment = _depositAmount;
+        }
         require(
             inboundToken.allowance(msg.sender, address(this)) >= segmentPayment,
             "You need to have allowance to do transfer DAI on the smart contract"
@@ -526,6 +544,7 @@ contract Pool is Ownable, Pausable {
 
         uint256 currentSegment = getCurrentSegment();
         players[msg.sender].mostRecentSegmentPaid = currentSegment;
+
         players[msg.sender].amountPaid = players[msg.sender].amountPaid.add(segmentPayment);
         // PLAYER INDEX CALCULATION TO DETERMINE INTEREST SHARE
         // player index = prev. segment player index + segment amount deposited / time stamp of deposit
