@@ -84,11 +84,12 @@ contract Pool is Ownable, Pausable {
         address addr;
         uint256 mostRecentSegmentPaid;
         uint256 amountPaid;
-        uint256 playerIndex;
     }
 
     /// @notice Stores info about the players in the game
     mapping(address => Player) public players;
+
+    mapping(address => mapping(uint256 => uint256)) playerIndex;
 
     /// @notice list of players
     address[] public iterablePlayers;
@@ -297,7 +298,6 @@ contract Pool is Ownable, Pausable {
             addr: msg.sender,
             mostRecentSegmentPaid: 0,
             amountPaid: 0,
-            playerIndex: 0,
             withdrawn: false,
             canRejoin: false,
             isWinner: false
@@ -329,13 +329,15 @@ contract Pool is Ownable, Pausable {
         // Users that early withdraw during the first segment, are allowed to rejoin.
         if (currentSegment == 0) {
             player.canRejoin = true;
-            player.playerIndex = 0;
+            playerIndex[msg.sender][currentSegment] = 0;
         }
 
         if (winnerCount > 0 && player.isWinner) {
             winnerCount = winnerCount.sub(uint256(1));
             player.isWinner = false;
-            sum = sum.sub(players[msg.sender].playerIndex);
+            for (uint256 i = 0; i <= players[msg.sender].mostRecentSegmentPaid; i++) {
+                sum = sum.sub(playerIndex[msg.sender][i]);
+            }
         }
 
         emit EarlyWithdrawal(msg.sender, withdrawAmount, totalGamePrincipal);
@@ -368,7 +370,12 @@ contract Pool is Ownable, Pausable {
             // the player share of interest is calculated from player index
             // player share % = playerIndex / sum of player indexes of all winners * 100
             // so, interest share = player share % * total game interest
-            uint256 playerShare = player.playerIndex.mul(100) / sum;
+            uint256 cumulativePlayerIndex = 0;
+            for (uint256 i = 0; i <= players[msg.sender].mostRecentSegmentPaid; i++) {
+                cumulativePlayerIndex = cumulativePlayerIndex.sub(playerIndex[msg.sender][i]);
+            }
+
+            uint256 playerShare = cumulativePlayerIndex.mul(100) / sum;
             playerShare = totalGameInterest.mul(playerShare) / 100;
             payout = payout.add(playerShare);
             // If there's additional incentives, distributes them to winners
@@ -522,8 +529,8 @@ contract Pool is Ownable, Pausable {
         players[msg.sender].amountPaid = players[msg.sender].amountPaid.add(segmentPayment);
         // PLAYER INDEX CALCULATION TO DETERMINE INTEREST SHARE
         // player index = prev. segment player index + segment amount deposited / time stamp of deposit
-        uint256 playerIndex = segmentPayment.mul(multiplier) / block.timestamp;
-        players[msg.sender].playerIndex = players[msg.sender].playerIndex.add(playerIndex);
+        uint256 currentSegmentplayerIndex = segmentPayment.mul(multiplier) / block.timestamp;
+        playerIndex[msg.sender][currentSegment] = currentSegmentplayerIndex;
 
         // check if this is deposit for the last segment. If yes, the player is a winner.
         // since both join game and deposit method call this method so having it here
@@ -531,7 +538,9 @@ contract Pool is Ownable, Pausable {
             // array indexes start from 0
             winnerCount = winnerCount.add(uint256(1));
             players[msg.sender].isWinner = true;
-            sum = sum.add(players[msg.sender].playerIndex);
+            for (uint256 i = 0; i <= players[msg.sender].mostRecentSegmentPaid; i++) {
+                sum = sum.add(playerIndex[msg.sender][i]);
+            }
         }
         totalGamePrincipal = totalGamePrincipal.add(segmentPayment);
         require(inboundToken.transferFrom(msg.sender, address(strategy), segmentPayment), "Transfer failed");
