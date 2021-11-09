@@ -191,26 +191,19 @@ export const shouldBehaveLikeGGPool = async (strategyType: string) => {
     );
   });
 
-  // it("checks if the game segments increase", async () => {
-  //   let result: any = -1;
-  //   for (let expectedSegment = 0; expectedSegment <= segmentCount; expectedSegment++) {
-  //       result = await contracts.goodGhosting.getCurrentSegment();
-  //       let lastSegment = await contracts.goodGhosting.lastSegment();
-  //       if ()
-  //       console.log('RESULT', result.toString())
-  //       assert(
-  //         result.eq(ethers.BigNumber.from(expectedSegment)),
-  //         `expected segment ${expectedSegment} actual ${result.toNumber()}`,
-  //       );
-  //       if (expectedSegment == segmentCount) {
-  //         await ethers.provider.send("evm_increaseTime", [segmentLength * 2]);
-  //         await ethers.provider.send("evm_mine", []);
-  //       } else {
-  //         await ethers.provider.send("evm_increaseTime", [segmentLength]);
-  //         await ethers.provider.send("evm_mine", []);
-  //       }
-  //   }
-  // });
+  it("checks if the game segments increase", async () => {
+    let result: any = -1;
+    for (let expectedSegment = 0; expectedSegment <= segmentCount; expectedSegment++) {
+      result = await contracts.goodGhosting.getCurrentSegment();
+      console.log("RESULT474", result.toString());
+      assert(
+        result.eq(ethers.BigNumber.from(expectedSegment)),
+        `expected segment ${expectedSegment} actual ${result.toNumber()}`,
+      );
+      await ethers.provider.send("evm_increaseTime", [segmentLength]);
+      await ethers.provider.send("evm_mine", []);
+    }
+  });
 
   it("checks if the game completes when last segment completes", async () => {
     let result: any = -1;

@@ -50,7 +50,6 @@ describe("Pool using Aave strategy", () => {
         false,
         true,
       );
-      console.log("hereeee");
       await ethers.provider.send("evm_increaseTime", [segmentLength]);
       await ethers.provider.send("evm_mine", []);
       const accounts = await ethers.getSigners();

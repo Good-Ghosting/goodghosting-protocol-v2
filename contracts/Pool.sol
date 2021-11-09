@@ -45,6 +45,8 @@ contract Pool is Ownable, Pausable {
     /// @notice When the game started (deployed timestamp)
     uint256 public immutable firstSegmentStart;
 
+    uint256 public immutable waitingRoundSegmentStart;
+
     /// @notice The time duration (in seconds) of each segment
     uint256 public immutable segmentLength;
 
@@ -182,6 +184,7 @@ contract Pool is Ownable, Pausable {
 
         // Initializes default variables
         firstSegmentStart = block.timestamp; //gets current time
+        waitingRoundSegmentStart = block.timestamp + (_segmentLength * _segmentCount);
         lastSegment = _segmentCount;
         segmentLength = _segmentLength;
         waitingRoundSegmentLength = _waitingRoundSegmentLength;
@@ -264,8 +267,12 @@ contract Pool is Ownable, Pausable {
     function getCurrentSegment() public view returns (uint256) {
         uint256 currentSegment;
         currentSegment = block.timestamp.sub(firstSegmentStart) / (segmentLength);
-        if (currentSegment == lastSegment) {
-            currentSegment = block.timestamp.sub(firstSegmentStart) / (waitingRoundSegmentLength);
+        if (
+            waitingRoundSegmentStart <= block.timestamp &&
+            block.timestamp <= (waitingRoundSegmentStart + waitingRoundSegmentLength)
+        ) {
+            uint256 waitingRoundSegment = block.timestamp.sub(waitingRoundSegmentStart) / (waitingRoundSegmentLength);
+            currentSegment += waitingRoundSegment;
         }
         return currentSegment;
     }
