@@ -177,6 +177,7 @@ contract Pool is Ownable, Pausable {
         require(address(_strategy) != address(0), "invalid _strategy address");
         require(_segmentCount > 0, "_segmentCount must be greater than zero");
         require(_segmentLength > 0, "_segmentLength must be greater than zero");
+        require(_segmentPayment > 0, "_segmentPayment must be greater than zero");
         require(_waitingRoundSegmentLength > 0, "_waitingRoundSegmentLength must be greater than zero");
 
         // Initializes default variables
@@ -379,7 +380,7 @@ contract Pool is Ownable, Pausable {
             // so, interest share = player share % * total game interest
             uint256 cumulativePlayerIndex = 0;
             for (uint256 i = 0; i <= players[msg.sender].mostRecentSegmentPaid; i++) {
-                cumulativePlayerIndex = cumulativePlayerIndex.sub(playerIndex[msg.sender][i]);
+                cumulativePlayerIndex = cumulativePlayerIndex.add(playerIndex[msg.sender][i]);
             }
 
             uint256 playerShare = cumulativePlayerIndex.mul(100) / sum;

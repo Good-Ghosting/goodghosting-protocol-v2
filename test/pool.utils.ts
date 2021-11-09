@@ -27,7 +27,7 @@ export const deployPool = async (
   isIncentiveToken: boolean,
   isInvestmentStrategy: boolean,
 ) => {
-  const [deployer, player1, player2] = await ethers.getSigners();
+  const [deployer, , player1, player2] = await ethers.getSigners();
   const lendingPoolAddressProvider = new LendingPoolAddressesProviderMock__factory(deployer);
   let inboundToken: any = ZERO_ADDRESS;
 
