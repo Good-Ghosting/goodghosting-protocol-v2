@@ -266,13 +266,14 @@ contract Pool is Ownable, Pausable {
     /// @return current game segment
     function getCurrentSegment() public view returns (uint256) {
         uint256 currentSegment;
-        currentSegment = block.timestamp.sub(firstSegmentStart) / (segmentLength);
         if (
             waitingRoundSegmentStart <= block.timestamp &&
             block.timestamp <= (waitingRoundSegmentStart + waitingRoundSegmentLength)
         ) {
             uint256 waitingRoundSegment = block.timestamp.sub(waitingRoundSegmentStart) / (waitingRoundSegmentLength);
-            currentSegment += waitingRoundSegment;
+            currentSegment = lastSegment + waitingRoundSegment;
+        } else {
+            currentSegment = block.timestamp.sub(firstSegmentStart) / (segmentLength);
         }
         return currentSegment;
     }

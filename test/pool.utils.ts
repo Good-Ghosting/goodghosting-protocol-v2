@@ -131,7 +131,10 @@ export const joinGamePaySegmentsAndComplete = async (
   }
   // above, it accounted for 1st deposit window, and then the loop runs till segmentCount - 1.
   // now, we move 2 more segments (segmentCount-1 and segmentCount) to complete the game.
-  await ethers.provider.send("evm_increaseTime", [segmentLength * 2]);
+  await ethers.provider.send("evm_increaseTime", [segmentLength]);
+  await ethers.provider.send("evm_mine", []);
+  const waitingRoundLength = await goodGhosting.waitingRoundSegmentLength();
+  await ethers.provider.send("evm_increaseTime", [parseInt(waitingRoundLength.toString())]);
   await ethers.provider.send("evm_mine", []);
   const gameStatus = await goodGhosting.isGameCompleted();
   assert(gameStatus);
@@ -159,7 +162,10 @@ export const joinGamePaySegmentsAndNotComplete = async (
   }
   // above, it accounted for 1st deposit window, and then the loop runs till segmentCount - 1.
   // now, we move 2 more segments (segmentCount-1 and segmentCount) to complete the game.
-  await ethers.provider.send("evm_increaseTime", [segmentLength * 2]);
+  await ethers.provider.send("evm_increaseTime", [segmentLength]);
+  await ethers.provider.send("evm_mine", []);
+  const waitingRoundLength = await goodGhosting.waitingRoundSegmentLength();
+  await ethers.provider.send("evm_increaseTime", [parseInt(waitingRoundLength.toString())]);
   await ethers.provider.send("evm_mine", []);
   const gameStatus = await goodGhosting.isGameCompleted();
   assert(gameStatus);
@@ -169,10 +175,11 @@ export const advanceToEndOfGame = async (goodGhosting: Pool, segmentLength: numb
   // We need to to account for the first deposit window.
   // i.e., if game has 5 segments, we need to add + 1, because while current segment was 0,
   // it was just the first deposit window (a.k.a., joining period).
-  await ethers.provider.send("evm_increaseTime", [segmentLength * (segmentCount + 1)]);
+  await ethers.provider.send("evm_increaseTime", [segmentLength * segmentCount]);
   await ethers.provider.send("evm_mine", []);
-  const currentSegment = await goodGhosting.getCurrentSegment();
-  assert(currentSegment.eq(ethers.BigNumber.from(segmentCount + 1)));
+  const waitingRoundLength = await goodGhosting.waitingRoundSegmentLength();
+  await ethers.provider.send("evm_increaseTime", [parseInt(waitingRoundLength.toString())]);
+  await ethers.provider.send("evm_mine", []);
 };
 
 export const joinGame = async (
