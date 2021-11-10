@@ -489,8 +489,8 @@ export const shouldBehaveLikeReJoiningGGPool = async (strategyType: string) => {
     const player1 = accounts[2];
     await joinGame(contracts.goodGhosting, contracts.inboundToken, player1, segmentPayment, segmentPayment);
     await contracts.goodGhosting.connect(player1).earlyWithdraw();
-    // const playerInfoBeforeRejoin = await contracts.goodGhosting.players(player1.address);
-    // assert(playerInfoBeforeRejoin.playerIndex.eq(0));
+    const playerIndexBeforeRejoin = await contracts.goodGhosting.playerIndex(player1.address, 0);
+    assert(playerIndexBeforeRejoin.eq(0));
 
     await joinGame(contracts.goodGhosting, contracts.inboundToken, player1, segmentPayment, segmentPayment);
     const playerInfo = await contracts.goodGhosting.players(player1.address);
@@ -498,7 +498,8 @@ export const shouldBehaveLikeReJoiningGGPool = async (strategyType: string) => {
     assert(playerInfo.amountPaid.eq(segmentPayment));
     assert(playerInfo.canRejoin === false);
     assert(playerInfo.withdrawn === false);
-    // assert(playerInfo.playerIndex.gt(playerInfoBeforeRejoin.playerIndex));
+    const playerIndexAfterRejoin = await contracts.goodGhosting.playerIndex(player1.address, 0);
+    assert(playerIndexAfterRejoin.gt(playerIndexBeforeRejoin));
   });
 };
 
@@ -656,7 +657,7 @@ export const shouldBehaveLikeDepositingGGPool = async (strategyType: string) => 
     const accounts = await ethers.getSigners();
     const player1 = accounts[2];
     await joinGame(contracts.goodGhosting, contracts.inboundToken, player1, segmentPayment, segmentPayment);
-    const playerInfoBeforeDeposit = await contracts.goodGhosting.players(player1.address);
+    const playerIndexBeforeDeposit = await contracts.goodGhosting.playerIndex(player1.address, 0);
 
     await ethers.provider.send("evm_increaseTime", [segmentLength]);
     await ethers.provider.send("evm_mine", []);
@@ -667,7 +668,9 @@ export const shouldBehaveLikeDepositingGGPool = async (strategyType: string) => 
     assert(playerInfo.amountPaid.eq(ethers.BigNumber.from(segmentPayment).mul(ethers.BigNumber.from(2))));
     assert(playerInfo.canRejoin === false);
     assert(playerInfo.withdrawn === false);
-    // assert(playerInfo.playerIndex.gt(playerInfoBeforeDeposit.playerIndex));
+    const playerIndexAfterDeposit = await contracts.goodGhosting.playerIndex(player1.address, 1);
+
+    assert(playerIndexAfterDeposit.add(playerIndexBeforeDeposit).gt(playerIndexBeforeDeposit));
   });
 };
 
@@ -900,10 +903,25 @@ export const shouldBehaveLikeEarlyWithdrawingGGPool = async (strategyType: strin
     // now, we move 2 more segments (segmentCount-1 and segmentCount) to complete the game.
     await ethers.provider.send("evm_increaseTime", [segmentLength]);
     await ethers.provider.send("evm_mine", []);
-    // const cumalativePlayerIndexBeforeWithdraw = await contracts.goodGhosting.sum();
-    // const player1Info = await contracts.goodGhosting.players(player1.address);
-    // const player2Info = await contracts.goodGhosting.players(player2.address);
-    // assert(cumalativePlayerIndexBeforeWithdraw.eq(player1Info.playerIndex.add(player2Info.playerIndex)));
+    const cumalativePlayerIndexBeforeWithdraw = await contracts.goodGhosting.sum();
+    const player1Info = await contracts.goodGhosting.players(player1.address);
+    const player2Info = await contracts.goodGhosting.players(player2.address);
+    let cummalativePlayer1IndexBeforeWithdraw = 0,
+      cummalativePlayer2IndexBeforeWithdraw = 0;
+    for (let i = 0; i < player2Info.mostRecentSegmentPaid; i++) {
+      cummalativePlayer1IndexBeforeWithdraw += await contracts.goodGhosting.playerIndex(player1.address, i);
+    }
+
+    for (let i = 0; i < player2Info.mostRecentSegmentPaid; i++) {
+      cummalativePlayer2IndexBeforeWithdraw += await contracts.goodGhosting.playerIndex(player2.address, i);
+    }
+    assert(
+      cumalativePlayerIndexBeforeWithdraw.eq(
+        ethers.BigNumber.from(cummalativePlayer1IndexBeforeWithdraw).add(
+          ethers.BigNumber.from(cummalativePlayer2IndexBeforeWithdraw),
+        ),
+      ),
+    );
     await contracts.goodGhosting.connect(player1).earlyWithdraw();
     // const cumalativePlayerIndexAfterWithdraw = await contracts.goodGhosting.sum();
     // assert(cumalativePlayerIndexAfterWithdraw.eq(player2Info.playerIndex));

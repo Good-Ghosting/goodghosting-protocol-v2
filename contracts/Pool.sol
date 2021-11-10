@@ -98,7 +98,7 @@ contract Pool is Ownable, Pausable {
     /// @notice Stores info about the players in the game
     mapping(address => Player) public players;
 
-    mapping(address => mapping(uint256 => uint256)) playerIndex;
+    mapping(address => mapping(uint256 => uint256)) public playerIndex;
 
     /// @notice list of players
     address[] public iterablePlayers;
