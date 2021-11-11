@@ -27,7 +27,18 @@ let contracts: any;
 
 export const shouldBehaveLikeGGPool = async (strategyType: string) => {
   beforeEach(async () => {
-    contracts = await deployPool(segmentCount, segmentLength, segmentPayment, 1, 1, maxPlayersCount, true, false, true);
+    contracts = await deployPool(
+      segmentCount,
+      segmentLength,
+      segmentPayment,
+      1,
+      1,
+      maxPlayersCount,
+      true,
+      false,
+      true,
+      false,
+    );
   });
 
   it("check if inbound and interest token have distinct addresses", async () => {
@@ -74,55 +85,55 @@ export const shouldBehaveLikeGGPool = async (strategyType: string) => {
 
   it("reverts if the contract is deployed with 0% early withdraw fee", async () => {
     await expect(
-      deployPool(segmentCount, segmentLength, segmentPayment, 0, 0, maxPlayersCount, true, false, true),
+      deployPool(segmentCount, segmentLength, segmentPayment, 0, 0, maxPlayersCount, true, false, true, false),
     ).to.be.revertedWith("_earlyWithdrawalFee must be greater than zero");
   });
 
   it("reverts if the contract is deployed with invalid inbound token address", async () => {
     await expect(
-      deployPool(segmentCount, segmentLength, segmentPayment, 1, 0, maxPlayersCount, false, false, true),
+      deployPool(segmentCount, segmentLength, segmentPayment, 1, 0, maxPlayersCount, false, false, true, false),
     ).to.be.revertedWith("invalid _inboundCurrency address");
   });
 
   it("reverts if the contract is deployed with invalid strategy address", async () => {
     await expect(
-      deployPool(segmentCount, segmentLength, segmentPayment, 1, 0, maxPlayersCount, true, false, false),
+      deployPool(segmentCount, segmentLength, segmentPayment, 1, 0, maxPlayersCount, true, false, false, false),
     ).to.be.revertedWith("invalid _strategy address");
   });
 
   it("reverts if the contract is deployed with segment count as 0", async () => {
     await expect(
-      deployPool(0, segmentLength, segmentPayment, 1, 0, maxPlayersCount, true, false, true),
+      deployPool(0, segmentLength, segmentPayment, 1, 0, maxPlayersCount, true, false, true, false),
     ).to.be.revertedWith("segmentCount must be greater than zero");
   });
 
   it("reverts if the contract is deployed with segment length as 0", async () => {
     await expect(
-      deployPool(segmentCount, 0, segmentPayment, 1, 0, maxPlayersCount, true, false, true),
+      deployPool(segmentCount, 0, segmentPayment, 1, 0, maxPlayersCount, true, false, true, false),
     ).to.be.revertedWith("_segmentLength must be greater than zero");
   });
 
   it("reverts if the contract is deployed with segment payment as 0", async () => {
     await expect(
-      deployPool(segmentCount, segmentLength, 0, 1, 0, maxPlayersCount, true, false, true),
+      deployPool(segmentCount, segmentLength, 0, 1, 0, maxPlayersCount, true, false, true, false),
     ).to.be.revertedWith("_segmentPayment must be greater than zero");
   });
 
   it("reverts if the contract is deployed with early withdraw fee more than 10%", async () => {
     await expect(
-      deployPool(segmentCount, segmentLength, segmentPayment, 20, 0, maxPlayersCount, true, false, true),
+      deployPool(segmentCount, segmentLength, segmentPayment, 20, 0, maxPlayersCount, true, false, true, false),
     ).to.be.revertedWith("_earlyWithdrawalFee must be less than or equal to 10%");
   });
 
   it("reverts if the contract is deployed with admin fee more than 20%", async () => {
     await expect(
-      deployPool(segmentCount, segmentLength, segmentPayment, 1, 25, maxPlayersCount, true, false, true),
+      deployPool(segmentCount, segmentLength, segmentPayment, 1, 25, maxPlayersCount, true, false, true, false),
     ).to.be.revertedWith("_customFee must be less than or equal to 20%");
   });
 
   it("reverts if the contract is deployed with max player count equal to zero", async () => {
     await expect(
-      deployPool(segmentCount, segmentLength, segmentPayment, 1, 0, "0", true, false, true),
+      deployPool(segmentCount, segmentLength, segmentPayment, 1, 0, "0", true, false, true, false),
     ).to.be.revertedWith("_maxPlayersCount must be greater than zero");
   });
 
@@ -137,6 +148,7 @@ export const shouldBehaveLikeGGPool = async (strategyType: string) => {
       true,
       false,
       true,
+      false,
     );
     const expectedValue = ethers.BigNumber.from(2).pow(ethers.BigNumber.from(256)).sub(ethers.BigNumber.from(1));
 
@@ -271,7 +283,18 @@ export const shouldBehaveLikeGGPool = async (strategyType: string) => {
 
 export const shouldBehaveLikeJoiningGGPool = async (strategyType: string) => {
   beforeEach(async () => {
-    contracts = await deployPool(segmentCount, segmentLength, segmentPayment, 1, 1, maxPlayersCount, true, false, true);
+    contracts = await deployPool(
+      segmentCount,
+      segmentLength,
+      segmentPayment,
+      1,
+      1,
+      maxPlayersCount,
+      true,
+      false,
+      true,
+      false,
+    );
   });
   it("reverts if the contract is paused", async () => {
     const accounts = await ethers.getSigners();
@@ -315,7 +338,7 @@ export const shouldBehaveLikeJoiningGGPool = async (strategyType: string) => {
     const player1 = accounts[2];
     const player2 = accounts[3];
 
-    const contracts = await deployPool(segmentCount, segmentLength, segmentPayment, 1, 0, 2, true, false, true);
+    const contracts = await deployPool(segmentCount, segmentLength, segmentPayment, 1, 0, 2, true, false, true, false);
 
     await joinGame(contracts.goodGhosting, contracts.inboundToken, player1, segmentPayment, segmentPayment);
 
@@ -346,7 +369,7 @@ export const shouldBehaveLikeJoiningGGPool = async (strategyType: string) => {
     const deployer = accounts[0];
     const player1 = accounts[2];
     const player2 = accounts[3];
-    const contracts = await deployPool(segmentCount, segmentLength, segmentPayment, 1, 0, 2, true, false, true);
+    const contracts = await deployPool(segmentCount, segmentLength, segmentPayment, 1, 0, 2, true, false, true, false);
 
     await joinGame(contracts.goodGhosting, contracts.inboundToken, player1, segmentPayment, segmentPayment);
 
@@ -364,7 +387,7 @@ export const shouldBehaveLikeJoiningGGPool = async (strategyType: string) => {
     const player1 = accounts[2];
     const player2 = accounts[3];
 
-    const contracts = await deployPool(segmentCount, segmentLength, segmentPayment, 1, 0, 2, true, false, true);
+    const contracts = await deployPool(segmentCount, segmentLength, segmentPayment, 1, 0, 2, true, false, true, false);
 
     await joinGame(contracts.goodGhosting, contracts.inboundToken, player1, segmentPayment, segmentPayment);
 
@@ -447,7 +470,18 @@ export const shouldBehaveLikeJoiningGGPool = async (strategyType: string) => {
 
 export const shouldBehaveLikeReJoiningGGPool = async (strategyType: string) => {
   beforeEach(async () => {
-    contracts = await deployPool(segmentCount, segmentLength, segmentPayment, 1, 1, maxPlayersCount, true, false, true);
+    contracts = await deployPool(
+      segmentCount,
+      segmentLength,
+      segmentPayment,
+      1,
+      1,
+      maxPlayersCount,
+      true,
+      false,
+      true,
+      false,
+    );
   });
   it("reverts if a user tries to rejoin the game in segment 0 without doing an early withdraw", async () => {
     const accounts = await ethers.getSigners();
@@ -505,7 +539,18 @@ export const shouldBehaveLikeReJoiningGGPool = async (strategyType: string) => {
 
 export const shouldBehaveLikeDepositingGGPool = async (strategyType: string) => {
   beforeEach(async () => {
-    contracts = await deployPool(segmentCount, segmentLength, segmentPayment, 1, 1, maxPlayersCount, true, false, true);
+    contracts = await deployPool(
+      segmentCount,
+      segmentLength,
+      segmentPayment,
+      1,
+      1,
+      maxPlayersCount,
+      true,
+      false,
+      true,
+      false,
+    );
   });
   it("reverts if the contract is paused", async () => {
     const accounts = await ethers.getSigners();
@@ -676,7 +721,18 @@ export const shouldBehaveLikeDepositingGGPool = async (strategyType: string) => 
 
 export const shouldBehaveLikeEarlyWithdrawingGGPool = async (strategyType: string) => {
   beforeEach(async () => {
-    contracts = await deployPool(segmentCount, segmentLength, segmentPayment, 1, 1, maxPlayersCount, true, false, true);
+    contracts = await deployPool(
+      segmentCount,
+      segmentLength,
+      segmentPayment,
+      1,
+      1,
+      maxPlayersCount,
+      true,
+      false,
+      true,
+      false,
+    );
   });
   it("reverts if the contract is paused", async () => {
     await contracts.goodGhosting.pause();
@@ -937,7 +993,18 @@ export const shouldBehaveLikeEarlyWithdrawingGGPool = async (strategyType: strin
 
 export const shouldBehaveLikeRedeemingFromGGPool = async (strategyType: string) => {
   beforeEach(async () => {
-    contracts = await deployPool(segmentCount, segmentLength, segmentPayment, 1, 1, maxPlayersCount, true, false, true);
+    contracts = await deployPool(
+      segmentCount,
+      segmentLength,
+      segmentPayment,
+      1,
+      1,
+      maxPlayersCount,
+      true,
+      false,
+      true,
+      false,
+    );
   });
   it("reverts if game is not completed", async () => {
     const accounts = await ethers.getSigners();
@@ -1023,7 +1090,7 @@ export const shouldBehaveLikeRedeemingFromGGPool = async (strategyType: string) 
       await contracts.inboundToken
         .connect(deployer)
         .approve(contracts.curvePool.address, ethers.utils.parseEther("100000"));
-      await contracts.curvePool.connect(deployer).add_liquidity([ethers.utils.parseEther("100000")], 0, true);
+      await contracts.curvePool.connect(deployer).add_liquidity([ethers.utils.parseEther("100000")], 0, true, false);
       await contracts.curvePool.transfer(contracts.strategy.address, ethers.utils.parseEther("100000"));
     }
 
@@ -1082,7 +1149,7 @@ export const shouldBehaveLikeRedeemingFromGGPool = async (strategyType: string) 
       await contracts.inboundToken
         .connect(deployer)
         .approve(contracts.curvePool.address, ethers.utils.parseEther("100000"));
-      await contracts.curvePool.connect(deployer).add_liquidity([ethers.utils.parseEther("100000")], 0, true);
+      await contracts.curvePool.connect(deployer).add_liquidity([ethers.utils.parseEther("100000")], 0, true, false);
       await contracts.curvePool.transfer(contracts.strategy.address, ethers.utils.parseEther("100000"));
     }
     await contracts.goodGhosting.redeemFromExternalPool();
@@ -1104,7 +1171,18 @@ export const shouldBehaveLikeRedeemingFromGGPool = async (strategyType: string) 
     const deployer = accounts[0];
 
     const player1 = accounts[2];
-    contracts = await deployPool(segmentCount, segmentLength, segmentPayment, 1, 0, maxPlayersCount, true, false, true);
+    contracts = await deployPool(
+      segmentCount,
+      segmentLength,
+      segmentPayment,
+      1,
+      0,
+      maxPlayersCount,
+      true,
+      false,
+      true,
+      false,
+    );
     await joinGamePaySegmentsAndComplete(
       contracts.inboundToken,
       player1,
@@ -1129,7 +1207,7 @@ export const shouldBehaveLikeRedeemingFromGGPool = async (strategyType: string) 
       await contracts.inboundToken
         .connect(deployer)
         .approve(contracts.curvePool.address, ethers.utils.parseEther("100000"));
-      await contracts.curvePool.connect(deployer).add_liquidity([ethers.utils.parseEther("100000")], 0, true);
+      await contracts.curvePool.connect(deployer).add_liquidity([ethers.utils.parseEther("100000")], 0, true, false);
       await contracts.curvePool.transfer(contracts.strategy.address, ethers.utils.parseEther("100000"));
     }
     await contracts.goodGhosting.redeemFromExternalPool();
@@ -1169,7 +1247,7 @@ export const shouldBehaveLikeRedeemingFromGGPool = async (strategyType: string) 
       await contracts.inboundToken
         .connect(deployer)
         .approve(contracts.curvePool.address, ethers.utils.parseEther("100000"));
-      await contracts.curvePool.connect(deployer).add_liquidity([ethers.utils.parseEther("100000")], 0, true);
+      await contracts.curvePool.connect(deployer).add_liquidity([ethers.utils.parseEther("100000")], 0, true, false);
       await contracts.curvePool.transfer(contracts.strategy.address, ethers.utils.parseEther("100000"));
     }
     await contracts.goodGhosting.redeemFromExternalPool();
@@ -1227,6 +1305,7 @@ export const shouldBehaveLikeRedeemingFromGGPool = async (strategyType: string) 
         true,
         true,
         true,
+        false,
       );
     });
 
@@ -1253,7 +1332,18 @@ export const shouldBehaveLikeRedeemingFromGGPool = async (strategyType: string) 
 
 export const shouldBehaveLikeGGPoolWithNoWinners = async (strategyType: string) => {
   beforeEach(async () => {
-    contracts = await deployPool(segmentCount, segmentLength, segmentPayment, 1, 1, maxPlayersCount, true, false, true);
+    contracts = await deployPool(
+      segmentCount,
+      segmentLength,
+      segmentPayment,
+      1,
+      1,
+      maxPlayersCount,
+      true,
+      false,
+      true,
+      false,
+    );
   });
   it("assign the complete interest to admin", async () => {
     let governanceTokenRewards = 0;
@@ -1308,7 +1398,18 @@ export const shouldBehaveLikeGGPoolWithNoWinners = async (strategyType: string) 
 
 export const shouldBehaveLikePlayersWithdrawingFromGGPool = async (strategyType: string) => {
   beforeEach(async () => {
-    contracts = await deployPool(segmentCount, segmentLength, segmentPayment, 1, 1, maxPlayersCount, true, false, true);
+    contracts = await deployPool(
+      segmentCount,
+      segmentLength,
+      segmentPayment,
+      1,
+      1,
+      maxPlayersCount,
+      true,
+      false,
+      true,
+      false,
+    );
   });
 
   it("pays a bonus to winners and losers get their principle back", async () => {
@@ -1346,7 +1447,7 @@ export const shouldBehaveLikePlayersWithdrawingFromGGPool = async (strategyType:
       await contracts.inboundToken
         .connect(deployer)
         .approve(contracts.curvePool.address, ethers.utils.parseEther("100000"));
-      await contracts.curvePool.connect(deployer).add_liquidity([ethers.utils.parseEther("100000")], 0, true);
+      await contracts.curvePool.connect(deployer).add_liquidity([ethers.utils.parseEther("100000")], 0, true, false);
       await contracts.curvePool.transfer(contracts.strategy.address, ethers.utils.parseEther("100000"));
     }
     // Expect Player1 to get back the deposited amount
@@ -1483,7 +1584,7 @@ export const shouldBehaveLikePlayersWithdrawingFromGGPool = async (strategyType:
       await contracts.inboundToken
         .connect(deployer)
         .approve(contracts.curvePool.address, ethers.utils.parseEther("100000"));
-      await contracts.curvePool.connect(deployer).add_liquidity([ethers.utils.parseEther("100000")], 0, true);
+      await contracts.curvePool.connect(deployer).add_liquidity([ethers.utils.parseEther("100000")], 0, true, false);
       await contracts.curvePool.transfer(contracts.strategy.address, ethers.utils.parseEther("100000"));
     }
 
@@ -1531,7 +1632,7 @@ export const shouldBehaveLikePlayersWithdrawingFromGGPool = async (strategyType:
       await contracts.inboundToken
         .connect(deployer)
         .approve(contracts.curvePool.address, ethers.utils.parseEther("100000"));
-      await contracts.curvePool.connect(deployer).add_liquidity([ethers.utils.parseEther("100000")], 0, true);
+      await contracts.curvePool.connect(deployer).add_liquidity([ethers.utils.parseEther("100000")], 0, true, false);
       await contracts.curvePool.transfer(contracts.strategy.address, ethers.utils.parseEther("100000"));
     }
     await contracts.goodGhosting.redeemFromExternalPool();
@@ -1579,6 +1680,7 @@ export const shouldBehaveLikePlayersWithdrawingFromGGPool = async (strategyType:
         true,
         true,
         true,
+        false,
       );
     });
 
@@ -1621,7 +1723,18 @@ export const shouldBehaveLikePlayersWithdrawingFromGGPool = async (strategyType:
 
 export const shouldBehaveLikeAdminWithdrawingFeesFromGGPoolWithFeePercentMoreThan0 = async (strategyType: string) => {
   beforeEach(async () => {
-    contracts = await deployPool(segmentCount, segmentLength, segmentPayment, 1, 1, maxPlayersCount, true, false, true);
+    contracts = await deployPool(
+      segmentCount,
+      segmentLength,
+      segmentPayment,
+      1,
+      1,
+      maxPlayersCount,
+      true,
+      false,
+      true,
+      false,
+    );
   });
 
   it("when funds were not redeemed from external pool", async () => {
@@ -1670,7 +1783,7 @@ export const shouldBehaveLikeAdminWithdrawingFeesFromGGPoolWithFeePercentMoreTha
       await contracts.inboundToken
         .connect(deployer)
         .approve(contracts.curvePool.address, ethers.utils.parseEther("100000"));
-      await contracts.curvePool.connect(deployer).add_liquidity([ethers.utils.parseEther("100000")], 0, true);
+      await contracts.curvePool.connect(deployer).add_liquidity([ethers.utils.parseEther("100000")], 0, true, false);
       await contracts.curvePool.transfer(contracts.strategy.address, ethers.utils.parseEther("100000"));
     }
     await contracts.goodGhosting.redeemFromExternalPool();
@@ -1772,7 +1885,7 @@ export const shouldBehaveLikeAdminWithdrawingFeesFromGGPoolWithFeePercentMoreTha
         await contracts.inboundToken
           .connect(deployer)
           .approve(contracts.curvePool.address, ethers.utils.parseEther("100000"));
-        await contracts.curvePool.connect(deployer).add_liquidity([ethers.utils.parseEther("100000")], 0, true);
+        await contracts.curvePool.connect(deployer).add_liquidity([ethers.utils.parseEther("100000")], 0, true, false);
         await contracts.curvePool.transfer(contracts.strategy.address, ethers.utils.parseEther("100000"));
       }
       await contracts.goodGhosting.redeemFromExternalPool();
@@ -1830,7 +1943,7 @@ export const shouldBehaveLikeAdminWithdrawingFeesFromGGPoolWithFeePercentMoreTha
         await contracts.inboundToken
           .connect(deployer)
           .approve(contracts.curvePool.address, ethers.utils.parseEther("100000"));
-        await contracts.curvePool.connect(deployer).add_liquidity([ethers.utils.parseEther("100000")], 0, true);
+        await contracts.curvePool.connect(deployer).add_liquidity([ethers.utils.parseEther("100000")], 0, true, false);
         await contracts.curvePool.transfer(contracts.strategy.address, ethers.utils.parseEther("100000"));
       }
       await contracts.goodGhosting.redeemFromExternalPool();
@@ -1978,7 +2091,7 @@ export const shouldBehaveLikeAdminWithdrawingFeesFromGGPoolWithFeePercentMoreTha
         await contracts.inboundToken
           .connect(deployer)
           .approve(contracts.curvePool.address, ethers.utils.parseEther("100000"));
-        await contracts.curvePool.connect(deployer).add_liquidity([ethers.utils.parseEther("100000")], 0, true);
+        await contracts.curvePool.connect(deployer).add_liquidity([ethers.utils.parseEther("100000")], 0, true, false);
         await contracts.curvePool.transfer(contracts.strategy.address, ethers.utils.parseEther("100000"));
       }
       await contracts.goodGhosting.redeemFromExternalPool();
@@ -2044,7 +2157,7 @@ export const shouldBehaveLikeAdminWithdrawingFeesFromGGPoolWithFeePercentMoreTha
         await contracts.inboundToken
           .connect(deployer)
           .approve(contracts.curvePool.address, ethers.utils.parseEther("100000"));
-        await contracts.curvePool.connect(deployer).add_liquidity([ethers.utils.parseEther("100000")], 0, true);
+        await contracts.curvePool.connect(deployer).add_liquidity([ethers.utils.parseEther("100000")], 0, true, false);
         await contracts.curvePool.transfer(contracts.strategy.address, ethers.utils.parseEther("100000"));
       }
       await contracts.goodGhosting.redeemFromExternalPool();
@@ -2073,7 +2186,18 @@ export const shouldBehaveLikeAdminWithdrawingFeesFromGGPoolWithFeePercentMoreTha
 
 export const shouldBehaveLikeAdminWithdrawingFeesFromGGPoolWithFeePercentis0 = async (strategyType: string) => {
   beforeEach(async () => {
-    contracts = await deployPool(segmentCount, segmentLength, segmentPayment, 1, 0, maxPlayersCount, true, true, true);
+    contracts = await deployPool(
+      segmentCount,
+      segmentLength,
+      segmentPayment,
+      1,
+      0,
+      maxPlayersCount,
+      true,
+      true,
+      true,
+      false,
+    );
   });
 
   it("does not revert when there is no interest generated", async () => {
@@ -2119,4 +2243,230 @@ export const shouldBehaveLikeAdminWithdrawingFeesFromGGPoolWithFeePercentis0 = a
     const adminIncentiveTokenBalanceAfterWithdraw = await contracts.incentiveToken.balanceOf(deployer.address);
     assert(adminIncentiveTokenBalanceAfterWithdraw.gt(adminIncentiveTokenBalanceBeforeWithdraw));
   });
+};
+
+export const shouldBehaveLikeVariableDepositPool = async (strategyType: string) => {
+  beforeEach(async () => {
+    contracts = await deployPool(
+      segmentCount,
+      segmentLength,
+      segmentPayment,
+      1,
+      0,
+      maxPlayersCount,
+      true,
+      true,
+      true,
+      true,
+    );
+  });
+
+  it("2 players join the game with different amounts and deposit those amounts throughout and get interest accordingly on withdraw", async () => {
+    const accounts = await ethers.getSigners();
+    const deployer = accounts[0];
+    const player1 = accounts[2];
+    const player2 = accounts[3];
+
+    await joinGame(
+      contracts.goodGhosting,
+      contracts.inboundToken,
+      player2,
+      segmentPayment,
+      ethers.BigNumber.from(segmentPayment).mul(ethers.BigNumber.from("2")).toString(),
+    );
+    await joinGame(
+      contracts.goodGhosting,
+      contracts.inboundToken,
+      player1,
+      segmentPayment,
+      ethers.BigNumber.from(segmentPayment).div(ethers.BigNumber.from("2")).toString(),
+    );
+
+    for (let index = 1; index < segmentCount; index++) {
+      await ethers.provider.send("evm_increaseTime", [segmentLength]);
+      await ethers.provider.send("evm_mine", []);
+
+      await makeDeposit(
+        contracts.goodGhosting,
+        contracts.inboundToken,
+        player2,
+        segmentPayment,
+        ethers.BigNumber.from(segmentPayment).div(ethers.BigNumber.from("2")).toString(),
+      );
+      await makeDeposit(
+        contracts.goodGhosting,
+        contracts.inboundToken,
+        player1,
+        segmentPayment,
+        ethers.BigNumber.from(segmentPayment).mul(ethers.BigNumber.from("2")).toString(),
+      );
+    }
+    // above, it accounted for 1st deposit window, and then the loop runs till segmentCount - 1.
+    // now, we move 2 more segments (segmentCount-1 and segmentCount) to complete the game.
+    await ethers.provider.send("evm_increaseTime", [segmentLength]);
+    await ethers.provider.send("evm_mine", []);
+
+    const waitingRoundLength = await contracts.goodGhosting.waitingRoundSegmentLength();
+    await ethers.provider.send("evm_increaseTime", [parseInt(waitingRoundLength.toString())]);
+    await ethers.provider.send("evm_mine", []);
+
+    // mocks interest generation
+    await mintTokens(contracts.inboundToken, deployer.address);
+
+    if (strategyType === "aave") {
+      await contracts.inboundToken
+        .connect(deployer)
+        .approve(contracts.lendingPool.address, ethers.utils.parseEther("100000"));
+      await contracts.lendingPool
+        .connect(deployer)
+        .deposit(contracts.inboundToken.address, ethers.utils.parseEther("100000"), contracts.lendingPool.address, 0);
+      const aToken = new ERC20__factory(deployer).attach(await contracts.lendingPool.getLendingPool());
+
+      await aToken.transfer(contracts.strategy.address, ethers.utils.parseEther("100000"));
+    } else if (strategyType === "curve") {
+      await contracts.inboundToken
+        .connect(deployer)
+        .approve(contracts.curvePool.address, ethers.utils.parseEther("100000"));
+      await contracts.curvePool.connect(deployer).add_liquidity([ethers.utils.parseEther("100000")], 0, true, false);
+      await contracts.curvePool.transfer(contracts.strategy.address, ethers.utils.parseEther("100000"));
+    }
+    await contracts.goodGhosting.redeemFromExternalPool();
+
+    const player1Info = await contracts.goodGhosting.players(player1.address);
+    const player2Info = await contracts.goodGhosting.players(player2.address);
+    let cummalativePlayer1IndexBeforeWithdraw = ethers.BigNumber.from(0),
+      cummalativePlayer2IndexBeforeWithdraw = ethers.BigNumber.from(0);
+    for (let i = 0; i <= player1Info.mostRecentSegmentPaid; i++) {
+      let index1 = await contracts.goodGhosting.playerIndex(player1.address, i);
+      cummalativePlayer1IndexBeforeWithdraw = cummalativePlayer1IndexBeforeWithdraw.add(
+        ethers.BigNumber.from(index1.toString()),
+      );
+    }
+
+    for (let i = 0; i <= player2Info.mostRecentSegmentPaid; i++) {
+      let index2 = await contracts.goodGhosting.playerIndex(player2.address, i);
+      cummalativePlayer2IndexBeforeWithdraw = cummalativePlayer2IndexBeforeWithdraw.add(
+        ethers.BigNumber.from(index2.toString()),
+      );
+    }
+    // since player1 deposited high amount the player index is more
+    assert(cummalativePlayer1IndexBeforeWithdraw.gt(cummalativePlayer2IndexBeforeWithdraw));
+    const player1BalanceBeforeWithdraw = await contracts.inboundToken.balanceOf(player1.address);
+    const player2BalanceBeforeWithdraw = await contracts.inboundToken.balanceOf(player2.address);
+
+    await contracts.goodGhosting.connect(player1).withdraw();
+    await contracts.goodGhosting.connect(player2).withdraw();
+    const player1BalanceAfterWithdraw = await contracts.inboundToken.balanceOf(player1.address);
+    const player2BalanceAfterWithdraw = await contracts.inboundToken.balanceOf(player2.address);
+    // since player1 deposited high amount it get's more interest
+    assert(
+      player1BalanceAfterWithdraw
+        .sub(player1BalanceBeforeWithdraw)
+        .gt(player2BalanceAfterWithdraw.sub(player2BalanceBeforeWithdraw)),
+    );
+  });
+
+  // it("2 players join the game with different amounts and deposit different amounts throughout and get interest accordingly on withdraw", async() => {
+  //   const accounts = await ethers.getSigners();
+  //   const deployer = accounts[0];
+  //   const player1 = accounts[2];
+  //   const player2 = accounts[3];
+
+  //   await joinGame(contracts.goodGhosting, contracts.inboundToken, player2, segmentPayment, ethers.BigNumber.from(segmentPayment).mul(ethers.BigNumber.from('2')).toString());
+  //   await joinGame(contracts.goodGhosting, contracts.inboundToken, player1, segmentPayment, ethers.BigNumber.from(segmentPayment).div(ethers.BigNumber.from('2')).toString());
+
+  //   for (let index = 1; index < segmentCount; index++) {
+  //     await ethers.provider.send("evm_increaseTime", [segmentLength]);
+  //     await ethers.provider.send("evm_mine", []);
+
+  //     await makeDeposit(contracts.goodGhosting, contracts.inboundToken, player2, segmentPayment, ethers.BigNumber.from(segmentPayment).mul(ethers.BigNumber.from('2')).toString());
+  //     await makeDeposit(contracts.goodGhosting, contracts.inboundToken, player1, segmentPayment, segmentPayment);
+  //   }
+  //   // above, it accounted for 1st deposit window, and then the loop runs till segmentCount - 1.
+  //   // now, we move 2 more segments (segmentCount-1 and segmentCount) to complete the game.
+  //   await ethers.provider.send("evm_increaseTime", [segmentLength]);
+  //   await ethers.provider.send("evm_mine", []);
+
+  //   const waitingRoundLength = await contracts.goodGhosting.waitingRoundSegmentLength();
+  //   await ethers.provider.send("evm_increaseTime", [parseInt(waitingRoundLength.toString())]);
+  //   await ethers.provider.send("evm_mine", []);
+
+  //   // mocks interest generation
+  //   await mintTokens(contracts.inboundToken, deployer.address);
+
+  //   if (strategyType === "aave") {
+  //     await contracts.inboundToken
+  //       .connect(deployer)
+  //       .approve(contracts.lendingPool.address, ethers.utils.parseEther("100000"));
+  //     await contracts.lendingPool
+  //       .connect(deployer)
+  //       .deposit(contracts.inboundToken.address, ethers.utils.parseEther("100000"), contracts.lendingPool.address, 0);
+  //     const aToken = new ERC20__factory(deployer).attach(await contracts.lendingPool.getLendingPool());
+
+  //     await aToken.transfer(contracts.strategy.address, ethers.utils.parseEther("100000"));
+  //   } else if (strategyType === "curve") {
+  //     await contracts.inboundToken
+  //       .connect(deployer)
+  //       .approve(contracts.curvePool.address, ethers.utils.parseEther("100000"));
+  //     await contracts.curvePool.connect(deployer).add_liquidity([ethers.utils.parseEther("100000")], 0, true, false);
+  //     await contracts.curvePool.transfer(contracts.strategy.address, ethers.utils.parseEther("100000"));
+  //   }
+  //   await contracts.goodGhosting.redeemFromExternalPool();
+
+  //   const player1Info = await contracts.goodGhosting.players(player1.address);
+  //   const player2Info = await contracts.goodGhosting.players(player2.address);
+  //   let cummalativePlayer1IndexBeforeWithdraw = ethers.BigNumber.from(0),
+  //     cummalativePlayer2IndexBeforeWithdraw = ethers.BigNumber.from(0);
+  //   for (let i = 0; i <= player1Info.mostRecentSegmentPaid; i++) {
+  //     let index1 = await contracts.goodGhosting.playerIndex(player1.address, i);
+  //     cummalativePlayer1IndexBeforeWithdraw = cummalativePlayer1IndexBeforeWithdraw.add(
+  //       ethers.BigNumber.from(index1.toString()),
+  //     );
+  //   }
+
+  //   for (let i = 0; i <= player2Info.mostRecentSegmentPaid; i++) {
+  //     let index2 = await contracts.goodGhosting.playerIndex(player2.address, i);
+  //     cummalativePlayer2IndexBeforeWithdraw = cummalativePlayer2IndexBeforeWithdraw.add(
+  //       ethers.BigNumber.from(index2.toString()),
+  //     );
+  //   }
+
+  //   let governanceTokenBalance = 0;
+  //   const sum = await contracts.goodGhosting.sum();
+  //   const gameInterest = await contracts.goodGhosting.totalGameInterest();
+
+  //   let player1Share = ethers.BigNumber.from(cummalativePlayer1IndexBeforeWithdraw)
+  //     .mul(ethers.BigNumber.from(100))
+  //     .div(ethers.BigNumber.from(sum));
+  //     player1Share = ethers.BigNumber.from(gameInterest).mul(player1Share).div(ethers.BigNumber.from(100));
+  //   const player1Deposit = ethers.BigNumber.from(player1Info.amountPaid).mul(ethers.BigNumber.from(segmentCount));
+  //   const rewardTokenBalance = await contracts.rewardToken.balanceOf(contracts.goodGhosting.address);
+  //   if (strategyType === "curve") {
+  //     governanceTokenBalance = await contracts.curve.balanceOf(contracts.goodGhosting.address);
+  //   }
+  //   await expect(contracts.goodGhosting.connect(player1).withdraw())
+  //     .to.emit(contracts.goodGhosting, "Withdrawal")
+  //     .withArgs(
+  //       player1.address,
+  //       player1Deposit.add(player1Share),
+  //       ethers.BigNumber.from(0),
+  //       rewardTokenBalance,
+  //       governanceTokenBalance,
+  //     );
+
+  //     let player2Share = ethers.BigNumber.from(cummalativePlayer2IndexBeforeWithdraw)
+  //     .mul(ethers.BigNumber.from(100))
+  //     .div(ethers.BigNumber.from(sum));
+  //     player2Share = ethers.BigNumber.from(gameInterest).mul(player2Share).div(ethers.BigNumber.from(100));
+  //   const player2Deposit = ethers.BigNumber.from(player2Info.amountPaid).mul(ethers.BigNumber.from(segmentCount));
+  //   // await expect(contracts.goodGhosting.connect(player2).withdraw())
+  //   // .to.emit(contracts.goodGhosting, "Withdrawal")
+  //   // .withArgs(
+  //   //   player1.address,
+  //   //   player2Deposit.add(player2Share),
+  //   //   ethers.BigNumber.from(0),
+  //   //   rewardTokenBalance,
+  //   //   governanceTokenBalance,
+  //   // );
+  // });
 };

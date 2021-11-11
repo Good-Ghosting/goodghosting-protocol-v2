@@ -26,6 +26,7 @@ export const deployPool = async (
   isInboundToken: boolean,
   isIncentiveToken: boolean,
   isInvestmentStrategy: boolean,
+  isVariableAmount: boolean,
 ) => {
   const [deployer, , player1, player2] = await ethers.getSigners();
   const lendingPoolAddressProvider = new LendingPoolAddressesProviderMock__factory(deployer);
@@ -72,7 +73,7 @@ export const deployPool = async (
     earlyWithdrawFee,
     adminFee,
     playerCount,
-    false,
+    isVariableAmount,
     isIncentiveToken ? incentiveToken.address : incentiveToken,
     isInvestmentStrategy ? strategy.address : strategy,
   );
@@ -106,9 +107,15 @@ export const approveToken = async (
   poolAddress: string,
   segmentPayment: string,
 ) => {
-  await inboundToken.connect(player).approve(poolAddress, segmentPayment);
+  await inboundToken
+    .connect(player)
+    .approve(poolAddress, ethers.BigNumber.from(segmentPayment).mul(ethers.BigNumber.from("2")).toString());
   const allowance = await inboundToken.allowance(player.address, poolAddress);
-  assert(allowance.eq(ethers.BigNumber.from(segmentPayment)));
+  assert(
+    allowance.eq(
+      ethers.BigNumber.from(ethers.BigNumber.from(segmentPayment).mul(ethers.BigNumber.from("2")).toString()),
+    ),
+  );
 };
 
 export const joinGamePaySegmentsAndComplete = async (

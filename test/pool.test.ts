@@ -5,6 +5,7 @@ import { approveToken, deployPool, unableToJoinGame, joinGame, shouldNotBeAbleTo
 
 import {
   shouldBehaveLikeGGPool,
+  shouldBehaveLikeVariableDepositPool,
   shouldBehaveLikeJoiningGGPool,
   shouldBehaveLikeReJoiningGGPool,
   shouldBehaveLikeDepositingGGPool,
@@ -27,7 +28,18 @@ describe("Pool using Aave strategy", () => {
   const maxPlayersCount = "115792089237316195423570985008687907853269984665640564039457584007913129639935";
 
   beforeEach(async () => {
-    contracts = await deployPool(segmentCount, segmentLength, segmentPayment, 1, 1, maxPlayersCount, true, false, true);
+    contracts = await deployPool(
+      segmentCount,
+      segmentLength,
+      segmentPayment,
+      1,
+      1,
+      maxPlayersCount,
+      true,
+      false,
+      true,
+      false,
+    );
   });
 
   describe("should behave like GG Pool", async () => {
@@ -49,6 +61,7 @@ describe("Pool using Aave strategy", () => {
         true,
         false,
         true,
+        false,
       );
       await ethers.provider.send("evm_increaseTime", [segmentLength]);
       await ethers.provider.send("evm_mine", []);
@@ -80,6 +93,7 @@ describe("Pool using Aave strategy", () => {
         true,
         false,
         true,
+        false,
       );
       const accounts = await ethers.getSigners();
       const player1 = accounts[2];
@@ -112,6 +126,7 @@ describe("Pool using Aave strategy", () => {
         true,
         false,
         true,
+        false,
       );
       const accounts = await ethers.getSigners();
       const player1 = accounts[2];
@@ -143,6 +158,7 @@ describe("Pool using Aave strategy", () => {
         true,
         false,
         true,
+        false,
       );
       const accounts = await ethers.getSigners();
       const player1 = accounts[2];
@@ -179,5 +195,9 @@ describe("Pool using Aave strategy", () => {
 
   describe("admin tries to withdraw fees with admin percentage fee equal to 0 and no winners", async () => {
     await shouldBehaveLikeAdminWithdrawingFeesFromGGPoolWithFeePercentis0("aave");
+  });
+
+  describe("players participate in a variable amount deposit pool", async () => {
+    await shouldBehaveLikeVariableDepositPool("aave");
   });
 });
