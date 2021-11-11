@@ -906,15 +906,22 @@ export const shouldBehaveLikeEarlyWithdrawingGGPool = async (strategyType: strin
     const cumalativePlayerIndexBeforeWithdraw = await contracts.goodGhosting.sum();
     const player1Info = await contracts.goodGhosting.players(player1.address);
     const player2Info = await contracts.goodGhosting.players(player2.address);
-    let cummalativePlayer1IndexBeforeWithdraw = 0,
-      cummalativePlayer2IndexBeforeWithdraw = 0;
-    for (let i = 0; i < player2Info.mostRecentSegmentPaid; i++) {
-      cummalativePlayer1IndexBeforeWithdraw += await contracts.goodGhosting.playerIndex(player1.address, i);
+    let cummalativePlayer1IndexBeforeWithdraw = ethers.BigNumber.from(0),
+      cummalativePlayer2IndexBeforeWithdraw = ethers.BigNumber.from(0);
+    for (let i = 0; i <= player1Info.mostRecentSegmentPaid; i++) {
+      let index1 = await contracts.goodGhosting.playerIndex(player1.address, i);
+      cummalativePlayer1IndexBeforeWithdraw = cummalativePlayer1IndexBeforeWithdraw.add(
+        ethers.BigNumber.from(index1.toString()),
+      );
     }
 
-    for (let i = 0; i < player2Info.mostRecentSegmentPaid; i++) {
-      cummalativePlayer2IndexBeforeWithdraw += await contracts.goodGhosting.playerIndex(player2.address, i);
+    for (let i = 0; i <= player2Info.mostRecentSegmentPaid; i++) {
+      let index2 = await contracts.goodGhosting.playerIndex(player2.address, i);
+      cummalativePlayer2IndexBeforeWithdraw = cummalativePlayer2IndexBeforeWithdraw.add(
+        ethers.BigNumber.from(index2.toString()),
+      );
     }
+
     assert(
       cumalativePlayerIndexBeforeWithdraw.eq(
         ethers.BigNumber.from(cummalativePlayer1IndexBeforeWithdraw).add(
@@ -923,8 +930,8 @@ export const shouldBehaveLikeEarlyWithdrawingGGPool = async (strategyType: strin
       ),
     );
     await contracts.goodGhosting.connect(player1).earlyWithdraw();
-    // const cumalativePlayerIndexAfterWithdraw = await contracts.goodGhosting.sum();
-    // assert(cumalativePlayerIndexAfterWithdraw.eq(player2Info.playerIndex));
+    const cumalativePlayerIndexAfterWithdraw = await contracts.goodGhosting.sum();
+    assert(cumalativePlayerIndexAfterWithdraw.eq(cummalativePlayer2IndexBeforeWithdraw));
   });
 };
 
@@ -1191,9 +1198,19 @@ export const shouldBehaveLikeRedeemingFromGGPool = async (strategyType: string) 
       segmentLength,
       segmentPayment,
     );
-    // const playerInfo = await contracts.goodGhosting.players(player1.address);
-    // const sum = await contracts.goodGhosting.sum();
-    // assert(sum.eq(playerInfo.playerIndex));
+
+    const playerInfo = await contracts.goodGhosting.players(player1.address);
+
+    let cummalativePlayer1IndexBeforeWithdraw = ethers.BigNumber.from(0);
+
+    for (let i = 0; i <= playerInfo.mostRecentSegmentPaid; i++) {
+      let index1 = await contracts.goodGhosting.playerIndex(player1.address, i);
+      cummalativePlayer1IndexBeforeWithdraw = cummalativePlayer1IndexBeforeWithdraw.add(
+        ethers.BigNumber.from(index1.toString()),
+      );
+    }
+    const sum = await contracts.goodGhosting.sum();
+    assert(sum.eq(cummalativePlayer1IndexBeforeWithdraw));
   });
 
   context("when incentive token is defined", async () => {
@@ -1518,27 +1535,36 @@ export const shouldBehaveLikePlayersWithdrawingFromGGPool = async (strategyType:
       await contracts.curvePool.transfer(contracts.strategy.address, ethers.utils.parseEther("100000"));
     }
     await contracts.goodGhosting.redeemFromExternalPool();
-    // const gameInterest = await contracts.goodGhosting.totalGameInterest();
-    // const playerInfo = await contracts.goodGhosting.players(player1.address);
-    // const sum = await contracts.goodGhosting.sum();
-    // let playerShare = ethers.BigNumber.from(playerInfo.playerIndex)
-    //   .mul(ethers.BigNumber.from(100))
-    //   .div(ethers.BigNumber.from(sum));
-    // playerShare = ethers.BigNumber.from(gameInterest).mul(playerShare).div(ethers.BigNumber.from(100));
-    // const userDeposit = ethers.BigNumber.from(segmentPayment).mul(ethers.BigNumber.from(segmentCount));
-    // const rewardTokenBalance = await contracts.rewardToken.balanceOf(contracts.goodGhosting.address);
-    // if (strategyType === "curve") {
-    //   governanceTokenBalance = await contracts.curve.balanceOf(contracts.goodGhosting.address);
-    // }
-    // await expect(contracts.goodGhosting.connect(player1).withdraw())
-    //   .to.emit(contracts.goodGhosting, "Withdrawal")
-    //   .withArgs(
-    //     player1.address,
-    //     userDeposit.add(playerShare),
-    //     ethers.BigNumber.from(0),
-    //     rewardTokenBalance,
-    //     governanceTokenBalance,
-    //   );
+    const gameInterest = await contracts.goodGhosting.totalGameInterest();
+    const playerInfo = await contracts.goodGhosting.players(player1.address);
+    const sum = await contracts.goodGhosting.sum();
+
+    let cummalativePlayer1IndexBeforeWithdraw = ethers.BigNumber.from(0);
+
+    for (let i = 0; i <= playerInfo.mostRecentSegmentPaid; i++) {
+      let index1 = await contracts.goodGhosting.playerIndex(player1.address, i);
+      cummalativePlayer1IndexBeforeWithdraw = cummalativePlayer1IndexBeforeWithdraw.add(
+        ethers.BigNumber.from(index1.toString()),
+      );
+    }
+    let playerShare = ethers.BigNumber.from(cummalativePlayer1IndexBeforeWithdraw)
+      .mul(ethers.BigNumber.from(100))
+      .div(ethers.BigNumber.from(sum));
+    playerShare = ethers.BigNumber.from(gameInterest).mul(playerShare).div(ethers.BigNumber.from(100));
+    const userDeposit = ethers.BigNumber.from(segmentPayment).mul(ethers.BigNumber.from(segmentCount));
+    const rewardTokenBalance = await contracts.rewardToken.balanceOf(contracts.goodGhosting.address);
+    if (strategyType === "curve") {
+      governanceTokenBalance = await contracts.curve.balanceOf(contracts.goodGhosting.address);
+    }
+    await expect(contracts.goodGhosting.connect(player1).withdraw())
+      .to.emit(contracts.goodGhosting, "Withdrawal")
+      .withArgs(
+        player1.address,
+        userDeposit.add(playerShare),
+        ethers.BigNumber.from(0),
+        rewardTokenBalance,
+        governanceTokenBalance,
+      );
   });
 
   context("when incentive token is defined", async () => {
