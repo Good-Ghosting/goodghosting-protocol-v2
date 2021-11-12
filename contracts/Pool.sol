@@ -62,6 +62,8 @@ contract Pool is Ownable, Pausable {
     /// @notice Defines the max quantity of players allowed in the game
     uint256 public immutable maxPlayersCount;
 
+    uint256 rewardTokenAmount = 0;
+
     /// @notice Controls if tokens were redeemed or not from the pool
     bool public redeemed;
 
@@ -398,8 +400,8 @@ contract Pool is Ownable, Pausable {
             if (totalIncentiveAmount > 0) {
                 playerIncentive = totalIncentiveAmount / (winnerCount);
             }
-            if (address(rewardToken) != address(0) && rewardToken.balanceOf(address(this)) > 0) {
-                playerReward = rewardToken.balanceOf(address(this)) / (winnerCount);
+            if (address(rewardToken) != address(0) && rewardTokenAmount > 0) {
+                playerReward = rewardTokenAmount / (winnerCount);
             }
 
             if (
@@ -513,7 +515,6 @@ contract Pool is Ownable, Pausable {
 
         rewardToken = strategy.getRewardToken();
         strategyGovernanceToken = strategy.getGovernanceToken();
-        uint256 rewardTokenAmount = 0;
         uint256 strategyGovernanceTokenAmount = 0;
         if (address(rewardToken) != address(0)) {
             rewardTokenAmount = rewardToken.balanceOf(address(this));
