@@ -153,6 +153,8 @@ contract CurveStrategy is Ownable, IStrategy {
     }
 
     function redeem(IERC20 _inboundCurrency, uint256 _minAmount) external override onlyOwner {
+        uint256 lpBalance = gauge.balanceOf(address(this));
+        gauge.withdraw(lpBalance, true);
         // code of aave and atricrypto pool is completely different , in the case of aave i.e pool type 0 all funds sit in that contract, but atricrypto is in communication with other pools and funds sit in those pools hence the approval is needed because it is talking with external contracts
         // numAaveTokens/numAtricryptoTokens has to be a constant type actually otherwise the signature becomes diff. and the external call will fail if I use an "if" condition the assignment will be to a non-constant ver, this again is due to the structure of how the curve contracts are written
         if (poolType == 0) {

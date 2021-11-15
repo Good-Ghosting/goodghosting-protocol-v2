@@ -171,6 +171,7 @@ export const joinGamePaySegmentsAndComplete = async (
 ) => {
   await approveToken(inboundToken, player, goodGhosting.address, segmentPayment);
   await goodGhosting.connect(player).joinGame(0, depositAmount);
+
   // The payment for the first segment was done upon joining, so we start counting from segment 2 (index 1)
   for (let index = 1; index < segmentCount; index++) {
     await ethers.provider.send("evm_increaseTime", [segmentLength]);
