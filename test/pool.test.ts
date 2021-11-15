@@ -100,7 +100,7 @@ describe("Pool using Aave strategy", () => {
       await joinGame(contracts.goodGhosting, contracts.inboundToken, player1, segmentPayment, segmentPayment);
       await ethers.provider.send("evm_increaseTime", [segmentLength]);
       await ethers.provider.send("evm_mine", []);
-      await contracts.goodGhosting.connect(player1).earlyWithdraw();
+      await contracts.goodGhosting.connect(player1).earlyWithdraw(0);
       await unableToJoinGame(
         contracts.goodGhosting,
         contracts.inboundToken,
@@ -166,7 +166,7 @@ describe("Pool using Aave strategy", () => {
 
       await ethers.provider.send("evm_increaseTime", [segmentLength]);
       await ethers.provider.send("evm_mine", []);
-      await contracts.goodGhosting.connect(player1).earlyWithdraw();
+      await contracts.goodGhosting.connect(player1).earlyWithdraw(0);
 
       await ethers.provider.send("evm_increaseTime", [segmentLength]);
       await ethers.provider.send("evm_mine", []);

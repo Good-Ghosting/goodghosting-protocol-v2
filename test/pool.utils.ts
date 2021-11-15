@@ -4,7 +4,7 @@ import { solidity } from "ethereum-waffle";
 import {
   LendingPoolAddressesProviderMock__factory,
   Pool__factory,
-  AaveStratergy__factory,
+  AaveStrategy__factory,
   MintableERC20__factory,
   MintableERC20,
   IncentiveControllerMock__factory,
@@ -54,7 +54,7 @@ export const deployPool = async (
   const incentiveControllerDeployer = new IncentiveControllerMock__factory(deployer);
   rewardToken = await incentiveControllerDeployer.deploy("TOKEN_NAME", "TOKEN_SYMBOL");
   if (isInvestmentStrategy) {
-    const aaveStrategyDeployer = new AaveStratergy__factory(deployer);
+    const aaveStrategyDeployer = new AaveStrategy__factory(deployer);
     strategy = await aaveStrategyDeployer.deploy(
       lendingPool.address,
       lendingPool.address,
@@ -253,5 +253,5 @@ export const redeem = async (
     goodGhosting,
     depositAmount,
   );
-  await goodGhosting.connect(player).redeemFromExternalPool();
+  await goodGhosting.connect(player).redeemFromExternalPool(0);
 };
