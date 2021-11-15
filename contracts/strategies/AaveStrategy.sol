@@ -13,22 +13,22 @@ contract AaveStrategy is Ownable, IStrategy {
     using LowGasSafeMath for uint256;
 
     /// @notice Address of the Aave V2 incentive controller contract
-    IncentiveController public incentiveController;
+    IncentiveController public immutable incentiveController;
 
     /// @notice Address of the interest bearing token received when funds are transferred to the external pool
-    AToken public adaiToken;
+    AToken public immutable adaiToken;
 
     /// @notice Which Aave instance we use to swap DAI to interest bearing aDAI
     ILendingPoolAddressesProvider public immutable lendingPoolAddressProvider;
 
     /// @notice Lending pool address
-    ILendingPool public lendingPool;
+    ILendingPool public immutable lendingPool;
 
     /// @notice AaveProtocolDataProvider address
-    AaveProtocolDataProvider public dataProvider;
+    AaveProtocolDataProvider public immutable dataProvider;
 
     /// @notice wmatic in case of polygon deployment else address(0)
-    IERC20 public rewardToken;
+    IERC20 public immutable rewardToken;
 
     constructor(
         ILendingPoolAddressesProvider _lendingPoolAddressProvider,
