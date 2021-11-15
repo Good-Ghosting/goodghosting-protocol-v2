@@ -9,7 +9,7 @@ import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "../libraries/LowGasSafeMath.sol";
 import "./IStrategy.sol";
 
-contract AaveStratergy is Ownable, IStrategy {
+contract AaveStrategy is Ownable, IStrategy {
     using LowGasSafeMath for uint256;
 
     /// @notice Address of the Aave V2 incentive controller contract
@@ -92,10 +92,17 @@ contract AaveStratergy is Ownable, IStrategy {
 
             if (address(rewardToken) != address(0)) {
                 uint256 claimableRewards = incentiveController.getRewardsBalance(assets, address(this));
+                // moola the celo version of aave does not have the incentive controller logic
                 if (claimableRewards > 0) {
                     incentiveController.claimRewards(assets, claimableRewards, address(this));
                 }
-                require(rewardToken.transfer(address(_game), rewardToken.balanceOf(address(this))), "Transfer Failed");
+                // moola the celo version of aave does not have the incentive controller logic
+                if (rewardToken.balanceOf(address(this)) > 0) {
+                    require(
+                        rewardToken.transfer(address(_game), rewardToken.balanceOf(address(this))),
+                        "Transfer Failed"
+                    );
+                }
             }
         }
 
