@@ -16,7 +16,7 @@ contract AaveStrategy is Ownable, IStrategy {
     IncentiveController public immutable incentiveController;
 
     /// @notice Address of the interest bearing token received when funds are transferred to the external pool
-    AToken public immutable adaiToken;
+    AToken public adaiToken;
 
     /// @notice Which Aave instance we use to swap DAI to interest bearing aDAI
     ILendingPoolAddressesProvider public immutable lendingPoolAddressProvider;
@@ -61,24 +61,25 @@ contract AaveStrategy is Ownable, IStrategy {
 
     function earlyWithdraw(
         IERC20 _inboundCurrency,
-        address _game,
-        uint256 _amount
+        uint256 _amount,
+        uint256 _minAmount
     ) external override onlyOwner {
         require(_amount > 0, "_amount is 0");
         require(address(_inboundCurrency) != address(0), "Invalid _inboundCurrency address");
-        require(_game != address(0), "Invalid _game address");
         // atoken address in v2 is fetched from data provider contract
         (address adaiTokenAddress, , ) = dataProvider.getReserveTokensAddresses(address(_inboundCurrency));
         adaiToken = AToken(adaiTokenAddress);
         if (adaiToken.balanceOf(address(this)) > 0) {
             lendingPool.withdraw(address(_inboundCurrency), _amount, address(this));
-            require(_inboundCurrency.transfer(_game, _inboundCurrency.balanceOf(address(this))), "Transfer Failed");
+            require(
+                _inboundCurrency.transfer(msg.sender, _inboundCurrency.balanceOf(address(this))),
+                "Transfer Failed"
+            );
         }
     }
 
-    function redeem(IERC20 _inboundCurrency, address _game) external override onlyOwner {
+    function redeem(IERC20 _inboundCurrency, uint256 _minAmount) external override onlyOwner {
         require(address(_inboundCurrency) != address(0), "Invalid _inboundCurrency address");
-        require(_game != address(0), "Invalid _game address");
 
         // atoken address in v2 is fetched from data provider contract
         (address adaiTokenAddress, , ) = dataProvider.getReserveTokensAddresses(address(_inboundCurrency));
@@ -98,15 +99,12 @@ contract AaveStrategy is Ownable, IStrategy {
                 }
                 // moola the celo version of aave does not have the incentive controller logic
                 if (rewardToken.balanceOf(address(this)) > 0) {
-                    require(
-                        rewardToken.transfer(address(_game), rewardToken.balanceOf(address(this))),
-                        "Transfer Failed"
-                    );
+                    require(rewardToken.transfer(msg.sender, rewardToken.balanceOf(address(this))), "Transfer Failed");
                 }
             }
         }
 
-        require(_inboundCurrency.transfer(_game, _inboundCurrency.balanceOf(address(this))), "Transfer Failed");
+        require(_inboundCurrency.transfer(msg.sender, _inboundCurrency.balanceOf(address(this))), "Transfer Failed");
     }
 
     function getRewardToken() external view override returns (IERC20) {

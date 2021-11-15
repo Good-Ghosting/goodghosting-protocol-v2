@@ -11,11 +11,11 @@ interface IStrategy {
 
     function earlyWithdraw(
         IERC20 _inboundCurrency,
-        address _game,
-        uint256 _amount
+        uint256 _amount,
+        uint256 _minAmount
     ) external;
 
-    function redeem(IERC20 _inboundCurrency, address _game) external;
+    function redeem(IERC20 _inboundCurrency, uint256 _minAmount) external;
 
     function getRewardToken() external view returns (IERC20);
 

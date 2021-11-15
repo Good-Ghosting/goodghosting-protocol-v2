@@ -331,7 +331,7 @@ contract Pool is Ownable, Pausable {
 
     /// @notice Allows a player to withdraws funds before the game ends. An early withdrawl fee is charged.
     /// @dev Cannot be called after the game is completed.
-    function earlyWithdraw() external whenNotPaused whenGameIsNotCompleted {
+    function earlyWithdraw(uint256 _minAmount) external whenNotPaused whenGameIsNotCompleted {
         Player storage player = players[msg.sender];
         require(player.amountPaid > 0, "Player does not exist");
         require(!player.withdrawn, "Player has already withdrawn");
@@ -359,7 +359,7 @@ contract Pool is Ownable, Pausable {
         }
 
         emit EarlyWithdrawal(msg.sender, withdrawAmount, totalGamePrincipal);
-        strategy.earlyWithdraw(inboundToken, address(this), withdrawAmount);
+        strategy.earlyWithdraw(inboundToken, withdrawAmount, _minAmount);
         require(
             IERC20(inboundToken).transfer(msg.sender, withdrawAmount),
             "Fail to transfer ERC20 tokens on early withdraw"
@@ -367,7 +367,7 @@ contract Pool is Ownable, Pausable {
     }
 
     /// @notice Allows player to withdraw their funds after the game ends with no loss (fee). Winners get a share of the interest earned.
-    function withdraw() external virtual {
+    function withdraw(uint256 _minAmount) external virtual {
         Player storage player = players[msg.sender];
         require(player.amountPaid > 0, "Player does not exist");
         require(!player.withdrawn, "Player has already withdrawn");
@@ -375,7 +375,7 @@ contract Pool is Ownable, Pausable {
 
         // First player to withdraw redeems everyone's funds
         if (!redeemed) {
-            redeemFromExternalPool();
+            redeemFromExternalPool(_minAmount);
         }
 
         uint256 payout = player.amountPaid;
@@ -474,11 +474,11 @@ contract Pool is Ownable, Pausable {
 
     /// @notice Redeems funds from the external pool and updates the internal accounting controls related to the game stats.
     /// @dev Can only be called after the game is completed.
-    function redeemFromExternalPool() public virtual whenGameIsCompleted {
+    function redeemFromExternalPool(uint256 _minAmount) public virtual whenGameIsCompleted {
         require(!redeemed, "Redeem operation already happened for the game");
         redeemed = true;
         // Withdraws funds (principal + interest + rewards) from external pool
-        strategy.redeem(inboundToken, address(this));
+        strategy.redeem(inboundToken, _minAmount);
 
         uint256 totalBalance = IERC20(inboundToken).balanceOf(address(this));
 
