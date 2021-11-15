@@ -8,6 +8,9 @@ import {
   MintableERC20__factory,
   MintableERC20,
   IncentiveControllerMock__factory,
+  MockCurvePool__factory,
+  MockCurveGauge__factory,
+  CurveStrategy__factory,
   Pool,
 } from "../src/types";
 
@@ -27,6 +30,7 @@ export const deployPool = async (
   isIncentiveToken: boolean,
   isInvestmentStrategy: boolean,
   isVariableAmount: boolean,
+  strategyType: string,
 ) => {
   const [deployer, , player1, player2] = await ethers.getSigners();
   const lendingPoolAddressProvider = new LendingPoolAddressesProviderMock__factory(deployer);
@@ -48,19 +52,54 @@ export const deployPool = async (
   let lendingPool: any = ZERO_ADDRESS;
   let rewardToken: any = ZERO_ADDRESS;
   let strategy: any = ZERO_ADDRESS;
+  let curve: any = ZERO_ADDRESS;
+  let curveGauge: any = ZERO_ADDRESS;
+  let curvePool: any = ZERO_ADDRESS;
 
-  lendingPool = await lendingPoolAddressProvider.deploy("TOKEN_NAME", "TOKEN_SYMBOL");
-  await lendingPool.setUnderlyingAssetAddress(isInboundToken ? inboundToken.address : inboundToken);
-  const incentiveControllerDeployer = new IncentiveControllerMock__factory(deployer);
-  rewardToken = await incentiveControllerDeployer.deploy("TOKEN_NAME", "TOKEN_SYMBOL");
-  if (isInvestmentStrategy) {
-    const aaveStrategyDeployer = new AaveStrategy__factory(deployer);
-    strategy = await aaveStrategyDeployer.deploy(
-      lendingPool.address,
-      lendingPool.address,
-      rewardToken.address,
+  if (strategyType === "aave") {
+    lendingPool = await lendingPoolAddressProvider.deploy("TOKEN_NAME", "TOKEN_SYMBOL");
+    await lendingPool.setUnderlyingAssetAddress(isInboundToken ? inboundToken.address : inboundToken);
+    const incentiveControllerDeployer = new IncentiveControllerMock__factory(deployer);
+    rewardToken = await incentiveControllerDeployer.deploy("TOKEN_NAME", "TOKEN_SYMBOL");
+    if (isInvestmentStrategy) {
+      const aaveStrategyDeployer = new AaveStrategy__factory(deployer);
+      strategy = await aaveStrategyDeployer.deploy(
+        lendingPool.address,
+        lendingPool.address,
+        rewardToken.address,
+        rewardToken.address,
+      );
+    }
+  } else if (strategyType === "curve") {
+    const mockCurveTokenDeployer = new MintableERC20__factory(deployer);
+    curve = await mockCurveTokenDeployer.deploy("CURVE", "CURVE");
+    const rewardTokenDeployer = new IncentiveControllerMock__factory(deployer);
+    rewardToken = await rewardTokenDeployer.deploy("TOKEN_NAME", "TOKEN_SYMBOL");
+    const curvePoolDeployer = new MockCurvePool__factory(deployer);
+    curvePool = await curvePoolDeployer.deploy("LP", "LP", inboundToken.address);
+    const curveGaugeDeployer = new MockCurveGauge__factory(deployer);
+    curveGauge = await curveGaugeDeployer.deploy(
+      "LP-GAUGE",
+      "LP-GAUGE",
+      curve.address,
+      curvePool.address,
       rewardToken.address,
     );
+    await rewardToken.mint(curveGauge.address, ethers.utils.parseEther("100000"));
+    await curve.mint(curveGauge.address, ethers.utils.parseEther("100000"));
+
+    if (isInvestmentStrategy) {
+      const curveStrategyDeployer = new CurveStrategy__factory(deployer);
+      strategy = await curveStrategyDeployer.deploy(
+        curvePool.address,
+        0,
+        0,
+        0,
+        curveGauge.address,
+        rewardToken.address,
+        curve.address,
+      );
+    }
   }
 
   const goodGhostingV2Deployer = new Pool__factory(deployer);
@@ -92,6 +131,9 @@ export const deployPool = async (
     goodGhosting,
     incentiveToken,
     rewardToken,
+    curvePool,
+    curveGauge,
+    curve,
   };
 };
 
