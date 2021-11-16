@@ -23,8 +23,6 @@ const chainIds = {
   ropsten: 3,
 };
 
-const POLYGON_URL = "https://matic-mainnet.chainstacklabs.com";
-
 // Ensure that we have all the environment variables we need.
 const mnemonic: string | undefined = process.env.MNEMONIC;
 if (!mnemonic) {
@@ -64,12 +62,11 @@ const config: HardhatUserConfig = {
       },
       chainId: chainIds.hardhat,
     },
-    "local-polygon": {
-      chainId: 137,
-      url: "https://matic-mainnet.chainstacklabs.com",
+    "local-polygon-aave": {
+      chainId: chainIds.hardhat,
+      url: "http://localhost:8545",
       forking: {
         url: "https://matic-mainnet.chainstacklabs.com",
-        enabled: true,
       },
     },
     goerli: getChainConfig("goerli"),
