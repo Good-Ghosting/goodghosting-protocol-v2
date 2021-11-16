@@ -60,15 +60,18 @@ const config: HardhatUserConfig = {
       accounts: {
         mnemonic,
       },
-      chainId: chainIds.hardhat,
-    },
-    "local-polygon-aave": {
-      chainId: chainIds.hardhat,
-      url: "http://localhost:8545",
       forking: {
         url: "https://matic-mainnet.chainstacklabs.com",
       },
+      chainId: chainIds.hardhat,
     },
+    // "local-polygon": {
+    //   chainId: chainIds.hardhat,
+    //   url: "http://localhost:8545",
+    //   forking: {
+    //     url: "https://matic-mainnet.chainstacklabs.com",
+    //   },
+    // },
     goerli: getChainConfig("goerli"),
     kovan: getChainConfig("kovan"),
     rinkeby: getChainConfig("rinkeby"),
