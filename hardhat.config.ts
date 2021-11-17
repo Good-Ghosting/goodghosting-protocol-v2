@@ -83,6 +83,9 @@ const config: HardhatUserConfig = {
     sources: "./contracts",
     tests: "./test",
   },
+  mocha: {
+    timeout: 50000,
+  },
   solidity: {
     version: "0.8.9",
     settings: {
