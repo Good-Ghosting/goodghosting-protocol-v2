@@ -153,8 +153,12 @@ describe("Pool Fork Tests", async () => {
           .to.emit(pool, "EarlyWithdrawal")
           .withArgs(accounts[0].address, playerInfo.amountPaid.sub(feeAmount), totalPrincipal);
       }
+      const currentSegment = await pool.getCurrentSegment();
+
       for (let j = 1; j < 5; j++) {
-        await pool.connect(accounts[j]).makeDeposit(0, 0);
+        await expect(pool.connect(accounts[j]).makeDeposit(0, 0))
+          .to.emit(pool, "Deposit")
+          .withArgs(accounts[j].address, currentSegment, ethers.BigNumber.from(segmentPayment));
       }
     }
     // above, it accounted for 1st deposit window, and then the loop runs till segmentCount - 1.
@@ -166,5 +170,9 @@ describe("Pool Fork Tests", async () => {
     await ethers.provider.send("evm_mine", []);
     const gameStatus = await pool.isGameCompleted();
     assert(gameStatus);
+  });
+
+  it("funds are redeemed from the pool", async () => {
+    await pool.redeemFromExternalPool(0);
   });
 });
