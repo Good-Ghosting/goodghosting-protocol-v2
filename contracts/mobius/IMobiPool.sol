@@ -1,17 +1,10 @@
 pragma solidity >=0.6.11;
 
-interface ICurvePool {
+interface IMobiPool {
     function addLiquidity(
         uint256[] calldata amounts,
         uint256 minToMint,
         uint256 deadline
-    ) external returns (uint256);
-
-    function remove_liquidity_one_coin(
-        uint256 _token_amount,
-        int128 i,
-        uint256 _min_amount,
-        bool _use_underlying
     ) external returns (uint256);
 
     function removeLiquidityOneToken(

@@ -1,6 +1,6 @@
 pragma solidity >=0.6.11;
 
-interface ICurveGauge {
+interface IMobiGauge {
     function deposit(uint256 _value) external;
 
     function withdraw(uint256 _value, bool _claim_rewards) external;
