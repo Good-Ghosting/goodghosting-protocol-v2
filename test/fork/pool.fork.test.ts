@@ -175,4 +175,10 @@ describe("Pool Fork Tests", async () => {
   it("funds are redeemed from the pool", async () => {
     await pool.redeemFromExternalPool(0);
   });
+
+  it("players are able to withdraw from the pool", async () => {
+    for (let j = 1; j < 5; j++) {
+      await pool.connect(accounts[j]).withdraw(0);
+    }
+  });
 });
