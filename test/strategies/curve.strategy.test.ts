@@ -17,7 +17,7 @@ chai.use(solidity);
 
 describe("Pool using Curve Strategy", () => {
   if (process.env.NETWORK) {
-    if (process.env.NETWORK === "local-polygon-aave") {
+    if (process.env.NETWORK === "local-polygon-aave" || process.env.NETWORK === "local-celo-mobius") {
       return;
     }
   }

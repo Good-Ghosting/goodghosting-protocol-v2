@@ -6,23 +6,23 @@ import lendingProvider from "../../artifacts/contracts/aave/ILendingPoolAddresse
 import incentiveController from "../../artifacts/contracts/aave/IncentiveController.sol/IncentiveController.json";
 import wmatic from "../../artifacts/contracts/mock/MintableERC20.sol/MintableERC20.json";
 import dataProvider from "../../artifacts/contracts/mock/LendingPoolAddressesProviderMock.sol/LendingPoolAddressesProviderMock.json";
+import mobiusPool from "../../artifacts/contracts/mobius/IMobiPool.sol/IMobiPool.json";
+import mobiusGauge from "../../artifacts/contracts/mobius/IMobiGauge.sol/IMobiGauge.json";
 
 chai.use(solidity);
 const { expect } = chai;
 
 // dai holder
-const impersonateAddress = "0xc75a0ff40db54203d66bff76315ed25d66037ce1";
+let impersonateAddress;
+let impersonatedSigner: any;
 let daiInstance: any, wmaticInstance;
 let accounts: any[];
-let players;
 let pool: any, strategy: any;
 const {
   segmentCount,
   segmentLength,
   segmentPayment: segmentPaymentInt,
   waitingRoundSegmentLength,
-  flexibleSegmentPayment,
-  customFee,
   earlyWithdrawFee,
   maxPlayersCount,
 } = deployConfigs;
@@ -31,46 +31,78 @@ const daiDecimals = ethers.BigNumber.from("1000000000000000000");
 const segmentPayment = daiDecimals.mul(ethers.BigNumber.from(segmentPaymentInt)); // equivalent to 10 DAI
 
 describe("Pool Fork Tests", async () => {
-  if (!(process.env.NETWORK === "local-polygon-aave")) {
+  if (!(process.env.NETWORK === "local-polygon-aave" || process.env.NETWORK === "local-celo-mobius")) {
     return;
   }
 
   before(async function () {
-    // Impersonate as another address
-    await network.provider.request({
-      method: "hardhat_impersonateAccount",
-      params: [impersonateAddress],
-    });
-
-    const impersonatedSigner = await ethers.getSigner(impersonateAddress);
-
     accounts = await ethers.getSigners();
 
-    let lendingPoolAddressProviderInstance = new ethers.Contract(
-      providers["aave"]["polygon"].lendingPoolAddressProvider,
-      lendingProvider.abi,
-      impersonatedSigner,
-    );
-    let dataProviderInstance = new ethers.Contract(
-      providers["aave"]["polygon"].dataProvider,
-      dataProvider.abi,
-      impersonatedSigner,
-    );
-    let incentiveControllerInstance = new ethers.Contract(
-      providers["aave"]["polygon"].incentiveController,
-      incentiveController.abi,
-      impersonatedSigner,
-    );
-    wmaticInstance = new ethers.Contract(providers["aave"]["polygon"].wmatic, wmatic.abi, impersonatedSigner);
-    daiInstance = new ethers.Contract(providers["aave"]["polygon"]["dai"].address, wmatic.abi, impersonatedSigner);
+    let lendingPoolAddressProviderInstance: any,
+      dataProviderInstance: any,
+      incentiveControllerInstance: any,
+      mobiusPool: any,
+      mobiusGauge: any;
 
-    strategy = await ethers.getContractFactory("AaveStrategy", accounts[0]);
-    strategy = await strategy.deploy(
-      lendingPoolAddressProviderInstance.address,
-      dataProviderInstance.address,
-      incentiveControllerInstance.address,
-      wmaticInstance.address,
-    );
+    if (process.env.NETWORK === "local-polygon-aave") {
+      impersonateAddress = "0xc75a0ff40db54203d66bff76315ed25d66037ce1";
+      // Impersonate as another address
+      await network.provider.request({
+        method: "hardhat_impersonateAccount",
+        params: [impersonateAddress],
+      });
+
+      impersonatedSigner = await ethers.getSigner(impersonateAddress);
+
+      lendingPoolAddressProviderInstance = new ethers.Contract(
+        providers["aave"]["polygon"].lendingPoolAddressProvider,
+        lendingProvider.abi,
+        impersonatedSigner,
+      );
+      dataProviderInstance = new ethers.Contract(
+        providers["aave"]["polygon"].dataProvider,
+        dataProvider.abi,
+        impersonatedSigner,
+      );
+      incentiveControllerInstance = new ethers.Contract(
+        providers["aave"]["polygon"].incentiveController,
+        incentiveController.abi,
+        impersonatedSigner,
+      );
+
+      wmaticInstance = new ethers.Contract(providers["aave"]["polygon"].wmatic, wmatic.abi, impersonatedSigner);
+      daiInstance = new ethers.Contract(providers["aave"]["polygon"]["dai"].address, wmatic.abi, impersonatedSigner);
+
+      strategy = await ethers.getContractFactory("AaveStrategy", accounts[0]);
+      strategy = await strategy.deploy(
+        lendingPoolAddressProviderInstance.address,
+        dataProviderInstance.address,
+        incentiveControllerInstance.address,
+        wmaticInstance.address,
+      );
+    }
+
+    if (process.env.NETWORK === "local-celo-mobius") {
+      console.log("here");
+      impersonateAddress = "0x699EaB8444e2ff85Ec9F426673eE1Fff193334f4";
+      // Impersonate as another address
+      await network.provider.request({
+        method: "hardhat_impersonateAccount",
+        params: [impersonateAddress],
+      });
+
+      impersonatedSigner = await ethers.getSigner(impersonateAddress);
+      console.log("here");
+
+      mobiusPool = new ethers.Contract(providers["celo"]["mobius"].pool, mobiusPool.abi, impersonatedSigner);
+      mobiusGauge = new ethers.Contract(providers["celo"]["mobius"].gauge, mobiusGauge.abi, impersonatedSigner);
+
+      wmaticInstance = new ethers.Contract(providers["celo"]["mobius"].mobi, wmatic.abi, impersonatedSigner);
+      daiInstance = new ethers.Contract(providers["celo"]["mobius"]["cusd"].address, wmatic.abi, impersonatedSigner);
+
+      strategy = await ethers.getContractFactory("MobiusStrategy", accounts[0]);
+      strategy = await strategy.deploy(mobiusPool.address, mobiusGauge.address, wmaticInstance.address);
+    }
 
     pool = await ethers.getContractFactory("Pool", accounts[0]);
     pool = await pool.deploy(
@@ -103,26 +135,26 @@ describe("Pool Fork Tests", async () => {
     }
   });
 
-  it("checks if the contract's variables were properly initialized", async () => {
-    const inboundCurrencyResult = await pool.inboundToken();
-    const lastSegmentResult = await pool.lastSegment();
-    const segmentLengthResult = await pool.segmentLength();
-    const flexibleDepositFlag = await pool.flexibleSegmentPayment();
-    const segmentPaymentResult = await pool.segmentPayment();
-    const waitingSegmentLength = await pool.waitingRoundSegmentLength();
-    const expectedSegment = ethers.BigNumber.from(0);
-    const currentSegmentResult = await pool.getCurrentSegment();
-    const maxPlayersCountResult = await pool.maxPlayersCount();
+  // it("checks if the contract's variables were properly initialized", async () => {
+  //   const inboundCurrencyResult = await pool.inboundToken();
+  //   const lastSegmentResult = await pool.lastSegment();
+  //   const segmentLengthResult = await pool.segmentLength();
+  //   const flexibleDepositFlag = await pool.flexibleSegmentPayment();
+  //   const segmentPaymentResult = await pool.segmentPayment();
+  //   const waitingSegmentLength = await pool.waitingRoundSegmentLength();
+  //   const expectedSegment = ethers.BigNumber.from(0);
+  //   const currentSegmentResult = await pool.getCurrentSegment();
+  //   const maxPlayersCountResult = await pool.maxPlayersCount();
 
-    expect(segmentPaymentResult.eq(segmentPayment));
-    expect(!flexibleDepositFlag);
-    expect(lastSegmentResult.eq(segmentCount));
-    expect(waitingSegmentLength.eq(waitingRoundSegmentLength));
-    expect(currentSegmentResult.eq(expectedSegment));
-    expect(maxPlayersCountResult.eq(maxPlayersCount));
-    expect(segmentLengthResult.eq(segmentLength));
-    expect(inboundCurrencyResult == daiInstance.address);
-  });
+  //   expect(segmentPaymentResult.eq(segmentPayment));
+  //   expect(!flexibleDepositFlag);
+  //   expect(lastSegmentResult.eq(segmentCount));
+  //   expect(waitingSegmentLength.eq(waitingRoundSegmentLength));
+  //   expect(currentSegmentResult.eq(expectedSegment));
+  //   expect(maxPlayersCountResult.eq(maxPlayersCount));
+  //   expect(segmentLengthResult.eq(segmentLength));
+  //   expect(inboundCurrencyResult == daiInstance.address);
+  // });
 
   it("players are able to approve inbound token and join the pool", async () => {
     for (let i = 0; i < 5; i++) {

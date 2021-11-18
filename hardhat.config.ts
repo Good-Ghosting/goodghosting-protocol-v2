@@ -61,17 +61,10 @@ const config: HardhatUserConfig = {
         mnemonic,
       },
       forking: {
-        url: "https://matic-mainnet.chainstacklabs.com",
+        url: "https://forno.celo.org",
       },
       chainId: chainIds.hardhat,
     },
-    // "local-polygon": {
-    //   chainId: chainIds.hardhat,
-    //   url: "http://localhost:8545",
-    //   forking: {
-    //     url: "https://matic-mainnet.chainstacklabs.com",
-    //   },
-    // },
     goerli: getChainConfig("goerli"),
     kovan: getChainConfig("kovan"),
     rinkeby: getChainConfig("rinkeby"),
