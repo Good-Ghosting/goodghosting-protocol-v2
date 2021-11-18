@@ -22,22 +22,9 @@ contract MobiusStrategy is Ownable, IStrategy {
     /// @notice mobi lp token
     IERC20 public lpToken;
 
-    /// @notice token index in the pool in int form
-    int128 public immutable inboundTokenIndexInt;
-
-    /// @notice token index in the pool in uint form
-    uint256 public immutable inboundTokenIndexUint;
-
-    /// @notice flag to differentiate between aave and atricrypto pool
-    uint64 public immutable poolType;
-
     constructor(
         IMobiPool _pool,
-        int128 _inboundTokenIndexInt,
-        uint128 _inboundTokenIndexUint,
-        uint64 _poolType,
         IMobiGauge _gauge,
-        IERC20 _rewardToken,
         IERC20 _mobi
     ) {
         require(address(_pool) != address(0), "invalid _pool address");
@@ -46,9 +33,6 @@ contract MobiusStrategy is Ownable, IStrategy {
         pool = _pool;
         gauge = _gauge;
         mobi = _mobi;
-        poolType = _poolType;
-        inboundTokenIndexInt = _inboundTokenIndexInt;
-        inboundTokenIndexUint = _inboundTokenIndexUint;
         lpToken = IERC20(pool.getLpToken());
     }
 
