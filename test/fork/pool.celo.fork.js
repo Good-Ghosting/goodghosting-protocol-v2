@@ -4,6 +4,7 @@ const wmatic = require("../../artifacts/contracts/mock/MintableERC20.sol/Mintabl
 const mobiusPool = require("../../artifacts/contracts/mobius/IMobiPool.sol/IMobiPool.json");
 const mobiusGauge = require("../../artifacts/contracts/mobius/IMobiGauge.sol/IMobiGauge.json");
 const ethers = require("ethers");
+const timeMachine = require("ganache-time-traveler");
 
 contract("GoodGhostingGasEstimate", accounts => {
   // Only executes this test file for local network fork
@@ -77,6 +78,47 @@ contract("GoodGhostingGasEstimate", accounts => {
         const playerBalance = await token.methods.balanceOf(player).call({ from: admin });
         console.log(`player${i + 1}DAIBalance`, ethers.utils.formatEther(playerBalance));
       }
+    });
+
+    it("players approve and are able to join the pool", async () => {
+      for (let i = 0; i < players.length; i++) {
+        // await token.methods.approve(goodGhosting.address, segmentPayment.toString(), {from : players[i]})
+        await token.methods
+          .approve(goodGhosting.address, segmentPayment.mul(ethers.BigNumber.from(segmentCount)).toString())
+          .send({ from: players[i] });
+        await goodGhosting.joinGame(0, 0, { from: players[i], gas: 6000000 });
+      }
+      // await goodGhosting.earlyWithdraw(0, { from: players[0], gas: 6000000  });
+    });
+
+    it("players are able to make deposits till the pool ends", async () => {
+      for (let i = 1; i < segmentCount; i++) {
+        // await ethers.provider.send("evm_increaseTime", [segmentLength]);
+        // await ethers.provider.send("evm_mine", []);
+        await timeMachine.advanceTime(segmentLength);
+
+        for (let j = 0; j < players.length; j++) {
+          await goodGhosting.makeDeposit(0, 0, { from: players[j], gas: 6000000 });
+        }
+      }
+      // above, it accounted for 1st deposit window, and then the loop runs till segmentCount - 1.
+      // now, we move 2 more segments (segmentCount-1 and segmentCount) to complete the game.
+      // await ethers.provider.send("evm_increaseTime", [segmentLength]);
+      // await ethers.provider.send("evm_mine", []);
+      await timeMachine.advanceTime(segmentLength);
+
+      const waitingRoundLength = await goodGhosting.waitingRoundSegmentLength();
+      // await ethers.provider.send("evm_increaseTime", [parseInt(waitingRoundLength.toString())]);
+      // await ethers.provider.send("evm_mine", []);
+      await timeMachine.advanceTime(parseInt(waitingRoundLength.toString()));
+
+      const gameStatus = await goodGhosting.isGameCompleted();
+      console.log(gameStatus);
+      // assert(gameStatus);
+    });
+
+    it("funds are redeemed from the strategy", async () => {
+      await goodGhosting.redeemFromExternalPool(0, { from: players[0], gas: 6000000 });
     });
   });
 });

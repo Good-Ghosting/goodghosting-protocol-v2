@@ -201,7 +201,6 @@ module.exports = function (deployer, network, accounts) {
   if (["test", "soliditycoverage"].includes(network)) return;
 
   deployer.then(async () => {
-    console.log("hereeee");
     // let networkName = getNetworkName(network);
     // if (network === "local-celo-fork") {
     //     config.deployConfigs.selectedProvider = "moola";
@@ -229,8 +228,8 @@ module.exports = function (deployer, network, accounts) {
     // }
 
     let strategyArgs = [StrategyArtifact, mobiusPool, mobiusGauge, mobi];
-    await deployer.deploy(SafeMathLib);
-    await deployer.link(SafeMathLib, StrategyArtifact);
+    // await deployer.deploy(SafeMathLib);
+    // await deployer.link(SafeMathLib, StrategyArtifact);
     await deployer.deploy(...strategyArgs);
 
     const strategyAddress = await StrategyArtifact.deployed();
@@ -298,6 +297,10 @@ module.exports = function (deployer, network, accounts) {
     await deployer.deploy(SafeMathLib);
     await deployer.link(SafeMathLib, goodGhostingContract);
     await deployer.deploy(...deploymentArgs);
+
+    const ggInstance = await goodGhostingContract.deployed();
+
+    await strategyAddress.transferOwnership(ggInstance.address);
 
     // // Prints deployment summary
     // printSummary(

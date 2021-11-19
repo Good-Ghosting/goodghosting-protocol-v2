@@ -1,6 +1,6 @@
 pragma solidity >=0.6.11;
 
-import "../libraries/LowGasSafeMath.sol";
+// import "../libraries/LowGasSafeMath.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "../mobius/IMobiPool.sol";
@@ -8,7 +8,7 @@ import "../mobius/IMobiGauge.sol";
 import "./IStrategy.sol";
 
 contract MobiusStrategy is Ownable, IStrategy {
-    using LowGasSafeMath for uint256;
+    // using LowGasSafeMath for uint256;
 
     /// @notice pool address
     IMobiPool public immutable pool;
@@ -44,7 +44,7 @@ contract MobiusStrategy is Ownable, IStrategy {
         uint256 contractBalance = _inboundCurrency.balanceOf(address(this));
         require(_inboundCurrency.approve(address(pool), contractBalance), "Fail to approve allowance to pool");
 
-        uint256[] memory amounts;
+        uint256[] memory amounts = new uint256[](2);
         amounts[0] = _amount;
         amounts[1] = 0;
 
@@ -62,7 +62,7 @@ contract MobiusStrategy is Ownable, IStrategy {
         uint256 _amount,
         uint256 _minAmount
     ) external override onlyOwner {
-        uint256[] memory amounts;
+        uint256[] memory amounts = new uint256[](2);
         amounts[0] = _amount;
         amounts[1] = 0;
 
@@ -73,6 +73,7 @@ contract MobiusStrategy is Ownable, IStrategy {
         }
 
         gauge.withdraw(poolWithdrawAmount, false);
+        require(lpToken.approve(address(pool), poolWithdrawAmount), "Fail to approve allowance to pool");
 
         pool.removeLiquidityOneToken(poolWithdrawAmount, 0, _minAmount, block.timestamp + 1000);
 
@@ -83,6 +84,7 @@ contract MobiusStrategy is Ownable, IStrategy {
     function redeem(IERC20 _inboundCurrency, uint256 _minAmount) external override onlyOwner {
         uint256 lpBalance = gauge.balanceOf(address(this));
         gauge.withdraw(lpBalance, true);
+        require(lpToken.approve(address(pool), lpToken.balanceOf(address(this))), "Fail to approve allowance to pool");
         pool.removeLiquidityOneToken(lpToken.balanceOf(address(this)), 0, _minAmount, block.timestamp + 1000);
 
         if (address(mobi) != address(0)) {
