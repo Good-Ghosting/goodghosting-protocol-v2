@@ -5,7 +5,7 @@
  * Addresses available at https://docs.aave.com/developers/deployed-contracts (v2) & https://docs.aave.com/developers/deployed-contracts/deployed-contract-instances (v1)
  *
  */
-export const providers = {
+exports.providers = {
   aave: {
     kovan: {
       lendingPoolAddressProvider: "0x88757f2f99175387ab4c6a4b3067c77a695b0349",
@@ -88,8 +88,7 @@ export const providers = {
     },
   },
 };
-
-export const deployConfigs = {
+exports.deployConfigs = {
   selectedProvider: "aave", // name of the selected provider. Must be defined in the object {providers} above.
   inboundCurrencySymbol: "dai", // name of the inbound currency symbol. Must be defined in the object {providers.network} above.
   segmentCount: 3, // integer number of segments
