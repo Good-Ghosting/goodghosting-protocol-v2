@@ -4,7 +4,6 @@ const GoodGhostingContract = artifacts.require("Pool");
 const StrategyArtifact = artifacts.require("MobiusStrategy");
 const SafeMathLib = artifacts.require("LowGasSafeMath");
 
-const BN = web3.utils.BN;
 const config = require("../deploy/deploy.config");
 
 // /** @dev truffle may use network name as "kovan-fork", for example, so we need to get the correct name to be used in the configs */
@@ -193,7 +192,7 @@ const config = require("../deploy/deploy.config");
 
 // }
 
-module.exports = function (deployer, network, accounts) {
+module.exports = function (deployer: any, network: any, accounts: any) {
   // Injects network name into process .env variable to make accessible on test suite.
   process.env.NETWORK = network;
 
@@ -201,6 +200,7 @@ module.exports = function (deployer, network, accounts) {
   if (["test", "soliditycoverage"].includes(network)) return;
 
   deployer.then(async () => {
+    console.log("here");
     // let networkName = getNetworkName(network);
     // if (network === "local-celo-fork") {
     //     config.deployConfigs.selectedProvider = "moola";
@@ -333,4 +333,6 @@ module.exports = function (deployer, network, accounts) {
     //     }
     // );
   });
-};
+} as Truffle.Migration;
+
+export {};

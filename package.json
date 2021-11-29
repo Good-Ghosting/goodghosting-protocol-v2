@@ -20,10 +20,11 @@
     "@openzeppelin/contracts": "^4.3.2",
     "@typechain/ethers-v5": "^8.0.1",
     "@typechain/hardhat": "^3.0.0",
+    "@typechain/truffle-v5": "^6.0.0",
     "@types/chai": "^4.2.22",
     "@types/fs-extra": "^9.0.13",
     "@types/mocha": "^9.0.0",
-    "@types/node": "^16.11.6",
+    "@types/node": "^16.11.10",
     "@typescript-eslint/eslint-plugin": "^5.3.0",
     "@typescript-eslint/parser": "^5.3.0",
     "chai": "^4.3.4",
@@ -50,6 +51,7 @@
     "solhint": "^3.3.6",
     "solhint-plugin-prettier": "^0.0.5",
     "solidity-coverage": "^0.7.17",
+    "truffle-typings": "^1.0.8",
     "ts-generator": "^0.1.1",
     "ts-node": "^10.4.0",
     "typechain": "^6.0.2",
@@ -83,7 +85,9 @@
     "prettier:check": "prettier --check --config ./.prettierrc.yaml \"**/*.{js,json,md,sol,ts}\"",
     "test": "hardhat test",
     "test:fork:celo": "npx truffle test --network local-celo-mobius",
-    "typechain": "cross-env TS_NODE_TRANSPILE_ONLY=true hardhat typechain"
+    "typechain": "cross-env TS_NODE_TRANSPILE_ONLY=true hardhat typechain",
+    "generate": "npx truffle compile && typechain --target truffle './build/**/*.json'",
+    "prepare": "yarn generate"
   },
   "dependencies": {
     "ganache-time-traveler": "^1.0.16",

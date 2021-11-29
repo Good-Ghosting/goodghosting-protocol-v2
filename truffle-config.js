@@ -1,6 +1,9 @@
 require("dotenv").config();
+require("ts-node/register");
 
 module.exports = {
+  test_file_extension_regexp: /.*\.ts$/,
+
   // See <http://truffleframework.com/docs/advanced/configuration>
   // to customize your Truffle configuration!
 

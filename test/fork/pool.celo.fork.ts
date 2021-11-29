@@ -1,23 +1,23 @@
 const Pool = artifacts.require("Pool");
-const config = require("../../deploy/deploy.config");
+const deployConfig = require("../../deploy/deploy.config");
 const wmatic = require("../../artifacts/contracts/mock/MintableERC20.sol/MintableERC20.json");
 const mobiusPool = require("../../artifacts/contracts/mobius/IMobiPool.sol/IMobiPool.json");
 const mobiusGauge = require("../../artifacts/contracts/mobius/IMobiGauge.sol/IMobiGauge.json");
 const ethers = require("ethers");
 const timeMachine = require("ganache-time-traveler");
 
-contract("GoodGhostingGasEstimate", accounts => {
+contract("GoodGhostingGasEstimate", (accounts: string | any[]) => {
   // Only executes this test file for local network fork
-  if (!["local-celo-mobius"].includes(process.env.NETWORK)) return;
+  if (!["local-celo-mobius"].includes(process.env.NETWORK ? process.env.NETWORK : "")) return;
 
-  global.web3 = web3;
+  // global.web3 = web3;
   const unlockedDaiAccount = "0x699EaB8444e2ff85Ec9F426673eE1Fff193334f4";
-  let providersConfigs;
-  let GoodGhostingArtifact;
+  let providersConfigs: any;
+  let GoodGhostingArtifact: any;
   let mobi;
   if (process.env.NETWORK === "local-celo-mobius") {
     GoodGhostingArtifact = Pool;
-    providersConfigs = config.providers.celo.mobius;
+    providersConfigs = deployConfig.providers.celo.mobius;
   }
 
   const {
@@ -27,8 +27,8 @@ contract("GoodGhostingGasEstimate", accounts => {
     customFee,
     earlyWithdrawFee,
     maxPlayersCount,
-  } = config.deployConfigs;
-  let token;
+  } = deployConfig.deployConfigs;
+  let token: any;
   let pool;
   let gaugeToken;
   let admin = accounts[0];
@@ -37,7 +37,7 @@ contract("GoodGhostingGasEstimate", accounts => {
   const userWithdrawingAfterLastSegment = players[1];
   const daiDecimals = ethers.BigNumber.from("1000000000000000000");
   const segmentPayment = daiDecimals.mul(ethers.BigNumber.from(segmentPaymentInt)); // equivalent to 10 DAI
-  let goodGhosting;
+  let goodGhosting: any;
 
   describe("simulates a full game with 5 players and 4 of them winning the game and with admin fee % as 0", async () => {
     it("initializes contract instances and transfers DAI to players", async () => {
