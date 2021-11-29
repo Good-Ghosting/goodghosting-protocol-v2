@@ -192,7 +192,7 @@ const config = require("../deploy/deploy.config");
 
 // }
 
-module.exports = function (deployer: any, network: any, accounts: any) {
+module.exports = function (deployer, network, accounts) {
   // Injects network name into process .env variable to make accessible on test suite.
   process.env.NETWORK = network;
 
@@ -333,6 +333,4 @@ module.exports = function (deployer: any, network: any, accounts: any) {
     //     }
     // );
   });
-} as Truffle.Migration;
-
-export {};
+};

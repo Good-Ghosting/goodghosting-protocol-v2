@@ -7,7 +7,7 @@ import "./tasks/accounts";
 import "./tasks/deploy";
 
 import { resolve } from "path";
-
+import "@nomiclabs/hardhat-truffle5";
 import { config as dotenvConfig } from "dotenv";
 import { HardhatUserConfig } from "hardhat/config";
 import { NetworkUserConfig } from "hardhat/types";
@@ -59,9 +59,6 @@ const config: HardhatUserConfig = {
     hardhat: {
       accounts: {
         mnemonic,
-      },
-      forking: {
-        url: "https://forno.celo.org",
       },
       chainId: chainIds.hardhat,
     },
