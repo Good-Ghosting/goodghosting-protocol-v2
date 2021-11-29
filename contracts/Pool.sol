@@ -360,6 +360,9 @@ contract Pool is Ownable, Pausable {
 
         emit EarlyWithdrawal(msg.sender, withdrawAmount, totalGamePrincipal);
         strategy.earlyWithdraw(inboundToken, withdrawAmount, _minAmount);
+        if (inboundToken.balanceOf(address(this)) < withdrawAmount) {
+            withdrawAmount = inboundToken.balanceOf(address(this));
+        }
         require(
             IERC20(inboundToken).transfer(msg.sender, withdrawAmount),
             "Fail to transfer ERC20 tokens on early withdraw"

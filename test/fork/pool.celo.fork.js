@@ -88,7 +88,7 @@ contract("GoodGhostingGasEstimate", accounts => {
           .send({ from: players[i] });
         await goodGhosting.joinGame(0, 0, { from: players[i], gas: 6000000 });
       }
-      // await goodGhosting.earlyWithdraw(0, { from: players[0], gas: 6000000  });
+      await goodGhosting.earlyWithdraw(0, { from: players[0], gas: 6000000 });
     });
 
     it("players are able to make deposits till the pool ends", async () => {
@@ -97,7 +97,7 @@ contract("GoodGhostingGasEstimate", accounts => {
         // await ethers.provider.send("evm_mine", []);
         await timeMachine.advanceTime(segmentLength);
 
-        for (let j = 0; j < players.length; j++) {
+        for (let j = 1; j < players.length; j++) {
           await goodGhosting.makeDeposit(0, 0, { from: players[j], gas: 6000000 });
         }
       }
