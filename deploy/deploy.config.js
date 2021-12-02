@@ -79,6 +79,7 @@ exports.providers = {
       pool: "0x2080AAa167e2225e1FC9923250bA60E19a180Fb2",
       gauge: "0x52517feb1Fc6141d5CF6718111C7Cc0FD764fA5d",
       mobi: "0x73a210637f6F6B7005512677Ba6B3C96bb4AA44B",
+      tokenIndex: 0,
       cusd: {
         address: "0x765DE816845861e75A25fCA122bb6898B8B1282a",
         decimals: 18,
