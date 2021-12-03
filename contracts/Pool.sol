@@ -73,6 +73,9 @@ contract Pool is Ownable, Pausable {
     /// @notice controls if admin withdrew or not the performance fee.
     bool public adminWithdraw;
 
+    /// @notice Ownership Control flag
+    bool public allowRenouncingOwnership = false;
+
     /// @notice Strategy Contract Address
     IStrategy public immutable strategy;
 
@@ -207,6 +210,17 @@ contract Pool is Ownable, Pausable {
     /// @notice unpauses the game. This function can be called only by the contract's admin.
     function unpause() external onlyOwner whenPaused {
         _unpause();
+    }
+
+    /// @notice Unlocks renounceOwnership.
+    function unlockRenounceOwnership() external onlyOwner {
+        allowRenouncingOwnership = true;
+    }
+
+    /// @notice Renounces Ownership.
+    function renounceOwnership() public override onlyOwner {
+        require(allowRenouncingOwnership, "Not allowed");
+        super.renounceOwnership();
     }
 
     /// @notice Allows the admin to withdraw the performance fee, if applicable. This function can be called only by the contract's admin.

@@ -342,6 +342,21 @@ export const shouldBehaveLikeGGPool = async (strategyType: string) => {
     const result = await contracts.goodGhosting.pause();
     assert(result, "contract is paused");
   });
+
+  it("reverts when admins tries to renounceOwnership without unlocking it first", async () => {
+    await expect(contracts.goodGhosting.renounceOwnership()).to.be.revertedWith("Not allowed");
+  });
+
+  it("allows admin to renounceOwnership after unlocking it first", async () => {
+    const ZERO_ADDRESS = "0x0000000000000000000000000000000000000000";
+    const accounts = await ethers.getSigners();
+    await contracts.goodGhosting.unlockRenounceOwnership();
+    const currentOwner = await contracts.goodGhosting.owner();
+    assert(currentOwner, accounts[0]);
+    await contracts.goodGhosting.renounceOwnership();
+    const newOwner = await contracts.goodGhosting.owner();
+    assert(newOwner, ZERO_ADDRESS);
+  });
 };
 
 export const shouldBehaveLikeJoiningGGPool = async (strategyType: string) => {
