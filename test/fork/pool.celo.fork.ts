@@ -1,4 +1,5 @@
 const Pool = artifacts.require("Pool");
+const MobiusStrategy = artifacts.require("MobiusStrategy");
 const timeMachine = require("ganache-time-traveler");
 const truffleAssert = require("truffle-assertions");
 const wmatic = require("../../artifacts/contracts/mock/MintableERC20.sol/MintableERC20.json");
@@ -31,6 +32,7 @@ contract("Pool with Mobius Strategy", accounts => {
   let token: any;
   let pool: any;
   let gaugeToken: any;
+  let mobiusStrategy: any;
   let admin = accounts[0];
   const players = accounts.slice(1, 6); // 5 players
   const loser = players[0];
@@ -46,6 +48,7 @@ contract("Pool with Mobius Strategy", accounts => {
       mobi = new web3.eth.Contract(wmatic.abi, providersConfigs.mobi);
 
       goodGhosting = await GoodGhostingArtifact.deployed();
+      mobiusStrategy = await MobiusStrategy.deployed();
       gaugeToken = new web3.eth.Contract(mobiusGauge.abi, providersConfigs.gauge);
 
       const unlockedBalance = await token.methods.balanceOf(unlockedDaiAccount).call({ from: admin });
@@ -126,7 +129,7 @@ contract("Pool with Mobius Strategy", accounts => {
         );
 
         slippageFromContract = await pool.methods
-          .calculateTokenAmount(goodGhosting.address, [segmentPayment.toString(), 0, 0], true)
+          .calculateTokenAmount(mobiusStrategy.address, [segmentPayment.toString(), 0, 0], true)
           .call();
 
         minAmountWithFees =
@@ -135,9 +138,7 @@ contract("Pool with Mobius Strategy", accounts => {
                 .toBN(slippageFromContract)
                 .sub(web3.utils.toBN(slippageFromContract).mul(web3.utils.toBN("10")).div(web3.utils.toBN("10000")))
             : userProvidedMinAmount.sub(userProvidedMinAmount.mul(web3.utils.toBN("10")).div(web3.utils.toBN("10000")));
-        console.log("MIN", minAmountWithFees.toString());
         result = await goodGhosting.joinGame(minAmountWithFees.toString(), 0, { from: player });
-        console.log("klllll");
         // player 1 early withdraws in segment 0 and joins again
         if (i == 1) {
           const withdrawAmount = segmentPayment.sub(
@@ -145,25 +146,22 @@ contract("Pool with Mobius Strategy", accounts => {
           );
           let lpTokenAmount;
           lpTokenAmount = await pool.methods
-            .calculateTokenAmount(goodGhosting.address, [withdrawAmount.toString(), 0, 0], true)
+            .calculateTokenAmount(mobiusStrategy.address, [withdrawAmount.toString(), 0, 0], true)
             .call();
-          console.log("klllll");
 
-          const gaugeTokenBalance = await gaugeToken.methods.balanceOf(goodGhosting.address).call();
+          const gaugeTokenBalance = await gaugeToken.methods.balanceOf(mobiusStrategy.address).call();
 
           if (parseInt(gaugeTokenBalance.toString()) < parseInt(lpTokenAmount.toString())) {
             lpTokenAmount = gaugeTokenBalance;
           }
-          console.log("klljjkk777777k99999jjjlll");
 
           let minAmount = await pool.methods
             .calculateRemoveLiquidityOneToken(
-              goodGhosting.address,
+              mobiusStrategy.address,
               lpTokenAmount.toString(),
               providersConfigs.tokenIndex,
             )
             .call();
-          console.log("klljjkkk99999jjjlll");
 
           minAmount = web3.utils.toBN(minAmount).sub(web3.utils.toBN(minAmount).div(web3.utils.toBN("1000")));
 
@@ -174,17 +172,14 @@ contract("Pool with Mobius Strategy", accounts => {
           if (parseInt(userProvidedMinAmount.toString()) < parseInt(minAmount.toString())) {
             minAmount = userProvidedMinAmount;
           }
-          console.log("klljjjjjlll");
 
           await goodGhosting.earlyWithdraw(minAmount.toString(), { from: player });
-          console.log("klleeelll");
 
           await token.methods
             .approve(goodGhosting.address, segmentPayment.mul(web3.utils.toBN(segmentCount)).toString())
             .send({ from: player });
 
           await goodGhosting.joinGame(minAmountWithFees.toString(), 0, { from: player });
-          console.log("klllleeeel");
         }
         // got logs not defined error when keep the event assertion check outside of the if-else
         truffleAssert.eventEmitted(
@@ -205,7 +200,7 @@ contract("Pool with Mobius Strategy", accounts => {
     });
 
     it("runs the game - 'player1' early withdraws and other players complete game successfully", async () => {
-      const userSlippageOptions = [3, 5, 1, 2.5, 1.5];
+      const userSlippageOptions = [3, 5, 1, 4, 2];
       let depositResult, earlyWithdrawResult;
 
       // The payment for the first segment was done upon joining, so we start counting from segment 2 (index 1)
@@ -219,7 +214,7 @@ contract("Pool with Mobius Strategy", accounts => {
             segmentPayment.mul(web3.utils.toBN(userSlippageOptions[j].toString())).div(web3.utils.toBN(100)),
           );
           slippageFromContract = await pool.methods
-            .calculateTokenAmount(goodGhosting.address, [segmentPayment.toString(), 0, 0], true)
+            .calculateTokenAmount(mobiusStrategy.address, [segmentPayment.toString(), 0, 0], true)
             .call();
 
           const minAmountWithFees =
@@ -250,16 +245,16 @@ contract("Pool with Mobius Strategy", accounts => {
           );
           let lpTokenAmount;
           lpTokenAmount = await pool.methods
-            .calculateTokenAmount(goodGhosting.address, [withdrawAmount.toString(), 0, 0], true)
+            .calculateTokenAmount(mobiusStrategy.address, [withdrawAmount.toString(), 0, 0], true)
             .call();
 
-          const gaugeTokenBalance = await gaugeToken.methods.balanceOf(goodGhosting.address).call();
+          const gaugeTokenBalance = await gaugeToken.methods.balanceOf(mobiusStrategy.address).call();
           if (parseInt(gaugeTokenBalance.toString()) < parseInt(lpTokenAmount.toString())) {
             lpTokenAmount = gaugeTokenBalance;
           }
           let minAmount = await pool.methods
             .calculateRemoveLiquidityOneToken(
-              goodGhosting.address,
+              mobiusStrategy.address,
               lpTokenAmount.toString(),
               providersConfigs.tokenIndex,
             )
@@ -292,15 +287,15 @@ contract("Pool with Mobius Strategy", accounts => {
       );
       let lpTokenAmount;
       lpTokenAmount = await pool.methods
-        .calculateTokenAmount(goodGhosting.address, [withdrawAmount.toString(), 0, 0], true)
+        .calculateTokenAmount(mobiusStrategy.address, [withdrawAmount.toString(), 0, 0], true)
         .call();
 
-      const gaugeTokenBalance = await gaugeToken.methods.balanceOf(goodGhosting.address).call();
+      const gaugeTokenBalance = await gaugeToken.methods.balanceOf(mobiusStrategy.address).call();
       if (parseInt(gaugeTokenBalance.toString()) < parseInt(lpTokenAmount.toString())) {
         lpTokenAmount = gaugeTokenBalance;
       }
       let minAmount = await pool.methods
-        .calculateRemoveLiquidityOneToken(goodGhosting.address, lpTokenAmount.toString(), providersConfigs.tokenIndex)
+        .calculateRemoveLiquidityOneToken(mobiusStrategy.address, lpTokenAmount.toString(), providersConfigs.tokenIndex)
         .call();
       minAmount = web3.utils.toBN(minAmount).sub(web3.utils.toBN(minAmount).div(web3.utils.toBN("1000")));
 
@@ -317,19 +312,21 @@ contract("Pool with Mobius Strategy", accounts => {
 
       assert(winnerCountBeforeEarlyWithdraw.eq(web3.utils.toBN(3)));
       assert(winnerCountAfterEarlyWithdraw.eq(web3.utils.toBN(2)));
-      await timeMachine.advanceTime(segmentLength * 2);
+      await timeMachine.advanceTime(segmentLength);
+      const waitingRoundLength = await goodGhosting.waitingRoundSegmentLength();
+      await timeMachine.advanceTime(parseInt(waitingRoundLength.toString()));
     });
 
     it("redeems funds from external pool", async () => {
-      const userSlippage = 0.2;
+      const userSlippage = 1;
       let minAmount;
       let mobiBalanceBeforeRedeem, mobiBalanceAfterRedeem;
       mobiBalanceBeforeRedeem = await mobi.methods.balanceOf(goodGhosting.address).call();
 
-      const gaugeTokenBalance = await gaugeToken.methods.balanceOf(goodGhosting.address).call();
+      const gaugeTokenBalance = await gaugeToken.methods.balanceOf(mobiusStrategy.address).call();
       minAmount = await pool.methods
         .calculateRemoveLiquidityOneToken(
-          goodGhosting.address,
+          mobiusStrategy.address,
           gaugeTokenBalance.toString(),
           providersConfigs.tokenIndex,
         )
