@@ -1,4 +1,4 @@
-pragma solidity >=0.6.11;
+pragma solidity 0.6.11;
 
 // import "../libraries/LowGasSafeMath.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
@@ -11,7 +11,7 @@ contract MobiusStrategy is Ownable, IStrategy {
     // using LowGasSafeMath for uint256;
 
     /// @notice pool address
-    IMobiPool public immutable pool;
+    IMobiPool public pool;
 
     /// @notice gauge address
     IMobiGauge public immutable gauge;
@@ -26,7 +26,7 @@ contract MobiusStrategy is Ownable, IStrategy {
         IMobiPool _pool,
         IMobiGauge _gauge,
         IERC20 _mobi
-    ) {
+    ) public {
         require(address(_pool) != address(0), "invalid _pool address");
         require(address(_gauge) != address(0), "invalid _gauge address");
         require(address(_mobi) != address(0), "invalid _mobi address");
@@ -93,7 +93,7 @@ contract MobiusStrategy is Ownable, IStrategy {
         require(_inboundCurrency.transfer(msg.sender, _inboundCurrency.balanceOf(address(this))), "Transfer Failed");
     }
 
-    function getRewardToken() external pure override returns (IERC20) {
+    function getRewardToken() external view override returns (IERC20) {
         return IERC20(address(0));
     }
 

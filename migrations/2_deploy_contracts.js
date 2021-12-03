@@ -200,7 +200,6 @@ module.exports = function (deployer, network, accounts) {
   if (["test", "soliditycoverage"].includes(network)) return;
 
   deployer.then(async () => {
-    console.log("here");
     // let networkName = getNetworkName(network);
     // if (network === "local-celo-fork") {
     //     config.deployConfigs.selectedProvider = "moola";

@@ -1,4 +1,4 @@
-pragma solidity >=0.6.11;
+pragma solidity 0.6.11;
 
 import "../libraries/LowGasSafeMath.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
@@ -11,7 +11,7 @@ contract CurveStrategy is Ownable, IStrategy {
     using LowGasSafeMath for uint256;
 
     /// @notice pool address
-    ICurvePool public immutable pool;
+    ICurvePool public pool;
 
     /// @notice gauge address
     ICurveGauge public immutable gauge;
@@ -26,29 +26,31 @@ contract CurveStrategy is Ownable, IStrategy {
     IERC20 public lpToken;
 
     /// @notice token index in the pool in int form
-    int128 public immutable inboundTokenIndexInt;
-
-    /// @notice token index in the pool in uint form
-    uint256 public immutable inboundTokenIndexUint;
+    int128 public immutable inboundTokenIndex;
 
     /// @notice total tokens in aave pool
-    uint64 public constant numAaveTokens = 3;
+    uint64 public constant NUM_AAVE_TOKENS = 3;
 
     /// @notice total tokens in atricrypto pool
-    uint64 public constant numAtricryptoTokens = 5;
+    uint64 public constant NUM_ATRI_CRYPTO_TOKENS = 5;
+
+    /// @notice identifies the "Aave Pool" Type
+    uint64 public constant AAVE_POOL = 0;
+
+    /// @notice identifies the "Atri Crypto Pool" Type
+    uint64 public constant ATRI_CRYPTO_POOL = 1;
 
     /// @notice flag to differentiate between aave and atricrypto pool
     uint64 public immutable poolType;
 
     constructor(
         ICurvePool _pool,
-        int128 _inboundTokenIndexInt,
-        uint128 _inboundTokenIndexUint,
+        int128 _inboundTokenIndex,
         uint64 _poolType,
         ICurveGauge _gauge,
         IERC20 _rewardToken,
         IERC20 _curve
-    ) {
+    ) public {
         require(address(_pool) != address(0), "invalid _pool address");
         require(address(_gauge) != address(0), "invalid _gauge address");
         require(address(_curve) != address(0), "invalid _curve address");
@@ -56,8 +58,7 @@ contract CurveStrategy is Ownable, IStrategy {
         gauge = _gauge;
         curve = _curve;
         poolType = _poolType;
-        inboundTokenIndexInt = _inboundTokenIndexInt;
-        inboundTokenIndexUint = _inboundTokenIndexUint;
+        inboundTokenIndex = _inboundTokenIndex;
         // wmatic in case of polygon and address(0) for non-polygon deployment
         rewardToken = _rewardToken;
         if (_poolType == 0) {
@@ -74,28 +75,24 @@ contract CurveStrategy is Ownable, IStrategy {
     ) external override onlyOwner {
         uint256 contractBalance = _inboundCurrency.balanceOf(address(this));
         require(_inboundCurrency.approve(address(pool), contractBalance), "Fail to approve allowance to pool");
-        // numAaveTokens/numAtricryptoTokens has to be a constant type actually otherwise the signature becomes diff. and the external call will fail if I use an "if" condition the assignment will be to a non-constant ver, this again is due to the structure of how the curve contracts are written
-        if (poolType == 0) {
-            uint256[numAaveTokens] memory amounts;
-            for (uint256 i = 0; i < numAaveTokens; i++) {
-                if (i == inboundTokenIndexUint) {
-                    amounts[i] = _amount;
-                } else {
-                    amounts[i] = 0;
-                }
-            }
+        /*
+        Constants "NUM_AAVE_TOKENS" and "NUM_ATRI_CRYPTO_TOKENS" have to be a constant type actually,
+            otherwise the signature becomes different and the external call will fail.
+            If we use an "if" condition based on pool type, and dynamically set
+            a value for these variables, the assignment will be to a non-constant
+            which will result in failure. This is due to the structure of how
+            the curve contracts are written
+        */
+        if (poolType == AAVE_POOL) {
+            uint256[NUM_AAVE_TOKENS] memory amounts; // fixed-sized array is initialized w/ [0, 0, 0]
+            amounts[uint256(inboundTokenIndex)] = contractBalance;
             pool.add_liquidity(amounts, _minAmount, true);
-        } else if (poolType == 1) {
-            uint256[numAtricryptoTokens] memory amounts;
-            for (uint256 i = 0; i < numAtricryptoTokens; i++) {
-                if (i == inboundTokenIndexUint) {
-                    amounts[i] = _amount;
-                } else {
-                    amounts[i] = 0;
-                }
-            }
+        } else if (poolType == ATRI_CRYPTO_POOL) {
+            uint256[NUM_ATRI_CRYPTO_TOKENS] memory amounts; // fixed-sized array is initialized w/ [0, 0, 0, 0, 0]
+            amounts[uint256(inboundTokenIndex)] = contractBalance;
             pool.add_liquidity(amounts, _minAmount);
         }
+
         require(
             lpToken.approve(address(gauge), lpToken.balanceOf(address(this))),
             "Fail to approve allowance to gauge"
@@ -108,64 +105,85 @@ contract CurveStrategy is Ownable, IStrategy {
         uint256 _amount,
         uint256 _minAmount
     ) external override onlyOwner {
-        // code of aave and atricrypto pool is completely different , in the case of aave i.e pool type 0 all funds sit in that contract, but atricrypto is in communication with other pools and funds sit in those pools hence the approval is needed because it is talking with external contracts
-        // numAaveTokens/numAtricryptoTokens has to be a constant type actually otherwise the signature becomes diff. and the external call will fail if I use an "if" condition the assignment will be to a non-constant ver, this again is due to the structure of how the curve contracts are written
-        if (poolType == 0) {
-            uint256[numAaveTokens] memory amounts;
-            for (uint256 i = 0; i < numAaveTokens; i++) {
-                if (i == inboundTokenIndexUint) {
-                    amounts[i] = _amount;
-                } else {
-                    amounts[i] = 0;
+        /*
+        Code of curve's aave and curve's atricrypto pools are completely different.
+        Curve's Aave Pool (pool type 0): in this contract, all funds "sit" in the pool's smart contract.
+        Curve's Atricrypto pool (pool type 1): this contract integrates with other pools
+            and funds sit in those pools. Hence, an approval transaction is required because
+            it is communicating with external contracts
+        */
+        uint256 gaugeBalance = gauge.balanceOf(address(this));
+        if (gaugeBalance > 0) {
+            if (poolType == AAVE_POOL) {
+                uint256[NUM_AAVE_TOKENS] memory amounts; // fixed-sized array is initialized w/ [0, 0, 0]
+                amounts[uint256(inboundTokenIndex)] = _amount;
+                uint256 poolWithdrawAmount = pool.calc_token_amount(amounts, true);
+
+                if (gaugeBalance < poolWithdrawAmount) {
+                    poolWithdrawAmount = gaugeBalance;
                 }
-            }
-            uint256 poolWithdrawAmount = pool.calc_token_amount(amounts, true);
 
-            if (gauge.balanceOf(address(this)) < poolWithdrawAmount) {
-                poolWithdrawAmount = gauge.balanceOf(address(this));
-            }
+                // passes false not to claim rewards
+                gauge.withdraw(poolWithdrawAmount, false);
 
-            gauge.withdraw(poolWithdrawAmount, false);
+                pool.remove_liquidity_one_coin(
+                    poolWithdrawAmount,
+                    inboundTokenIndex,
+                    _minAmount,
+                    true // redeems underlying coin (dai, usdc, usdt), instead of aTokens
+                );
+            } else if (poolType == ATRI_CRYPTO_POOL) {
+                uint256[NUM_ATRI_CRYPTO_TOKENS] memory amounts; // fixed-sized array is initialized w/ [0, 0, 0, 0, 0]
+                amounts[uint256(inboundTokenIndex)] = _amount;
+                uint256 poolWithdrawAmount = pool.calc_token_amount(amounts, true);
 
-            pool.remove_liquidity_one_coin(poolWithdrawAmount, inboundTokenIndexInt, _minAmount, true);
-        } else if (poolType == 1) {
-            uint256[numAtricryptoTokens] memory amounts;
-            for (uint256 i = 0; i < numAtricryptoTokens; i++) {
-                if (i == inboundTokenIndexUint) {
-                    amounts[i] = _amount;
-                } else {
-                    amounts[i] = 0;
+                if (gaugeBalance < poolWithdrawAmount) {
+                    poolWithdrawAmount = gaugeBalance;
                 }
+
+                // passes false not to claim rewards
+                gauge.withdraw(poolWithdrawAmount, false);
+
+                require(lpToken.approve(address(pool), poolWithdrawAmount), "Fail to approve allowance to pool");
+                pool.remove_liquidity_one_coin(poolWithdrawAmount, uint256(inboundTokenIndex), _minAmount);
             }
-            uint256 poolWithdrawAmount = pool.calc_token_amount(amounts, true);
-
-            if (gauge.balanceOf(address(this)) < poolWithdrawAmount) {
-                poolWithdrawAmount = gauge.balanceOf(address(this));
-            }
-
-            gauge.withdraw(poolWithdrawAmount, false);
-
-            require(lpToken.approve(address(pool), poolWithdrawAmount), "Fail to approve allowance to pool");
-            pool.remove_liquidity_one_coin(poolWithdrawAmount, inboundTokenIndexUint, _minAmount);
+        }
+        // check for impermanent loss
+        if (_inboundCurrency.balanceOf(address(this)) < _amount) {
+            _amount = _inboundCurrency.balanceOf(address(this));
         }
         // msg.sender will always be the pool contract (new owner)
         require(_inboundCurrency.transfer(msg.sender, _inboundCurrency.balanceOf(address(this))), "Transfer Failed");
     }
 
     function redeem(IERC20 _inboundCurrency, uint256 _minAmount) external override onlyOwner {
-        uint256 lpBalance = gauge.balanceOf(address(this));
-        gauge.withdraw(lpBalance, true);
-        // code of aave and atricrypto pool is completely different , in the case of aave i.e pool type 0 all funds sit in that contract, but atricrypto is in communication with other pools and funds sit in those pools hence the approval is needed because it is talking with external contracts
-        // numAaveTokens/numAtricryptoTokens has to be a constant type actually otherwise the signature becomes diff. and the external call will fail if I use an "if" condition the assignment will be to a non-constant ver, this again is due to the structure of how the curve contracts are written
-        if (poolType == 0) {
-            pool.remove_liquidity_one_coin(lpToken.balanceOf(address(this)), inboundTokenIndexInt, _minAmount, true);
-        } else if (poolType == 1) {
-            require(
-                lpToken.approve(address(pool), lpToken.balanceOf(address(this))),
-                "Fail to approve allowance to pool"
-            );
+        uint256 gaugeBalance = gauge.balanceOf(address(this));
+        if (gaugeBalance > 0) {
+            // passes true to also claim rewards
+            gauge.withdraw(gaugeBalance, true);
+        }
 
-            pool.remove_liquidity_one_coin(lpToken.balanceOf(address(this)), inboundTokenIndexUint, _minAmount);
+        /*
+        Code of curve's aave and curve's atricrypto pools are completely different.
+        Curve's Aave Pool (pool type 0): in this contract, all funds "sit" in the pool's smart contract.
+        Curve's Atricrypto pool (pool type 1): this contract integrates with other pools
+            and funds sit in those pools. Hence, an approval transaction is required because
+            it is communicating with external contracts
+        */
+        uint256 lpTokenBalance = lpToken.balanceOf(address(this));
+        if (lpTokenBalance > 0) {
+            if (poolType == AAVE_POOL) {
+                pool.remove_liquidity_one_coin(
+                    lpTokenBalance,
+                    inboundTokenIndex,
+                    _minAmount,
+                    true // redeems underlying coin (dai, usdc, usdt), instead of aTokens
+                );
+            } else if (poolType == ATRI_CRYPTO_POOL) {
+                require(lpToken.approve(address(pool), lpTokenBalance), "Fail to approve allowance to pool");
+
+                pool.remove_liquidity_one_coin(lpTokenBalance, uint256(inboundTokenIndex), _minAmount);
+            }
         }
         if (address(rewardToken) != address(0)) {
             require(rewardToken.transfer(msg.sender, rewardToken.balanceOf(address(this))), "Transfer Failed");

@@ -95,7 +95,6 @@ export const deployPool = async (
         curvePool.address,
         0,
         0,
-        0,
         curveGauge.address,
         rewardToken.address,
         curve.address,
