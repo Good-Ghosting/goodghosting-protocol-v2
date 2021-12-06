@@ -10,6 +10,9 @@ import {
   MintableERC20,
   IncentiveControllerMock__factory,
   MockCurvePool__factory,
+  MockMobiusPool__factory,
+  MockMobiusGauge__factory,
+  MobiusStrategy__factory,
   MockCurveGauge__factory,
   CurveStrategy__factory,
   Pool,
@@ -54,8 +57,11 @@ export const deployPool = async (
   let rewardToken: any = ZERO_ADDRESS;
   let strategy: any = ZERO_ADDRESS;
   let curve: any = ZERO_ADDRESS;
+  let mobi: any = ZERO_ADDRESS;
   let curveGauge: any = ZERO_ADDRESS;
   let curvePool: any = ZERO_ADDRESS;
+  let mobiGauge: any = ZERO_ADDRESS;
+  let mobiPool: any = ZERO_ADDRESS;
 
   if (strategyType === "aave") {
     lendingPool = await lendingPoolAddressProvider.deploy("TOKEN_NAME", "TOKEN_SYMBOL");
@@ -100,6 +106,19 @@ export const deployPool = async (
         curve.address,
       );
     }
+  } else if (strategyType === "mobius") {
+    const mockMobiTokenDeployer = new MintableERC20__factory(deployer);
+    mobi = await mockMobiTokenDeployer.deploy("MOBI", "MOBI");
+    const mobiPoolDeployer = new MockMobiusPool__factory(deployer);
+    mobiPool = await mobiPoolDeployer.deploy("LP", "LP", inboundToken.address);
+    const mobiGaugeDeployer = new MockMobiusGauge__factory(deployer);
+    mobiGauge = await mobiGaugeDeployer.deploy("LP-GAUGE", "LP-GAUGE", mobi.address, mobiPool.address);
+    await mobi.mint(mobiGauge.address, ethers.utils.parseEther("100000"));
+
+    if (isInvestmentStrategy) {
+      const mobiStrategyDeployer = new MobiusStrategy__factory(deployer);
+      strategy = await mobiStrategyDeployer.deploy(mobiPool.address, mobiGauge.address, mobi.address);
+    }
   }
 
   const goodGhostingV2Deployer = new Pool__factory(deployer);
@@ -134,6 +153,9 @@ export const deployPool = async (
     curvePool,
     curveGauge,
     curve,
+    mobiPool,
+    mobiGauge,
+    mobi,
   };
 };
 

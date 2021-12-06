@@ -50,6 +50,8 @@ export const shouldBehaveLikeGGPool = async (strategyType: string) => {
       interestTokenAddress = contracts.lendingPool.address;
     } else if (strategyType === "curve") {
       interestTokenAddress = contracts.curvePool.address;
+    } else if (strategyType === "mobius") {
+      interestTokenAddress = contracts.mobiPool.address;
     }
     assert(
       inBoundTokenAddress !== interestTokenAddress,
@@ -64,6 +66,8 @@ export const shouldBehaveLikeGGPool = async (strategyType: string) => {
       interestBalance = await contracts.lendingPool.balanceOf(contracts.strategy.address);
     } else if (strategyType === "curve") {
       interestBalance = await contracts.curvePool.balanceOf(contracts.strategy.address);
+    } else if (strategyType === "mobius") {
+      interestBalance = await contracts.mobiPool.balanceOf(contracts.strategy.address);
     }
     assert(
       inBoundBalance.toNumber() === 0,
@@ -568,6 +572,8 @@ export const shouldBehaveLikeJoiningGGPool = async (strategyType: string) => {
       contractsDaiBalance = await contracts.lendingPool.balanceOf(contracts.strategy.address);
     } else if (strategyType === "curve") {
       contractsDaiBalance = await contracts.curveGauge.balanceOf(contracts.strategy.address);
+    } else if (strategyType === "mobius") {
+      contractsDaiBalance = await contracts.mobiGauge.balanceOf(contracts.strategy.address);
     }
     assert(
       contractsDaiBalance.lte(segmentPayment) && contractsDaiBalance.gt(ethers.BigNumber.from(0)),
@@ -800,6 +806,8 @@ export const shouldBehaveLikeDepositingGGPool = async (strategyType: string) => 
       contractsDaiBalance = await contracts.lendingPool.balanceOf(contracts.strategy.address);
     } else if (strategyType === "curve") {
       contractsDaiBalance = await contracts.curveGauge.balanceOf(contracts.strategy.address);
+    } else if (strategyType === "mobius") {
+      contractsDaiBalance = await contracts.mobiGauge.balanceOf(contracts.strategy.address);
     }
     assert(
       expectedBalance.gte(contractsDaiBalance) && contractsDaiBalance.gt(ethers.BigNumber.from(0)),
@@ -1218,11 +1226,20 @@ export const shouldBehaveLikeRedeemingFromGGPool = async (strategyType: string) 
       await contracts.curvePool.connect(deployer).add_liquidity([ethers.utils.parseEther("1000"), "0", "0"], 0, true);
 
       await contracts.curvePool.transfer(contracts.strategy.address, ethers.utils.parseEther("1000"));
+    } else if (strategyType === "mobius") {
+      await contracts.inboundToken
+        .connect(deployer)
+        .approve(contracts.mobiPool.address, ethers.utils.parseEther("100000"));
+      await contracts.mobiPool.connect(deployer).addLiquidity([ethers.utils.parseEther("1000"), "0"], 0, 1000);
+
+      await contracts.mobiPool.transfer(contracts.strategy.address, ethers.utils.parseEther("1000"));
     }
 
     const result = await contracts.goodGhosting.redeemFromExternalPool(0);
     if (strategyType === "curve") {
       governanceTokenRewards = await contracts.curve.balanceOf(contracts.goodGhosting.address);
+    } else if (strategyType === "mobius") {
+      governanceTokenRewards = await contracts.mobi.balanceOf(contracts.goodGhosting.address);
     }
     const totalPrincipal = ethers.BigNumber.from(segmentPayment).mul(ethers.BigNumber.from(segmentCount));
     const contractsDaiBalance = await contracts.inboundToken.balanceOf(contracts.goodGhosting.address);
@@ -1277,6 +1294,13 @@ export const shouldBehaveLikeRedeemingFromGGPool = async (strategyType: string) 
         .approve(contracts.curvePool.address, ethers.utils.parseEther("100000"));
       await contracts.curvePool.add_liquidity([ethers.utils.parseEther("1000"), "0", "0"], 0, true);
       await contracts.curvePool.transfer(contracts.strategy.address, ethers.utils.parseEther("1000"));
+    } else if (strategyType === "mobius") {
+      await contracts.inboundToken
+        .connect(deployer)
+        .approve(contracts.mobiPool.address, ethers.utils.parseEther("100000"));
+      await contracts.mobiPool.connect(deployer).addLiquidity([ethers.utils.parseEther("1000"), "0"], 0, 1000);
+
+      await contracts.mobiPool.transfer(contracts.strategy.address, ethers.utils.parseEther("1000"));
     }
     await contracts.goodGhosting.redeemFromExternalPool(0);
     const contractsDaiBalance = await contracts.inboundToken.balanceOf(contracts.goodGhosting.address);
@@ -1336,6 +1360,13 @@ export const shouldBehaveLikeRedeemingFromGGPool = async (strategyType: string) 
         .approve(contracts.curvePool.address, ethers.utils.parseEther("100000"));
       await contracts.curvePool.add_liquidity([ethers.utils.parseEther("1000"), "0", "0"], 0, true);
       await contracts.curvePool.transfer(contracts.strategy.address, ethers.utils.parseEther("1000"));
+    } else if (strategyType === "mobius") {
+      await contracts.inboundToken
+        .connect(deployer)
+        .approve(contracts.mobiPool.address, ethers.utils.parseEther("100000"));
+      await contracts.mobiPool.connect(deployer).addLiquidity([ethers.utils.parseEther("1000"), "0"], 0, 1000);
+
+      await contracts.mobiPool.transfer(contracts.strategy.address, ethers.utils.parseEther("1000"));
     }
     await contracts.goodGhosting.redeemFromExternalPool(0);
     const contractsDaiBalance = await contracts.inboundToken.balanceOf(contracts.goodGhosting.address);
@@ -1376,6 +1407,13 @@ export const shouldBehaveLikeRedeemingFromGGPool = async (strategyType: string) 
         .approve(contracts.curvePool.address, ethers.utils.parseEther("100000"));
       await contracts.curvePool.add_liquidity([ethers.utils.parseEther("1000"), "0", "0"], 0, true);
       await contracts.curvePool.transfer(contracts.strategy.address, ethers.utils.parseEther("1000"));
+    } else if (strategyType === "mobius") {
+      await contracts.inboundToken
+        .connect(deployer)
+        .approve(contracts.mobiPool.address, ethers.utils.parseEther("100000"));
+      await contracts.mobiPool.connect(deployer).addLiquidity([ethers.utils.parseEther("1000"), "0"], 0, 1000);
+
+      await contracts.mobiPool.transfer(contracts.strategy.address, ethers.utils.parseEther("1000"));
     }
     await contracts.goodGhosting.redeemFromExternalPool(0);
     const contractsDaiBalance = await contracts.inboundToken.balanceOf(contracts.goodGhosting.address);
@@ -1490,6 +1528,8 @@ export const shouldBehaveLikeGGPoolWithNoWinners = async (strategyType: string) 
     const result = await contracts.goodGhosting.redeemFromExternalPool(0);
     if (strategyType === "curve") {
       governanceTokenRewards = await contracts.curve.balanceOf(contracts.goodGhosting.address);
+    } else if (strategyType === "mobius") {
+      governanceTokenRewards = await contracts.mobi.balanceOf(contracts.goodGhosting.address);
     }
     const adminBalance = await contracts.goodGhosting.adminFeeAmount();
     const totalBalance = await contracts.inboundToken.balanceOf(contracts.goodGhosting.address);
@@ -1579,6 +1619,13 @@ export const shouldBehaveLikePlayersWithdrawingFromGGPool = async (strategyType:
         .approve(contracts.curvePool.address, ethers.utils.parseEther("100000"));
       await contracts.curvePool.add_liquidity([ethers.utils.parseEther("1000"), "0", "0"], 0, true);
       await contracts.curvePool.transfer(contracts.strategy.address, ethers.utils.parseEther("1000"));
+    } else if (strategyType === "mobius") {
+      await contracts.inboundToken
+        .connect(deployer)
+        .approve(contracts.mobiPool.address, ethers.utils.parseEther("100000"));
+      await contracts.mobiPool.connect(deployer).addLiquidity([ethers.utils.parseEther("1000"), "0"], 0, 1000);
+
+      await contracts.mobiPool.transfer(contracts.strategy.address, ethers.utils.parseEther("1000"));
     }
     // Expect Player1 to get back the deposited amount
     const player1PreWithdrawBalance = await contracts.inboundToken.balanceOf(player1.address);
@@ -1718,6 +1765,13 @@ export const shouldBehaveLikePlayersWithdrawingFromGGPool = async (strategyType:
         .approve(contracts.curvePool.address, ethers.utils.parseEther("100000"));
       await contracts.curvePool.add_liquidity([ethers.utils.parseEther("1000"), "0", "0"], 0, true);
       await contracts.curvePool.transfer(contracts.strategy.address, ethers.utils.parseEther("1000"));
+    } else if (strategyType === "mobius") {
+      await contracts.inboundToken
+        .connect(deployer)
+        .approve(contracts.mobiPool.address, ethers.utils.parseEther("100000"));
+      await contracts.mobiPool.connect(deployer).addLiquidity([ethers.utils.parseEther("1000"), "0"], 0, 1000);
+
+      await contracts.mobiPool.transfer(contracts.strategy.address, ethers.utils.parseEther("1000"));
     }
 
     const player1BeforeWithdrawBalance = await contracts.inboundToken.balanceOf(player1.address);
@@ -1766,6 +1820,13 @@ export const shouldBehaveLikePlayersWithdrawingFromGGPool = async (strategyType:
         .approve(contracts.curvePool.address, ethers.utils.parseEther("100000"));
       await contracts.curvePool.add_liquidity([ethers.utils.parseEther("1000"), "0", "0"], 0, true);
       await contracts.curvePool.transfer(contracts.strategy.address, ethers.utils.parseEther("1000"));
+    } else if (strategyType === "mobius") {
+      await contracts.inboundToken
+        .connect(deployer)
+        .approve(contracts.mobiPool.address, ethers.utils.parseEther("100000"));
+      await contracts.mobiPool.connect(deployer).addLiquidity([ethers.utils.parseEther("1000"), "0"], 0, 1000);
+
+      await contracts.mobiPool.transfer(contracts.strategy.address, ethers.utils.parseEther("1000"));
     }
     await contracts.goodGhosting.redeemFromExternalPool(0);
     const gameInterest = await contracts.goodGhosting.totalGameInterest();
@@ -1788,6 +1849,8 @@ export const shouldBehaveLikePlayersWithdrawingFromGGPool = async (strategyType:
     const rewardTokenBalance = await contracts.rewardToken.balanceOf(contracts.goodGhosting.address);
     if (strategyType === "curve") {
       governanceTokenBalance = await contracts.curve.balanceOf(contracts.goodGhosting.address);
+    } else if (strategyType === "mobius") {
+      governanceTokenBalance = await contracts.mobi.balanceOf(contracts.goodGhosting.address);
     }
     await expect(contracts.goodGhosting.connect(player1).withdraw(0))
       .to.emit(contracts.goodGhosting, "Withdrawal")
@@ -1919,6 +1982,13 @@ export const shouldBehaveLikeAdminWithdrawingFeesFromGGPoolWithFeePercentMoreTha
         .approve(contracts.curvePool.address, ethers.utils.parseEther("100000"));
       await contracts.curvePool.add_liquidity([ethers.utils.parseEther("1000"), "0", "0"], 0, true);
       await contracts.curvePool.transfer(contracts.strategy.address, ethers.utils.parseEther("1000"));
+    } else if (strategyType === "mobius") {
+      await contracts.inboundToken
+        .connect(deployer)
+        .approve(contracts.mobiPool.address, ethers.utils.parseEther("100000"));
+      await contracts.mobiPool.connect(deployer).addLiquidity([ethers.utils.parseEther("1000"), "0"], 0, 1000);
+
+      await contracts.mobiPool.transfer(contracts.strategy.address, ethers.utils.parseEther("1000"));
     }
     await contracts.goodGhosting.redeemFromExternalPool(0);
     await contracts.goodGhosting.adminFeeWithdraw();
@@ -1938,6 +2008,8 @@ export const shouldBehaveLikeAdminWithdrawingFeesFromGGPoolWithFeePercentMoreTha
       const rewardTokenBalance = await contracts.rewardToken.balanceOf(contracts.goodGhosting.address);
       if (strategyType === "curve") {
         governanceTokenBalance = await contracts.curve.balanceOf(contracts.goodGhosting.address);
+      } else if (strategyType === "mobius") {
+        governanceTokenBalance = await contracts.mobi.balanceOf(contracts.goodGhosting.address);
       }
       await expect(contracts.goodGhosting.adminFeeWithdraw())
         .to.emit(contracts.goodGhosting, "AdminWithdrawal")
@@ -1967,6 +2039,8 @@ export const shouldBehaveLikeAdminWithdrawingFeesFromGGPoolWithFeePercentMoreTha
       const rewardTokenBalance = await contracts.rewardToken.balanceOf(contracts.goodGhosting.address);
       if (strategyType === "curve") {
         governanceTokenBalance = await contracts.curve.balanceOf(contracts.goodGhosting.address);
+      } else if (strategyType === "mobius") {
+        governanceTokenBalance = await contracts.mobi.balanceOf(contracts.goodGhosting.address);
       }
       const contractBalance = await contracts.inboundToken.balanceOf(contracts.goodGhosting.address);
       const totalGamePrincipal = await contracts.goodGhosting.totalGamePrincipal();
@@ -2021,11 +2095,20 @@ export const shouldBehaveLikeAdminWithdrawingFeesFromGGPoolWithFeePercentMoreTha
           .approve(contracts.curvePool.address, ethers.utils.parseEther("100000"));
         await contracts.curvePool.add_liquidity([ethers.utils.parseEther("1000"), "0", "0"], 0, true);
         await contracts.curvePool.transfer(contracts.strategy.address, ethers.utils.parseEther("1000"));
+      } else if (strategyType === "mobius") {
+        await contracts.inboundToken
+          .connect(deployer)
+          .approve(contracts.mobiPool.address, ethers.utils.parseEther("100000"));
+        await contracts.mobiPool.connect(deployer).addLiquidity([ethers.utils.parseEther("1000"), "0"], 0, 1000);
+
+        await contracts.mobiPool.transfer(contracts.strategy.address, ethers.utils.parseEther("1000"));
       }
       await contracts.goodGhosting.redeemFromExternalPool(0);
       const rewardTokenBalance = await contracts.rewardToken.balanceOf(contracts.goodGhosting.address);
       if (strategyType === "curve") {
         governanceTokenBalance = await contracts.curve.balanceOf(contracts.goodGhosting.address);
+      } else if (strategyType === "mobius") {
+        governanceTokenBalance = await contracts.mobi.balanceOf(contracts.goodGhosting.address);
       }
       const contractBalance = await contracts.inboundToken.balanceOf(contracts.goodGhosting.address);
       const totalGamePrincipal = await contracts.goodGhosting.totalGamePrincipal();
@@ -2079,11 +2162,20 @@ export const shouldBehaveLikeAdminWithdrawingFeesFromGGPoolWithFeePercentMoreTha
           .approve(contracts.curvePool.address, ethers.utils.parseEther("100000"));
         await contracts.curvePool.add_liquidity([ethers.utils.parseEther("1000"), "0", "0"], 0, true);
         await contracts.curvePool.transfer(contracts.strategy.address, ethers.utils.parseEther("1000"));
+      } else if (strategyType === "mobius") {
+        await contracts.inboundToken
+          .connect(deployer)
+          .approve(contracts.mobiPool.address, ethers.utils.parseEther("100000"));
+        await contracts.mobiPool.connect(deployer).addLiquidity([ethers.utils.parseEther("1000"), "0"], 0, 1000);
+
+        await contracts.mobiPool.transfer(contracts.strategy.address, ethers.utils.parseEther("1000"));
       }
       await contracts.goodGhosting.redeemFromExternalPool(0);
       const rewardTokenBalance = await contracts.rewardToken.balanceOf(contracts.goodGhosting.address);
       if (strategyType === "curve") {
         governanceTokenBalance = await contracts.curve.balanceOf(contracts.goodGhosting.address);
+      } else if (strategyType === "mobius") {
+        governanceTokenBalance = await contracts.mobi.balanceOf(contracts.goodGhosting.address);
       }
       const contractBalance = await contracts.inboundToken.balanceOf(contracts.goodGhosting.address);
       const totalGamePrincipal = await contracts.goodGhosting.totalGamePrincipal();
@@ -2227,6 +2319,13 @@ export const shouldBehaveLikeAdminWithdrawingFeesFromGGPoolWithFeePercentMoreTha
           .approve(contracts.curvePool.address, ethers.utils.parseEther("100000"));
         await contracts.curvePool.add_liquidity([ethers.utils.parseEther("1000"), "0", "0"], 0, true);
         await contracts.curvePool.transfer(contracts.strategy.address, ethers.utils.parseEther("1000"));
+      } else if (strategyType === "mobius") {
+        await contracts.inboundToken
+          .connect(deployer)
+          .approve(contracts.mobiPool.address, ethers.utils.parseEther("100000"));
+        await contracts.mobiPool.connect(deployer).addLiquidity([ethers.utils.parseEther("1000"), "0"], 0, 1000);
+
+        await contracts.mobiPool.transfer(contracts.strategy.address, ethers.utils.parseEther("1000"));
       }
       await contracts.goodGhosting.redeemFromExternalPool(0);
       const contractBalance = await contracts.inboundToken.balanceOf(contracts.goodGhosting.address);
@@ -2293,6 +2392,13 @@ export const shouldBehaveLikeAdminWithdrawingFeesFromGGPoolWithFeePercentMoreTha
           .approve(contracts.curvePool.address, ethers.utils.parseEther("100000"));
         await contracts.curvePool.add_liquidity([ethers.utils.parseEther("1000"), "0", "0"], 0, true);
         await contracts.curvePool.transfer(contracts.strategy.address, ethers.utils.parseEther("1000"));
+      } else if (strategyType === "mobius") {
+        await contracts.inboundToken
+          .connect(deployer)
+          .approve(contracts.mobiPool.address, ethers.utils.parseEther("100000"));
+        await contracts.mobiPool.connect(deployer).addLiquidity([ethers.utils.parseEther("1000"), "0"], 0, 1000);
+
+        await contracts.mobiPool.transfer(contracts.strategy.address, ethers.utils.parseEther("1000"));
       }
       await contracts.goodGhosting.redeemFromExternalPool(0);
       const contractBalance = await contracts.inboundToken.balanceOf(contracts.goodGhosting.address);
@@ -2465,6 +2571,13 @@ export const shouldBehaveLikeVariableDepositPool = async (strategyType: string) 
         .approve(contracts.curvePool.address, ethers.utils.parseEther("100000"));
       await contracts.curvePool.add_liquidity([ethers.utils.parseEther("1000"), "0", "0"], 0, true);
       await contracts.curvePool.transfer(contracts.strategy.address, ethers.utils.parseEther("1000"));
+    } else if (strategyType === "mobius") {
+      await contracts.inboundToken
+        .connect(deployer)
+        .approve(contracts.mobiPool.address, ethers.utils.parseEther("100000"));
+      await contracts.mobiPool.connect(deployer).addLiquidity([ethers.utils.parseEther("1000"), "0"], 0, 1000);
+
+      await contracts.mobiPool.transfer(contracts.strategy.address, ethers.utils.parseEther("1000"));
     }
     await contracts.goodGhosting.redeemFromExternalPool(0);
 
@@ -2564,6 +2677,13 @@ export const shouldBehaveLikeVariableDepositPool = async (strategyType: string) 
         .approve(contracts.curvePool.address, ethers.utils.parseEther("100000"));
       await contracts.curvePool.add_liquidity([ethers.utils.parseEther("1000"), "0", "0"], 0, true);
       await contracts.curvePool.transfer(contracts.strategy.address, ethers.utils.parseEther("1000"));
+    } else if (strategyType === "mobius") {
+      await contracts.inboundToken
+        .connect(deployer)
+        .approve(contracts.mobiPool.address, ethers.utils.parseEther("100000"));
+      await contracts.mobiPool.connect(deployer).addLiquidity([ethers.utils.parseEther("1000"), "0"], 0, 1000);
+
+      await contracts.mobiPool.transfer(contracts.strategy.address, ethers.utils.parseEther("1000"));
     }
     await contracts.goodGhosting.redeemFromExternalPool(0);
 
@@ -2598,6 +2718,8 @@ export const shouldBehaveLikeVariableDepositPool = async (strategyType: string) 
     const rewardTokenBalance = await contracts.rewardToken.balanceOf(contracts.goodGhosting.address);
     if (strategyType === "curve") {
       governanceTokenBalance = await contracts.curve.balanceOf(contracts.goodGhosting.address);
+    } else if (strategyType === "mobius") {
+      governanceTokenBalance = await contracts.mobi.balanceOf(contracts.goodGhosting.address);
     }
 
     await expect(contracts.goodGhosting.connect(player1).withdraw(0))
