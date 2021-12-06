@@ -38,7 +38,7 @@ contract MockCurvePool is MintableERC20 {
         _token_amount = IERC20(address(this)).balanceOf(msg.sender);
         _burn(msg.sender, _token_amount);
         if (_min_amount == 900000000000000000) {
-            IERC20(reserve).transfer(msg.sender, 500000000000000000);
+            IERC20(reserve).transfer(msg.sender, 6000000000000000000);
         } else {
             IERC20(reserve).transfer(msg.sender, _token_amount);
         }

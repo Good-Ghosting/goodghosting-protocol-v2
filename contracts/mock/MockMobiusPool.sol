@@ -33,7 +33,7 @@ contract MockMobiusPool is MintableERC20 {
         tokenAmount = IERC20(address(this)).balanceOf(msg.sender);
         _burn(msg.sender, tokenAmount);
         if (minAmount == 900000000000000000) {
-            IERC20(reserve).transfer(msg.sender, 500000000000000000);
+            IERC20(reserve).transfer(msg.sender, 6000000000000000000);
         } else {
             IERC20(reserve).transfer(msg.sender, tokenAmount);
         }

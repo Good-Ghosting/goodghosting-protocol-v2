@@ -1493,6 +1493,31 @@ export const shouldBehaveLikeRedeemingFromGGPool = async (strategyType: string) 
         `totalIncentiveAmount should be ${incentiveAmount.toString()}; received ${result.toString()}`,
       );
     });
+
+    it("we are able to redeem if there is impermanent loss", async () => {
+      const accounts = await ethers.getSigners();
+      const player1 = accounts[2];
+      await joinGamePaySegmentsAndComplete(
+        contracts.inboundToken,
+        player1,
+        segmentPayment,
+        segmentCount,
+        segmentLength,
+        contracts.goodGhosting,
+        segmentPayment,
+      );
+      // to trigger impermanent loss
+      const principalAmount = await contracts.goodGhosting.totalGamePrincipal();
+      await contracts.goodGhosting.redeemFromExternalPool("900000000000000000");
+      const contractDaiBalance = await contracts.inboundToken.balanceOf(contracts.goodGhosting.address);
+
+      const calculatedImpermanentLossShare = ethers.BigNumber.from(contractDaiBalance)
+        .mul(ethers.BigNumber.from(100))
+        .div(ethers.BigNumber.from(principalAmount));
+      const impermanentLossShareFromContract = await contracts.goodGhosting.impermanentLossShare();
+
+      assert(impermanentLossShareFromContract.eq(calculatedImpermanentLossShare));
+    });
   });
 };
 
