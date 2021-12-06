@@ -65,6 +65,12 @@ contract Pool is Ownable, Pausable {
     /// @notice share % from impermanent loss
     uint256 public impermanentLossShare;
 
+    /// @notice totalGovernancetoken balance
+    uint256 strategyGovernanceTokenAmount = 0;
+
+    /// @notice total rewardTokenAmount balance
+    uint256 rewardTokenAmount = 0;
+
     /// @notice Controls if tokens were redeemed or not from the pool
     bool public redeemed;
 
@@ -425,14 +431,12 @@ contract Pool is Ownable, Pausable {
             if (totalIncentiveAmount > 0) {
                 playerIncentive = totalIncentiveAmount / (winnerCount);
             }
-            if (address(rewardToken) != address(0) && rewardToken.balanceOf(address(this)) > 0) {
-                playerReward = rewardToken.balanceOf(address(this)) / (winnerCount);
+            if (address(rewardToken) != address(0) && rewardTokenAmount > 0) {
+                playerReward = rewardTokenAmount / (winnerCount);
             }
 
-            if (
-                address(strategyGovernanceToken) != address(0) && strategyGovernanceToken.balanceOf(address(this)) > 0
-            ) {
-                playerGovernanceTokenReward = strategyGovernanceToken.balanceOf(address(this)) / (winnerCount);
+            if (address(strategyGovernanceToken) != address(0) && strategyGovernanceTokenAmount > 0) {
+                playerGovernanceTokenReward = strategyGovernanceTokenAmount / (winnerCount);
             }
         }
 
@@ -544,8 +548,7 @@ contract Pool is Ownable, Pausable {
 
         rewardToken = strategy.getRewardToken();
         strategyGovernanceToken = strategy.getGovernanceToken();
-        uint256 strategyGovernanceTokenAmount = 0;
-        uint256 rewardTokenAmount = 0;
+
         if (address(rewardToken) != address(0)) {
             rewardTokenAmount = rewardToken.balanceOf(address(this));
         }
