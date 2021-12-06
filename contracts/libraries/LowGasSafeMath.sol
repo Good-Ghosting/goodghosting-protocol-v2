@@ -27,6 +27,20 @@ library LowGasSafeMath {
         require(x == 0 || (z = x * y) / x == y);
     }
 
+    /**
+     * @dev Returns the integer division of two unsigned integers, reverting on
+     * division by zero. The result is rounded towards zero.
+     *
+     * Counterpart to Solidity's `/` operator.
+     *
+     * Requirements:
+     *
+     * - The divisor cannot be zero.
+     */
+    function div(uint256 a, uint256 b) internal pure returns (uint256) {
+        return a / b;
+    }
+
     /// @notice Returns x + y, reverts if overflows or underflows
     /// @param x The augend
     /// @param y The addend

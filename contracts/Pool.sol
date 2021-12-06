@@ -62,6 +62,9 @@ contract Pool is Ownable, Pausable {
     /// @notice Defines the max quantity of players allowed in the game
     uint256 public immutable maxPlayersCount;
 
+    /// @notice share % from impermanent loss
+    uint256 public impermanentLossShare;
+
     /// @notice Controls if tokens were redeemed or not from the pool
     bool public redeemed;
 
@@ -403,14 +406,21 @@ contract Pool is Ownable, Pausable {
             // the player share of interest is calculated from player index
             // player share % = playerIndex / sum of player indexes of all winners * 100
             // so, interest share = player share % * total game interest
-            uint256 cumulativePlayerIndex = 0;
-            for (uint256 i = 0; i <= players[msg.sender].mostRecentSegmentPaid; i++) {
-                cumulativePlayerIndex = cumulativePlayerIndex.add(playerIndex[msg.sender][i]);
+            if (impermanentLossShare > 0) {
+                // new payput in case of impermanent loss
+                payout = player.amountPaid.mul(impermanentLossShare).div(uint256(100));
+            } else {
+                // Player is a winner and gets a bonus!
+                uint256 cumulativePlayerIndex = 0;
+                for (uint256 i = 0; i <= players[msg.sender].mostRecentSegmentPaid; i++) {
+                    cumulativePlayerIndex = cumulativePlayerIndex.add(playerIndex[msg.sender][i]);
+                }
+
+                uint256 playerShare = cumulativePlayerIndex.mul(100) / sum;
+                playerShare = totalGameInterest.mul(playerShare) / 100;
+                payout = payout.add(playerShare);
             }
 
-            uint256 playerShare = cumulativePlayerIndex.mul(100) / sum;
-            playerShare = totalGameInterest.mul(playerShare) / 100;
-            payout = payout.add(playerShare);
             // If there's additional incentives, distributes them to winners
             if (totalIncentiveAmount > 0) {
                 playerIncentive = totalIncentiveAmount / (winnerCount);
@@ -504,6 +514,10 @@ contract Pool is Ownable, Pausable {
         // aToken vs. Token in the future (i.e., 1 aDAI is worth less than 1 DAI)
         if (totalBalance > totalGamePrincipal) {
             grossInterest = totalBalance.sub(totalGamePrincipal);
+        } else {
+            // handling impermanent loss case
+            impermanentLossShare = (totalBalance.mul(uint256(100))).div(totalGamePrincipal);
+            totalGamePrincipal = totalBalance;
         }
 
         // If there's an incentive token address defined, sets the total incentive amount to be distributed among winners.
