@@ -66,27 +66,33 @@ contract MobiusStrategy is Ownable, IStrategy {
         amounts[0] = _amount;
         amounts[1] = 0;
 
-        uint256 poolWithdrawAmount = pool.calculateTokenAmount(address(this), amounts, true);
+        uint256 gaugeBalance = gauge.balanceOf(address(this));
+        if (gaugeBalance > 0) {
+            uint256 poolWithdrawAmount = pool.calculateTokenAmount(address(this), amounts, true);
 
-        if (gauge.balanceOf(address(this)) < poolWithdrawAmount) {
-            poolWithdrawAmount = gauge.balanceOf(address(this));
+            if (gaugeBalance < poolWithdrawAmount) {
+                poolWithdrawAmount = gaugeBalance;
+            }
+
+            gauge.withdraw(poolWithdrawAmount, false);
+            require(lpToken.approve(address(pool), poolWithdrawAmount), "Fail to approve allowance to pool");
+
+            pool.removeLiquidityOneToken(poolWithdrawAmount, 0, _minAmount, block.timestamp + 1000);
         }
-
-        gauge.withdraw(poolWithdrawAmount, false);
-        require(lpToken.approve(address(pool), poolWithdrawAmount), "Fail to approve allowance to pool");
-
-        pool.removeLiquidityOneToken(poolWithdrawAmount, 0, _minAmount, block.timestamp + 1000);
-
         // msg.sender will always be the pool contract (new owner)
         require(_inboundCurrency.transfer(msg.sender, _inboundCurrency.balanceOf(address(this))), "Transfer Failed");
     }
 
     function redeem(IERC20 _inboundCurrency, uint256 _minAmount) external override onlyOwner {
-        uint256 lpBalance = gauge.balanceOf(address(this));
-        gauge.withdraw(lpBalance, true);
-        require(lpToken.approve(address(pool), lpToken.balanceOf(address(this))), "Fail to approve allowance to pool");
-        pool.removeLiquidityOneToken(lpToken.balanceOf(address(this)), 0, _minAmount, block.timestamp + 1000);
-
+        uint256 gaugeBalance = gauge.balanceOf(address(this));
+        if (gaugeBalance > 0) {
+            gauge.withdraw(gaugeBalance, true);
+            require(
+                lpToken.approve(address(pool), lpToken.balanceOf(address(this))),
+                "Fail to approve allowance to pool"
+            );
+            pool.removeLiquidityOneToken(lpToken.balanceOf(address(this)), 0, _minAmount, block.timestamp + 1000);
+        }
         if (address(mobi) != address(0)) {
             require(mobi.transfer(msg.sender, mobi.balanceOf(address(this))), "Transfer Failed");
         }
