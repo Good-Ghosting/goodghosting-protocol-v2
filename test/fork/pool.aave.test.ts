@@ -28,7 +28,7 @@ const {
 const daiDecimals = ethers.BigNumber.from("1000000000000000000");
 const segmentPayment = daiDecimals.mul(ethers.BigNumber.from(segmentPaymentInt)); // equivalent to 10 DAI
 
-describe("Pool Fork Tests", () => {
+describe("Pool Aave/Moola Fork Tests", () => {
   if (process.env.NETWORK === "local-celo-mobius") {
     return;
   }
