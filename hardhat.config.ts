@@ -60,6 +60,10 @@ const config: HardhatUserConfig = {
       accounts: {
         mnemonic,
       },
+      forking: {
+        enabled: process.env.FORKING === "true",
+        url: `https://matic-mainnet.chainstacklabs.com`,
+      },
       chainId: chainIds.hardhat,
     },
     goerli: getChainConfig("goerli"),

@@ -5,6 +5,7 @@
     "strict": true,
     "moduleResolution": "node",
     "noImplicitThis": true,
+    "resolveJsonModule": true,
     "alwaysStrict": true,
     "experimentalDecorators": true,
     "emitDecoratorMetadata": true,
@@ -16,7 +17,7 @@
   },
   "include": [
     "**/*.ts",
-    "deploy/deploy.config.js",
+    "deploy/deploy.config.ts",
     "migrations/1_initial_migration.js",
     "migrations/2_deploy_contracts.js"
   ],

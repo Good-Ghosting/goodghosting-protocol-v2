@@ -21,10 +21,12 @@ chai.use(solidity);
 const { expect } = chai;
 
 describe("Pool using Aave strategy", () => {
-  if (process.env.NETWORK) {
-    if (process.env.NETWORK === "local-polygon-aave" || process.env.NETWORK === "local-celo-mobius") {
-      return;
-    }
+  if (process.env.NETWORK === "local-celo-mobius") {
+    return;
+  }
+
+  if (process.env.FORKING) {
+    return;
   }
   let contracts: any;
   const segmentCount = 3;
