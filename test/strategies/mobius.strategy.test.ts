@@ -20,7 +20,7 @@ describe("Pool using Mobius Strategy", () => {
     return;
   }
 
-  if (process.env.FORKING) {
+  if (process.env.FORKING == "true") {
     return;
   }
   let contracts: any;

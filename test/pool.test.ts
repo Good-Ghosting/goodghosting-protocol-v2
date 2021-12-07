@@ -24,8 +24,7 @@ describe("Pool using Aave strategy", () => {
   if (process.env.NETWORK === "local-celo-mobius") {
     return;
   }
-
-  if (process.env.FORKING) {
+  if (process.env.FORKING == "true") {
     return;
   }
   let contracts: any;
