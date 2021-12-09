@@ -68,11 +68,7 @@ contract CurveStrategy is Ownable, IStrategy {
         }
     }
 
-    function invest(
-        IERC20 _inboundCurrency,
-        uint256 _amount,
-        uint256 _minAmount
-    ) external override onlyOwner {
+    function invest(IERC20 _inboundCurrency, uint256 _minAmount) external override onlyOwner {
         uint256 contractBalance = _inboundCurrency.balanceOf(address(this));
         require(_inboundCurrency.approve(address(pool), contractBalance), "Fail to approve allowance to pool");
         /*

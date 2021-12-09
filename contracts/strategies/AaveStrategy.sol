@@ -48,15 +48,13 @@ contract AaveStrategy is Ownable, IStrategy {
         rewardToken = _rewardToken;
     }
 
-    function invest(
-        IERC20 _inboundCurrency,
-        uint256 _amount,
-        uint256 _minAmount
-    ) external override onlyOwner {
-        require(address(_inboundCurrency) != address(0), "invalid token address");
-        require(_amount > 0, "amount < 0");
-        require(_inboundCurrency.approve(address(lendingPool), _amount), "Fail to approve allowance to lending pool");
-        lendingPool.deposit(address(_inboundCurrency), _amount, address(this), 155);
+    function invest(IERC20 _inboundCurrency, uint256 _minAmount) external override onlyOwner {
+        uint256 contractBalance = _inboundCurrency.balanceOf(address(this));
+        require(
+            _inboundCurrency.approve(address(lendingPool), contractBalance),
+            "Fail to approve allowance to lending pool"
+        );
+        lendingPool.deposit(address(_inboundCurrency), contractBalance, address(this), 155);
     }
 
     function earlyWithdraw(

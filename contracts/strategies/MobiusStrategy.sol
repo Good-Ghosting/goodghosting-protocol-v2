@@ -36,16 +36,12 @@ contract MobiusStrategy is Ownable, IStrategy {
         lpToken = IERC20(pool.getLpToken());
     }
 
-    function invest(
-        IERC20 _inboundCurrency,
-        uint256 _amount,
-        uint256 _minAmount
-    ) external override onlyOwner {
+    function invest(IERC20 _inboundCurrency, uint256 _minAmount) external override onlyOwner {
         uint256 contractBalance = _inboundCurrency.balanceOf(address(this));
         require(_inboundCurrency.approve(address(pool), contractBalance), "Fail to approve allowance to pool");
 
         uint256[] memory amounts = new uint256[](2);
-        amounts[0] = _amount;
+        amounts[0] = contractBalance;
         amounts[1] = 0;
 
         pool.addLiquidity(amounts, _minAmount, block.timestamp + 1000);

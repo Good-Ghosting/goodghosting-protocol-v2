@@ -601,6 +601,6 @@ contract Pool is Ownable, Pausable {
         }
         totalGamePrincipal = totalGamePrincipal.add(segmentPayment);
         require(inboundToken.transferFrom(msg.sender, address(strategy), segmentPayment), "Transfer failed");
-        strategy.invest(inboundToken, segmentPayment, _minAmount);
+        strategy.invest(inboundToken, _minAmount);
     }
 }
