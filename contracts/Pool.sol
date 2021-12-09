@@ -345,11 +345,11 @@ contract Pool is Ownable, Pausable {
         if (!canRejoin) {
             iterablePlayers.push(msg.sender);
         }
-        if (flexibleSegmentPayment) {
-            segmentPayment = _depositAmount;
-        }
-        emit JoinedGame(msg.sender, segmentPayment);
-        _transferInboundTokenToContract(_minAmount, _depositAmount);
+
+        uint256 amount = flexibleSegmentPayment ? _depositAmount : segmentPayment;
+
+        emit JoinedGame(msg.sender, amount);
+        _transferInboundTokenToContract(_minAmount, amount);
     }
 
     /// @notice Allows a player to withdraws funds before the game ends. An early withdrawl fee is charged.
@@ -496,11 +496,10 @@ contract Pool is Ownable, Pausable {
             "Player didn't pay the previous segment - game over!"
         );
 
-        if (flexibleSegmentPayment) {
-            segmentPayment = _depositAmount;
-        }
-        emit Deposit(msg.sender, currentSegment, segmentPayment);
-        _transferInboundTokenToContract(_minAmount, _depositAmount);
+        uint256 amount = flexibleSegmentPayment ? _depositAmount : segmentPayment;
+
+        emit Deposit(msg.sender, currentSegment, amount);
+        _transferInboundTokenToContract(_minAmount, amount);
     }
 
     /// @notice Redeems funds from the external pool and updates the internal accounting controls related to the game stats.
@@ -574,21 +573,18 @@ contract Pool is Ownable, Pausable {
         the required accounting operations to control the user's position in the pool.
      */
     function _transferInboundTokenToContract(uint256 _minAmount, uint256 _depositAmount) internal virtual {
-        if (flexibleSegmentPayment) {
-            segmentPayment = _depositAmount;
-        }
         require(
-            inboundToken.allowance(msg.sender, address(this)) >= segmentPayment,
+            inboundToken.allowance(msg.sender, address(this)) >= _depositAmount,
             "You need to have allowance to do transfer Inbound Token on the smart contract"
         );
 
         uint256 currentSegment = getCurrentSegment();
         players[msg.sender].mostRecentSegmentPaid = currentSegment;
 
-        players[msg.sender].amountPaid = players[msg.sender].amountPaid.add(segmentPayment);
+        players[msg.sender].amountPaid = players[msg.sender].amountPaid.add(_depositAmount);
         // PLAYER INDEX CALCULATION TO DETERMINE INTEREST SHARE
         // player index = prev. segment player index + segment amount deposited / time stamp of deposit
-        uint256 currentSegmentplayerIndex = segmentPayment.mul(MULTIPLIER).div(block.timestamp);
+        uint256 currentSegmentplayerIndex = _depositAmount.mul(MULTIPLIER).div(block.timestamp);
         playerIndex[msg.sender][currentSegment] = currentSegmentplayerIndex;
 
         // check if this is deposit for the last segment. If yes, the player is a winner.
@@ -601,8 +597,8 @@ contract Pool is Ownable, Pausable {
                 cummalativePlayerIndexSum = cummalativePlayerIndexSum.add(playerIndex[msg.sender][i]);
             }
         }
-        totalGamePrincipal = totalGamePrincipal.add(segmentPayment);
-        require(inboundToken.transferFrom(msg.sender, address(strategy), segmentPayment), "Transfer failed");
+        totalGamePrincipal = totalGamePrincipal.add(_depositAmount);
+        require(inboundToken.transferFrom(msg.sender, address(strategy), _depositAmount), "Transfer failed");
         strategy.invest(inboundToken, _minAmount);
     }
 }
