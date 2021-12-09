@@ -26,8 +26,8 @@ contract Pool is Ownable, Pausable {
     /// @notice performance fee amount allocated to the admin
     uint256 public adminFeeAmount;
 
-    /// @notice player index sum
-    uint256 public sum;
+    /// @notice player index cummalativePlayerIndexSum
+    uint256 public cummalativePlayerIndexSum;
 
     /// @notice total amount of incentive tokens to be distributed among winners
     uint256 public totalIncentiveAmount = 0;
@@ -377,7 +377,7 @@ contract Pool is Ownable, Pausable {
             winnerCount = winnerCount.sub(uint256(1));
             player.isWinner = false;
             for (uint256 i = 0; i <= players[msg.sender].mostRecentSegmentPaid; i++) {
-                sum = sum.sub(playerIndex[msg.sender][i]);
+                cummalativePlayerIndexSum = cummalativePlayerIndexSum.sub(playerIndex[msg.sender][i]);
             }
         }
 
@@ -412,7 +412,7 @@ contract Pool is Ownable, Pausable {
         if (player.isWinner) {
             // Player is a winner and gets a bonus!
             // the player share of interest is calculated from player index
-            // player share % = playerIndex / sum of player indexes of all winners * 100
+            // player share % = playerIndex / cummalativePlayerIndexSum of player indexes of all winners * 100
             // so, interest share = player share % * total game interest
             if (impermanentLossShare > 0) {
                 // new payput in case of impermanent loss
@@ -424,7 +424,7 @@ contract Pool is Ownable, Pausable {
                     cumulativePlayerIndex = cumulativePlayerIndex.add(playerIndex[msg.sender][i]);
                 }
 
-                uint256 playerShare = cumulativePlayerIndex.mul(100).div(sum);
+                uint256 playerShare = cumulativePlayerIndex.mul(100).div(cummalativePlayerIndexSum);
                 playerShare = totalGameInterest.mul(playerShare).div(uint256(100));
                 payout = payout.add(playerShare);
             }
@@ -598,7 +598,7 @@ contract Pool is Ownable, Pausable {
             winnerCount = winnerCount.add(uint256(1));
             players[msg.sender].isWinner = true;
             for (uint256 i = 0; i <= players[msg.sender].mostRecentSegmentPaid; i++) {
-                sum = sum.add(playerIndex[msg.sender][i]);
+                cummalativePlayerIndexSum = cummalativePlayerIndexSum.add(playerIndex[msg.sender][i]);
             }
         }
         totalGamePrincipal = totalGamePrincipal.add(segmentPayment);
