@@ -121,7 +121,7 @@ exports.providers = {
 exports.deployConfigs = {
   selectedProvider: "aave", // name of the selected provider. Must be defined in the object {providers} above.
   inboundCurrencySymbol: "dai", // name of the inbound currency symbol. Must be defined in the object {providers.network} above.
-  segmentCount: 3, // integer number of segments
+  depositCount: 3, // integer number of segments
   segmentLength: 600, // in seconds
   waitingRoundSegmentLength: 900, // in seconds
   flexibleSegmentPayment: false,

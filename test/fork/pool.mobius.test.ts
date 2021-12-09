@@ -21,7 +21,7 @@ contract("Pool with Mobius Strategy", accounts => {
     providersConfigs = configs.providers.celo.mobius;
   }
   const {
-    segmentCount,
+    depositCount,
     segmentLength,
     segmentPayment: segmentPaymentInt,
     adminFee,
@@ -52,7 +52,7 @@ contract("Pool with Mobius Strategy", accounts => {
       gaugeToken = new web3.eth.Contract(mobiusGauge.abi, providersConfigs.gauge);
 
       const unlockedBalance = await token.methods.balanceOf(unlockedDaiAccount).call({ from: admin });
-      const daiAmount = segmentPayment.mul(web3.utils.toBN(segmentCount)).toString();
+      const daiAmount = segmentPayment.mul(web3.utils.toBN(depositCount)).toString();
       console.log("unlockedBalance: ", web3.utils.fromWei(unlockedBalance));
       console.log("daiAmountToTransfer", web3.utils.fromWei(daiAmount));
       for (let i = 0; i < players.length; i++) {
@@ -91,8 +91,8 @@ contract("Pool with Mobius Strategy", accounts => {
     //     }
 
     //     assert(
-    //         web3.utils.toBN(lastSegmentResult).eq(web3.utils.toBN(segmentCount)),
-    //         `LastSegment info doesn't match. expected ${segmentCount}; got ${lastSegmentResult}`
+    //         web3.utils.toBN(lastSegmentResult).eq(web3.utils.toBN(depositCount)),
+    //         `LastSegment info doesn't match. expected ${depositCount}; got ${lastSegmentResult}`
     //     );
     //     assert(
     //         web3.utils.toBN(segmentLengthResult).eq(web3.utils.toBN(segmentLength)),
@@ -118,7 +118,7 @@ contract("Pool with Mobius Strategy", accounts => {
       for (let i = 0; i < players.length; i++) {
         const player = players[i];
         await token.methods
-          .approve(goodGhosting.address, segmentPayment.mul(web3.utils.toBN(segmentCount)).toString())
+          .approve(goodGhosting.address, segmentPayment.mul(web3.utils.toBN(depositCount)).toString())
           .send({ from: player });
         let playerEvent = "";
         let paymentEvent = 0;
@@ -176,7 +176,7 @@ contract("Pool with Mobius Strategy", accounts => {
           await goodGhosting.earlyWithdraw(minAmount.toString(), { from: player });
 
           await token.methods
-            .approve(goodGhosting.address, segmentPayment.mul(web3.utils.toBN(segmentCount)).toString())
+            .approve(goodGhosting.address, segmentPayment.mul(web3.utils.toBN(depositCount)).toString())
             .send({ from: player });
 
           await goodGhosting.joinGame(minAmountWithFees.toString(), 0, { from: player });
@@ -204,7 +204,7 @@ contract("Pool with Mobius Strategy", accounts => {
       let depositResult, earlyWithdrawResult;
 
       // The payment for the first segment was done upon joining, so we start counting from segment 2 (index 1)
-      for (let segmentIndex = 1; segmentIndex < segmentCount; segmentIndex++) {
+      for (let segmentIndex = 1; segmentIndex < depositCount; segmentIndex++) {
         await timeMachine.advanceTime(segmentLength);
         // j must start at 1 - Player1 (index 0) early withdraws after everyone else deposits, so won't continue making deposits
         for (let j = 1; j < players.length - 1; j++) {
@@ -278,8 +278,8 @@ contract("Pool with Mobius Strategy", accounts => {
           );
         }
       }
-      // above, it accounted for 1st deposit window, and then the loop runs till segmentCount - 1.
-      // now, we move 2 more segments (segmentCount-1 and segmentCount) to complete the game.
+      // above, it accounted for 1st deposit window, and then the loop runs till depositCount - 1.
+      // now, we move 2 more segments (depositCount-1 and depositCount) to complete the game.
       const winnerCountBeforeEarlyWithdraw = await goodGhosting.winnerCount();
       const playerInfo = await goodGhosting.players(userWithdrawingAfterLastSegment);
       const withdrawAmount = playerInfo.amountPaid.sub(

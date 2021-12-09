@@ -20,7 +20,7 @@ import {
 chai.use(solidity);
 
 const { expect } = chai;
-const segmentCount = 3;
+const depositCount = 3;
 const segmentLength = 600;
 const segmentPayment = "10000000000000000000";
 const maxPlayersCount = "115792089237316195423570985008687907853269984665640564039457584007913129639935";
@@ -29,7 +29,7 @@ let contracts: any;
 export const shouldBehaveLikeGGPool = async (strategyType: string) => {
   beforeEach(async () => {
     contracts = await deployPool(
-      segmentCount,
+      depositCount,
       segmentLength,
       segmentPayment,
       1,
@@ -92,7 +92,7 @@ export const shouldBehaveLikeGGPool = async (strategyType: string) => {
   it("reverts if the contract is deployed with 0% early withdraw fee", async () => {
     await expect(
       deployPool(
-        segmentCount,
+        depositCount,
         segmentLength,
         segmentPayment,
         0,
@@ -110,7 +110,7 @@ export const shouldBehaveLikeGGPool = async (strategyType: string) => {
   it("reverts if the contract is deployed with invalid inbound token address", async () => {
     await expect(
       deployPool(
-        segmentCount,
+        depositCount,
         segmentLength,
         segmentPayment,
         1,
@@ -128,7 +128,7 @@ export const shouldBehaveLikeGGPool = async (strategyType: string) => {
   it("reverts if the contract is deployed with invalid strategy address", async () => {
     await expect(
       deployPool(
-        segmentCount,
+        depositCount,
         segmentLength,
         segmentPayment,
         1,
@@ -146,25 +146,25 @@ export const shouldBehaveLikeGGPool = async (strategyType: string) => {
   it("reverts if the contract is deployed with segment count as 0", async () => {
     await expect(
       deployPool(0, segmentLength, segmentPayment, 1, 0, maxPlayersCount, true, false, true, false, strategyType),
-    ).to.be.revertedWith("segmentCount must be greater than zero");
+    ).to.be.revertedWith("depositCount must be greater than zero");
   });
 
   it("reverts if the contract is deployed with segment length as 0", async () => {
     await expect(
-      deployPool(segmentCount, 0, segmentPayment, 1, 0, maxPlayersCount, true, false, true, false, strategyType),
+      deployPool(depositCount, 0, segmentPayment, 1, 0, maxPlayersCount, true, false, true, false, strategyType),
     ).to.be.revertedWith("_segmentLength must be greater than zero");
   });
 
   it("reverts if the contract is deployed with segment payment as 0", async () => {
     await expect(
-      deployPool(segmentCount, segmentLength, 0, 1, 0, maxPlayersCount, true, false, true, false, strategyType),
+      deployPool(depositCount, segmentLength, 0, 1, 0, maxPlayersCount, true, false, true, false, strategyType),
     ).to.be.revertedWith("_segmentPayment must be greater than zero");
   });
 
   it("reverts if the contract is deployed with early withdraw fee more than 10%", async () => {
     await expect(
       deployPool(
-        segmentCount,
+        depositCount,
         segmentLength,
         segmentPayment,
         20,
@@ -182,7 +182,7 @@ export const shouldBehaveLikeGGPool = async (strategyType: string) => {
   it("reverts if the contract is deployed with admin fee more than 20%", async () => {
     await expect(
       deployPool(
-        segmentCount,
+        depositCount,
         segmentLength,
         segmentPayment,
         1,
@@ -199,13 +199,13 @@ export const shouldBehaveLikeGGPool = async (strategyType: string) => {
 
   it("reverts if the contract is deployed with max player count equal to zero", async () => {
     await expect(
-      deployPool(segmentCount, segmentLength, segmentPayment, 1, 0, "0", true, false, true, false, strategyType),
+      deployPool(depositCount, segmentLength, segmentPayment, 1, 0, "0", true, false, true, false, strategyType),
     ).to.be.revertedWith("_maxPlayersCount must be greater than zero");
   });
 
   it("accepts setting type(uint256).max as the max number of players", async () => {
     const contracts = await deployPool(
-      segmentCount,
+      depositCount,
       segmentLength,
       segmentPayment,
       1,
@@ -244,8 +244,8 @@ export const shouldBehaveLikeGGPool = async (strategyType: string) => {
       `Inbound currency doesn't match. expected ${contracts.inboundToken.address}; got ${inboundCurrencyResult}`,
     );
     assert(
-      ethers.BigNumber.from(lastSegmentResult).eq(ethers.BigNumber.from(segmentCount)),
-      `LastSegment info doesn't match. expected ${segmentCount}; got ${lastSegmentResult}`,
+      ethers.BigNumber.from(lastSegmentResult).eq(ethers.BigNumber.from(depositCount)),
+      `LastSegment info doesn't match. expected ${depositCount}; got ${lastSegmentResult}`,
     );
     assert(
       ethers.BigNumber.from(segmentLengthResult).eq(ethers.BigNumber.from(segmentLength)),
@@ -272,7 +272,7 @@ export const shouldBehaveLikeGGPool = async (strategyType: string) => {
 
   it("checks if the game segments increase", async () => {
     let result: any = -1;
-    for (let expectedSegment = 0; expectedSegment <= segmentCount; expectedSegment++) {
+    for (let expectedSegment = 0; expectedSegment <= depositCount; expectedSegment++) {
       result = await contracts.goodGhosting.getCurrentSegment();
       assert(
         result.eq(ethers.BigNumber.from(expectedSegment)),
@@ -293,9 +293,9 @@ export const shouldBehaveLikeGGPool = async (strategyType: string) => {
       assert(result === expected, errorMsg);
     }
 
-    for (let i = 0; i <= segmentCount; i++) {
+    for (let i = 0; i <= depositCount; i++) {
       await checksCompletion(false, `game completed prior than expected; current segment: ${currentSegment}`);
-      if (i == segmentCount) {
+      if (i == depositCount) {
         const waitingRoundLength = await contracts.goodGhosting.waitingRoundSegmentLength();
         await ethers.provider.send("evm_increaseTime", [parseInt(waitingRoundLength.toString())]);
         await ethers.provider.send("evm_mine", []);
@@ -366,7 +366,7 @@ export const shouldBehaveLikeGGPool = async (strategyType: string) => {
 export const shouldBehaveLikeJoiningGGPool = async (strategyType: string) => {
   beforeEach(async () => {
     contracts = await deployPool(
-      segmentCount,
+      depositCount,
       segmentLength,
       segmentPayment,
       1,
@@ -422,7 +422,7 @@ export const shouldBehaveLikeJoiningGGPool = async (strategyType: string) => {
     const player2 = accounts[3];
 
     const contracts = await deployPool(
-      segmentCount,
+      depositCount,
       segmentLength,
       segmentPayment,
       1,
@@ -465,7 +465,7 @@ export const shouldBehaveLikeJoiningGGPool = async (strategyType: string) => {
     const player1 = accounts[2];
     const player2 = accounts[3];
     const contracts = await deployPool(
-      segmentCount,
+      depositCount,
       segmentLength,
       segmentPayment,
       1,
@@ -495,7 +495,7 @@ export const shouldBehaveLikeJoiningGGPool = async (strategyType: string) => {
     const player2 = accounts[3];
 
     const contracts = await deployPool(
-      segmentCount,
+      depositCount,
       segmentLength,
       segmentPayment,
       1,
@@ -595,7 +595,7 @@ export const shouldBehaveLikeJoiningGGPool = async (strategyType: string) => {
 export const shouldBehaveLikeReJoiningGGPool = async (strategyType: string) => {
   beforeEach(async () => {
     contracts = await deployPool(
-      segmentCount,
+      depositCount,
       segmentLength,
       segmentPayment,
       1,
@@ -665,7 +665,7 @@ export const shouldBehaveLikeReJoiningGGPool = async (strategyType: string) => {
 export const shouldBehaveLikeDepositingGGPool = async (strategyType: string) => {
   beforeEach(async () => {
     contracts = await deployPool(
-      segmentCount,
+      depositCount,
       segmentLength,
       segmentPayment,
       1,
@@ -724,7 +724,7 @@ export const shouldBehaveLikeDepositingGGPool = async (strategyType: string) => 
     const player1 = accounts[2];
     await joinGame(contracts.goodGhosting, contracts.inboundToken, player1, segmentPayment, segmentPayment);
     // Advances to last segment
-    await ethers.provider.send("evm_increaseTime", [segmentLength * segmentCount]);
+    await ethers.provider.send("evm_increaseTime", [segmentLength * depositCount]);
     await ethers.provider.send("evm_mine", []);
 
     const waitingRoundLength = await contracts.goodGhosting.waitingRoundSegmentLength();
@@ -747,7 +747,7 @@ export const shouldBehaveLikeDepositingGGPool = async (strategyType: string) => 
       contracts.inboundToken,
       player1,
       segmentPayment,
-      segmentCount,
+      depositCount,
       segmentLength,
       contracts.goodGhosting,
       segmentPayment,
@@ -853,7 +853,7 @@ export const shouldBehaveLikeDepositingGGPool = async (strategyType: string) => 
 export const shouldBehaveLikeEarlyWithdrawingGGPool = async (strategyType: string) => {
   beforeEach(async () => {
     contracts = await deployPool(
-      segmentCount,
+      depositCount,
       segmentLength,
       segmentPayment,
       1,
@@ -874,7 +874,7 @@ export const shouldBehaveLikeEarlyWithdrawingGGPool = async (strategyType: strin
   });
 
   it("reverts if the game is completed", async () => {
-    await advanceToEndOfGame(contracts.goodGhosting, segmentLength, segmentCount);
+    await advanceToEndOfGame(contracts.goodGhosting, segmentLength, depositCount);
     const accounts = await ethers.getSigners();
     const player1 = accounts[2];
     await expect(contracts.goodGhosting.connect(player1).earlyWithdraw(0)).to.be.revertedWith(
@@ -997,10 +997,10 @@ export const shouldBehaveLikeEarlyWithdrawingGGPool = async (strategyType: strin
     await joinGame(contracts.goodGhosting, contracts.inboundToken, player1, segmentPayment, segmentPayment);
 
     // The payment for the first segment was done upon joining, so we start counting from segment 2 (index 1)
-    for (let index = 1; index < segmentCount; index++) {
+    for (let index = 1; index < depositCount; index++) {
       await ethers.provider.send("evm_increaseTime", [segmentLength]);
       await ethers.provider.send("evm_mine", []);
-      if (index === segmentCount - 1) {
+      if (index === depositCount - 1) {
         const playerInfo = await contracts.goodGhosting.players(player1.address);
 
         const feeAmount = ethers.BigNumber.from(playerInfo.amountPaid)
@@ -1026,7 +1026,7 @@ export const shouldBehaveLikeEarlyWithdrawingGGPool = async (strategyType: strin
     await joinGame(contracts.goodGhosting, contracts.inboundToken, player2, segmentPayment, segmentPayment);
 
     // The payment for the first segment was done upon joining, so we start counting from segment 2 (index 1)
-    for (let index = 1; index < segmentCount; index++) {
+    for (let index = 1; index < depositCount; index++) {
       await ethers.provider.send("evm_increaseTime", [segmentLength]);
       await ethers.provider.send("evm_mine", []);
       await approveToken(contracts.inboundToken, player1, contracts.goodGhosting.address, segmentPayment);
@@ -1053,14 +1053,14 @@ export const shouldBehaveLikeEarlyWithdrawingGGPool = async (strategyType: strin
     await joinGame(contracts.goodGhosting, contracts.inboundToken, player2, segmentPayment, segmentPayment);
 
     // The payment for the first segment was done upon joining, so we start counting from segment 2 (index 1)
-    for (let index = 1; index < segmentCount; index++) {
+    for (let index = 1; index < depositCount; index++) {
       await ethers.provider.send("evm_increaseTime", [segmentLength]);
       await ethers.provider.send("evm_mine", []);
       await makeDeposit(contracts.goodGhosting, contracts.inboundToken, player2, segmentPayment, segmentPayment);
       await makeDeposit(contracts.goodGhosting, contracts.inboundToken, player1, segmentPayment, segmentPayment);
     }
-    // above, it accounted for 1st deposit window, and then the loop runs till segmentCount - 1.
-    // now, we move 2 more segments (segmentCount-1 and segmentCount) to complete the game.
+    // above, it accounted for 1st deposit window, and then the loop runs till depositCount - 1.
+    // now, we move 2 more segments (depositCount-1 and depositCount) to complete the game.
     await ethers.provider.send("evm_increaseTime", [segmentLength]);
     await ethers.provider.send("evm_mine", []);
     const winnerCountBeforeWithdraw = await contracts.goodGhosting.winnerCount();
@@ -1081,14 +1081,14 @@ export const shouldBehaveLikeEarlyWithdrawingGGPool = async (strategyType: strin
     await joinGame(contracts.goodGhosting, contracts.inboundToken, player2, segmentPayment, segmentPayment);
 
     // The payment for the first segment was done upon joining, so we start counting from segment 2 (index 1)
-    for (let index = 1; index < segmentCount; index++) {
+    for (let index = 1; index < depositCount; index++) {
       await ethers.provider.send("evm_increaseTime", [segmentLength]);
       await ethers.provider.send("evm_mine", []);
       await makeDeposit(contracts.goodGhosting, contracts.inboundToken, player2, segmentPayment, segmentPayment);
       await makeDeposit(contracts.goodGhosting, contracts.inboundToken, player1, segmentPayment, segmentPayment);
     }
-    // above, it accounted for 1st deposit window, and then the loop runs till segmentCount - 1.
-    // now, we move 2 more segments (segmentCount-1 and segmentCount) to complete the game.
+    // above, it accounted for 1st deposit window, and then the loop runs till depositCount - 1.
+    // now, we move 2 more segments (depositCount-1 and depositCount) to complete the game.
     await ethers.provider.send("evm_increaseTime", [segmentLength]);
     await ethers.provider.send("evm_mine", []);
     const cumalativePlayerIndexBeforeWithdraw = await contracts.goodGhosting.cummalativePlayerIndexSum();
@@ -1126,7 +1126,7 @@ export const shouldBehaveLikeEarlyWithdrawingGGPool = async (strategyType: strin
 export const shouldBehaveLikeRedeemingFromGGPool = async (strategyType: string) => {
   beforeEach(async () => {
     contracts = await deployPool(
-      segmentCount,
+      depositCount,
       segmentLength,
       segmentPayment,
       1,
@@ -1155,7 +1155,7 @@ export const shouldBehaveLikeRedeemingFromGGPool = async (strategyType: string) 
       contracts.inboundToken,
       player1,
       segmentPayment,
-      segmentCount,
+      depositCount,
       segmentLength,
       segmentPayment,
     );
@@ -1169,7 +1169,7 @@ export const shouldBehaveLikeRedeemingFromGGPool = async (strategyType: string) 
       contracts.inboundToken,
       player1,
       segmentPayment,
-      segmentCount,
+      depositCount,
       segmentLength,
       segmentPayment,
     );
@@ -1178,13 +1178,13 @@ export const shouldBehaveLikeRedeemingFromGGPool = async (strategyType: string) 
   it("transfer funds to contract then redeems from external pool", async () => {
     const accounts = await ethers.getSigners();
     const player1 = accounts[2];
-    const expectedBalance = ethers.BigNumber.from(segmentPayment).mul(ethers.BigNumber.from(segmentCount));
+    const expectedBalance = ethers.BigNumber.from(segmentPayment).mul(ethers.BigNumber.from(depositCount));
     await redeem(
       contracts.goodGhosting,
       contracts.inboundToken,
       player1,
       segmentPayment,
-      segmentCount,
+      depositCount,
       segmentLength,
       segmentPayment,
     );
@@ -1202,7 +1202,7 @@ export const shouldBehaveLikeRedeemingFromGGPool = async (strategyType: string) 
       contracts.inboundToken,
       player1,
       segmentPayment,
-      segmentCount,
+      depositCount,
       segmentLength,
       contracts.goodGhosting,
       segmentPayment,
@@ -1241,7 +1241,7 @@ export const shouldBehaveLikeRedeemingFromGGPool = async (strategyType: string) 
     } else if (strategyType === "mobius") {
       governanceTokenRewards = await contracts.mobi.balanceOf(contracts.goodGhosting.address);
     }
-    const totalPrincipal = ethers.BigNumber.from(segmentPayment).mul(ethers.BigNumber.from(segmentCount));
+    const totalPrincipal = ethers.BigNumber.from(segmentPayment).mul(ethers.BigNumber.from(depositCount));
     const contractsDaiBalance = await contracts.inboundToken.balanceOf(contracts.goodGhosting.address);
     const adminFeeAmount = ethers.BigNumber.from(contractsDaiBalance)
       .sub(totalPrincipal)
@@ -1271,7 +1271,7 @@ export const shouldBehaveLikeRedeemingFromGGPool = async (strategyType: string) 
       contracts.inboundToken,
       player1,
       segmentPayment,
-      segmentCount,
+      depositCount,
       segmentLength,
       contracts.goodGhosting,
       segmentPayment,
@@ -1322,7 +1322,7 @@ export const shouldBehaveLikeRedeemingFromGGPool = async (strategyType: string) 
 
     const player1 = accounts[2];
     contracts = await deployPool(
-      segmentCount,
+      depositCount,
       segmentLength,
       segmentPayment,
       1,
@@ -1338,7 +1338,7 @@ export const shouldBehaveLikeRedeemingFromGGPool = async (strategyType: string) 
       contracts.inboundToken,
       player1,
       segmentPayment,
-      segmentCount,
+      depositCount,
       segmentLength,
       contracts.goodGhosting,
       segmentPayment,
@@ -1385,7 +1385,7 @@ export const shouldBehaveLikeRedeemingFromGGPool = async (strategyType: string) 
       contracts.inboundToken,
       player1,
       segmentPayment,
-      segmentCount,
+      depositCount,
       segmentLength,
       contracts.goodGhosting,
       segmentPayment,
@@ -1437,7 +1437,7 @@ export const shouldBehaveLikeRedeemingFromGGPool = async (strategyType: string) 
       contracts.inboundToken,
       player1,
       segmentPayment,
-      segmentCount,
+      depositCount,
       segmentLength,
       segmentPayment,
     );
@@ -1461,7 +1461,7 @@ export const shouldBehaveLikeRedeemingFromGGPool = async (strategyType: string) 
 
     beforeEach(async () => {
       contracts = await deployPool(
-        segmentCount,
+        depositCount,
         segmentLength,
         segmentPayment,
         1,
@@ -1483,7 +1483,7 @@ export const shouldBehaveLikeRedeemingFromGGPool = async (strategyType: string) 
         contracts.inboundToken,
         player1,
         segmentPayment,
-        segmentCount,
+        depositCount,
         segmentLength,
         segmentPayment,
       );
@@ -1501,7 +1501,7 @@ export const shouldBehaveLikeRedeemingFromGGPool = async (strategyType: string) 
         contracts.inboundToken,
         player1,
         segmentPayment,
-        segmentCount,
+        depositCount,
         segmentLength,
         contracts.goodGhosting,
         segmentPayment,
@@ -1524,7 +1524,7 @@ export const shouldBehaveLikeRedeemingFromGGPool = async (strategyType: string) 
 export const shouldBehaveLikeGGPoolWithNoWinners = async (strategyType: string) => {
   beforeEach(async () => {
     contracts = await deployPool(
-      segmentCount,
+      depositCount,
       segmentLength,
       segmentPayment,
       1,
@@ -1545,7 +1545,7 @@ export const shouldBehaveLikeGGPoolWithNoWinners = async (strategyType: string) 
       contracts.inboundToken,
       player1,
       segmentPayment,
-      segmentCount,
+      depositCount,
       segmentLength,
       contracts.goodGhosting,
       segmentPayment,
@@ -1580,7 +1580,7 @@ export const shouldBehaveLikeGGPoolWithNoWinners = async (strategyType: string) 
       contracts.inboundToken,
       player1,
       segmentPayment,
-      segmentCount,
+      depositCount,
       segmentLength,
       contracts.goodGhosting,
       segmentPayment,
@@ -1593,7 +1593,7 @@ export const shouldBehaveLikeGGPoolWithNoWinners = async (strategyType: string) 
 export const shouldBehaveLikePlayersWithdrawingFromGGPool = async (strategyType: string) => {
   beforeEach(async () => {
     contracts = await deployPool(
-      segmentCount,
+      depositCount,
       segmentLength,
       segmentPayment,
       1,
@@ -1619,7 +1619,7 @@ export const shouldBehaveLikePlayersWithdrawingFromGGPool = async (strategyType:
       contracts.inboundToken,
       player2,
       segmentPayment,
-      segmentCount,
+      depositCount,
       segmentLength,
       contracts.goodGhosting,
       segmentPayment,
@@ -1675,7 +1675,7 @@ export const shouldBehaveLikePlayersWithdrawingFromGGPool = async (strategyType:
     const adminFeeAmount = ethers.BigNumber.from(1).mul(totalGameInterest).div(ethers.BigNumber.from("100"));
     const withdrawalValue = player2PostWithdrawBalance.sub(player2PreWithdrawBalance);
 
-    const userDeposit = ethers.BigNumber.from(segmentPayment).mul(ethers.BigNumber.from(segmentCount));
+    const userDeposit = ethers.BigNumber.from(segmentPayment).mul(ethers.BigNumber.from(depositCount));
     // taking in account the pool fees 5%
     assert(withdrawalValue.lte(userDeposit.add(ethers.utils.parseEther("100000")).sub(adminFeeAmount)));
   });
@@ -1688,7 +1688,7 @@ export const shouldBehaveLikePlayersWithdrawingFromGGPool = async (strategyType:
       contracts.inboundToken,
       player1,
       segmentPayment,
-      segmentCount,
+      depositCount,
       segmentLength,
       segmentPayment,
     );
@@ -1707,7 +1707,7 @@ export const shouldBehaveLikePlayersWithdrawingFromGGPool = async (strategyType:
       contracts.inboundToken,
       player1,
       segmentPayment,
-      segmentCount,
+      depositCount,
       segmentLength,
       segmentPayment,
     );
@@ -1722,7 +1722,7 @@ export const shouldBehaveLikePlayersWithdrawingFromGGPool = async (strategyType:
       contracts.inboundToken,
       player1,
       segmentPayment,
-      segmentCount,
+      depositCount,
       segmentLength,
       segmentPayment,
     );
@@ -1738,7 +1738,7 @@ export const shouldBehaveLikePlayersWithdrawingFromGGPool = async (strategyType:
       contracts.inboundToken,
       player1,
       segmentPayment,
-      segmentCount,
+      depositCount,
       segmentLength,
       contracts.goodGhosting,
       segmentPayment,
@@ -1758,14 +1758,14 @@ export const shouldBehaveLikePlayersWithdrawingFromGGPool = async (strategyType:
     await joinGame(contracts.goodGhosting, contracts.inboundToken, player2, segmentPayment, segmentPayment);
     await joinGame(contracts.goodGhosting, contracts.inboundToken, player1, segmentPayment, segmentPayment);
 
-    for (let index = 1; index < segmentCount; index++) {
+    for (let index = 1; index < depositCount; index++) {
       await ethers.provider.send("evm_increaseTime", [segmentLength]);
       await ethers.provider.send("evm_mine", []);
       await makeDeposit(contracts.goodGhosting, contracts.inboundToken, player2, segmentPayment, segmentPayment);
       await makeDeposit(contracts.goodGhosting, contracts.inboundToken, player1, segmentPayment, segmentPayment);
     }
-    // above, it accounted for 1st deposit window, and then the loop runs till segmentCount - 1.
-    // now, we move 2 more segments (segmentCount-1 and segmentCount) to complete the game.
+    // above, it accounted for 1st deposit window, and then the loop runs till depositCount - 1.
+    // now, we move 2 more segments (depositCount-1 and depositCount) to complete the game.
     await ethers.provider.send("evm_increaseTime", [segmentLength]);
     await ethers.provider.send("evm_mine", []);
 
@@ -1823,7 +1823,7 @@ export const shouldBehaveLikePlayersWithdrawingFromGGPool = async (strategyType:
       contracts.inboundToken,
       player1,
       segmentPayment,
-      segmentCount,
+      depositCount,
       segmentLength,
       contracts.goodGhosting,
       segmentPayment,
@@ -1870,7 +1870,7 @@ export const shouldBehaveLikePlayersWithdrawingFromGGPool = async (strategyType:
       .mul(ethers.BigNumber.from(100))
       .div(ethers.BigNumber.from(cummalativePlayerIndexSum));
     playerShare = ethers.BigNumber.from(gameInterest).mul(playerShare).div(ethers.BigNumber.from(100));
-    const userDeposit = ethers.BigNumber.from(segmentPayment).mul(ethers.BigNumber.from(segmentCount));
+    const userDeposit = ethers.BigNumber.from(segmentPayment).mul(ethers.BigNumber.from(depositCount));
     const rewardTokenBalance = await contracts.rewardToken.balanceOf(contracts.goodGhosting.address);
     if (strategyType === "curve") {
       governanceTokenBalance = await contracts.curve.balanceOf(contracts.goodGhosting.address);
@@ -1897,14 +1897,14 @@ export const shouldBehaveLikePlayersWithdrawingFromGGPool = async (strategyType:
       await joinGame(contracts.goodGhosting, contracts.inboundToken, player2, segmentPayment, segmentPayment);
       await joinGame(contracts.goodGhosting, contracts.inboundToken, player1, segmentPayment, segmentPayment);
 
-      for (let index = 1; index < segmentCount; index++) {
+      for (let index = 1; index < depositCount; index++) {
         await ethers.provider.send("evm_increaseTime", [segmentLength]);
         await ethers.provider.send("evm_mine", []);
         await makeDeposit(contracts.goodGhosting, contracts.inboundToken, player2, segmentPayment, segmentPayment);
         await makeDeposit(contracts.goodGhosting, contracts.inboundToken, player1, segmentPayment, segmentPayment);
       }
-      // above, it accounted for 1st deposit window, and then the loop runs till segmentCount - 1.
-      // now, we move 2 more segments (segmentCount-1 and segmentCount) to complete the game.
+      // above, it accounted for 1st deposit window, and then the loop runs till depositCount - 1.
+      // now, we move 2 more segments (depositCount-1 and depositCount) to complete the game.
       await ethers.provider.send("evm_increaseTime", [segmentLength]);
       await ethers.provider.send("evm_mine", []);
 
@@ -1949,7 +1949,7 @@ export const shouldBehaveLikePlayersWithdrawingFromGGPool = async (strategyType:
   context("when incentive token is defined", async () => {
     beforeEach(async () => {
       contracts = await deployPool(
-        segmentCount,
+        depositCount,
         segmentLength,
         segmentPayment,
         1,
@@ -1971,14 +1971,14 @@ export const shouldBehaveLikePlayersWithdrawingFromGGPool = async (strategyType:
       await joinGame(contracts.goodGhosting, contracts.inboundToken, player2, segmentPayment, segmentPayment);
       await joinGame(contracts.goodGhosting, contracts.inboundToken, player1, segmentPayment, segmentPayment);
 
-      for (let index = 1; index < segmentCount; index++) {
+      for (let index = 1; index < depositCount; index++) {
         await ethers.provider.send("evm_increaseTime", [segmentLength]);
         await ethers.provider.send("evm_mine", []);
         await makeDeposit(contracts.goodGhosting, contracts.inboundToken, player2, segmentPayment, segmentPayment);
         await makeDeposit(contracts.goodGhosting, contracts.inboundToken, player1, segmentPayment, segmentPayment);
       }
-      // above, it accounted for 1st deposit window, and then the loop runs till segmentCount - 1.
-      // now, we move 2 more segments (segmentCount-1 and segmentCount) to complete the game.
+      // above, it accounted for 1st deposit window, and then the loop runs till depositCount - 1.
+      // now, we move 2 more segments (depositCount-1 and depositCount) to complete the game.
       await ethers.provider.send("evm_increaseTime", [segmentLength]);
       await ethers.provider.send("evm_mine", []);
       const waitingRoundLength = await contracts.goodGhosting.waitingRoundSegmentLength();
@@ -2003,7 +2003,7 @@ export const shouldBehaveLikePlayersWithdrawingFromGGPool = async (strategyType:
 export const shouldBehaveLikeAdminWithdrawingFeesFromGGPoolWithFeePercentMoreThan0 = async (strategyType: string) => {
   beforeEach(async () => {
     contracts = await deployPool(
-      segmentCount,
+      depositCount,
       segmentLength,
       segmentPayment,
       1,
@@ -2025,7 +2025,7 @@ export const shouldBehaveLikeAdminWithdrawingFeesFromGGPoolWithFeePercentMoreTha
       contracts.inboundToken,
       player1,
       segmentPayment,
-      segmentCount,
+      depositCount,
       segmentLength,
       contracts.goodGhosting,
       segmentPayment,
@@ -2042,7 +2042,7 @@ export const shouldBehaveLikeAdminWithdrawingFeesFromGGPoolWithFeePercentMoreTha
       contracts.inboundToken,
       player1,
       segmentPayment,
-      segmentCount,
+      depositCount,
       segmentLength,
       contracts.goodGhosting,
       segmentPayment,
@@ -2085,7 +2085,7 @@ export const shouldBehaveLikeAdminWithdrawingFeesFromGGPoolWithFeePercentMoreTha
       const deployer = accounts[0];
       const player2 = accounts[3];
       await joinGame(contracts.goodGhosting, contracts.inboundToken, player2, segmentPayment, segmentPayment);
-      await advanceToEndOfGame(contracts.goodGhosting, segmentLength, segmentCount);
+      await advanceToEndOfGame(contracts.goodGhosting, segmentLength, depositCount);
 
       await contracts.goodGhosting.redeemFromExternalPool(0);
       const rewardTokenBalance = await contracts.rewardToken.balanceOf(contracts.goodGhosting.address);
@@ -2116,7 +2116,7 @@ export const shouldBehaveLikeAdminWithdrawingFeesFromGGPoolWithFeePercentMoreTha
       await joinGame(contracts.goodGhosting, contracts.inboundToken, player1, segmentPayment, segmentPayment);
       await joinGame(contracts.goodGhosting, contracts.inboundToken, player2, segmentPayment, segmentPayment);
       await contracts.goodGhosting.connect(player1).earlyWithdraw(0);
-      await advanceToEndOfGame(contracts.goodGhosting, segmentLength, segmentCount);
+      await advanceToEndOfGame(contracts.goodGhosting, segmentLength, depositCount);
 
       await contracts.goodGhosting.redeemFromExternalPool(0);
       const rewardTokenBalance = await contracts.rewardToken.balanceOf(contracts.goodGhosting.address);
@@ -2158,7 +2158,7 @@ export const shouldBehaveLikeAdminWithdrawingFeesFromGGPoolWithFeePercentMoreTha
 
       await joinGame(contracts.goodGhosting, contracts.inboundToken, player1, segmentPayment, segmentPayment);
       await joinGame(contracts.goodGhosting, contracts.inboundToken, player2, segmentPayment, segmentPayment);
-      await advanceToEndOfGame(contracts.goodGhosting, segmentLength, segmentCount);
+      await advanceToEndOfGame(contracts.goodGhosting, segmentLength, depositCount);
       // mocks interest generation
       await mintTokens(contracts.inboundToken, deployer.address);
 
@@ -2225,7 +2225,7 @@ export const shouldBehaveLikeAdminWithdrawingFeesFromGGPoolWithFeePercentMoreTha
       await joinGame(contracts.goodGhosting, contracts.inboundToken, player1, segmentPayment, segmentPayment);
       await joinGame(contracts.goodGhosting, contracts.inboundToken, player2, segmentPayment, segmentPayment);
       await contracts.goodGhosting.connect(player1).earlyWithdraw(0);
-      await advanceToEndOfGame(contracts.goodGhosting, segmentLength, segmentCount);
+      await advanceToEndOfGame(contracts.goodGhosting, segmentLength, depositCount);
       // mocks interest generation
       await mintTokens(contracts.inboundToken, deployer.address);
 
@@ -2293,7 +2293,7 @@ export const shouldBehaveLikeAdminWithdrawingFeesFromGGPoolWithFeePercentMoreTha
         contracts.inboundToken,
         player1,
         segmentPayment,
-        segmentCount,
+        depositCount,
         segmentLength,
         contracts.goodGhosting,
         segmentPayment,
@@ -2323,13 +2323,13 @@ export const shouldBehaveLikeAdminWithdrawingFeesFromGGPoolWithFeePercentMoreTha
       await joinGame(contracts.goodGhosting, contracts.inboundToken, player1, segmentPayment, segmentPayment);
       await contracts.goodGhosting.connect(player1).earlyWithdraw(0);
 
-      for (let index = 1; index < segmentCount; index++) {
+      for (let index = 1; index < depositCount; index++) {
         await ethers.provider.send("evm_increaseTime", [segmentLength]);
         await ethers.provider.send("evm_mine", []);
         await makeDeposit(contracts.goodGhosting, contracts.inboundToken, player2, segmentPayment, segmentPayment);
       }
-      // above, it accounted for 1st deposit window, and then the loop runs till segmentCount - 1.
-      // now, we move 2 more segments (segmentCount-1 and segmentCount) to complete the game.
+      // above, it accounted for 1st deposit window, and then the loop runs till depositCount - 1.
+      // now, we move 2 more segments (depositCount-1 and depositCount) to complete the game.
       await ethers.provider.send("evm_increaseTime", [segmentLength]);
       await ethers.provider.send("evm_mine", []);
 
@@ -2369,14 +2369,14 @@ export const shouldBehaveLikeAdminWithdrawingFeesFromGGPoolWithFeePercentMoreTha
       await joinGame(contracts.goodGhosting, contracts.inboundToken, player2, segmentPayment, segmentPayment);
       await joinGame(contracts.goodGhosting, contracts.inboundToken, player1, segmentPayment, segmentPayment);
 
-      for (let index = 1; index < segmentCount; index++) {
+      for (let index = 1; index < depositCount; index++) {
         await ethers.provider.send("evm_increaseTime", [segmentLength]);
         await ethers.provider.send("evm_mine", []);
         await makeDeposit(contracts.goodGhosting, contracts.inboundToken, player1, segmentPayment, segmentPayment);
         await makeDeposit(contracts.goodGhosting, contracts.inboundToken, player2, segmentPayment, segmentPayment);
       }
-      // above, it accounted for 1st deposit window, and then the loop runs till segmentCount - 1.
-      // now, we move 2 more segments (segmentCount-1 and segmentCount) to complete the game.
+      // above, it accounted for 1st deposit window, and then the loop runs till depositCount - 1.
+      // now, we move 2 more segments (depositCount-1 and depositCount) to complete the game.
       await ethers.provider.send("evm_increaseTime", [segmentLength]);
       await ethers.provider.send("evm_mine", []);
 
@@ -2442,13 +2442,13 @@ export const shouldBehaveLikeAdminWithdrawingFeesFromGGPoolWithFeePercentMoreTha
       await joinGame(contracts.goodGhosting, contracts.inboundToken, player1, segmentPayment, segmentPayment);
       await contracts.goodGhosting.connect(player1).earlyWithdraw(0);
 
-      for (let index = 1; index < segmentCount; index++) {
+      for (let index = 1; index < depositCount; index++) {
         await ethers.provider.send("evm_increaseTime", [segmentLength]);
         await ethers.provider.send("evm_mine", []);
         await makeDeposit(contracts.goodGhosting, contracts.inboundToken, player2, segmentPayment, segmentPayment);
       }
-      // above, it accounted for 1st deposit window, and then the loop runs till segmentCount - 1.
-      // now, we move 2 more segments (segmentCount-1 and segmentCount) to complete the game.
+      // above, it accounted for 1st deposit window, and then the loop runs till depositCount - 1.
+      // now, we move 2 more segments (depositCount-1 and depositCount) to complete the game.
       await ethers.provider.send("evm_increaseTime", [segmentLength]);
       await ethers.provider.send("evm_mine", []);
 
@@ -2510,7 +2510,7 @@ export const shouldBehaveLikeAdminWithdrawingFeesFromGGPoolWithFeePercentMoreTha
 export const shouldBehaveLikeAdminWithdrawingFeesFromGGPoolWithFeePercentis0 = async (strategyType: string) => {
   beforeEach(async () => {
     contracts = await deployPool(
-      segmentCount,
+      depositCount,
       segmentLength,
       segmentPayment,
       1,
@@ -2533,7 +2533,7 @@ export const shouldBehaveLikeAdminWithdrawingFeesFromGGPoolWithFeePercentis0 = a
       contracts.inboundToken,
       player1,
       segmentPayment,
-      segmentCount,
+      depositCount,
       segmentLength,
       contracts.goodGhosting,
       segmentPayment,
@@ -2560,7 +2560,7 @@ export const shouldBehaveLikeAdminWithdrawingFeesFromGGPoolWithFeePercentis0 = a
     const player1 = accounts[2];
 
     await joinGame(contracts.goodGhosting, contracts.inboundToken, player1, segmentPayment, segmentPayment);
-    await advanceToEndOfGame(contracts.goodGhosting, segmentLength, segmentCount);
+    await advanceToEndOfGame(contracts.goodGhosting, segmentLength, depositCount);
     await contracts.goodGhosting.redeemFromExternalPool(0);
     const adminIncentiveTokenBalanceBeforeWithdraw = await contracts.incentiveToken.balanceOf(deployer.address);
     await contracts.goodGhosting.adminFeeWithdraw();
@@ -2572,7 +2572,7 @@ export const shouldBehaveLikeAdminWithdrawingFeesFromGGPoolWithFeePercentis0 = a
 export const shouldBehaveLikeVariableDepositPool = async (strategyType: string) => {
   beforeEach(async () => {
     contracts = await deployPool(
-      segmentCount,
+      depositCount,
       segmentLength,
       segmentPayment,
       1,
@@ -2607,7 +2607,7 @@ export const shouldBehaveLikeVariableDepositPool = async (strategyType: string) 
       ethers.BigNumber.from(segmentPayment).div(ethers.BigNumber.from("2")).toString(),
     );
 
-    for (let index = 1; index < segmentCount; index++) {
+    for (let index = 1; index < depositCount; index++) {
       await ethers.provider.send("evm_increaseTime", [segmentLength]);
       await ethers.provider.send("evm_mine", []);
 
@@ -2626,8 +2626,8 @@ export const shouldBehaveLikeVariableDepositPool = async (strategyType: string) 
         ethers.BigNumber.from(segmentPayment).mul(ethers.BigNumber.from("2")).toString(),
       );
     }
-    // above, it accounted for 1st deposit window, and then the loop runs till segmentCount - 1.
-    // now, we move 2 more segments (segmentCount-1 and segmentCount) to complete the game.
+    // above, it accounted for 1st deposit window, and then the loop runs till depositCount - 1.
+    // now, we move 2 more segments (depositCount-1 and depositCount) to complete the game.
     await ethers.provider.send("evm_increaseTime", [segmentLength]);
     await ethers.provider.send("evm_mine", []);
 
@@ -2719,7 +2719,7 @@ export const shouldBehaveLikeVariableDepositPool = async (strategyType: string) 
       ethers.BigNumber.from(segmentPayment).div(ethers.BigNumber.from("2")).toString(),
     );
 
-    for (let index = 1; index < segmentCount; index++) {
+    for (let index = 1; index < depositCount; index++) {
       await ethers.provider.send("evm_increaseTime", [segmentLength]);
       await ethers.provider.send("evm_mine", []);
 
@@ -2732,8 +2732,8 @@ export const shouldBehaveLikeVariableDepositPool = async (strategyType: string) 
       );
       await makeDeposit(contracts.goodGhosting, contracts.inboundToken, player1, segmentPayment, segmentPayment);
     }
-    // above, it accounted for 1st deposit window, and then the loop runs till segmentCount - 1.
-    // now, we move 2 more segments (segmentCount-1 and segmentCount) to complete the game.
+    // above, it accounted for 1st deposit window, and then the loop runs till depositCount - 1.
+    // now, we move 2 more segments (depositCount-1 and depositCount) to complete the game.
     await ethers.provider.send("evm_increaseTime", [segmentLength]);
     await ethers.provider.send("evm_mine", []);
 

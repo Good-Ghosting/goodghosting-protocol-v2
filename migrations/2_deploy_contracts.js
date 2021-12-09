@@ -30,7 +30,7 @@ const config = require("../deploy/deploy.config");
 //     {
 //         inboundCurrencyAddress,
 //         lendingPoolAddressProvider,
-//         segmentCount,
+//         depositCount,
 //         segmentLength,
 //         segmentPaymentWei,
 //         earlyWithdrawFee,
@@ -64,7 +64,7 @@ const config = require("../deploy/deploy.config");
 //     var parameterTypes = [
 //         "address", // inboundCurrencyAddress
 //         "address", // lendingPoolAddressProvider
-//         "uint256", // segmentCount
+//         "uint256", // depositCount
 //         "uint256", // segmentLength
 //         "uint256", // segmentPaymentWei
 //         "uint256", // earlyWithdrawFee
@@ -76,7 +76,7 @@ const config = require("../deploy/deploy.config");
 //     var parameterValues = [
 //         inboundCurrencyAddress,
 //         lendingPoolAddressProvider,
-//         segmentCount,
+//         depositCount,
 //         segmentLength,
 //         segmentPaymentWei,
 //         earlyWithdrawFee,
@@ -123,7 +123,7 @@ const config = require("../deploy/deploy.config");
 //             curvePoolTokenIndex,
 //             curvePoolType,
 //             curveGauge,
-//             segmentCount,
+//             depositCount,
 //             segmentLength,
 //             segmentPaymentWei,
 //             earlyWithdrawFee,
@@ -162,7 +162,7 @@ const config = require("../deploy/deploy.config");
 //     }
 
 //     console.log(`Inbound Currency: ${inboundCurrencySymbol} at ${inboundCurrencyAddress}`);
-//     console.log(`Segment Count: ${segmentCount}`);
+//     console.log(`Segment Count: ${depositCount}`);
 //     console.log(`Segment Length: ${segmentLength} seconds`);
 //     console.log(`Segment Payment: ${segmentPayment} ${inboundCurrencySymbol} (${segmentPaymentWei} wei)`);
 //     console.log(`Early Withdrawal Fee: ${earlyWithdrawFee}%`);
@@ -249,7 +249,7 @@ module.exports = function (deployer, network, accounts) {
     let deploymentArgs = [
       goodGhostingContract,
       inboundCurrencyAddress,
-      config.deployConfigs.segmentCount,
+      config.deployConfigs.depositCount,
       config.deployConfigs.segmentLength,
       config.deployConfigs.waitingRoundSegmentLength,
       segmentPaymentWei,
@@ -280,7 +280,7 @@ module.exports = function (deployer, network, accounts) {
     //         poolConfigs.tokenIndex,
     //         poolConfigs.poolType,
     //         poolConfigs.gauge,
-    //         config.deployConfigs.segmentCount,
+    //         config.deployConfigs.depositCount,
     //         config.deployConfigs.segmentLength,
     //         segmentPaymentWei,
     //         config.deployConfigs.earlyWithdrawFee,
@@ -306,7 +306,7 @@ module.exports = function (deployer, network, accounts) {
     //     {
     //         inboundCurrencyAddress,
     //         lendingPoolAddressProvider,
-    //         segmentCount: config.deployConfigs.segmentCount,
+    //         depositCount: config.deployConfigs.depositCount,
     //         segmentLength: config.deployConfigs.segmentLength,
     //         segmentPaymentWei,
     //         earlyWithdrawFee: config.deployConfigs.earlyWithdrawFee,

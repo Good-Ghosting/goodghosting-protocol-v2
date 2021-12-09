@@ -162,7 +162,7 @@ contract Pool is Ownable, Pausable {
     /**
         Creates a new instance of GoodGhosting game
         @param _inboundCurrency Smart contract address of inbound currency used for the game.
-        @param _segmentCount Number of segments in the game.
+        @param _depositCount Number of segments in the game.
         @param _segmentLength Lenght of each segment, in seconds (i.e., 180 (sec) => 3 minutes).
         @param _waitingRoundSegmentLength Lenght of waiting round segment, in seconds (i.e., 180 (sec) => 3 minutes).
         @param _segmentPayment Amount of tokens each player needs to contribute per segment
@@ -173,7 +173,7 @@ contract Pool is Ownable, Pausable {
      */
     constructor(
         IERC20 _inboundCurrency,
-        uint256 _segmentCount,
+        uint256 _depositCount,
         uint256 _segmentLength,
         uint256 _waitingRoundSegmentLength,
         uint256 _segmentPayment,
@@ -191,15 +191,15 @@ contract Pool is Ownable, Pausable {
         require(_maxPlayersCount > 0, "_maxPlayersCount must be greater than zero");
         require(address(_inboundCurrency) != address(0), "invalid _inboundCurrency address");
         require(address(_strategy) != address(0), "invalid _strategy address");
-        require(_segmentCount > 0, "_segmentCount must be greater than zero");
+        require(_depositCount > 0, "_depositCount must be greater than zero");
         require(_segmentLength > 0, "_segmentLength must be greater than zero");
         require(_segmentPayment > 0, "_segmentPayment must be greater than zero");
         require(_waitingRoundSegmentLength > 0, "_waitingRoundSegmentLength must be greater than zero");
 
         // Initializes default variables
         firstSegmentStart = block.timestamp; //gets current time
-        waitingRoundSegmentStart = block.timestamp + (_segmentLength * _segmentCount);
-        lastSegment = _segmentCount;
+        waitingRoundSegmentStart = block.timestamp + (_segmentLength * _depositCount);
+        lastSegment = _depositCount;
         segmentLength = _segmentLength;
         waitingRoundSegmentLength = _waitingRoundSegmentLength;
         segmentPayment = _segmentPayment;

@@ -24,7 +24,7 @@ const { expect } = chai;
 const ZERO_ADDRESS = "0x0000000000000000000000000000000000000000";
 
 export const deployPool = async (
-  segmentCount: number,
+  depositCount: number,
   segmentLength: number,
   segmentPayment: any,
   earlyWithdrawFee: number,
@@ -124,7 +124,7 @@ export const deployPool = async (
   const goodGhostingV2Deployer = new Pool__factory(deployer);
   const goodGhosting = await goodGhostingV2Deployer.deploy(
     isInboundToken ? inboundToken.address : inboundToken,
-    segmentCount,
+    depositCount,
     segmentLength,
     segmentLength * 2,
     segmentPayment,
@@ -186,7 +186,7 @@ export const joinGamePaySegmentsAndComplete = async (
   inboundToken: MintableERC20,
   player: any,
   segmentPayment: string,
-  segmentCount: number,
+  depositCount: number,
   segmentLength: number,
   goodGhosting: Pool,
   depositAmount: string,
@@ -195,14 +195,14 @@ export const joinGamePaySegmentsAndComplete = async (
   await goodGhosting.connect(player).joinGame(0, depositAmount);
 
   // The payment for the first segment was done upon joining, so we start counting from segment 2 (index 1)
-  for (let index = 1; index < segmentCount; index++) {
+  for (let index = 1; index < depositCount; index++) {
     await ethers.provider.send("evm_increaseTime", [segmentLength]);
     await ethers.provider.send("evm_mine", []);
     await approveToken(inboundToken, player, goodGhosting.address, segmentPayment);
     await goodGhosting.connect(player).makeDeposit(0, depositAmount);
   }
-  // above, it accounted for 1st deposit window, and then the loop runs till segmentCount - 1.
-  // now, we move 2 more segments (segmentCount-1 and segmentCount) to complete the game.
+  // above, it accounted for 1st deposit window, and then the loop runs till depositCount - 1.
+  // now, we move 2 more segments (depositCount-1 and depositCount) to complete the game.
   await ethers.provider.send("evm_increaseTime", [segmentLength]);
   await ethers.provider.send("evm_mine", []);
   const waitingRoundLength = await goodGhosting.waitingRoundSegmentLength();
@@ -216,7 +216,7 @@ export const joinGamePaySegmentsAndNotComplete = async (
   inboundToken: MintableERC20,
   player: any,
   segmentPayment: string,
-  segmentCount: number,
+  depositCount: number,
   segmentLength: number,
   goodGhosting: Pool,
   depositAmount: string,
@@ -224,16 +224,16 @@ export const joinGamePaySegmentsAndNotComplete = async (
   await approveToken(inboundToken, player, goodGhosting.address, segmentPayment);
   await goodGhosting.connect(player).joinGame(0, depositAmount);
   // The payment for the first segment was done upon joining, so we start counting from segment 2 (index 1)
-  for (let index = 1; index < segmentCount; index++) {
+  for (let index = 1; index < depositCount; index++) {
     await ethers.provider.send("evm_increaseTime", [segmentLength]);
     await ethers.provider.send("evm_mine", []);
-    if (index < segmentCount - 1) {
+    if (index < depositCount - 1) {
       await approveToken(inboundToken, player, goodGhosting.address, segmentPayment);
       await goodGhosting.connect(player).makeDeposit(0, depositAmount);
     }
   }
-  // above, it accounted for 1st deposit window, and then the loop runs till segmentCount - 1.
-  // now, we move 2 more segments (segmentCount-1 and segmentCount) to complete the game.
+  // above, it accounted for 1st deposit window, and then the loop runs till depositCount - 1.
+  // now, we move 2 more segments (depositCount-1 and depositCount) to complete the game.
   await ethers.provider.send("evm_increaseTime", [segmentLength]);
   await ethers.provider.send("evm_mine", []);
   const waitingRoundLength = await goodGhosting.waitingRoundSegmentLength();
@@ -243,11 +243,11 @@ export const joinGamePaySegmentsAndNotComplete = async (
   assert(gameStatus);
 };
 
-export const advanceToEndOfGame = async (goodGhosting: Pool, segmentLength: number, segmentCount: number) => {
+export const advanceToEndOfGame = async (goodGhosting: Pool, segmentLength: number, depositCount: number) => {
   // We need to to account for the first deposit window.
   // i.e., if game has 5 segments, we need to add + 1, because while current segment was 0,
   // it was just the first deposit window (a.k.a., joining period).
-  await ethers.provider.send("evm_increaseTime", [segmentLength * segmentCount]);
+  await ethers.provider.send("evm_increaseTime", [segmentLength * depositCount]);
   await ethers.provider.send("evm_mine", []);
   const waitingRoundLength = await goodGhosting.waitingRoundSegmentLength();
   await ethers.provider.send("evm_increaseTime", [parseInt(waitingRoundLength.toString())]);
@@ -305,7 +305,7 @@ export const redeem = async (
   inboundToken: MintableERC20,
   player: any,
   amount: string,
-  segmentCount: number,
+  depositCount: number,
   segmentLength: number,
   depositAmount: string,
 ) => {
@@ -313,7 +313,7 @@ export const redeem = async (
     inboundToken,
     player,
     amount,
-    segmentCount,
+    depositCount,
     segmentLength,
     goodGhosting,
     depositAmount,

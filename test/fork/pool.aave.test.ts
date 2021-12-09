@@ -17,7 +17,7 @@ let daiInstance: any, wmaticInstance;
 let accounts: any[];
 let pool: any, strategy: any;
 const {
-  segmentCount,
+  depositCount,
   segmentLength,
   segmentPayment: segmentPaymentInt,
   waitingRoundSegmentLength,
@@ -80,7 +80,7 @@ describe("Pool Aave/Moola Fork Tests", () => {
     pool = await ethers.getContractFactory("Pool", accounts[0]);
     pool = await pool.deploy(
       daiInstance.address,
-      deployConfigs.segmentCount.toString(),
+      deployConfigs.depositCount.toString(),
       deployConfigs.segmentLength.toString(),
       deployConfigs.waitingRoundSegmentLength.toString(),
       segmentPayment.toString(),
@@ -123,7 +123,7 @@ describe("Pool Aave/Moola Fork Tests", () => {
 
   //   expect(segmentPaymentResult.eq(segmentPayment));
   //   expect(!flexibleDepositFlag);
-  //   expect(lastSegmentResult.eq(segmentCount));
+  //   expect(lastSegmentResult.eq(depositCount));
   //   expect(waitingSegmentLength.eq(waitingRoundSegmentLength));
   //   expect(currentSegmentResult.eq(expectedSegment));
   //   expect(maxPlayersCountResult.eq(maxPlayersCount));
@@ -145,7 +145,7 @@ describe("Pool Aave/Moola Fork Tests", () => {
   });
 
   it("players are able to make deposits and 1 player early withdraws", async () => {
-    for (let i = 1; i < segmentCount; i++) {
+    for (let i = 1; i < depositCount; i++) {
       await ethers.provider.send("evm_increaseTime", [segmentLength]);
       await ethers.provider.send("evm_mine", []);
       if (i == 1) {
@@ -168,8 +168,8 @@ describe("Pool Aave/Moola Fork Tests", () => {
           .withArgs(accounts[j].address, currentSegment, ethers.BigNumber.from(segmentPayment));
       }
     }
-    // above, it accounted for 1st deposit window, and then the loop runs till segmentCount - 1.
-    // now, we move 2 more segments (segmentCount-1 and segmentCount) to complete the game.
+    // above, it accounted for 1st deposit window, and then the loop runs till depositCount - 1.
+    // now, we move 2 more segments (depositCount-1 and depositCount) to complete the game.
     await ethers.provider.send("evm_increaseTime", [segmentLength]);
     await ethers.provider.send("evm_mine", []);
     const waitingRoundLength = await pool.waitingRoundSegmentLength();

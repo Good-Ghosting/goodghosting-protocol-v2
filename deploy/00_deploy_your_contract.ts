@@ -28,7 +28,7 @@ module.exports = async ({ getNamedAccounts, deployments, getChainId }) => {
       from: deployer,
       args: [
         providers["aave"]["polygon"]["dai"].address,
-        deployConfigs.segmentCount.toString(),
+        deployConfigs.depositCount.toString(),
         deployConfigs.segmentLength.toString(),
         deployConfigs.waitingRoundSegmentLength.toString(),
         deployConfigs.segmentPayment.toString(),
