@@ -6,19 +6,16 @@ import "@openzeppelin/contracts/access/Ownable.sol";
 import "../aave/AToken.sol";
 import "../aave/IncentiveController.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-import "../libraries/LowGasSafeMath.sol";
 import "./IStrategy.sol";
 
 contract AaveStrategy is Ownable, IStrategy {
-    using LowGasSafeMath for uint256;
-
     /// @notice Address of the Aave V2 incentive controller contract
     IncentiveController public immutable incentiveController;
 
     /// @notice Address of the interest bearing token received when funds are transferred to the external pool
     AToken public adaiToken;
 
-    /// @notice Which Aave instance we use to swap DAI to interest bearing aDAI
+    /// @notice Which Aave instance we use to swap Inbound Token to interest bearing aDAI
     ILendingPoolAddressesProvider public immutable lendingPoolAddressProvider;
 
     /// @notice Lending pool address

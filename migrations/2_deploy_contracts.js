@@ -34,7 +34,7 @@ const config = require("../deploy/deploy.config");
 //         segmentLength,
 //         segmentPaymentWei,
 //         earlyWithdrawFee,
-//         customFee,
+//         adminFee,
 //         aaveContractAddress,
 //         maxPlayersCount,
 //         incentiveToken,
@@ -68,7 +68,7 @@ const config = require("../deploy/deploy.config");
 //         "uint256", // segmentLength
 //         "uint256", // segmentPaymentWei
 //         "uint256", // earlyWithdrawFee
-//         "uint256", // customFee
+//         "uint256", // adminFee
 //         "address", // dataProvider/lending pool address
 //         "uint256", // maxPlayersCount
 //         "address" // incentiveToken
@@ -80,7 +80,7 @@ const config = require("../deploy/deploy.config");
 //         segmentLength,
 //         segmentPaymentWei,
 //         earlyWithdrawFee,
-//         customFee,
+//         adminFee,
 //         aaveContractAddress,
 //         maxPlayersCount,
 //         incentiveToken
@@ -127,7 +127,7 @@ const config = require("../deploy/deploy.config");
 //             segmentLength,
 //             segmentPaymentWei,
 //             earlyWithdrawFee,
-//             customFee,
+//             adminFee,
 //             maxPlayersCount,
 //             curve,
 //             wmatic,
@@ -166,7 +166,7 @@ const config = require("../deploy/deploy.config");
 //     console.log(`Segment Length: ${segmentLength} seconds`);
 //     console.log(`Segment Payment: ${segmentPayment} ${inboundCurrencySymbol} (${segmentPaymentWei} wei)`);
 //     console.log(`Early Withdrawal Fee: ${earlyWithdrawFee}%`);
-//     console.log(`Custom Pool Fee: ${customFee}%`);
+//     console.log(`Custom Pool Fee: ${adminFee}%`);
 //     console.log(`Max Quantity of Players: ${maxPlayersCount}`);
 //     console.log(`Incentive Token: ${incentiveToken}`);
 //     if (isPolygon) {
@@ -254,7 +254,7 @@ module.exports = function (deployer, network, accounts) {
       config.deployConfigs.waitingRoundSegmentLength,
       segmentPaymentWei,
       config.deployConfigs.earlyWithdrawFee,
-      config.deployConfigs.customFee,
+      config.deployConfigs.adminFee,
       maxPlayersCount,
       config.deployConfigs.flexibleSegmentPayment,
       incentiveToken,
@@ -284,7 +284,7 @@ module.exports = function (deployer, network, accounts) {
     //         config.deployConfigs.segmentLength,
     //         segmentPaymentWei,
     //         config.deployConfigs.earlyWithdrawFee,
-    //         config.deployConfigs.customFee,
+    //         config.deployConfigs.adminFee,
     //         maxPlayersCount,
     //         poolConfigs.curve,
     //         wmatic,
@@ -310,7 +310,7 @@ module.exports = function (deployer, network, accounts) {
     //         segmentLength: config.deployConfigs.segmentLength,
     //         segmentPaymentWei,
     //         earlyWithdrawFee: config.deployConfigs.earlyWithdrawFee,
-    //         customFee: config.deployConfigs.customFee,
+    //         adminFee: config.deployConfigs.adminFee,
     //         aaveContractAddress,
     //         maxPlayersCount,
     //         incentiveToken,

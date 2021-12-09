@@ -79,13 +79,13 @@ export const shouldBehaveLikeGGPool = async (strategyType: string) => {
     );
   });
 
-  it("checks if player1 received minted DAI tokens", async () => {
+  it("checks if player1 received minted Inbound tokens", async () => {
     const accounts = await ethers.getSigners();
     const player1 = accounts[2];
     const usersDaiBalance = await contracts.inboundToken.balanceOf(player1.address);
     assert(
       ethers.BigNumber.from(parseInt(ethers.utils.formatEther(usersDaiBalance))).gte(ethers.BigNumber.from(1000)),
-      `Player1 balance should be greater than or equal to 100 DAI at start - current balance: ${usersDaiBalance}`,
+      `Player1 balance should be greater than or equal to 100 Inbound Token at start - current balance: ${usersDaiBalance}`,
     );
   });
 
@@ -229,7 +229,7 @@ export const shouldBehaveLikeGGPool = async (strategyType: string) => {
     const segmentLengthResult = await contracts.goodGhosting.segmentLength();
     const segmentPaymentResult = await contracts.goodGhosting.segmentPayment();
     const earlyWithdrawFee = await contracts.goodGhosting.earlyWithdrawalFee();
-    const adminFee = await contracts.goodGhosting.customFee();
+    const adminFee = await contracts.goodGhosting.adminFee();
     const maxPlayersCountResult = await contracts.goodGhosting.maxPlayersCount();
     assert(
       ethers.BigNumber.from(earlyWithdrawFee).eq(ethers.BigNumber.from(1)),
@@ -397,7 +397,7 @@ export const shouldBehaveLikeJoiningGGPool = async (strategyType: string) => {
     const accounts = await ethers.getSigners();
     const player1 = accounts[2];
     await expect(contracts.goodGhosting.connect(player1).joinGame(0, segmentPayment)).to.be.revertedWith(
-      "You need to have allowance to do transfer DAI on the smart contract",
+      "You need to have allowance to do transfer Inbound Token on the smart contract",
     );
   });
 

@@ -1,6 +1,5 @@
 pragma solidity ^0.8.7;
 
-// import "../libraries/LowGasSafeMath.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "../mobius/IMobiPool.sol";
@@ -8,8 +7,6 @@ import "../mobius/IMobiGauge.sol";
 import "./IStrategy.sol";
 
 contract MobiusStrategy is Ownable, IStrategy {
-    // using LowGasSafeMath for uint256;
-
     /// @notice pool address
     IMobiPool public pool;
 

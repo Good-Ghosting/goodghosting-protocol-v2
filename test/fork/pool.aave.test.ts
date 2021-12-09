@@ -26,7 +26,7 @@ const {
 } = deployConfigs;
 
 const daiDecimals = ethers.BigNumber.from("1000000000000000000");
-const segmentPayment = daiDecimals.mul(ethers.BigNumber.from(segmentPaymentInt)); // equivalent to 10 DAI
+const segmentPayment = daiDecimals.mul(ethers.BigNumber.from(segmentPaymentInt)); // equivalent to 10 Inbound Token
 
 describe("Pool Aave/Moola Fork Tests", () => {
   if (process.env.NETWORK === "local-celo-mobius") {
@@ -85,7 +85,7 @@ describe("Pool Aave/Moola Fork Tests", () => {
       deployConfigs.waitingRoundSegmentLength.toString(),
       segmentPayment.toString(),
       deployConfigs.earlyWithdrawFee.toString(),
-      deployConfigs.customFee.toString(),
+      deployConfigs.adminFee.toString(),
       deployConfigs.maxPlayersCount.toString(),
       deployConfigs.flexibleSegmentPayment,
       providers["aave"]["polygon"].incentiveToken,

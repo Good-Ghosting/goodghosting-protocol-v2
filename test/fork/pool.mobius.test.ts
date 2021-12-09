@@ -24,7 +24,7 @@ contract("Pool with Mobius Strategy", accounts => {
     segmentCount,
     segmentLength,
     segmentPayment: segmentPaymentInt,
-    customFee,
+    adminFee,
     earlyWithdrawFee,
     maxPlayersCount,
   } = configs.deployConfigs;
@@ -38,11 +38,11 @@ contract("Pool with Mobius Strategy", accounts => {
   const loser = players[0];
   const userWithdrawingAfterLastSegment = players[1];
   const daiDecimals = web3.utils.toBN(1000000000000000000);
-  const segmentPayment = daiDecimals.mul(web3.utils.toBN(segmentPaymentInt)); // equivalent to 10 DAI
+  const segmentPayment = daiDecimals.mul(web3.utils.toBN(segmentPaymentInt)); // equivalent to 10 Inbound Token
   let goodGhosting: any;
 
   describe("simulates a full game with 5 players and 4 of them winning the game and with admin fee % as 0", async () => {
-    it("initializes contract instances and transfers DAI to players", async () => {
+    it("initializes contract instances and transfers Inbound Token to players", async () => {
       pool = new web3.eth.Contract(mobiusPool.abi, providersConfigs.pool);
       token = new web3.eth.Contract(wmatic.abi, providersConfigs.cusd.address);
       mobi = new web3.eth.Contract(wmatic.abi, providersConfigs.mobi);
@@ -113,7 +113,7 @@ contract("Pool with Mobius Strategy", accounts => {
 
     // });
 
-    it("players approve DAI to contract and join the game", async () => {
+    it("players approve Inbound Token to contract and join the game", async () => {
       const userSlippageOptions = [1, 3, 4, 2, 1];
       for (let i = 0; i < players.length; i++) {
         const player = players[i];
@@ -361,7 +361,7 @@ contract("Pool with Mobius Strategy", accounts => {
           console.log("totalGameInterest", ev.totalGameInterest.toString());
           console.log("interestPerPlayer", ev.totalGameInterest.div(web3.utils.toBN(players.length - 1)).toString());
           const adminFee = web3.utils
-            .toBN(configs.deployConfigs.customFee)
+            .toBN(configs.deployConfigs.adminFee)
             .mul(ev.totalGameInterest)
             .div(web3.utils.toBN("100"));
           eventAmount = web3.utils.toBN(ev.totalAmount.toString());
@@ -411,7 +411,7 @@ contract("Pool with Mobius Strategy", accounts => {
     });
 
     it("admin withdraws admin fee from contract", async () => {
-      if (customFee > 0) {
+      if (adminFee > 0) {
         const expectedAmount = web3.utils.toBN(await goodGhosting.adminFeeAmount.call({ from: admin }));
 
         let mobiRewardBalanceBefore = web3.utils.toBN(0);

@@ -4,16 +4,18 @@ pragma solidity ^0.8.7;
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/security/Pausable.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-import "./libraries/LowGasSafeMath.sol";
+import "@openzeppelin/contracts/utils/math/SafeMath.sol";
+
 import "./strategies/IStrategy.sol";
 
 /// @title GoodGhosting V2 Contract
 /// @notice Used for games deployed on a EVM Network
 contract Pool is Ownable, Pausable {
-    using LowGasSafeMath for uint256;
+    // using for better readability
+    using SafeMath for uint256;
 
     /// @notice Multiplier used for calculating playerIndex to avoid precision issues
-    uint256 public constant multiplier = 10**5;
+    uint256 public constant MULTIPLIER = 10**5;
 
     /// @notice Stores the total amount of net interest received in the game.
     uint256 public totalGameInterest;
@@ -57,7 +59,7 @@ contract Pool is Ownable, Pausable {
     uint128 public immutable earlyWithdrawalFee;
 
     /// @notice The performance admin fee (percentage)
-    uint128 public immutable customFee;
+    uint128 public immutable adminFee;
 
     /// @notice Defines the max quantity of players allowed in the game
     uint256 public immutable maxPlayersCount;
@@ -202,7 +204,7 @@ contract Pool is Ownable, Pausable {
         waitingRoundSegmentLength = _waitingRoundSegmentLength;
         segmentPayment = _segmentPayment;
         earlyWithdrawalFee = _earlyWithdrawalFee;
-        customFee = _customFee;
+        adminFee = _customFee;
         inboundToken = _inboundCurrency;
         strategy = _strategy;
         maxPlayersCount = _maxPlayersCount;
@@ -291,12 +293,12 @@ contract Pool is Ownable, Pausable {
         uint256 currentSegment;
         if (
             waitingRoundSegmentStart <= block.timestamp &&
-            block.timestamp <= (waitingRoundSegmentStart + waitingRoundSegmentLength)
+            block.timestamp <= (waitingRoundSegmentStart.add(waitingRoundSegmentLength))
         ) {
-            uint256 waitingRoundSegment = block.timestamp.sub(waitingRoundSegmentStart) / (waitingRoundSegmentLength);
-            currentSegment = lastSegment + waitingRoundSegment;
+            uint256 waitingRoundSegment = block.timestamp.sub(waitingRoundSegmentStart).div(waitingRoundSegmentLength);
+            currentSegment = lastSegment.add(waitingRoundSegment);
         } else {
-            currentSegment = block.timestamp.sub(firstSegmentStart) / (segmentLength);
+            currentSegment = block.timestamp.sub(firstSegmentStart).div(segmentLength);
         }
         return currentSegment;
     }
@@ -360,7 +362,7 @@ contract Pool is Ownable, Pausable {
         activePlayersCount = activePlayersCount.sub(1);
 
         // In an early withdraw, users get their principal minus the earlyWithdrawalFee % defined in the constructor.
-        uint256 withdrawAmount = player.amountPaid.sub(player.amountPaid.mul(earlyWithdrawalFee) / 100);
+        uint256 withdrawAmount = player.amountPaid.sub(player.amountPaid.mul(earlyWithdrawalFee).div(uint256(100)));
         // Decreases the totalGamePrincipal on earlyWithdraw
         totalGamePrincipal = totalGamePrincipal.sub(player.amountPaid);
         uint256 currentSegment = getCurrentSegment();
@@ -422,21 +424,21 @@ contract Pool is Ownable, Pausable {
                     cumulativePlayerIndex = cumulativePlayerIndex.add(playerIndex[msg.sender][i]);
                 }
 
-                uint256 playerShare = cumulativePlayerIndex.mul(100) / sum;
-                playerShare = totalGameInterest.mul(playerShare) / 100;
+                uint256 playerShare = cumulativePlayerIndex.mul(100).div(sum);
+                playerShare = totalGameInterest.mul(playerShare).div(uint256(100));
                 payout = payout.add(playerShare);
             }
 
             // If there's additional incentives, distributes them to winners
             if (totalIncentiveAmount > 0) {
-                playerIncentive = totalIncentiveAmount / (winnerCount);
+                playerIncentive = totalIncentiveAmount.div(winnerCount);
             }
             if (address(rewardToken) != address(0) && rewardTokenAmount > 0) {
-                playerReward = rewardTokenAmount / (winnerCount);
+                playerReward = rewardTokenAmount.div(winnerCount);
             }
 
             if (address(strategyGovernanceToken) != address(0) && strategyGovernanceTokenAmount > 0) {
-                playerGovernanceTokenReward = strategyGovernanceTokenAmount / (winnerCount);
+                playerGovernanceTokenReward = strategyGovernanceTokenAmount.div(winnerCount);
             }
         }
 
@@ -531,8 +533,8 @@ contract Pool is Ownable, Pausable {
         // calculates the performance/admin fee (takes a cut - the admin percentage fee - from the pool's interest).
         // calculates the "gameInterest" (net interest) that will be split among winners in the game
         uint256 _adminFeeAmount;
-        if (customFee > 0) {
-            _adminFeeAmount = (grossInterest.mul(customFee)) / 100;
+        if (adminFee > 0) {
+            _adminFeeAmount = (grossInterest.mul(adminFee)).div(uint256(100));
             totalGameInterest = grossInterest.sub(_adminFeeAmount);
         } else {
             _adminFeeAmount = 0;
@@ -586,7 +588,7 @@ contract Pool is Ownable, Pausable {
         players[msg.sender].amountPaid = players[msg.sender].amountPaid.add(segmentPayment);
         // PLAYER INDEX CALCULATION TO DETERMINE INTEREST SHARE
         // player index = prev. segment player index + segment amount deposited / time stamp of deposit
-        uint256 currentSegmentplayerIndex = segmentPayment.mul(multiplier) / block.timestamp;
+        uint256 currentSegmentplayerIndex = segmentPayment.mul(MULTIPLIER).div(block.timestamp);
         playerIndex[msg.sender][currentSegment] = currentSegmentplayerIndex;
 
         // check if this is deposit for the last segment. If yes, the player is a winner.

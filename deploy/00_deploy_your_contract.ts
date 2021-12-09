@@ -33,7 +33,7 @@ module.exports = async ({ getNamedAccounts, deployments, getChainId }) => {
         deployConfigs.waitingRoundSegmentLength.toString(),
         deployConfigs.segmentPayment.toString(),
         deployConfigs.earlyWithdrawFee.toString(),
-        deployConfigs.customFee.toString(),
+        deployConfigs.adminFee.toString(),
         deployConfigs.maxPlayersCount.toString(),
         deployConfigs.flexibleSegmentPayment.toString(),
         providers["aave"]["polygon"].incentiveToken,
