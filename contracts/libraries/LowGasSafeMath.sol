@@ -1,4 +1,4 @@
-pragma solidity >=0.6.11;
+pragma solidity ^0.8.7;
 
 /// @title Optimized overflow and underflow safe math operations
 /// @notice Contains methods for doing math operations that revert on overflow or underflow for minimal gas cost

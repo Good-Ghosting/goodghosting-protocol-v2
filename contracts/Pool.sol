@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: UNLICENSED
-pragma solidity 0.6.11;
+pragma solidity ^0.8.7;
 
 import "@openzeppelin/contracts/access/Ownable.sol";
-import "@openzeppelin/contracts/utils/Pausable.sol";
+import "@openzeppelin/contracts/security/Pausable.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "./libraries/LowGasSafeMath.sol";
 import "./strategies/IStrategy.sol";
@@ -181,7 +181,7 @@ contract Pool is Ownable, Pausable {
         bool _flexibleSegmentPayment,
         IERC20 _incentiveToken,
         IStrategy _strategy
-    ) public {
+    ) {
         flexibleSegmentPayment = _flexibleSegmentPayment;
         require(_customFee <= 20, "_customFee must be less than or equal to 20%");
         require(_earlyWithdrawalFee <= 10, "_earlyWithdrawalFee must be less than or equal to 10%");

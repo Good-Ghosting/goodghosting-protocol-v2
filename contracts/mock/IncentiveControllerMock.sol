@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: UNLICENSED
 
-pragma solidity 0.6.11;
+pragma solidity ^0.8.7;
 
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "../aave/IncentiveController.sol";
@@ -12,7 +12,7 @@ import { ILendingPool } from "../aave/ILendingPool.sol";
 contract IncentiveControllerMock is ILendingPoolAddressesProvider, ILendingPool, IncentiveController, MintableERC20 {
     address public underlyingAssetAddress;
 
-    constructor(string memory name, string memory symbol) public MintableERC20(name, symbol) {}
+    constructor(string memory name, string memory symbol) MintableERC20(name, symbol) {}
 
     /// ILendingPoolAddressesProvider interface
     function getAddress(bytes32 id) public view override returns (address) {

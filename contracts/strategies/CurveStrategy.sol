@@ -1,4 +1,4 @@
-pragma solidity 0.6.11;
+pragma solidity ^0.8.7;
 
 import "../libraries/LowGasSafeMath.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
@@ -50,7 +50,7 @@ contract CurveStrategy is Ownable, IStrategy {
         ICurveGauge _gauge,
         IERC20 _rewardToken,
         IERC20 _curve
-    ) public {
+    ) {
         require(address(_pool) != address(0), "invalid _pool address");
         require(address(_gauge) != address(0), "invalid _gauge address");
         require(address(_curve) != address(0), "invalid _curve address");
@@ -85,11 +85,11 @@ contract CurveStrategy is Ownable, IStrategy {
         */
         if (poolType == AAVE_POOL) {
             uint256[NUM_AAVE_TOKENS] memory amounts; // fixed-sized array is initialized w/ [0, 0, 0]
-            amounts[uint256(inboundTokenIndex)] = contractBalance;
+            amounts[uint256(uint128(inboundTokenIndex))] = contractBalance;
             pool.add_liquidity(amounts, _minAmount, true);
         } else if (poolType == ATRI_CRYPTO_POOL) {
             uint256[NUM_ATRI_CRYPTO_TOKENS] memory amounts; // fixed-sized array is initialized w/ [0, 0, 0, 0, 0]
-            amounts[uint256(inboundTokenIndex)] = contractBalance;
+            amounts[uint256(uint128(inboundTokenIndex))] = contractBalance;
             pool.add_liquidity(amounts, _minAmount);
         }
 
@@ -116,7 +116,7 @@ contract CurveStrategy is Ownable, IStrategy {
         if (gaugeBalance > 0) {
             if (poolType == AAVE_POOL) {
                 uint256[NUM_AAVE_TOKENS] memory amounts; // fixed-sized array is initialized w/ [0, 0, 0]
-                amounts[uint256(inboundTokenIndex)] = _amount;
+                amounts[uint256(uint128(inboundTokenIndex))] = _amount;
                 uint256 poolWithdrawAmount = pool.calc_token_amount(amounts, true);
 
                 if (gaugeBalance < poolWithdrawAmount) {
@@ -134,7 +134,7 @@ contract CurveStrategy is Ownable, IStrategy {
                 );
             } else if (poolType == ATRI_CRYPTO_POOL) {
                 uint256[NUM_ATRI_CRYPTO_TOKENS] memory amounts; // fixed-sized array is initialized w/ [0, 0, 0, 0, 0]
-                amounts[uint256(inboundTokenIndex)] = _amount;
+                amounts[uint256(uint128(inboundTokenIndex))] = _amount;
                 uint256 poolWithdrawAmount = pool.calc_token_amount(amounts, true);
 
                 if (gaugeBalance < poolWithdrawAmount) {
@@ -145,7 +145,7 @@ contract CurveStrategy is Ownable, IStrategy {
                 gauge.withdraw(poolWithdrawAmount, false);
 
                 require(lpToken.approve(address(pool), poolWithdrawAmount), "Fail to approve allowance to pool");
-                pool.remove_liquidity_one_coin(poolWithdrawAmount, uint256(inboundTokenIndex), _minAmount);
+                pool.remove_liquidity_one_coin(poolWithdrawAmount, uint256(uint128(inboundTokenIndex)), _minAmount);
             }
         }
         // check for impermanent loss
@@ -182,7 +182,7 @@ contract CurveStrategy is Ownable, IStrategy {
             } else if (poolType == ATRI_CRYPTO_POOL) {
                 require(lpToken.approve(address(pool), lpTokenBalance), "Fail to approve allowance to pool");
 
-                pool.remove_liquidity_one_coin(lpTokenBalance, uint256(inboundTokenIndex), _minAmount);
+                pool.remove_liquidity_one_coin(lpTokenBalance, uint256(uint128(inboundTokenIndex)), _minAmount);
             }
         }
         if (address(rewardToken) != address(0)) {

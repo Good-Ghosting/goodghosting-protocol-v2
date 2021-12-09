@@ -1,4 +1,4 @@
-pragma solidity >=0.6.11;
+pragma solidity ^0.8.7;
 
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "./MintableERC20.sol";
@@ -10,7 +10,7 @@ contract MockCurvePool is MintableERC20 {
         string memory name,
         string memory symbol,
         IERC20 _reserve
-    ) public MintableERC20(name, symbol) {
+    ) MintableERC20(name, symbol) {
         reserve = _reserve;
     }
 

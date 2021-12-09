@@ -1,4 +1,4 @@
-pragma solidity >=0.6.11;
+pragma solidity ^0.8.7;
 
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "./MintableERC20.sol";
@@ -14,7 +14,7 @@ contract MockCurveGauge is MintableERC20 {
         IERC20 _curve,
         IERC20 _reserve,
         IERC20 _polygonRewardToken // mock wmatic
-    ) public MintableERC20(name, symbol) {
+    ) MintableERC20(name, symbol) {
         curve = _curve;
         reserve = _reserve;
         polygonRewardToken = _polygonRewardToken;

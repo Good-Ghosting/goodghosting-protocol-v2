@@ -1,4 +1,4 @@
-pragma solidity 0.6.11;
+pragma solidity ^0.8.7;
 
 import "../aave/ILendingPoolAddressesProvider.sol";
 import "../aave/ILendingPool.sol";
@@ -35,7 +35,7 @@ contract AaveStrategy is Ownable, IStrategy {
         address _dataProvider,
         address _incentiveController,
         IERC20 _rewardToken
-    ) public {
+    ) {
         require(address(_lendingPoolAddressProvider) != address(0), "invalid _lendingPoolAddressProvider address");
         require(address(_dataProvider) != address(0), "invalid _dataProvider address");
         lendingPoolAddressProvider = _lendingPoolAddressProvider;

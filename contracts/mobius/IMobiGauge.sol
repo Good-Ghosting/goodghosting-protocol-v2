@@ -1,4 +1,4 @@
-pragma solidity >=0.6.11;
+pragma solidity ^0.8.7;
 
 interface IMobiGauge {
     function deposit(uint256 _value) external;
