@@ -163,7 +163,7 @@ contract Pool is Ownable, Pausable {
         @param _segmentCount Number of segments in the game.
         @param _segmentLength Lenght of each segment, in seconds (i.e., 180 (sec) => 3 minutes).
         @param _waitingRoundSegmentLength Lenght of waiting round segment, in seconds (i.e., 180 (sec) => 3 minutes).
-        @param _segmentPayment Amount of tokens each player needs to contribute per segment (i.e. 10*10**18 equals to 10 DAI - note that DAI uses 18 decimal places).
+        @param _segmentPayment Amount of tokens each player needs to contribute per segment
         @param _earlyWithdrawalFee Fee paid by users on early withdrawals (before the game completes). Used as an integer percentage (i.e., 10 represents 10%).
         @param _customFee performance fee charged by admin. Used as an integer percentage (i.e., 10 represents 10%). Does not accept "decimal" fees like "0.5".
         @param _maxPlayersCount max quantity of players allowed to join the game
@@ -347,7 +347,7 @@ contract Pool is Ownable, Pausable {
             segmentPayment = _depositAmount;
         }
         emit JoinedGame(msg.sender, segmentPayment);
-        _transferDaiToContract(_minAmount, _depositAmount);
+        _transferInboundTokenToContract(_minAmount, _depositAmount);
     }
 
     /// @notice Allows a player to withdraws funds before the game ends. An early withdrawl fee is charged.
@@ -498,7 +498,7 @@ contract Pool is Ownable, Pausable {
             segmentPayment = _depositAmount;
         }
         emit Deposit(msg.sender, currentSegment, segmentPayment);
-        _transferDaiToContract(_minAmount, _depositAmount);
+        _transferInboundTokenToContract(_minAmount, _depositAmount);
     }
 
     /// @notice Redeems funds from the external pool and updates the internal accounting controls related to the game stats.
@@ -515,7 +515,7 @@ contract Pool is Ownable, Pausable {
         uint256 grossInterest = 0;
         // Sanity check to avoid reverting due to overflow in the "subtraction" below.
         // This could only happen in case Aave changes the 1:1 ratio between
-        // aToken vs. Token in the future (i.e., 1 aDAI is worth less than 1 DAI)
+        // aToken vs. Token in the future
         if (totalBalance > totalGamePrincipal) {
             grossInterest = totalBalance.sub(totalGamePrincipal);
         } else {
@@ -571,13 +571,13 @@ contract Pool is Ownable, Pausable {
         @dev Manages the transfer of funds from the player to the contract, recording
         the required accounting operations to control the user's position in the pool.
      */
-    function _transferDaiToContract(uint256 _minAmount, uint256 _depositAmount) internal virtual {
+    function _transferInboundTokenToContract(uint256 _minAmount, uint256 _depositAmount) internal virtual {
         if (flexibleSegmentPayment) {
             segmentPayment = _depositAmount;
         }
         require(
             inboundToken.allowance(msg.sender, address(this)) >= segmentPayment,
-            "You need to have allowance to do transfer DAI on the smart contract"
+            "You need to have allowance to do transfer Inbound Token on the smart contract"
         );
 
         uint256 currentSegment = getCurrentSegment();

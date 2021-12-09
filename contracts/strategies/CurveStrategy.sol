@@ -16,7 +16,7 @@ contract CurveStrategy is Ownable, IStrategy {
     /// @notice gauge address
     ICurveGauge public immutable gauge;
 
-    /// @notice wmatic in case of polygon deployment else address(0)
+    /// @notice reward token address for eg wmatic in case of polygon deployment
     IERC20 public immutable rewardToken;
 
     /// @notice curve token

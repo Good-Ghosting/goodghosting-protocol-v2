@@ -27,7 +27,7 @@ contract AaveStrategy is Ownable, IStrategy {
     /// @notice AaveProtocolDataProvider address
     AaveProtocolDataProvider public immutable dataProvider;
 
-    /// @notice wmatic in case of polygon deployment else address(0)
+    /// @notice reward token address for eg wmatic in case of polygon deployment
     IERC20 public immutable rewardToken;
 
     constructor(
