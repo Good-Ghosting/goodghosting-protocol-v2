@@ -11,6 +11,7 @@ import {
   shouldBehaveLikePlayersWithdrawingFromGGPool,
   shouldBehaveLikeAdminWithdrawingFeesFromGGPoolWithFeePercentMoreThan0,
   shouldBehaveLikeAdminWithdrawingFeesFromGGPoolWithFeePercentis0,
+  shouldBehaveLikeVariableDepositPool,
 } from "../pool.behavior";
 
 chai.use(solidity);
@@ -75,5 +76,9 @@ describe("Pool using Mobius Strategy", () => {
 
   describe("admin tries to withdraw fees with admin percentage fee equal to 0 and no winners", async () => {
     await shouldBehaveLikeAdminWithdrawingFeesFromGGPoolWithFeePercentis0("curve");
+  });
+
+  describe("players participate in a variable amount deposit pool", async () => {
+    await shouldBehaveLikeVariableDepositPool("aave");
   });
 });

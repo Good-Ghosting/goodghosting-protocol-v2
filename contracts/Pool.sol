@@ -107,6 +107,7 @@ contract Pool is Ownable, Pausable {
         address addr;
         uint256 mostRecentSegmentPaid;
         uint256 amountPaid;
+        uint256 flexibleDepositAmount;
     }
 
     /// @notice Stores info about the players in the game
@@ -193,7 +194,9 @@ contract Pool is Ownable, Pausable {
         require(address(_strategy) != address(0), "invalid _strategy address");
         require(_depositCount > 0, "_depositCount must be greater than zero");
         require(_segmentLength > 0, "_segmentLength must be greater than zero");
-        require(_segmentPayment > 0, "_segmentPayment must be greater than zero");
+        if (!_flexibleSegmentPayment) {
+            require(_segmentPayment > 0, "_segmentPayment must be greater than zero");
+        }
         require(_waitingRoundSegmentLength > 0, "_waitingRoundSegmentLength must be greater than zero");
 
         // Initializes default variables
@@ -333,20 +336,21 @@ contract Pool is Ownable, Pausable {
         require(activePlayersCount <= maxPlayersCount, "Reached max quantity of players allowed");
 
         bool canRejoin = players[msg.sender].canRejoin;
+        uint256 amount = flexibleSegmentPayment ? _depositAmount : segmentPayment;
+
         Player memory newPlayer = Player({
             addr: msg.sender,
             mostRecentSegmentPaid: 0,
             amountPaid: 0,
             withdrawn: false,
             canRejoin: false,
-            isWinner: false
+            isWinner: false,
+            flexibleDepositAmount: flexibleSegmentPayment ? _depositAmount : 0
         });
         players[msg.sender] = newPlayer;
         if (!canRejoin) {
             iterablePlayers.push(msg.sender);
         }
-
-        uint256 amount = flexibleSegmentPayment ? _depositAmount : segmentPayment;
 
         emit JoinedGame(msg.sender, amount);
         _transferInboundTokenToContract(_minAmount, amount);
@@ -473,7 +477,12 @@ contract Pool is Ownable, Pausable {
         require(!players[msg.sender].withdrawn, "Player already withdraw from game");
         // only registered players can deposit
         require(players[msg.sender].addr == msg.sender, "Sender is not a player");
-
+        if (flexibleSegmentPayment) {
+            require(
+                _depositAmount == players[msg.sender].flexibleDepositAmount,
+                "Flexible amount needs to be same across all segments"
+            );
+        }
         uint256 currentSegment = getCurrentSegment();
         // User can only deposit between segment 1 and segment n-1 (where n is the number of segments for the game).
         // Details:
