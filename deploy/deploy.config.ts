@@ -102,12 +102,13 @@ exports.providers = {
     },
     mobius: {
       // cUSD - pUDSC
-      // pool: "0x2080AAa167e2225e1FC9923250bA60E19a180Fb2",
-      // gauge: "0x52517feb1Fc6141d5CF6718111C7Cc0FD764fA5d",
-      //// cUSD / cUSDC
-      pool: "0xA5037661989789d0310aC2B796fa78F1B01F195D",
-      gauge: "0xdAA2ab880b7f3D5697e6F85e63c28b9120AA9E07",
+      // pool: "0xcCe0d62Ce14FB3e4363Eb92Db37Ff3630836c252",
+      // gauge: "0xBCb4029fAC568F65FA9bDE21aADca088ce62B1D0",
+      //// cUSD / USDC
+      pool: "0x9906589Ea8fd27504974b7e8201DF5bBdE986b03",
+      gauge: "0x764771eD5bddC8892506336a15D9AB62A10D74f9",
       mobi: "0x73a210637f6F6B7005512677Ba6B3C96bb4AA44B",
+      minter: "0x5F0200CA03196D5b817E2044a0Bb0D837e0A7823",
       tokenIndex: 0,
       cusd: {
         address: "0x765DE816845861e75A25fCA122bb6898B8B1282a",
