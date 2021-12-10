@@ -4,6 +4,7 @@ import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "../mobius/IMobiPool.sol";
 import "../mobius/IMobiGauge.sol";
+import "../mobius/IMinter.sol";
 import "./IStrategy.sol";
 
 contract MobiusStrategy is Ownable, IStrategy {
@@ -13,8 +14,14 @@ contract MobiusStrategy is Ownable, IStrategy {
     /// @notice gauge address
     IMobiGauge public immutable gauge;
 
+    /// @notice gauge address
+    IMinter public immutable minter;
+
     /// @notice mobi token
     IERC20 public immutable mobi;
+
+    /// @notice mobi token
+    IERC20 public immutable celo;
 
     /// @notice mobi lp token
     IERC20 public lpToken;
@@ -22,14 +29,20 @@ contract MobiusStrategy is Ownable, IStrategy {
     constructor(
         IMobiPool _pool,
         IMobiGauge _gauge,
-        IERC20 _mobi
+        IMinter _minter,
+        IERC20 _mobi,
+        IERC20 _celo
     ) {
         require(address(_pool) != address(0), "invalid _pool address");
         require(address(_gauge) != address(0), "invalid _gauge address");
+        require(address(_minter) != address(0), "invalid _minter address");
         require(address(_mobi) != address(0), "invalid _mobi address");
+        require(address(_celo) != address(0), "invalid _celo address");
         pool = _pool;
         gauge = _gauge;
+        minter = _minter;
         mobi = _mobi;
+        celo = _celo;
         lpToken = IERC20(pool.getLpToken());
     }
 
@@ -79,6 +92,7 @@ contract MobiusStrategy is Ownable, IStrategy {
     function redeem(IERC20 _inboundCurrency, uint256 _minAmount) external override onlyOwner {
         uint256 gaugeBalance = gauge.balanceOf(address(this));
         if (gaugeBalance > 0) {
+            minter.mint(address(gauge));
             gauge.withdraw(gaugeBalance, true);
             require(
                 lpToken.approve(address(pool), lpToken.balanceOf(address(this))),
@@ -89,11 +103,15 @@ contract MobiusStrategy is Ownable, IStrategy {
         if (address(mobi) != address(0)) {
             require(mobi.transfer(msg.sender, mobi.balanceOf(address(this))), "Transfer Failed");
         }
+
+        if (address(celo) != address(0)) {
+            require(celo.transfer(msg.sender, celo.balanceOf(address(this))), "Transfer Failed");
+        }
         require(_inboundCurrency.transfer(msg.sender, _inboundCurrency.balanceOf(address(this))), "Transfer Failed");
     }
 
     function getRewardToken() external view override returns (IERC20) {
-        return IERC20(address(0));
+        return celo;
     }
 
     function getGovernanceToken() external view override returns (IERC20) {
