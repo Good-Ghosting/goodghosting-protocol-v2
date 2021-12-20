@@ -8,6 +8,7 @@ import {
   AaveStrategy__factory,
   MintableERC20__factory,
   MintableERC20,
+  MockMobiusMinter__factory,
   IncentiveControllerMock__factory,
   MockCurvePool__factory,
   MockMobiusPool__factory,
@@ -51,13 +52,13 @@ export const deployPool = async (
   if (isIncentiveToken) {
     const token = new MintableERC20__factory(deployer);
     incentiveToken = await token.deploy("INCENTIVE", "INCENTIVE");
-    await mintTokens(inboundToken, deployer.address);
   }
   let lendingPool: any = ZERO_ADDRESS;
   let rewardToken: any = ZERO_ADDRESS;
   let strategy: any = ZERO_ADDRESS;
   let curve: any = ZERO_ADDRESS;
-  let mobi: any = ZERO_ADDRESS;
+  let celo: any = ZERO_ADDRESS;
+  let minter: any = ZERO_ADDRESS;
   let curveGauge: any = ZERO_ADDRESS;
   let curvePool: any = ZERO_ADDRESS;
   let mobiGauge: any = ZERO_ADDRESS;
@@ -107,17 +108,25 @@ export const deployPool = async (
       );
     }
   } else if (strategyType === "mobius") {
-    const mockMobiTokenDeployer = new MintableERC20__factory(deployer);
-    mobi = await mockMobiTokenDeployer.deploy("MOBI", "MOBI");
+    const mockCeloTokenDeployer = new MintableERC20__factory(deployer);
+    celo = await mockCeloTokenDeployer.deploy("CELO", "CELO");
+    const mockMinterTokenDeployer = new MockMobiusMinter__factory(deployer);
+    minter = await mockMinterTokenDeployer.deploy("MOBI", "MOBI");
     const mobiPoolDeployer = new MockMobiusPool__factory(deployer);
     mobiPool = await mobiPoolDeployer.deploy("LP", "LP", inboundToken.address);
     const mobiGaugeDeployer = new MockMobiusGauge__factory(deployer);
-    mobiGauge = await mobiGaugeDeployer.deploy("LP-GAUGE", "LP-GAUGE", mobi.address, mobiPool.address);
-    await mobi.mint(mobiGauge.address, ethers.utils.parseEther("100000"));
+    mobiGauge = await mobiGaugeDeployer.deploy("LP-GAUGE", "LP-GAUGE", celo.address, mobiPool.address);
+    await celo.mint(mobiGauge.address, ethers.utils.parseEther("100000"));
 
     if (isInvestmentStrategy) {
       const mobiStrategyDeployer = new MobiusStrategy__factory(deployer);
-      strategy = await mobiStrategyDeployer.deploy(mobiPool.address, mobiGauge.address, mobi.address);
+      strategy = await mobiStrategyDeployer.deploy(
+        mobiPool.address,
+        mobiGauge.address,
+        minter.address,
+        minter.address,
+        celo.address,
+      );
     }
   }
 
@@ -155,7 +164,7 @@ export const deployPool = async (
     curve,
     mobiPool,
     mobiGauge,
-    mobi,
+    minter,
   };
 };
 
