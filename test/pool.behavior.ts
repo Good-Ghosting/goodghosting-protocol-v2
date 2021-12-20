@@ -1239,7 +1239,7 @@ export const shouldBehaveLikeRedeemingFromGGPool = async (strategyType: string) 
     if (strategyType === "curve") {
       governanceTokenRewards = await contracts.curve.balanceOf(contracts.goodGhosting.address);
     } else if (strategyType === "mobius") {
-      governanceTokenRewards = await contracts.mobi.balanceOf(contracts.goodGhosting.address);
+      governanceTokenRewards = await contracts.minter.balanceOf(contracts.goodGhosting.address);
     }
     const totalPrincipal = ethers.BigNumber.from(segmentPayment).mul(ethers.BigNumber.from(depositCount));
     const contractsDaiBalance = await contracts.inboundToken.balanceOf(contracts.goodGhosting.address);
@@ -1493,31 +1493,32 @@ export const shouldBehaveLikeRedeemingFromGGPool = async (strategyType: string) 
         `totalIncentiveAmount should be ${incentiveAmount.toString()}; received ${result.toString()}`,
       );
     });
+    if (strategyType !== "aave") {
+      it("we are able to redeem if there is impermanent loss", async () => {
+        const accounts = await ethers.getSigners();
+        const player1 = accounts[2];
+        await joinGamePaySegmentsAndComplete(
+          contracts.inboundToken,
+          player1,
+          segmentPayment,
+          depositCount,
+          segmentLength,
+          contracts.goodGhosting,
+          segmentPayment,
+        );
+        // to trigger impermanent loss
+        const principalAmount = await contracts.goodGhosting.totalGamePrincipal();
+        await contracts.goodGhosting.redeemFromExternalPool("900000000000000000");
+        const contractDaiBalance = await contracts.inboundToken.balanceOf(contracts.goodGhosting.address);
 
-    it("we are able to redeem if there is impermanent loss", async () => {
-      const accounts = await ethers.getSigners();
-      const player1 = accounts[2];
-      await joinGamePaySegmentsAndComplete(
-        contracts.inboundToken,
-        player1,
-        segmentPayment,
-        depositCount,
-        segmentLength,
-        contracts.goodGhosting,
-        segmentPayment,
-      );
-      // to trigger impermanent loss
-      const principalAmount = await contracts.goodGhosting.totalGamePrincipal();
-      await contracts.goodGhosting.redeemFromExternalPool("900000000000000000");
-      const contractDaiBalance = await contracts.inboundToken.balanceOf(contracts.goodGhosting.address);
+        const calculatedImpermanentLossShare = ethers.BigNumber.from(contractDaiBalance)
+          .mul(ethers.BigNumber.from(100))
+          .div(ethers.BigNumber.from(principalAmount));
+        const impermanentLossShareFromContract = await contracts.goodGhosting.impermanentLossShare();
 
-      const calculatedImpermanentLossShare = ethers.BigNumber.from(contractDaiBalance)
-        .mul(ethers.BigNumber.from(100))
-        .div(ethers.BigNumber.from(principalAmount));
-      const impermanentLossShareFromContract = await contracts.goodGhosting.impermanentLossShare();
-
-      assert(impermanentLossShareFromContract.eq(calculatedImpermanentLossShare));
-    });
+        assert(impermanentLossShareFromContract.eq(calculatedImpermanentLossShare));
+      });
+    }
   });
 };
 
@@ -1554,7 +1555,7 @@ export const shouldBehaveLikeGGPoolWithNoWinners = async (strategyType: string) 
     if (strategyType === "curve") {
       governanceTokenRewards = await contracts.curve.balanceOf(contracts.goodGhosting.address);
     } else if (strategyType === "mobius") {
-      governanceTokenRewards = await contracts.mobi.balanceOf(contracts.goodGhosting.address);
+      governanceTokenRewards = await contracts.minter.balanceOf(contracts.goodGhosting.address);
     }
     const adminBalance = await contracts.goodGhosting.adminFeeAmount();
     const totalBalance = await contracts.inboundToken.balanceOf(contracts.goodGhosting.address);
@@ -1875,7 +1876,7 @@ export const shouldBehaveLikePlayersWithdrawingFromGGPool = async (strategyType:
     if (strategyType === "curve") {
       governanceTokenBalance = await contracts.curve.balanceOf(contracts.goodGhosting.address);
     } else if (strategyType === "mobius") {
-      governanceTokenBalance = await contracts.mobi.balanceOf(contracts.goodGhosting.address);
+      governanceTokenBalance = await contracts.minter.balanceOf(contracts.goodGhosting.address);
     }
     await expect(contracts.goodGhosting.connect(player1).withdraw(0))
       .to.emit(contracts.goodGhosting, "Withdrawal")
@@ -1992,7 +1993,8 @@ export const shouldBehaveLikePlayersWithdrawingFromGGPool = async (strategyType:
       await contracts.goodGhosting.connect(player2).withdraw(0);
       const user1IncentiveTokenBalanceAfterWithdraw = await contracts.incentiveToken.balanceOf(player1.address);
       const user2IncentiveTokenBalanceAfterWithdraw = await contracts.incentiveToken.balanceOf(player2.address);
-      assert(user2IncentiveTokenBalanceAfterWithdraw.eq(user1IncentiveTokenBalanceAfterWithdraw));
+
+      assert(user2IncentiveTokenBalanceAfterWithdraw.gte(user1IncentiveTokenBalanceAfterWithdraw));
 
       assert(user2IncentiveTokenBalanceAfterWithdraw.gt(user2IncentiveTokenBalanceBeforeWithdraw));
       assert(user1IncentiveTokenBalanceAfterWithdraw.gt(user1IncentiveTokenBalanceBeforeWithdraw));
@@ -2092,7 +2094,7 @@ export const shouldBehaveLikeAdminWithdrawingFeesFromGGPoolWithFeePercentMoreTha
       if (strategyType === "curve") {
         governanceTokenBalance = await contracts.curve.balanceOf(contracts.goodGhosting.address);
       } else if (strategyType === "mobius") {
-        governanceTokenBalance = await contracts.mobi.balanceOf(contracts.goodGhosting.address);
+        governanceTokenBalance = await contracts.minter.balanceOf(contracts.goodGhosting.address);
       }
       await expect(contracts.goodGhosting.adminFeeWithdraw())
         .to.emit(contracts.goodGhosting, "AdminWithdrawal")
@@ -2123,7 +2125,7 @@ export const shouldBehaveLikeAdminWithdrawingFeesFromGGPoolWithFeePercentMoreTha
       if (strategyType === "curve") {
         governanceTokenBalance = await contracts.curve.balanceOf(contracts.goodGhosting.address);
       } else if (strategyType === "mobius") {
-        governanceTokenBalance = await contracts.mobi.balanceOf(contracts.goodGhosting.address);
+        governanceTokenBalance = await contracts.minter.balanceOf(contracts.goodGhosting.address);
       }
       const contractBalance = await contracts.inboundToken.balanceOf(contracts.goodGhosting.address);
       const totalGamePrincipal = await contracts.goodGhosting.totalGamePrincipal();
@@ -2191,7 +2193,7 @@ export const shouldBehaveLikeAdminWithdrawingFeesFromGGPoolWithFeePercentMoreTha
       if (strategyType === "curve") {
         governanceTokenBalance = await contracts.curve.balanceOf(contracts.goodGhosting.address);
       } else if (strategyType === "mobius") {
-        governanceTokenBalance = await contracts.mobi.balanceOf(contracts.goodGhosting.address);
+        governanceTokenBalance = await contracts.minter.balanceOf(contracts.goodGhosting.address);
       }
       const contractBalance = await contracts.inboundToken.balanceOf(contracts.goodGhosting.address);
       const totalGamePrincipal = await contracts.goodGhosting.totalGamePrincipal();
@@ -2258,7 +2260,7 @@ export const shouldBehaveLikeAdminWithdrawingFeesFromGGPoolWithFeePercentMoreTha
       if (strategyType === "curve") {
         governanceTokenBalance = await contracts.curve.balanceOf(contracts.goodGhosting.address);
       } else if (strategyType === "mobius") {
-        governanceTokenBalance = await contracts.mobi.balanceOf(contracts.goodGhosting.address);
+        governanceTokenBalance = await contracts.minter.balanceOf(contracts.goodGhosting.address);
       }
       const contractBalance = await contracts.inboundToken.balanceOf(contracts.goodGhosting.address);
       const totalGamePrincipal = await contracts.goodGhosting.totalGamePrincipal();
@@ -2812,7 +2814,7 @@ export const shouldBehaveLikeVariableDepositPool = async (strategyType: string) 
     if (strategyType === "curve") {
       governanceTokenBalance = await contracts.curve.balanceOf(contracts.goodGhosting.address);
     } else if (strategyType === "mobius") {
-      governanceTokenBalance = await contracts.mobi.balanceOf(contracts.goodGhosting.address);
+      governanceTokenBalance = await contracts.minter.balanceOf(contracts.goodGhosting.address);
     }
 
     await expect(contracts.goodGhosting.connect(player1).withdraw(0))

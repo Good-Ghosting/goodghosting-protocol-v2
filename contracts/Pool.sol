@@ -428,20 +428,22 @@ contract Pool is Ownable, Pausable {
                     cumulativePlayerIndex = cumulativePlayerIndex.add(playerIndex[msg.sender][i]);
                 }
 
-                uint256 playerShare = cumulativePlayerIndex.mul(100).div(cummalativePlayerIndexSum);
-                playerShare = totalGameInterest.mul(playerShare).div(uint256(100));
+                uint256 playerSharePercentage = cumulativePlayerIndex.mul(100).div(cummalativePlayerIndexSum);
+                uint256 playerShare = totalGameInterest.mul(playerSharePercentage).div(uint256(100));
                 payout = payout.add(playerShare);
 
                 // If there's additional incentives, distributes them to winners
                 if (totalIncentiveAmount > 0) {
-                    playerIncentive = totalIncentiveAmount.mul(playerShare).div(uint256(100));
+                    playerIncentive = totalIncentiveAmount.mul(playerSharePercentage).div(uint256(100));
                 }
                 if (address(rewardToken) != address(0) && rewardTokenAmount > 0) {
-                    playerReward = rewardTokenAmount.mul(playerShare).div(uint256(100));
+                    playerReward = rewardTokenAmount.mul(playerSharePercentage).div(uint256(100));
                 }
 
                 if (address(strategyGovernanceToken) != address(0) && strategyGovernanceTokenAmount > 0) {
-                    playerGovernanceTokenReward = strategyGovernanceTokenAmount.mul(playerShare).div(uint256(100));
+                    playerGovernanceTokenReward = strategyGovernanceTokenAmount.mul(playerSharePercentage).div(
+                        uint256(100)
+                    );
                 }
             }
         }
@@ -526,7 +528,7 @@ contract Pool is Ownable, Pausable {
         // Sanity check to avoid reverting due to overflow in the "subtraction" below.
         // This could only happen in case Aave changes the 1:1 ratio between
         // aToken vs. Token in the future
-        if (totalBalance > totalGamePrincipal) {
+        if (totalBalance >= totalGamePrincipal) {
             grossInterest = totalBalance.sub(totalGamePrincipal);
         } else {
             // handling impermanent loss case
