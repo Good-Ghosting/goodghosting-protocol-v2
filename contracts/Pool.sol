@@ -431,18 +431,18 @@ contract Pool is Ownable, Pausable {
                 uint256 playerShare = cumulativePlayerIndex.mul(100).div(cummalativePlayerIndexSum);
                 playerShare = totalGameInterest.mul(playerShare).div(uint256(100));
                 payout = payout.add(playerShare);
-            }
 
-            // If there's additional incentives, distributes them to winners
-            if (totalIncentiveAmount > 0) {
-                playerIncentive = totalIncentiveAmount.div(winnerCount);
-            }
-            if (address(rewardToken) != address(0) && rewardTokenAmount > 0) {
-                playerReward = rewardTokenAmount.div(winnerCount);
-            }
+                // If there's additional incentives, distributes them to winners
+                if (totalIncentiveAmount > 0) {
+                    playerIncentive = totalIncentiveAmount.mul(playerShare).div(uint256(100));
+                }
+                if (address(rewardToken) != address(0) && rewardTokenAmount > 0) {
+                    playerReward = rewardTokenAmount.mul(playerShare).div(uint256(100));
+                }
 
-            if (address(strategyGovernanceToken) != address(0) && strategyGovernanceTokenAmount > 0) {
-                playerGovernanceTokenReward = strategyGovernanceTokenAmount.div(winnerCount);
+                if (address(strategyGovernanceToken) != address(0) && strategyGovernanceTokenAmount > 0) {
+                    playerGovernanceTokenReward = strategyGovernanceTokenAmount.mul(playerShare).div(uint256(100));
+                }
             }
         }
 
