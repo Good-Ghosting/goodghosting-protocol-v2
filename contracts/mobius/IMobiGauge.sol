@@ -1,9 +1,11 @@
 pragma solidity ^0.8.7;
 
 interface IMobiGauge {
-    function deposit(uint256 _value) external;
+    function stake(uint256 amount) external;
 
-    function withdraw(uint256 _value, bool _claim_rewards) external;
+    function withdraw(uint256 amount) external;
+
+    function getReward() external;
 
     function claim_rewards() external;
 

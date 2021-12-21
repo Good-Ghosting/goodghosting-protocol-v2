@@ -60,7 +60,8 @@ contract MobiusStrategy is Ownable, IStrategy {
             lpToken.approve(address(gauge), lpToken.balanceOf(address(this))),
             "Fail to approve allowance to gauge"
         );
-        gauge.deposit(lpToken.balanceOf(address(this)));
+        require(lpToken.balanceOf(address(this)) > 0, "ll");
+        gauge.stake(lpToken.balanceOf(address(this)));
     }
 
     function earlyWithdraw(
@@ -80,7 +81,7 @@ contract MobiusStrategy is Ownable, IStrategy {
                 poolWithdrawAmount = gaugeBalance;
             }
 
-            gauge.withdraw(poolWithdrawAmount, false);
+            gauge.withdraw(poolWithdrawAmount);
             require(lpToken.approve(address(pool), poolWithdrawAmount), "Fail to approve allowance to pool");
 
             pool.removeLiquidityOneToken(poolWithdrawAmount, 0, _minAmount, block.timestamp + 1000);
@@ -92,8 +93,9 @@ contract MobiusStrategy is Ownable, IStrategy {
     function redeem(IERC20 _inboundCurrency, uint256 _minAmount) external override onlyOwner {
         uint256 gaugeBalance = gauge.balanceOf(address(this));
         if (gaugeBalance > 0) {
-            minter.mint(address(gauge));
-            gauge.withdraw(gaugeBalance, true);
+            // minter.mint(address(gauge));
+            gauge.getReward();
+            gauge.withdraw(gaugeBalance);
             require(
                 lpToken.approve(address(pool), lpToken.balanceOf(address(this))),
                 "Fail to approve allowance to pool"

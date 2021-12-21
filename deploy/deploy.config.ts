@@ -109,6 +109,7 @@ exports.providers = {
       gauge: "0x764771eD5bddC8892506336a15D9AB62A10D74f9",
       mobi: "0x73a210637f6F6B7005512677Ba6B3C96bb4AA44B",
       minter: "0x5F0200CA03196D5b817E2044a0Bb0D837e0A7823",
+      celo: "0x471EcE3750Da237f93B8E339c536989b8978a438",
       tokenIndex: 0,
       cusd: {
         address: "0x765DE816845861e75A25fCA122bb6898B8B1282a",

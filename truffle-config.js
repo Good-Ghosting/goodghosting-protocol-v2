@@ -30,12 +30,13 @@ module.exports = {
       host: "127.0.0.1",
       port: 8545,
       network_id: "*",
+      gas: 5000000,
     },
   },
 
   compilers: {
     solc: {
-      version: "0.6.11",
+      version: "0.8.7",
       settings: {
         optimizer: {
           enabled: true,

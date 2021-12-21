@@ -16,6 +16,7 @@ contract("Pool with Mobius Strategy", accounts => {
   let providersConfigs: any;
   let GoodGhostingArtifact: any;
   let mobi: any;
+  let celo: any;
   if (process.env.NETWORK === "local-celo-mobius") {
     GoodGhostingArtifact = Pool;
     providersConfigs = configs.providers.celo.mobius;
@@ -46,6 +47,7 @@ contract("Pool with Mobius Strategy", accounts => {
       pool = new web3.eth.Contract(mobiusPool.abi, providersConfigs.pool);
       token = new web3.eth.Contract(wmatic.abi, providersConfigs.cusd.address);
       mobi = new web3.eth.Contract(wmatic.abi, providersConfigs.mobi);
+      celo = new web3.eth.Contract(wmatic.abi, providersConfigs.celo);
 
       goodGhosting = await GoodGhostingArtifact.deployed();
       mobiusStrategy = await MobiusStrategy.deployed();
@@ -320,8 +322,9 @@ contract("Pool with Mobius Strategy", accounts => {
     it("redeems funds from external pool", async () => {
       const userSlippage = 1;
       let minAmount;
-      let mobiBalanceBeforeRedeem, mobiBalanceAfterRedeem;
+      let mobiBalanceBeforeRedeem, mobiBalanceAfterRedeem, celoBalanceBeforeRedeem, celoBalanceAfterRedeem;
       mobiBalanceBeforeRedeem = await mobi.methods.balanceOf(goodGhosting.address).call();
+      celoBalanceBeforeRedeem = await celo.methods.balanceOf(goodGhosting.address).call();
 
       const gaugeTokenBalance = await gaugeToken.methods.balanceOf(mobiusStrategy.address).call();
       minAmount = await pool.methods
@@ -346,7 +349,10 @@ contract("Pool with Mobius Strategy", accounts => {
       });
 
       mobiBalanceAfterRedeem = await mobi.methods.balanceOf(goodGhosting.address).call();
+      celoBalanceAfterRedeem = await celo.methods.balanceOf(goodGhosting.address).call();
+
       assert(web3.utils.toBN(mobiBalanceBeforeRedeem).lte(web3.utils.toBN(mobiBalanceAfterRedeem)));
+      assert(web3.utils.toBN(celoBalanceBeforeRedeem).lte(web3.utils.toBN(celoBalanceAfterRedeem)));
 
       const contractsDaiBalance = web3.utils.toBN(
         await token.methods.balanceOf(goodGhosting.address).call({ from: admin }),
@@ -383,17 +389,27 @@ contract("Pool with Mobius Strategy", accounts => {
         const player = players[i];
         let mobiRewardBalanceBefore = web3.utils.toBN(0);
         let mobiRewardBalanceAfter = web3.utils.toBN(0);
+        let celoRewardBalanceBefore = web3.utils.toBN(0);
+        let celoRewardBalanceAfter = web3.utils.toBN(0);
 
         mobiRewardBalanceBefore = web3.utils.toBN(await mobi.methods.balanceOf(player).call({ from: admin }));
+        celoRewardBalanceBefore = web3.utils.toBN(await celo.methods.balanceOf(player).call({ from: admin }));
 
         let result;
         // redeem already called hence passing in 0
         result = await goodGhosting.withdraw(0, { from: player });
 
         mobiRewardBalanceAfter = web3.utils.toBN(await mobi.methods.balanceOf(player).call({ from: admin }));
+        celoRewardBalanceAfter = web3.utils.toBN(await celo.methods.balanceOf(player).call({ from: admin }));
+
         // curve rewards accrue slowly
         assert(
           mobiRewardBalanceAfter.gte(mobiRewardBalanceBefore),
+          "expected curve balance after withdrawal to be greater than before withdrawal",
+        );
+
+        assert(
+          celoRewardBalanceAfter.lte(celoRewardBalanceBefore),
           "expected curve balance after withdrawal to be greater than before withdrawal",
         );
 
@@ -416,16 +432,26 @@ contract("Pool with Mobius Strategy", accounts => {
 
         let mobiRewardBalanceBefore = web3.utils.toBN(0);
         let mobiRewardBalanceAfter = web3.utils.toBN(0);
+        let celoRewardBalanceBefore = web3.utils.toBN(0);
+        let celoRewardBalanceAfter = web3.utils.toBN(0);
 
         mobiRewardBalanceBefore = web3.utils.toBN(await mobi.methods.balanceOf(admin).call({ from: admin }));
+        celoRewardBalanceBefore = web3.utils.toBN(await celo.methods.balanceOf(admin).call({ from: admin }));
 
         const result = await goodGhosting.adminFeeWithdraw({
           from: admin,
         });
 
         mobiRewardBalanceAfter = web3.utils.toBN(await mobi.methods.balanceOf(admin).call({ from: admin }));
+        celoRewardBalanceAfter = web3.utils.toBN(await celo.methods.balanceOf(admin).call({ from: admin }));
+
         assert(
           mobiRewardBalanceAfter.eq(mobiRewardBalanceBefore),
+          "expected curve balance after withdrawal to be greater than before withdrawal",
+        );
+
+        assert(
+          celoRewardBalanceAfter.gte(celoRewardBalanceBefore),
           "expected curve balance after withdrawal to be greater than before withdrawal",
         );
 

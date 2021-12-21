@@ -2,7 +2,7 @@
 
 const GoodGhostingContract = artifacts.require("Pool");
 const StrategyArtifact = artifacts.require("MobiusStrategy");
-const SafeMathLib = artifacts.require("LowGasSafeMath");
+const SafeMathLib = artifacts.require("SafeMath");
 
 const config = require("../deploy/deploy.config");
 
@@ -212,6 +212,8 @@ module.exports = function (deployer, network, accounts) {
     const segmentPaymentWei = (config.deployConfigs.segmentPayment * 10 ** inboundCurrencyDecimals).toString();
     const mobiusPool = poolConfigs.pool;
     const mobi = poolConfigs.mobi;
+    const celo = poolConfigs.celo;
+    const minter = poolConfigs.minter;
     const maxPlayersCount = config.deployConfigs.maxPlayersCount;
     const incentiveToken = poolConfigs.incentiveToken;
     let goodGhostingContract = GoodGhostingContract; // defaults to Ethereum version
@@ -226,7 +228,7 @@ module.exports = function (deployer, network, accounts) {
     //     goodGhostingContract = GoodGhostingPolygonCurveContract;
     // }
 
-    let strategyArgs = [StrategyArtifact, mobiusPool, mobiusGauge, mobi];
+    let strategyArgs = [StrategyArtifact, mobiusPool, mobiusGauge, minter, mobi, celo];
     // await deployer.deploy(SafeMathLib);
     // await deployer.link(SafeMathLib, StrategyArtifact);
     await deployer.deploy(...strategyArgs);
