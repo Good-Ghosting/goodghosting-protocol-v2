@@ -2807,10 +2807,14 @@ export const shouldBehaveLikeVariableDepositPool = async (strategyType: string) 
     let player1Share = ethers.BigNumber.from(cummalativePlayer1IndexBeforeWithdraw)
       .mul(ethers.BigNumber.from(100))
       .div(ethers.BigNumber.from(cummalativePlayerIndexSum));
-    player1Share = ethers.BigNumber.from(gameInterest).mul(player1Share).div(ethers.BigNumber.from(100));
+    const player1ShareAmount = ethers.BigNumber.from(gameInterest).mul(player1Share).div(ethers.BigNumber.from(100));
 
     const player1Deposit = ethers.BigNumber.from(player1Info.amountPaid);
     const rewardTokenBalance = await contracts.rewardToken.balanceOf(contracts.goodGhosting.address);
+    const player1RewardShare = ethers.BigNumber.from(rewardTokenBalance)
+      .mul(player1Share)
+      .div(ethers.BigNumber.from(100));
+
     if (strategyType === "curve") {
       governanceTokenBalance = await contracts.curve.balanceOf(contracts.goodGhosting.address);
     } else if (strategyType === "mobius") {
@@ -2821,25 +2825,28 @@ export const shouldBehaveLikeVariableDepositPool = async (strategyType: string) 
       .to.emit(contracts.goodGhosting, "Withdrawal")
       .withArgs(
         player1.address,
-        player1Deposit.add(player1Share),
+        player1Deposit.add(player1ShareAmount),
         ethers.BigNumber.from(0),
-        rewardTokenBalance.div(ethers.BigNumber.from(2)),
+        player1RewardShare,
         governanceTokenBalance,
       );
 
     let player2Share = ethers.BigNumber.from(cummalativePlayer2IndexBeforeWithdraw)
       .mul(ethers.BigNumber.from(100))
       .div(ethers.BigNumber.from(cummalativePlayerIndexSum));
-    player2Share = ethers.BigNumber.from(gameInterest).mul(player2Share).div(ethers.BigNumber.from(100));
+    const player2ShareAmount = ethers.BigNumber.from(gameInterest).mul(player2Share).div(ethers.BigNumber.from(100));
+    const player2RewardShare = ethers.BigNumber.from(rewardTokenBalance)
+      .mul(player2Share)
+      .div(ethers.BigNumber.from(100));
 
     const player2Deposit = ethers.BigNumber.from(player2Info.amountPaid);
     await expect(contracts.goodGhosting.connect(player2).withdraw(0))
       .to.emit(contracts.goodGhosting, "Withdrawal")
       .withArgs(
         player2.address,
-        player2Deposit.add(player2Share),
+        player2Deposit.add(player2ShareAmount),
         ethers.BigNumber.from(0),
-        rewardTokenBalance.div(ethers.BigNumber.from(2)),
+        player2RewardShare,
         governanceTokenBalance,
       );
   });
