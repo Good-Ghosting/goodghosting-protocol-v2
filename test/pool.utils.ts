@@ -74,6 +74,7 @@ export const deployPool = async (
       strategy = await aaveStrategyDeployer.deploy(
         lendingPool.address,
         lendingPool.address,
+        lendingPool.address,
         rewardToken.address,
         rewardToken.address,
       );
@@ -143,6 +144,7 @@ export const deployPool = async (
     isVariableAmount,
     isIncentiveToken ? incentiveToken.address : incentiveToken,
     isInvestmentStrategy ? strategy.address : strategy,
+    false,
   );
 
   if (isInvestmentStrategy) {

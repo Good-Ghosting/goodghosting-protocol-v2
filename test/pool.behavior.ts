@@ -928,6 +928,9 @@ export const shouldBehaveLikeEarlyWithdrawingGGPool = async (strategyType: strin
     const feeAmount = ethers.BigNumber.from(segmentPayment)
       .mul(ethers.BigNumber.from(1))
       .div(ethers.BigNumber.from(100)); // fee is set as an integer, so needs to be converted to a percentage
+    console.log(player1PostWithdrawBalance.toString());
+    console.log(player1PreWithdrawBalance.toString());
+
     assert(
       player1PostWithdrawBalance
         .sub(player1PreWithdrawBalance)

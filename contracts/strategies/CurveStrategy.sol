@@ -65,9 +65,9 @@ contract CurveStrategy is Ownable, IStrategy {
         }
     }
 
-    function invest(IERC20 _inboundCurrency, uint256 _minAmount) external override onlyOwner {
-        uint256 contractBalance = _inboundCurrency.balanceOf(address(this));
-        require(_inboundCurrency.approve(address(pool), contractBalance), "Fail to approve allowance to pool");
+    function invest(address _inboundCurrency, uint256 _minAmount) external payable override onlyOwner {
+        uint256 contractBalance = IERC20(_inboundCurrency).balanceOf(address(this));
+        require(IERC20(_inboundCurrency).approve(address(pool), contractBalance), "Fail to approve allowance to pool");
         /*
         Constants "NUM_AAVE_TOKENS" and "NUM_ATRI_CRYPTO_TOKENS" have to be a constant type actually,
             otherwise the signature becomes different and the external call will fail.
@@ -94,7 +94,7 @@ contract CurveStrategy is Ownable, IStrategy {
     }
 
     function earlyWithdraw(
-        IERC20 _inboundCurrency,
+        address _inboundCurrency,
         uint256 _amount,
         uint256 _minAmount
     ) external override onlyOwner {
@@ -142,14 +142,17 @@ contract CurveStrategy is Ownable, IStrategy {
             }
         }
         // check for impermanent loss
-        if (_inboundCurrency.balanceOf(address(this)) < _amount) {
-            _amount = _inboundCurrency.balanceOf(address(this));
+        if (IERC20(_inboundCurrency).balanceOf(address(this)) < _amount) {
+            _amount = IERC20(_inboundCurrency).balanceOf(address(this));
         }
         // msg.sender will always be the pool contract (new owner)
-        require(_inboundCurrency.transfer(msg.sender, _inboundCurrency.balanceOf(address(this))), "Transfer Failed");
+        require(
+            IERC20(_inboundCurrency).transfer(msg.sender, IERC20(_inboundCurrency).balanceOf(address(this))),
+            "Transfer Failed"
+        );
     }
 
-    function redeem(IERC20 _inboundCurrency, uint256 _minAmount) external override onlyOwner {
+    function redeem(address _inboundCurrency, uint256 _minAmount) external override onlyOwner {
         uint256 gaugeBalance = gauge.balanceOf(address(this));
         if (gaugeBalance > 0) {
             // passes true to also claim rewards
@@ -184,7 +187,10 @@ contract CurveStrategy is Ownable, IStrategy {
         if (address(curve) != address(0)) {
             require(curve.transfer(msg.sender, curve.balanceOf(address(this))), "Transfer Failed");
         }
-        require(_inboundCurrency.transfer(msg.sender, _inboundCurrency.balanceOf(address(this))), "Transfer Failed");
+        require(
+            IERC20(_inboundCurrency).transfer(msg.sender, IERC20(_inboundCurrency).balanceOf(address(this))),
+            "Transfer Failed"
+        );
     }
 
     function getRewardToken() external view override returns (IERC20) {

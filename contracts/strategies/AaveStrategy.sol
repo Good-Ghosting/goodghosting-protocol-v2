@@ -1,16 +1,21 @@
 pragma solidity ^0.8.7;
 
+import "./IStrategy.sol";
 import "../aave/ILendingPoolAddressesProvider.sol";
 import "../aave/ILendingPool.sol";
-import "@openzeppelin/contracts/access/Ownable.sol";
 import "../aave/AToken.sol";
+import "../aave/IWETHGateway.sol";
 import "../aave/IncentiveController.sol";
+import "../polygon/WMatic.sol";
+import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-import "./IStrategy.sol";
 
 contract AaveStrategy is Ownable, IStrategy {
     /// @notice Address of the Aave V2 incentive controller contract
     IncentiveController public immutable incentiveController;
+
+    /// @notice Address of the Aave V2 weth gateway contract
+    IWETHGateway public immutable wethGateway;
 
     /// @notice Address of the interest bearing token received when funds are transferred to the external pool
     AToken public adaiToken;
@@ -29,6 +34,7 @@ contract AaveStrategy is Ownable, IStrategy {
 
     constructor(
         ILendingPoolAddressesProvider _lendingPoolAddressProvider,
+        IWETHGateway _wethGateway,
         address _dataProvider,
         address _incentiveController,
         IERC20 _rewardToken
@@ -41,65 +47,98 @@ contract AaveStrategy is Ownable, IStrategy {
         dataProvider = AaveProtocolDataProvider(_dataProvider);
         // lending pool needs to be approved in v2 since it is the core contract in v2 and not lending pool core
         lendingPool = ILendingPool(_lendingPoolAddressProvider.getLendingPool());
+        wethGateway = _wethGateway;
         // wmatic in case of polygon and address(0) for non-polygon deployment
         rewardToken = _rewardToken;
     }
 
-    function invest(IERC20 _inboundCurrency, uint256 _minAmount) external override onlyOwner {
-        uint256 contractBalance = _inboundCurrency.balanceOf(address(this));
-        require(
-            _inboundCurrency.approve(address(lendingPool), contractBalance),
-            "Fail to approve allowance to lending pool"
-        );
-        lendingPool.deposit(address(_inboundCurrency), contractBalance, address(this), 155);
+    function invest(address _inboundCurrency, uint256 _minAmount) external payable override onlyOwner {
+        uint256 contractBalance = 0;
+        if (msg.value > 0 || _inboundCurrency == address(rewardToken)) {
+            if (_inboundCurrency == address(rewardToken)) {
+                // unwraps WMATIC back into MATIC
+                WMatic(address(rewardToken)).withdraw(IERC20(_inboundCurrency).balanceOf(address(this)));
+            }
+            // Deposits MATIC into the pool
+            wethGateway.depositETH{ value: address(this).balance }(address(lendingPool), address(this), 155);
+        } else {
+            contractBalance = IERC20(_inboundCurrency).balanceOf(address(this));
+            require(
+                IERC20(_inboundCurrency).approve(address(lendingPool), contractBalance),
+                "Fail to approve allowance to lending pool"
+            );
+            lendingPool.deposit(_inboundCurrency, contractBalance, address(this), 155);
+        }
     }
 
     function earlyWithdraw(
-        IERC20 _inboundCurrency,
+        address _inboundCurrency,
         uint256 _amount,
         uint256 _minAmount
     ) external override onlyOwner {
         require(_amount > 0, "_amount is 0");
-        require(address(_inboundCurrency) != address(0), "Invalid _inboundCurrency address");
+        require(_inboundCurrency != address(0), "Invalid _inboundCurrency address");
         // atoken address in v2 is fetched from data provider contract
-        (address adaiTokenAddress, , ) = dataProvider.getReserveTokensAddresses(address(_inboundCurrency));
+        (address adaiTokenAddress, , ) = dataProvider.getReserveTokensAddresses(_inboundCurrency);
         adaiToken = AToken(adaiTokenAddress);
         if (adaiToken.balanceOf(address(this)) > 0) {
-            lendingPool.withdraw(address(_inboundCurrency), _amount, address(this));
-            require(
-                _inboundCurrency.transfer(msg.sender, _inboundCurrency.balanceOf(address(this))),
-                "Transfer Failed"
-            );
+            if (_inboundCurrency == address(rewardToken)) {
+                require(adaiToken.approve(address(wethGateway), _amount), "Fail to approve allowance to wethGateway");
+
+                wethGateway.withdrawETH(address(lendingPool), _amount, address(this));
+                // Wraps MATIC back into WMATIC
+                WMatic(address(rewardToken)).deposit{ value: _amount }();
+            } else {
+                lendingPool.withdraw(_inboundCurrency, _amount, address(this));
+            }
         }
+        require(
+            IERC20(_inboundCurrency).transfer(msg.sender, IERC20(_inboundCurrency).balanceOf(address(this))),
+            "Transfer Failed"
+        );
     }
 
-    function redeem(IERC20 _inboundCurrency, uint256 _minAmount) external override onlyOwner {
-        require(address(_inboundCurrency) != address(0), "Invalid _inboundCurrency address");
+    function redeem(address _inboundCurrency, uint256 _minAmount) external override onlyOwner {
+        require(_inboundCurrency != address(0), "Invalid _inboundCurrency address");
 
         // atoken address in v2 is fetched from data provider contract
-        (address adaiTokenAddress, , ) = dataProvider.getReserveTokensAddresses(address(_inboundCurrency));
+        (address adaiTokenAddress, , ) = dataProvider.getReserveTokensAddresses(_inboundCurrency);
         adaiToken = AToken(adaiTokenAddress);
         // Withdraws funds (principal + interest + rewards) from external pool
         if (adaiToken.balanceOf(address(this)) > 0) {
-            lendingPool.withdraw(address(_inboundCurrency), type(uint256).max, address(this));
-            // Claims the rewards from the external pool
-            address[] memory assets = new address[](1);
-            assets[0] = address(adaiToken);
+            if (_inboundCurrency == address(rewardToken)) {
+                require(
+                    adaiToken.approve(address(wethGateway), type(uint256).max),
+                    "Fail to approve allowance to wethGateway"
+                );
 
-            if (address(rewardToken) != address(0)) {
-                uint256 claimableRewards = incentiveController.getRewardsBalance(assets, address(this));
-                // moola the celo version of aave does not have the incentive controller logic
-                if (claimableRewards > 0) {
-                    incentiveController.claimRewards(assets, claimableRewards, address(this));
-                }
-                // moola the celo version of aave does not have the incentive controller logic
-                if (rewardToken.balanceOf(address(this)) > 0) {
-                    require(rewardToken.transfer(msg.sender, rewardToken.balanceOf(address(this))), "Transfer Failed");
-                }
+                wethGateway.withdrawETH(address(lendingPool), type(uint256).max, address(this));
+                // Wraps MATIC back into WMATIC
+                WMatic(address(rewardToken)).deposit{ value: type(uint256).max }();
+            } else {
+                lendingPool.withdraw(_inboundCurrency, type(uint256).max, address(this));
+            }
+        }
+        // Claims the rewards from the external pool
+        address[] memory assets = new address[](1);
+        assets[0] = address(adaiToken);
+
+        if (address(rewardToken) != address(0)) {
+            uint256 claimableRewards = incentiveController.getRewardsBalance(assets, address(this));
+            // moola the celo version of aave does not have the incentive controller logic
+            if (claimableRewards > 0) {
+                incentiveController.claimRewards(assets, claimableRewards, address(this));
+            }
+            // moola the celo version of aave does not have the incentive controller logic
+            if (rewardToken.balanceOf(address(this)) > 0) {
+                require(rewardToken.transfer(msg.sender, rewardToken.balanceOf(address(this))), "Transfer Failed");
             }
         }
 
-        require(_inboundCurrency.transfer(msg.sender, _inboundCurrency.balanceOf(address(this))), "Transfer Failed");
+        require(
+            IERC20(_inboundCurrency).transfer(msg.sender, IERC20(_inboundCurrency).balanceOf(address(this))),
+            "Transfer Failed"
+        );
     }
 
     function getRewardToken() external view override returns (IERC20) {
@@ -109,4 +148,7 @@ contract AaveStrategy is Ownable, IStrategy {
     function getGovernanceToken() external view override returns (IERC20) {
         return IERC20(address(0));
     }
+
+    // Fallback Functions for calldata and reciever for handling only ether transfer
+    receive() external payable {}
 }

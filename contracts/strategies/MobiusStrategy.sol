@@ -46,9 +46,9 @@ contract MobiusStrategy is Ownable, IStrategy {
         lpToken = IERC20(pool.getLpToken());
     }
 
-    function invest(IERC20 _inboundCurrency, uint256 _minAmount) external override onlyOwner {
-        uint256 contractBalance = _inboundCurrency.balanceOf(address(this));
-        require(_inboundCurrency.approve(address(pool), contractBalance), "Fail to approve allowance to pool");
+    function invest(address _inboundCurrency, uint256 _minAmount) external payable override onlyOwner {
+        uint256 contractBalance = IERC20(_inboundCurrency).balanceOf(address(this));
+        require(IERC20(_inboundCurrency).approve(address(pool), contractBalance), "Fail to approve allowance to pool");
 
         uint256[] memory amounts = new uint256[](2);
         amounts[0] = contractBalance;
@@ -64,7 +64,7 @@ contract MobiusStrategy is Ownable, IStrategy {
     }
 
     function earlyWithdraw(
-        IERC20 _inboundCurrency,
+        address _inboundCurrency,
         uint256 _amount,
         uint256 _minAmount
     ) external override onlyOwner {
@@ -86,10 +86,13 @@ contract MobiusStrategy is Ownable, IStrategy {
             pool.removeLiquidityOneToken(poolWithdrawAmount, 0, _minAmount, block.timestamp + 1000);
         }
         // msg.sender will always be the pool contract (new owner)
-        require(_inboundCurrency.transfer(msg.sender, _inboundCurrency.balanceOf(address(this))), "Transfer Failed");
+        require(
+            IERC20(_inboundCurrency).transfer(msg.sender, IERC20(_inboundCurrency).balanceOf(address(this))),
+            "Transfer Failed"
+        );
     }
 
-    function redeem(IERC20 _inboundCurrency, uint256 _minAmount) external override onlyOwner {
+    function redeem(address _inboundCurrency, uint256 _minAmount) external override onlyOwner {
         uint256 gaugeBalance = gauge.balanceOf(address(this));
         if (gaugeBalance > 0) {
             minter.mint(address(gauge));
@@ -107,7 +110,10 @@ contract MobiusStrategy is Ownable, IStrategy {
         if (address(celo) != address(0)) {
             require(celo.transfer(msg.sender, celo.balanceOf(address(this))), "Transfer Failed");
         }
-        require(_inboundCurrency.transfer(msg.sender, _inboundCurrency.balanceOf(address(this))), "Transfer Failed");
+        require(
+            IERC20(_inboundCurrency).transfer(msg.sender, IERC20(_inboundCurrency).balanceOf(address(this))),
+            "Transfer Failed"
+        );
     }
 
     function getRewardToken() external view override returns (IERC20) {

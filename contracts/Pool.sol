@@ -79,6 +79,9 @@ contract Pool is Ownable, Pausable {
     /// @notice Flag which determines whether the segment payment is fixed or not
     bool public immutable flexibleSegmentPayment;
 
+    /// @notice Flag which determines whether the deposit token is a transactional token like eth or matic
+    bool public immutable isTransactionalToken;
+
     /// @notice controls if admin withdrew or not the performance fee.
     bool public adminWithdraw;
 
@@ -89,7 +92,7 @@ contract Pool is Ownable, Pausable {
     IStrategy public immutable strategy;
 
     /// @notice Address of the token used for depositing into the game by players
-    IERC20 public immutable inboundToken;
+    address public immutable inboundToken;
 
     /// @notice Defines an optional token address used to provide additional incentives to users. Accepts "0x0" adresses when no incentive token exists.
     IERC20 public immutable incentiveToken;
@@ -171,9 +174,11 @@ contract Pool is Ownable, Pausable {
         @param _customFee performance fee charged by admin. Used as an integer percentage (i.e., 10 represents 10%). Does not accept "decimal" fees like "0.5".
         @param _maxPlayersCount max quantity of players allowed to join the game
         @param _incentiveToken optional token address used to provide additional incentives to users. Accepts "0x0" adresses when no incentive token exists.
+        @param _strategy investment strategy contract address.
+        @param _isTransactionalToken isTransactionalToken flag.
      */
     constructor(
-        IERC20 _inboundCurrency,
+        address _inboundCurrency,
         uint256 _depositCount,
         uint256 _segmentLength,
         uint256 _waitingRoundSegmentLength,
@@ -183,9 +188,11 @@ contract Pool is Ownable, Pausable {
         uint256 _maxPlayersCount,
         bool _flexibleSegmentPayment,
         IERC20 _incentiveToken,
-        IStrategy _strategy
+        IStrategy _strategy,
+        bool _isTransactionalToken
     ) {
         flexibleSegmentPayment = _flexibleSegmentPayment;
+        isTransactionalToken = _isTransactionalToken;
         require(_customFee <= 20, "_customFee must be less than or equal to 20%");
         require(_earlyWithdrawalFee <= 10, "_earlyWithdrawalFee must be less than or equal to 10%");
         require(_earlyWithdrawalFee > 0, "_earlyWithdrawalFee must be greater than zero");
@@ -249,7 +256,15 @@ contract Pool is Ownable, Pausable {
         uint256 adminGovernanceTokenAmount = 0;
 
         if (adminFeeAmount > 0) {
-            require(IERC20(inboundToken).transfer(owner(), adminFeeAmount), "Fail to transfer ER20 tokens to admin");
+            if (isTransactionalToken) {
+                (bool success, ) = msg.sender.call{ value: adminFeeAmount }("");
+                require(success);
+            } else {
+                require(
+                    IERC20(inboundToken).transfer(owner(), adminFeeAmount),
+                    "Fail to transfer ER20 tokens to admin"
+                );
+            }
         }
 
         if (winnerCount == 0) {
@@ -320,7 +335,7 @@ contract Pool is Ownable, Pausable {
     }
 
     /// @notice Allows a player to join the game
-    function joinGame(uint256 _minAmount, uint256 _depositAmount) external virtual whenNotPaused {
+    function joinGame(uint256 _minAmount, uint256 _depositAmount) external payable virtual whenNotPaused {
         _joinGame(_minAmount, _depositAmount);
     }
 
@@ -337,6 +352,9 @@ contract Pool is Ownable, Pausable {
 
         bool canRejoin = players[msg.sender].canRejoin;
         uint256 amount = flexibleSegmentPayment ? _depositAmount : segmentPayment;
+        if (isTransactionalToken) {
+            require(msg.value == amount, "Insufficient Amount");
+        }
 
         Player memory newPlayer = Player({
             addr: msg.sender,
@@ -387,13 +405,21 @@ contract Pool is Ownable, Pausable {
 
         emit EarlyWithdrawal(msg.sender, withdrawAmount, totalGamePrincipal);
         strategy.earlyWithdraw(inboundToken, withdrawAmount, _minAmount);
-        if (inboundToken.balanceOf(address(this)) < withdrawAmount) {
-            withdrawAmount = inboundToken.balanceOf(address(this));
+        if (isTransactionalToken) {
+            if (address(this).balance < withdrawAmount) {
+                withdrawAmount = address(this).balance;
+            }
+            (bool success, ) = msg.sender.call{ value: withdrawAmount }("");
+            require(success);
+        } else {
+            if (IERC20(inboundToken).balanceOf(address(this)) < withdrawAmount) {
+                withdrawAmount = IERC20(inboundToken).balanceOf(address(this));
+            }
+            require(
+                IERC20(inboundToken).transfer(msg.sender, withdrawAmount),
+                "Fail to transfer ERC20 tokens on early withdraw"
+            );
         }
-        require(
-            IERC20(inboundToken).transfer(msg.sender, withdrawAmount),
-            "Fail to transfer ERC20 tokens on early withdraw"
-        );
     }
 
     /// @notice Allows player to withdraw their funds after the game ends with no loss (fee). Winners get a share of the interest earned.
@@ -450,7 +476,12 @@ contract Pool is Ownable, Pausable {
 
         emit Withdrawal(msg.sender, payout, playerIncentive, playerReward, playerGovernanceTokenReward);
 
-        require(IERC20(inboundToken).transfer(msg.sender, payout), "Fail to transfer ERC20 tokens on withdraw");
+        if (isTransactionalToken) {
+            (bool success, ) = msg.sender.call{ value: payout }("");
+            require(success);
+        } else {
+            require(IERC20(inboundToken).transfer(msg.sender, payout), "Fail to transfer ERC20 tokens on withdraw");
+        }
 
         if (playerIncentive > 0) {
             require(
@@ -475,7 +506,7 @@ contract Pool is Ownable, Pausable {
     }
 
     /// @notice Allows players to make deposits for the game segments, after joining the game.
-    function makeDeposit(uint256 _minAmount, uint256 _depositAmount) external whenNotPaused {
+    function makeDeposit(uint256 _minAmount, uint256 _depositAmount) external payable whenNotPaused {
         require(!players[msg.sender].withdrawn, "Player already withdraw from game");
         // only registered players can deposit
         require(players[msg.sender].addr == msg.sender, "Sender is not a player");
@@ -508,7 +539,9 @@ contract Pool is Ownable, Pausable {
         );
 
         uint256 amount = flexibleSegmentPayment ? _depositAmount : segmentPayment;
-
+        if (isTransactionalToken) {
+            require(msg.value == amount, "Insufficient Amount");
+        }
         emit Deposit(msg.sender, currentSegment, amount);
         _transferInboundTokenToContract(_minAmount, amount);
     }
@@ -521,7 +554,12 @@ contract Pool is Ownable, Pausable {
         // Withdraws funds (principal + interest + rewards) from external pool
         strategy.redeem(inboundToken, _minAmount);
 
-        uint256 totalBalance = IERC20(inboundToken).balanceOf(address(this));
+        uint256 totalBalance = 0;
+        if (isTransactionalToken) {
+            totalBalance = address(this).balance;
+        } else {
+            totalBalance = IERC20(inboundToken).balanceOf(address(this));
+        }
 
         // calculates gross interest
         uint256 grossInterest = 0;
@@ -584,10 +622,12 @@ contract Pool is Ownable, Pausable {
         the required accounting operations to control the user's position in the pool.
      */
     function _transferInboundTokenToContract(uint256 _minAmount, uint256 _depositAmount) internal virtual {
-        require(
-            inboundToken.allowance(msg.sender, address(this)) >= _depositAmount,
-            "You need to have allowance to do transfer Inbound Token on the smart contract"
-        );
+        if (!isTransactionalToken) {
+            require(
+                IERC20(inboundToken).allowance(msg.sender, address(this)) >= _depositAmount,
+                "You need to have allowance to do transfer Inbound Token on the smart contract"
+            );
+        }
 
         uint256 currentSegment = getCurrentSegment();
         players[msg.sender].mostRecentSegmentPaid = currentSegment;
@@ -609,7 +649,16 @@ contract Pool is Ownable, Pausable {
             }
         }
         totalGamePrincipal = totalGamePrincipal.add(_depositAmount);
-        require(inboundToken.transferFrom(msg.sender, address(strategy), _depositAmount), "Transfer failed");
-        strategy.invest(inboundToken, _minAmount);
+        if (!isTransactionalToken) {
+            require(
+                IERC20(inboundToken).transferFrom(msg.sender, address(strategy), _depositAmount),
+                "Transfer failed"
+            );
+        }
+
+        strategy.invest{ value: msg.value }(inboundToken, _minAmount);
     }
+
+    // Fallback Functions for calldata and reciever for handling only ether transfer
+    receive() external payable {}
 }
