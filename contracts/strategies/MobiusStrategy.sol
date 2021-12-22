@@ -60,8 +60,7 @@ contract MobiusStrategy is Ownable, IStrategy {
             lpToken.approve(address(gauge), lpToken.balanceOf(address(this))),
             "Fail to approve allowance to gauge"
         );
-        require(lpToken.balanceOf(address(this)) > 0, "ll");
-        gauge.stake(lpToken.balanceOf(address(this)));
+        gauge.deposit(lpToken.balanceOf(address(this)));
     }
 
     function earlyWithdraw(
@@ -81,7 +80,7 @@ contract MobiusStrategy is Ownable, IStrategy {
                 poolWithdrawAmount = gaugeBalance;
             }
 
-            gauge.withdraw(poolWithdrawAmount);
+            gauge.withdraw(poolWithdrawAmount, false);
             require(lpToken.approve(address(pool), poolWithdrawAmount), "Fail to approve allowance to pool");
 
             pool.removeLiquidityOneToken(poolWithdrawAmount, 0, _minAmount, block.timestamp + 1000);
@@ -93,9 +92,9 @@ contract MobiusStrategy is Ownable, IStrategy {
     function redeem(IERC20 _inboundCurrency, uint256 _minAmount) external override onlyOwner {
         uint256 gaugeBalance = gauge.balanceOf(address(this));
         if (gaugeBalance > 0) {
-            // minter.mint(address(gauge));
-            gauge.getReward();
-            gauge.withdraw(gaugeBalance);
+            minter.mint(address(gauge));
+            gauge.withdraw(gaugeBalance, true);
+
             require(
                 lpToken.approve(address(pool), lpToken.balanceOf(address(this))),
                 "Fail to approve allowance to pool"
@@ -105,7 +104,6 @@ contract MobiusStrategy is Ownable, IStrategy {
         if (address(mobi) != address(0)) {
             require(mobi.transfer(msg.sender, mobi.balanceOf(address(this))), "Transfer Failed");
         }
-
         if (address(celo) != address(0)) {
             require(celo.transfer(msg.sender, celo.balanceOf(address(this))), "Transfer Failed");
         }
