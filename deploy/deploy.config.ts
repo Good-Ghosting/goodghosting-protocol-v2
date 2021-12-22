@@ -101,9 +101,9 @@ exports.providers = {
       // incentiveToken: "0x471EcE3750Da237f93B8E339c536989b8978a438", // CELO
     },
     mobius: {
-      // cUSD - pUDSC
-      // pool: "0xcCe0d62Ce14FB3e4363Eb92Db37Ff3630836c252",
-      // gauge: "0xBCb4029fAC568F65FA9bDE21aADca088ce62B1D0",
+      // cUSD - DAI
+      // pool: "0xF3f65dFe0c8c8f2986da0FEc159ABE6fd4E700B4",
+      // gauge: "0xE1f9D952EecC07cfEFa69df9fBB0cEF260957119",
       //// cUSD / USDC
       pool: "0x9906589Ea8fd27504974b7e8201DF5bBdE986b03",
       gauge: "0xc96AeeaFF32129da934149F6134Aa7bf291a754E",
