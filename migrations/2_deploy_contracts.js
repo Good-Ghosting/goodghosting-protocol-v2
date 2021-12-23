@@ -119,6 +119,7 @@ module.exports = function (deployer, network, accounts) {
       config.deployConfigs.flexibleSegmentPayment,
       incentiveToken,
       strategyInstance.address,
+      false,
     ];
 
     // Deploys the Pool Contract
