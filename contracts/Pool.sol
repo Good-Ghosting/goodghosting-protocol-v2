@@ -283,18 +283,16 @@ contract Pool is Ownable, Pausable {
                 );
             }
 
-            if (address(rewardToken) != address(0) && rewardToken.balanceOf(address(this)) > 0) {
-                adminRewardTokenAmount = rewardToken.balanceOf(address(this));
+            if (address(rewardToken) != address(0) && rewardTokenAmount > 0) {
+                adminRewardTokenAmount = rewardTokenAmount;
                 require(
-                    rewardToken.transfer(owner(), rewardToken.balanceOf(address(this))),
+                    rewardToken.transfer(owner(), rewardTokenAmount),
                     "Fail to transfer ER20 reward tokens to admin"
                 );
             }
 
-            if (
-                address(strategyGovernanceToken) != address(0) && strategyGovernanceToken.balanceOf(address(this)) > 0
-            ) {
-                adminGovernanceTokenAmount = strategyGovernanceToken.balanceOf(address(this));
+            if (address(strategyGovernanceToken) != address(0) && strategyGovernanceTokenAmount > 0) {
+                adminGovernanceTokenAmount = strategyGovernanceTokenAmount;
                 require(
                     strategyGovernanceToken.transfer(owner(), strategyGovernanceToken.balanceOf(address(this))),
                     "Fail to transfer ER20 strategy governance tokens to admin"
@@ -581,10 +579,6 @@ contract Pool is Ownable, Pausable {
             totalGamePrincipal = totalBalance;
         }
 
-        // If there's an incentive token address defined, sets the total incentive amount to be distributed among winners.
-        if (address(incentiveToken) != address(0)) {
-            totalIncentiveAmount = IERC20(incentiveToken).balanceOf(address(this));
-        }
         // calculates the performance/admin fee (takes a cut - the admin percentage fee - from the pool's interest).
         // calculates the "gameInterest" (net interest) that will be split among winners in the game
         uint256 _adminFeeAmount;
@@ -606,12 +600,22 @@ contract Pool is Ownable, Pausable {
         rewardToken = strategy.getRewardToken();
         strategyGovernanceToken = strategy.getGovernanceToken();
 
-        if (address(rewardToken) != address(0)) {
+        if (address(rewardToken) != address(0) && inboundToken != address(rewardToken)) {
             rewardTokenAmount = rewardToken.balanceOf(address(this));
         }
 
-        if (address(strategyGovernanceToken) != address(0)) {
+        if (address(strategyGovernanceToken) != address(0) && inboundToken != address(strategyGovernanceToken)) {
             strategyGovernanceTokenAmount = strategyGovernanceToken.balanceOf(address(this));
+        }
+
+        // If there's an incentive token address defined, sets the total incentive amount to be distributed among winners.
+        if (
+            address(incentiveToken) != address(0) &&
+            address(rewardToken) != address(incentiveToken) &&
+            address(strategyGovernanceToken) != address(incentiveToken) &&
+            inboundToken != address(incentiveToken)
+        ) {
+            totalIncentiveAmount = IERC20(incentiveToken).balanceOf(address(this));
         }
 
         emit FundsRedeemedFromExternalPool(
