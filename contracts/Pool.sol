@@ -205,7 +205,10 @@ contract Pool is Ownable, Pausable {
             require(_segmentPayment > 0, "_segmentPayment must be greater than zero");
         }
         require(_waitingRoundSegmentLength > 0, "_waitingRoundSegmentLength must be greater than zero");
-
+        require(
+            _waitingRoundSegmentLength >= _segmentLength,
+            " _waitingRoundSegmentLength must be more than _segmentLength"
+        );
         // Initializes default variables
         firstSegmentStart = block.timestamp; //gets current time
         waitingRoundSegmentStart = block.timestamp + (_segmentLength * _depositCount);

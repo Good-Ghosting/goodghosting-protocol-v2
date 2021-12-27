@@ -132,6 +132,24 @@ export const deployPool = async (
   }
 
   const goodGhostingV2Deployer = new Pool__factory(deployer);
+
+  await expect(
+    goodGhostingV2Deployer.deploy(
+      isInboundToken ? inboundToken.address : inboundToken,
+      depositCount,
+      segmentLength,
+      segmentLength / 2,
+      segmentPayment,
+      earlyWithdrawFee,
+      adminFee,
+      playerCount,
+      isVariableAmount,
+      isIncentiveToken ? incentiveToken.address : incentiveToken,
+      isInvestmentStrategy ? strategy.address : strategy,
+      false,
+    ),
+  ).to.be.revertedWith("_waitingRoundSegmentLength must be more than _segmentLength");
+
   const goodGhosting = await goodGhostingV2Deployer.deploy(
     isInboundToken ? inboundToken.address : inboundToken,
     depositCount,
