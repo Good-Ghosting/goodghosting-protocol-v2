@@ -54,7 +54,7 @@ contract AaveStrategy is Ownable, IStrategy {
 
     function invest(address _inboundCurrency, uint256 _minAmount) external payable override onlyOwner {
         uint256 contractBalance = 0;
-        if (msg.value > 0 || _inboundCurrency == address(rewardToken)) {
+        if (address(_inboundCurrency) == address(0) || _inboundCurrency == address(rewardToken)) {
             if (_inboundCurrency == address(rewardToken)) {
                 // unwraps WMATIC back into MATIC
                 WMatic(address(rewardToken)).withdraw(IERC20(_inboundCurrency).balanceOf(address(this)));
@@ -77,25 +77,31 @@ contract AaveStrategy is Ownable, IStrategy {
         uint256 _minAmount
     ) external override onlyOwner {
         require(_amount > 0, "_amount is 0");
-        require(_inboundCurrency != address(0), "Invalid _inboundCurrency address");
         // atoken address in v2 is fetched from data provider contract
         (address adaiTokenAddress, , ) = dataProvider.getReserveTokensAddresses(_inboundCurrency);
         adaiToken = AToken(adaiTokenAddress);
         if (adaiToken.balanceOf(address(this)) > 0) {
-            if (_inboundCurrency == address(rewardToken)) {
+            if (address(_inboundCurrency) == address(0) || _inboundCurrency == address(rewardToken)) {
                 require(adaiToken.approve(address(wethGateway), _amount), "Fail to approve allowance to wethGateway");
 
                 wethGateway.withdrawETH(address(lendingPool), _amount, address(this));
-                // Wraps MATIC back into WMATIC
-                WMatic(address(rewardToken)).deposit{ value: _amount }();
+                if (_inboundCurrency == address(rewardToken)) {
+                    // Wraps MATIC back into WMATIC
+                    WMatic(address(rewardToken)).deposit{ value: _amount }();
+                }
             } else {
                 lendingPool.withdraw(_inboundCurrency, _amount, address(this));
             }
         }
-        require(
-            IERC20(_inboundCurrency).transfer(msg.sender, IERC20(_inboundCurrency).balanceOf(address(this))),
-            "Transfer Failed"
-        );
+        if (address(_inboundCurrency) == address(0)) {
+            (bool success, ) = msg.sender.call{ value: address(this).balance }("");
+            require(success);
+        } else {
+            require(
+                IERC20(_inboundCurrency).transfer(msg.sender, IERC20(_inboundCurrency).balanceOf(address(this))),
+                "Transfer Failed"
+            );
+        }
     }
 
     function redeem(address _inboundCurrency, uint256 _minAmount) external override onlyOwner {
@@ -106,15 +112,17 @@ contract AaveStrategy is Ownable, IStrategy {
         adaiToken = AToken(adaiTokenAddress);
         // Withdraws funds (principal + interest + rewards) from external pool
         if (adaiToken.balanceOf(address(this)) > 0) {
-            if (_inboundCurrency == address(rewardToken)) {
+            if (address(_inboundCurrency) == address(0) || _inboundCurrency == address(rewardToken)) {
                 require(
                     adaiToken.approve(address(wethGateway), type(uint256).max),
                     "Fail to approve allowance to wethGateway"
                 );
 
                 wethGateway.withdrawETH(address(lendingPool), type(uint256).max, address(this));
-                // Wraps MATIC back into WMATIC
-                WMatic(address(rewardToken)).deposit{ value: type(uint256).max }();
+                if (_inboundCurrency == address(rewardToken)) {
+                    // Wraps MATIC back into WMATIC
+                    WMatic(address(rewardToken)).deposit{ value: address(this).balance }();
+                }
             } else {
                 lendingPool.withdraw(_inboundCurrency, type(uint256).max, address(this));
             }
@@ -135,10 +143,15 @@ contract AaveStrategy is Ownable, IStrategy {
             }
         }
 
-        require(
-            IERC20(_inboundCurrency).transfer(msg.sender, IERC20(_inboundCurrency).balanceOf(address(this))),
-            "Transfer Failed"
-        );
+        if (address(_inboundCurrency) == address(0)) {
+            (bool success, ) = msg.sender.call{ value: address(this).balance }("");
+            require(success);
+        } else {
+            require(
+                IERC20(_inboundCurrency).transfer(msg.sender, IERC20(_inboundCurrency).balanceOf(address(this))),
+                "Transfer Failed"
+            );
+        }
     }
 
     function getRewardToken() external view override returns (IERC20) {

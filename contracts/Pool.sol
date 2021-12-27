@@ -80,7 +80,7 @@ contract Pool is Ownable, Pausable {
     bool public immutable flexibleSegmentPayment;
 
     /// @notice Flag which determines whether the deposit token is a transactional token like eth or matic
-    bool public immutable isTransactionalToken;
+    bool public isTransactionalToken;
 
     /// @notice controls if admin withdrew or not the performance fee.
     bool public adminWithdraw;
@@ -197,7 +197,11 @@ contract Pool is Ownable, Pausable {
         require(_earlyWithdrawalFee <= 10, "_earlyWithdrawalFee must be less than or equal to 10%");
         require(_earlyWithdrawalFee > 0, "_earlyWithdrawalFee must be greater than zero");
         require(_maxPlayersCount > 0, "_maxPlayersCount must be greater than zero");
-        require(address(_inboundCurrency) != address(0), "invalid _inboundCurrency address");
+        if (isTransactionalToken) {
+            require(address(_inboundCurrency) == address(0), "invalid _inboundCurrency address");
+        } else {
+            require(address(_inboundCurrency) != address(0), "invalid _inboundCurrency address");
+        }
         require(address(_strategy) != address(0), "invalid _strategy address");
         require(_depositCount > 0, "_depositCount must be greater than zero");
         require(_segmentLength > 0, "_segmentLength must be greater than zero");
