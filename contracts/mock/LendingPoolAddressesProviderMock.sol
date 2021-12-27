@@ -6,8 +6,9 @@ import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import { ILendingPoolAddressesProvider } from "../aave/ILendingPoolAddressesProvider.sol";
 import { ILendingPool } from "../aave/ILendingPool.sol";
+import "../aave/IWETHGateway.sol";
 
-contract LendingPoolAddressesProviderMock is ILendingPoolAddressesProvider, ILendingPool, ERC20 {
+contract LendingPoolAddressesProviderMock is ILendingPoolAddressesProvider, ILendingPool, IWETHGateway, ERC20 {
     address public underlyingAssetAddress;
 
     constructor(string memory name, string memory symbol) ERC20(name, symbol) {}
@@ -99,6 +100,24 @@ contract LendingPoolAddressesProviderMock is ILendingPoolAddressesProvider, ILen
         IERC20(asset).transfer(to, amount);
     }
 
+    function depositETH(
+        address lendingPool,
+        address onBehalfOf,
+        uint16 referralCode
+    ) public payable override {
+        _mint(msg.sender, msg.value);
+    }
+
+    function withdrawETH(
+        address asset,
+        uint256 amount,
+        address to
+    ) public override {
+        amount = IERC20(address(this)).balanceOf(msg.sender);
+        _burn(to, amount);
+        msg.sender.call{ value: amount }("");
+    }
+
     //Helpers
     //We need to bootstrap the underlyingAssetAddress to use the redeem function
     function setUnderlyingAssetAddress(address _addr) public {
@@ -116,4 +135,7 @@ contract LendingPoolAddressesProviderMock is ILendingPoolAddressesProvider, ILen
         reserve.transferFrom(_addr, address(this), _amount);
         _mint(_bank, _amount);
     }
+
+    // Fallback Functions for calldata and reciever for handling only ether transfer
+    receive() external payable {}
 }
