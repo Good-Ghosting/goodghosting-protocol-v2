@@ -2966,7 +2966,7 @@ export const shouldBehaveLikeGGPoolWithTransactionalToken = async (strategyType:
     ).to.be.revertedWith("invalid _inboundCurrency address");
   });
 
-  it("players join the game and are able to get back the deposit token and the additional rewards", async () => {
+  it("players join the game and are able to redeem back the funds", async () => {
     const accounts = await ethers.getSigners();
     const player1 = accounts[2];
     const player2 = accounts[3];
@@ -3014,5 +3014,43 @@ export const shouldBehaveLikeGGPoolWithTransactionalToken = async (strategyType:
         ethers.BigNumber.from(rewardTokenBalanceAfterRedeem.toString()),
         ethers.BigNumber.from("0"),
       );
+  });
+
+  it("players join the game and are able to withdraw their principal and rewards", async () => {
+    const accounts = await ethers.getSigners();
+    const player1 = accounts[2];
+    const player2 = accounts[3];
+    await joinGame(contracts.goodGhosting, contracts.inboundToken, player2, segmentPayment, segmentPayment);
+    await joinGame(contracts.goodGhosting, contracts.inboundToken, player1, segmentPayment, segmentPayment);
+
+    for (let index = 1; index < depositCount; index++) {
+      await ethers.provider.send("evm_increaseTime", [segmentLength]);
+      await ethers.provider.send("evm_mine", []);
+      await makeDeposit(contracts.goodGhosting, contracts.inboundToken, player2, segmentPayment, segmentPayment);
+      await makeDeposit(contracts.goodGhosting, contracts.inboundToken, player1, segmentPayment, segmentPayment);
+    }
+    // above, it accounted for 1st deposit window, and then the loop runs till depositCount - 1.
+    // now, we move 2 more segments (depositCount-1 and depositCount) to complete the game.
+    await ethers.provider.send("evm_increaseTime", [segmentLength]);
+    await ethers.provider.send("evm_mine", []);
+    const waitingRoundLength = await contracts.goodGhosting.waitingRoundSegmentLength();
+    await ethers.provider.send("evm_increaseTime", [parseInt(waitingRoundLength.toString())]);
+    await ethers.provider.send("evm_mine", []);
+
+    await contracts.goodGhosting.redeemFromExternalPool(0);
+    const transactionalTokenBalanceBeforeWithdraw = await ethers.provider.getBalance(player1.address);
+    const rewardTokenBalanceBeforeWithdraw = await contracts.rewardToken.balanceOf(player1.address);
+    const transactionalTokenPlayer2BalanceBeforeWithdraw = await ethers.provider.getBalance(player2.address);
+    const rewardTokenPlayer2BalanceBeforeWithdraw = await contracts.rewardToken.balanceOf(player2.address);
+    await contracts.goodGhosting.connect(player1).withdraw(0);
+    await contracts.goodGhosting.connect(player2).withdraw(0);
+    const transactionalTokenPlayer2BalanceAfterWithdraw = await ethers.provider.getBalance(player2.address);
+    const rewardTokenPlayer2BalanceAfterWithdraw = await contracts.rewardToken.balanceOf(player2.address);
+    const rewardTokenBalanceAfterWithdraw = await contracts.rewardToken.balanceOf(player1.address);
+    const transactionalTokenBalanceAfterWithdraw = await ethers.provider.getBalance(player1.address);
+    assert(transactionalTokenBalanceAfterWithdraw.gt(transactionalTokenBalanceBeforeWithdraw));
+    assert(rewardTokenBalanceAfterWithdraw.gt(rewardTokenBalanceBeforeWithdraw));
+    assert(transactionalTokenPlayer2BalanceAfterWithdraw.gt(transactionalTokenPlayer2BalanceBeforeWithdraw));
+    assert(rewardTokenPlayer2BalanceAfterWithdraw.gt(rewardTokenPlayer2BalanceBeforeWithdraw));
   });
 };
