@@ -7,6 +7,7 @@ import {
   Pool__factory,
   AaveStrategy__factory,
   MintableERC20__factory,
+  MockWMatic__factory,
   MintableERC20,
   MockMobiusMinter__factory,
   IncentiveControllerMock__factory,
@@ -54,6 +55,7 @@ export const deployPool = async (
     incentiveToken = await token.deploy("INCENTIVE", "INCENTIVE");
   }
   let lendingPool: any = ZERO_ADDRESS;
+  let incentiveController: any = ZERO_ADDRESS;
   let rewardToken: any = ZERO_ADDRESS;
   let strategy: any = ZERO_ADDRESS;
   let curve: any = ZERO_ADDRESS;
@@ -67,22 +69,29 @@ export const deployPool = async (
   if (strategyType === "aave") {
     lendingPool = await lendingPoolAddressProvider.deploy("TOKEN_NAME", "TOKEN_SYMBOL");
     await lendingPool.setUnderlyingAssetAddress(isInboundToken ? inboundToken.address : inboundToken);
+
+    const rewardTokenDeployer = new MockWMatic__factory(deployer);
+    rewardToken = await rewardTokenDeployer.deploy();
+
     const incentiveControllerDeployer = new IncentiveControllerMock__factory(deployer);
-    rewardToken = await incentiveControllerDeployer.deploy("TOKEN_NAME", "TOKEN_SYMBOL");
+    incentiveController = await incentiveControllerDeployer.deploy(rewardToken.address);
+
     if (isInvestmentStrategy) {
       const aaveStrategyDeployer = new AaveStrategy__factory(deployer);
       strategy = await aaveStrategyDeployer.deploy(
         lendingPool.address,
         lendingPool.address,
         lendingPool.address,
-        rewardToken.address,
+        incentiveController.address,
         rewardToken.address,
       );
+      await rewardToken.deposit({ value: ethers.utils.parseEther("25") });
+      await rewardToken.transfer(incentiveController.address, ethers.utils.parseEther("25"));
     }
   } else if (strategyType === "curve") {
     const mockCurveTokenDeployer = new MintableERC20__factory(deployer);
     curve = await mockCurveTokenDeployer.deploy("CURVE", "CURVE");
-    const rewardTokenDeployer = new IncentiveControllerMock__factory(deployer);
+    const rewardTokenDeployer = new MintableERC20__factory(deployer);
     rewardToken = await rewardTokenDeployer.deploy("TOKEN_NAME", "TOKEN_SYMBOL");
     const curvePoolDeployer = new MockCurvePool__factory(deployer);
     curvePool = await curvePoolDeployer.deploy("LP", "LP", inboundToken.address);
