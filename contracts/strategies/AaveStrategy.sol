@@ -54,7 +54,7 @@ contract AaveStrategy is Ownable, IStrategy {
 
     function invest(address _inboundCurrency, uint256 _minAmount) external payable override onlyOwner {
         uint256 contractBalance = 0;
-        if (address(_inboundCurrency) == address(0) || _inboundCurrency == address(rewardToken)) {
+        if (_inboundCurrency == address(0) || _inboundCurrency == address(rewardToken)) {
             if (_inboundCurrency == address(rewardToken)) {
                 // unwraps WMATIC back into MATIC
                 WMatic(address(rewardToken)).withdraw(IERC20(_inboundCurrency).balanceOf(address(this)));
@@ -78,10 +78,15 @@ contract AaveStrategy is Ownable, IStrategy {
     ) external override onlyOwner {
         require(_amount > 0, "_amount is 0");
         // atoken address in v2 is fetched from data provider contract
-        (address adaiTokenAddress, , ) = dataProvider.getReserveTokensAddresses(_inboundCurrency);
+        address adaiTokenAddress;
+        if (_inboundCurrency == address(0)) {
+            (adaiTokenAddress, , ) = dataProvider.getReserveTokensAddresses(address(rewardToken));
+        } else {
+            (adaiTokenAddress, , ) = dataProvider.getReserveTokensAddresses(_inboundCurrency);
+        }
         adaiToken = AToken(adaiTokenAddress);
         if (adaiToken.balanceOf(address(this)) > 0) {
-            if (address(_inboundCurrency) == address(0) || _inboundCurrency == address(rewardToken)) {
+            if (_inboundCurrency == address(0) || _inboundCurrency == address(rewardToken)) {
                 require(adaiToken.approve(address(wethGateway), _amount), "Fail to approve allowance to wethGateway");
 
                 wethGateway.withdrawETH(address(lendingPool), _amount, address(this));
@@ -93,7 +98,7 @@ contract AaveStrategy is Ownable, IStrategy {
                 lendingPool.withdraw(_inboundCurrency, _amount, address(this));
             }
         }
-        if (address(_inboundCurrency) == address(0)) {
+        if (_inboundCurrency == address(0)) {
             (bool success, ) = msg.sender.call{ value: address(this).balance }("");
             require(success);
         } else {
@@ -105,14 +110,17 @@ contract AaveStrategy is Ownable, IStrategy {
     }
 
     function redeem(address _inboundCurrency, uint256 _minAmount) external override onlyOwner {
-        require(_inboundCurrency != address(0), "Invalid _inboundCurrency address");
-
         // atoken address in v2 is fetched from data provider contract
-        (address adaiTokenAddress, , ) = dataProvider.getReserveTokensAddresses(_inboundCurrency);
+        address adaiTokenAddress;
+        if (_inboundCurrency == address(0)) {
+            (adaiTokenAddress, , ) = dataProvider.getReserveTokensAddresses(address(rewardToken));
+        } else {
+            (adaiTokenAddress, , ) = dataProvider.getReserveTokensAddresses(_inboundCurrency);
+        }
         adaiToken = AToken(adaiTokenAddress);
         // Withdraws funds (principal + interest + rewards) from external pool
         if (adaiToken.balanceOf(address(this)) > 0) {
-            if (address(_inboundCurrency) == address(0) || _inboundCurrency == address(rewardToken)) {
+            if (_inboundCurrency == address(0) || _inboundCurrency == address(rewardToken)) {
                 require(
                     adaiToken.approve(address(wethGateway), type(uint256).max),
                     "Fail to approve allowance to wethGateway"
@@ -143,7 +151,7 @@ contract AaveStrategy is Ownable, IStrategy {
             }
         }
 
-        if (address(_inboundCurrency) == address(0)) {
+        if (_inboundCurrency == address(0)) {
             (bool success, ) = msg.sender.call{ value: address(this).balance }("");
             require(success);
         } else {

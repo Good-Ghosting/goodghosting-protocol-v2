@@ -36,6 +36,7 @@ export const deployPool = async (
   isIncentiveToken: boolean,
   isInvestmentStrategy: boolean,
   isVariableAmount: boolean,
+  isTransactionalToken: boolean,
   strategyType: string,
 ) => {
   const [deployer, , player1, player2] = await ethers.getSigners();
@@ -155,7 +156,7 @@ export const deployPool = async (
       isVariableAmount,
       isIncentiveToken ? incentiveToken.address : incentiveToken,
       isInvestmentStrategy ? strategy.address : strategy,
-      false,
+      isTransactionalToken,
     ),
   ).to.be.revertedWith("_waitingRoundSegmentLength must be more than _segmentLength");
 
@@ -171,7 +172,7 @@ export const deployPool = async (
     isVariableAmount,
     isIncentiveToken ? incentiveToken.address : incentiveToken,
     isInvestmentStrategy ? strategy.address : strategy,
-    false,
+    isTransactionalToken,
   );
 
   if (isInvestmentStrategy) {
@@ -299,8 +300,13 @@ export const joinGame = async (
   amount: string,
   depositAmount: string,
 ) => {
-  await approveToken(inboundToken, player, goodGhosting.address, amount);
-  await goodGhosting.connect(player).joinGame(0, depositAmount);
+  const isTransactionalToken = await goodGhosting.isTransactionalToken();
+  if (!isTransactionalToken) {
+    await approveToken(inboundToken, player, goodGhosting.address, amount);
+    await goodGhosting.connect(player).joinGame(0, depositAmount);
+  } else {
+    await goodGhosting.connect(player).joinGame(0, depositAmount, { value: depositAmount });
+  }
 };
 
 export const unableToJoinGame = async (
@@ -311,8 +317,15 @@ export const unableToJoinGame = async (
   depositAmount: string,
   revertReason: string,
 ) => {
-  await approveToken(inboundToken, player, goodGhosting.address, amount);
-  await expect(goodGhosting.connect(player).joinGame(0, depositAmount)).to.be.revertedWith(revertReason);
+  const isTransactionalToken = await goodGhosting.isTransactionalToken();
+  if (!isTransactionalToken) {
+    await approveToken(inboundToken, player, goodGhosting.address, amount);
+    await expect(goodGhosting.connect(player).joinGame(0, depositAmount)).to.be.revertedWith(revertReason);
+  } else {
+    await expect(goodGhosting.connect(player).joinGame(0, depositAmount, { value: depositAmount })).to.be.revertedWith(
+      revertReason,
+    );
+  }
 };
 
 export const makeDeposit = async (
@@ -322,8 +335,13 @@ export const makeDeposit = async (
   amount: string,
   depositAmount: string,
 ) => {
-  await approveToken(inboundToken, player, goodGhosting.address, amount);
-  await goodGhosting.connect(player).makeDeposit(0, depositAmount);
+  const isTransactionalToken = await goodGhosting.isTransactionalToken();
+  if (!isTransactionalToken) {
+    await approveToken(inboundToken, player, goodGhosting.address, amount);
+    await goodGhosting.connect(player).makeDeposit(0, depositAmount);
+  } else {
+    await goodGhosting.connect(player).makeDeposit(0, depositAmount, { value: depositAmount });
+  }
 };
 
 export const shouldNotBeAbleToDeposit = async (
@@ -334,8 +352,15 @@ export const shouldNotBeAbleToDeposit = async (
   depositAmount: string,
   revertReason: string,
 ) => {
-  await approveToken(inboundToken, player, goodGhosting.address, amount);
-  await expect(goodGhosting.connect(player).makeDeposit(0, depositAmount)).to.be.revertedWith(revertReason);
+  const isTransactionalToken = await goodGhosting.isTransactionalToken();
+  if (!isTransactionalToken) {
+    await approveToken(inboundToken, player, goodGhosting.address, amount);
+    await expect(goodGhosting.connect(player).makeDeposit(0, depositAmount)).to.be.revertedWith(revertReason);
+  } else {
+    await expect(
+      goodGhosting.connect(player).makeDeposit(0, depositAmount, { value: depositAmount }),
+    ).to.be.revertedWith(revertReason);
+  }
 };
 
 export const redeem = async (

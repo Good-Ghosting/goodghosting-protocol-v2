@@ -619,7 +619,7 @@ contract Pool is Ownable, Pausable {
         }
 
         emit FundsRedeemedFromExternalPool(
-            IERC20(inboundToken).balanceOf(address(this)),
+            isTransactionalToken ? address(this).balance : IERC20(inboundToken).balanceOf(address(this)),
             totalGamePrincipal,
             totalGameInterest,
             totalIncentiveAmount,
