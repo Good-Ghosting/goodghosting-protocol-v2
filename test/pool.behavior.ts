@@ -2936,7 +2936,7 @@ export const shouldBehaveLikeGGPoolWithTransactionalToken = async (strategyType:
       segmentLength,
       segmentPayment,
       1,
-      0,
+      1,
       maxPlayersCount,
       false,
       false,
@@ -2987,8 +2987,32 @@ export const shouldBehaveLikeGGPoolWithTransactionalToken = async (strategyType:
     await ethers.provider.send("evm_increaseTime", [parseInt(waitingRoundLength.toString())]);
     await ethers.provider.send("evm_mine", []);
     const transactionalTokenBalanceBeforeWithdraw = await ethers.provider.getBalance(contracts.goodGhosting.address);
-    await contracts.goodGhosting.redeemFromExternalPool(0);
+    const rewardTokenBalanceBeforeRedeem = await contracts.rewardToken.balanceOf(contracts.goodGhosting.address);
+
+    const result = await contracts.goodGhosting.redeemFromExternalPool(0);
     const transactionalTokenBalanceAfterWithdraw = await ethers.provider.getBalance(contracts.goodGhosting.address);
+    const totalPrincipal = ethers.BigNumber.from(segmentPayment).mul(ethers.BigNumber.from(depositCount * 2));
+    const adminFeeAmount = ethers.BigNumber.from(transactionalTokenBalanceAfterWithdraw)
+      .sub(totalPrincipal)
+      .mul(ethers.BigNumber.from(1))
+      .div(ethers.BigNumber.from(100));
+    const expectedInterestValue = ethers.BigNumber.from(transactionalTokenBalanceAfterWithdraw)
+      .sub(totalPrincipal)
+      .sub(adminFeeAmount);
+    const rewardTokenBalanceAfterRedeem = await contracts.rewardToken.balanceOf(contracts.goodGhosting.address);
+
     assert(transactionalTokenBalanceAfterWithdraw.gt(transactionalTokenBalanceBeforeWithdraw));
+    assert(rewardTokenBalanceAfterRedeem.gt(rewardTokenBalanceBeforeRedeem));
+
+    expect(result)
+      .to.emit(contracts.goodGhosting, "FundsRedeemedFromExternalPool")
+      .withArgs(
+        ethers.BigNumber.from(transactionalTokenBalanceAfterWithdraw),
+        totalPrincipal,
+        expectedInterestValue,
+        ethers.BigNumber.from(0),
+        ethers.BigNumber.from(rewardTokenBalanceAfterRedeem.toString()),
+        ethers.BigNumber.from("0"),
+      );
   });
 };
