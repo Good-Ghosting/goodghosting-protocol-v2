@@ -3236,6 +3236,20 @@ export const shouldBehaveLikeGGPoolWithSameTokenAddresses = async (strategyType:
     assert(rewardTokenPlayer1BalanceAfterWithdraw.gt(rewardTokenPlayer1BalanceBeforeWithdraw));
   });
 
+  it("player is able to do an Early Withdraw", async () => {
+    const accounts = await ethers.getSigners();
+    const player1 = accounts[2];
+    await joinGame(contracts.goodGhosting, contracts.inboundToken, player1, segmentPayment, segmentPayment);
+    const result = await contracts.goodGhosting.connect(player1).earlyWithdraw(0);
+    const feeAmount = ethers.BigNumber.from(segmentPayment)
+      .mul(ethers.BigNumber.from(1))
+      .div(ethers.BigNumber.from(100)); // fee is set as an integer, so needs to be converted to a percentage
+    const playerInfo = await contracts.goodGhosting.players(player1.address);
+    await expect(result)
+      .to.emit(contracts.goodGhosting, "EarlyWithdrawal")
+      .withArgs(player1.address, playerInfo.amountPaid.sub(feeAmount), ethers.BigNumber.from(0));
+  });
+
   it("admin is able to withdraw rewards, when there are no winners in the pool", async () => {
     const accounts = await ethers.getSigners();
     const deployer = accounts[0];
