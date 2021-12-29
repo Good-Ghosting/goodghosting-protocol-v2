@@ -3185,16 +3185,21 @@ export const shouldBehaveLikeGGPoolWithSameTokenAddresses = async (strategyType:
     await ethers.provider.send("evm_mine", []);
 
     await contracts.goodGhosting.redeemFromExternalPool(0);
-    const transactionalTokenBalanceBeforeWithdraw = await ethers.provider.getBalance(player1.address);
-    const rewardTokenBalanceBeforeWithdraw = await contracts.rewardToken.balanceOf(player1.address);
-    const transactionalTokenPlayer2BalanceBeforeWithdraw = await ethers.provider.getBalance(player2.address);
-    const rewardTokenPlayer2BalanceBeforeWithdraw = await contracts.rewardToken.balanceOf(player2.address);
+    const rewardTokenAmount = await contracts.goodGhosting.rewardTokenAmount();
+    assert(rewardTokenAmount.eq(ethers.BigNumber.from("0")));
+    const rewardTokenPlayer1BalanceBeforeWithdraw = await contracts.inboundToken.balanceOf(player1.address);
+    const rewardTokenPlayer2BalanceBeforeWithdraw = await contracts.inboundToken.balanceOf(player2.address);
     await contracts.goodGhosting.connect(player1).withdraw(0);
     await contracts.goodGhosting.connect(player2).withdraw(0);
+    const rewardTokenPlayer1BalanceAfterWithdraw = await contracts.inboundToken.balanceOf(player1.address);
+    const rewardTokenPlayer2BalanceAfterWithdraw = await contracts.inboundToken.balanceOf(player2.address);
+    assert(rewardTokenPlayer2BalanceAfterWithdraw.gt(rewardTokenPlayer2BalanceBeforeWithdraw));
+    assert(rewardTokenPlayer1BalanceAfterWithdraw.gt(rewardTokenPlayer1BalanceBeforeWithdraw));
   });
 
   it("admin is able to withdraw rewards, when there are no winners in the pool", async () => {
     const accounts = await ethers.getSigners();
+    const deployer = accounts[0];
     const player1 = accounts[2];
     const player2 = accounts[3];
     await joinGame(contracts.goodGhosting, contracts.inboundToken, player2, segmentPayment, segmentPayment);
@@ -3215,6 +3220,9 @@ export const shouldBehaveLikeGGPoolWithSameTokenAddresses = async (strategyType:
     await ethers.provider.send("evm_mine", []);
 
     await contracts.goodGhosting.redeemFromExternalPool(0);
+    const rewardTokenBalanceBeforeWithdraw = await contracts.inboundToken.balanceOf(deployer.address);
     await contracts.goodGhosting.adminFeeWithdraw();
+    const rewardTokenBalanceAfterWithdraw = await contracts.inboundToken.balanceOf(deployer.address);
+    assert(rewardTokenBalanceAfterWithdraw.gt(rewardTokenBalanceBeforeWithdraw));
   });
 };

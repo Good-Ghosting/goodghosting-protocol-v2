@@ -68,10 +68,10 @@ contract Pool is Ownable, Pausable {
     uint256 public impermanentLossShare;
 
     /// @notice totalGovernancetoken balance
-    uint256 strategyGovernanceTokenAmount = 0;
+    uint256 public strategyGovernanceTokenAmount = 0;
 
     /// @notice total rewardTokenAmount balance
-    uint256 rewardTokenAmount = 0;
+    uint256 public rewardTokenAmount = 0;
 
     /// @notice Controls if tokens were redeemed or not from the pool
     bool public redeemed;
