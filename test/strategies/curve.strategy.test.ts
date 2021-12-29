@@ -12,6 +12,7 @@ import {
   shouldBehaveLikeAdminWithdrawingFeesFromGGPoolWithFeePercentMoreThan0,
   shouldBehaveLikeAdminWithdrawingFeesFromGGPoolWithFeePercentis0,
   shouldBehaveLikeVariableDepositPool,
+  shouldBehaveLikeGGPoolGeneratingYieldFromAtricryptoPool,
 } from "../pool.behavior";
 
 chai.use(solidity);
@@ -83,5 +84,9 @@ describe("Pool using Curve Strategy", () => {
 
   describe("players participate in a variable amount deposit pool", async () => {
     await shouldBehaveLikeVariableDepositPool("curve");
+  });
+
+  describe("players participate in a pool which deposits in atricrypto pool", async () => {
+    await shouldBehaveLikeGGPoolGeneratingYieldFromAtricryptoPool("curve");
   });
 });

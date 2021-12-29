@@ -24,10 +24,10 @@ contract MockCurvePool is MintableERC20 {
         return _amounts[0];
     }
 
-    // function add_liquidity(uint256[5] memory _amounts, uint256 _min_mint_amount) external {
-    //     reserve.transferFrom(msg.sender, address(this), _amounts[0]);
-    //     _mint(msg.sender, _amounts[0]);
-    // }
+    function add_liquidity(uint256[5] memory _amounts, uint256 _min_mint_amount) external {
+        reserve.transferFrom(msg.sender, address(this), _amounts[0]);
+        _mint(msg.sender, _amounts[0]);
+    }
 
     function remove_liquidity_one_coin(
         uint256 _token_amount,

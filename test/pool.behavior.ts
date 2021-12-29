@@ -3339,4 +3339,53 @@ export const shouldBehaveLikeGGPoolWithSameTokenAddresses = async (strategyType:
   });
 };
 
-export const shouldBehaveLikeGGPoolGeneratingYieldFromAtricryptoPool = async (strategyType: string) => {};
+export const shouldBehaveLikeGGPoolGeneratingYieldFromAtricryptoPool = async (strategyType: string) => {
+  beforeEach(async () => {
+    contracts = await deployPool(
+      depositCount,
+      segmentLength,
+      segmentPayment,
+      1,
+      1,
+      maxPlayersCount,
+      true,
+      false,
+      true,
+      false,
+      false,
+      false,
+      1,
+      strategyType,
+    );
+  });
+  it("players are able to join, redeem and withdraw funds", async () => {
+    const accounts = await ethers.getSigners();
+    const player1 = accounts[2];
+    const player2 = accounts[3];
+    await joinGame(contracts.goodGhosting, contracts.inboundToken, player2, segmentPayment, segmentPayment);
+    await joinGame(contracts.goodGhosting, contracts.inboundToken, player1, segmentPayment, segmentPayment);
+
+    for (let index = 1; index < depositCount; index++) {
+      await ethers.provider.send("evm_increaseTime", [segmentLength]);
+      await ethers.provider.send("evm_mine", []);
+      await makeDeposit(contracts.goodGhosting, contracts.inboundToken, player2, segmentPayment, segmentPayment);
+      await makeDeposit(contracts.goodGhosting, contracts.inboundToken, player1, segmentPayment, segmentPayment);
+    }
+    // above, it accounted for 1st deposit window, and then the loop runs till depositCount - 1.
+    // now, we move 2 more segments (depositCount-1 and depositCount) to complete the game.
+    await ethers.provider.send("evm_increaseTime", [segmentLength * 2]);
+    await ethers.provider.send("evm_mine", []);
+    const waitingRoundLength = await contracts.goodGhosting.waitingRoundSegmentLength();
+    await ethers.provider.send("evm_increaseTime", [parseInt(waitingRoundLength.toString())]);
+    await ethers.provider.send("evm_mine", []);
+
+    await contracts.goodGhosting.redeemFromExternalPool(0);
+  });
+
+  it("player is able to early withdraw", async () => {
+    const accounts = await ethers.getSigners();
+    const player1 = accounts[2];
+    await joinGame(contracts.goodGhosting, contracts.inboundToken, player1, segmentPayment, segmentPayment);
+    await contracts.goodGhosting.connect(player1).earlyWithdraw(0);
+  });
+};
