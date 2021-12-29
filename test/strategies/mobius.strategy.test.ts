@@ -44,43 +44,44 @@ describe("Pool using Mobius Strategy", () => {
       false,
       false,
       false,
+      0,
       "mobius",
     );
   });
 
   describe("when an user tries to join a game", async () => {
-    await shouldBehaveLikeJoiningGGPool("curve");
+    await shouldBehaveLikeJoiningGGPool("mobius");
   });
 
   describe("when an user tries to make a deposit", async () => {
-    await shouldBehaveLikeDepositingGGPool("curve");
+    await shouldBehaveLikeDepositingGGPool("mobius");
   });
 
   describe("when a user withdraws before the end of the game", async () => {
-    await shouldBehaveLikeEarlyWithdrawingGGPool("curve");
+    await shouldBehaveLikeEarlyWithdrawingGGPool("mobius");
   });
 
   describe("when an user tries to redeem from the external pool", async () => {
-    await shouldBehaveLikeRedeemingFromGGPool("curve");
+    await shouldBehaveLikeRedeemingFromGGPool("mobius");
   });
 
   describe("when no one wins the game", async () => {
-    await shouldBehaveLikeGGPoolWithNoWinners("curve");
+    await shouldBehaveLikeGGPoolWithNoWinners("mobius");
   });
 
   describe("when an user tries to withdraw", async () => {
-    await shouldBehaveLikePlayersWithdrawingFromGGPool("curve");
+    await shouldBehaveLikePlayersWithdrawingFromGGPool("mobius");
   });
 
   describe("When a admin tries to withdraw fees when custom fee percentage is more than 0", async () => {
-    await shouldBehaveLikeAdminWithdrawingFeesFromGGPoolWithFeePercentMoreThan0("curve");
+    await shouldBehaveLikeAdminWithdrawingFeesFromGGPoolWithFeePercentMoreThan0("mobius");
   });
 
   describe("admin tries to withdraw fees with admin percentage fee equal to 0 and no winners", async () => {
-    await shouldBehaveLikeAdminWithdrawingFeesFromGGPoolWithFeePercentis0("curve");
+    await shouldBehaveLikeAdminWithdrawingFeesFromGGPoolWithFeePercentis0("mobius");
   });
 
   describe("players participate in a variable amount deposit pool", async () => {
-    await shouldBehaveLikeVariableDepositPool("aave");
+    await shouldBehaveLikeVariableDepositPool("mobius");
   });
 });

@@ -42,6 +42,7 @@ export const shouldBehaveLikeGGPool = async (strategyType: string) => {
       false,
       false,
       false,
+      0,
       strategyType,
     );
   });
@@ -107,6 +108,7 @@ export const shouldBehaveLikeGGPool = async (strategyType: string) => {
         false,
         false,
         false,
+        0,
         strategyType,
       ),
     ).to.be.revertedWith("_earlyWithdrawalFee must be greater than zero");
@@ -127,6 +129,7 @@ export const shouldBehaveLikeGGPool = async (strategyType: string) => {
         false,
         false,
         false,
+        0,
         strategyType,
       ),
     ).to.be.revertedWith("invalid _inboundCurrency address");
@@ -147,6 +150,7 @@ export const shouldBehaveLikeGGPool = async (strategyType: string) => {
         false,
         false,
         false,
+        0,
         strategyType,
       ),
     ).to.be.revertedWith("invalid _strategy address");
@@ -167,6 +171,7 @@ export const shouldBehaveLikeGGPool = async (strategyType: string) => {
         false,
         false,
         false,
+        0,
         strategyType,
       ),
     ).to.be.revertedWith("depositCount must be greater than zero");
@@ -187,6 +192,7 @@ export const shouldBehaveLikeGGPool = async (strategyType: string) => {
         false,
         false,
         false,
+        0,
         strategyType,
       ),
     ).to.be.revertedWith("_segmentLength must be greater than zero");
@@ -207,6 +213,7 @@ export const shouldBehaveLikeGGPool = async (strategyType: string) => {
         false,
         false,
         false,
+        0,
         strategyType,
       ),
     ).to.be.revertedWith("_segmentPayment must be greater than zero");
@@ -227,6 +234,7 @@ export const shouldBehaveLikeGGPool = async (strategyType: string) => {
         false,
         false,
         false,
+        0,
         strategyType,
       ),
     ).to.be.revertedWith("_earlyWithdrawalFee must be less than or equal to 10%");
@@ -247,6 +255,7 @@ export const shouldBehaveLikeGGPool = async (strategyType: string) => {
         false,
         false,
         false,
+        0,
         strategyType,
       ),
     ).to.be.revertedWith("_customFee must be less than or equal to 20%");
@@ -267,6 +276,7 @@ export const shouldBehaveLikeGGPool = async (strategyType: string) => {
         false,
         false,
         false,
+        0,
         strategyType,
       ),
     ).to.be.revertedWith("_maxPlayersCount must be greater than zero");
@@ -286,6 +296,7 @@ export const shouldBehaveLikeGGPool = async (strategyType: string) => {
       false,
       false,
       false,
+      0,
       strategyType,
     );
     const expectedValue = ethers.BigNumber.from(2).pow(ethers.BigNumber.from(256)).sub(ethers.BigNumber.from(1));
@@ -449,6 +460,7 @@ export const shouldBehaveLikeJoiningGGPool = async (strategyType: string) => {
       false,
       false,
       false,
+      0,
       strategyType,
     );
   });
@@ -507,6 +519,7 @@ export const shouldBehaveLikeJoiningGGPool = async (strategyType: string) => {
       false,
       false,
       false,
+      0,
       strategyType,
     );
 
@@ -552,6 +565,7 @@ export const shouldBehaveLikeJoiningGGPool = async (strategyType: string) => {
       false,
       false,
       false,
+      0,
       strategyType,
     );
 
@@ -584,6 +598,7 @@ export const shouldBehaveLikeJoiningGGPool = async (strategyType: string) => {
       false,
       false,
       false,
+      0,
       strategyType,
     );
 
@@ -686,6 +701,7 @@ export const shouldBehaveLikeReJoiningGGPool = async (strategyType: string) => {
       false,
       false,
       false,
+      0,
       strategyType,
     );
   });
@@ -758,6 +774,7 @@ export const shouldBehaveLikeDepositingGGPool = async (strategyType: string) => 
       false,
       false,
       false,
+      0,
       strategyType,
     );
   });
@@ -948,6 +965,7 @@ export const shouldBehaveLikeEarlyWithdrawingGGPool = async (strategyType: strin
       false,
       false,
       false,
+      0,
       strategyType,
     );
   });
@@ -1226,6 +1244,7 @@ export const shouldBehaveLikeRedeemingFromGGPool = async (strategyType: string) 
       false,
       false,
       false,
+      0,
       strategyType,
     );
   });
@@ -1317,6 +1336,7 @@ export const shouldBehaveLikeRedeemingFromGGPool = async (strategyType: string) 
 
       await contracts.curvePool.transfer(contracts.strategy.address, ethers.utils.parseEther("1000"));
     } else if (strategyType === "mobius") {
+      contracts.rewardToken = contracts.celo;
       await contracts.inboundToken
         .connect(deployer)
         .approve(contracts.mobiPool.address, ethers.utils.parseEther("100000"));
@@ -1338,7 +1358,6 @@ export const shouldBehaveLikeRedeemingFromGGPool = async (strategyType: string) 
       .mul(ethers.BigNumber.from(1))
       .div(ethers.BigNumber.from(100));
     const expectedInterestValue = ethers.BigNumber.from(contractsDaiBalance).sub(totalPrincipal).sub(adminFeeAmount);
-
     const rewardTokenBalance = await contracts.rewardToken.balanceOf(contracts.goodGhosting.address);
     await expect(result)
       .to.emit(contracts.goodGhosting, "FundsRedeemedFromExternalPool")
@@ -1424,6 +1443,7 @@ export const shouldBehaveLikeRedeemingFromGGPool = async (strategyType: string) 
       false,
       false,
       false,
+      0,
       strategyType,
     );
     await joinGamePaySegmentsAndComplete(
@@ -1565,6 +1585,7 @@ export const shouldBehaveLikeRedeemingFromGGPool = async (strategyType: string) 
         false,
         false,
         false,
+        0,
         strategyType,
       );
     });
@@ -1631,6 +1652,7 @@ export const shouldBehaveLikeGGPoolWithNoWinners = async (strategyType: string) 
       false,
       false,
       false,
+      0,
       strategyType,
     );
   });
@@ -1651,6 +1673,7 @@ export const shouldBehaveLikeGGPoolWithNoWinners = async (strategyType: string) 
     if (strategyType === "curve") {
       governanceTokenRewards = await contracts.curve.balanceOf(contracts.goodGhosting.address);
     } else if (strategyType === "mobius") {
+      contracts.rewardToken = contracts.celo;
       governanceTokenRewards = await contracts.minter.balanceOf(contracts.goodGhosting.address);
     }
     const adminBalance = await contracts.goodGhosting.adminFeeAmount();
@@ -1702,6 +1725,7 @@ export const shouldBehaveLikePlayersWithdrawingFromGGPool = async (strategyType:
       false,
       false,
       false,
+      0,
       strategyType,
     );
   });
@@ -1744,6 +1768,8 @@ export const shouldBehaveLikePlayersWithdrawingFromGGPool = async (strategyType:
       await contracts.curvePool.add_liquidity([ethers.utils.parseEther("1000"), "0", "0"], 0, true);
       await contracts.curvePool.transfer(contracts.strategy.address, ethers.utils.parseEther("1000"));
     } else if (strategyType === "mobius") {
+      contracts.rewardToken = contracts.celo;
+
       await contracts.inboundToken
         .connect(deployer)
         .approve(contracts.mobiPool.address, ethers.utils.parseEther("100000"));
@@ -1970,12 +1996,14 @@ export const shouldBehaveLikePlayersWithdrawingFromGGPool = async (strategyType:
       .div(ethers.BigNumber.from(cummalativePlayerIndexSum));
     playerShare = ethers.BigNumber.from(gameInterest).mul(playerShare).div(ethers.BigNumber.from(100));
     const userDeposit = ethers.BigNumber.from(segmentPayment).mul(ethers.BigNumber.from(depositCount));
-    const rewardTokenBalance = await contracts.rewardToken.balanceOf(contracts.goodGhosting.address);
     if (strategyType === "curve") {
       governanceTokenBalance = await contracts.curve.balanceOf(contracts.goodGhosting.address);
     } else if (strategyType === "mobius") {
+      contracts.rewardToken = contracts.celo;
       governanceTokenBalance = await contracts.minter.balanceOf(contracts.goodGhosting.address);
     }
+    const rewardTokenBalance = await contracts.rewardToken.balanceOf(contracts.goodGhosting.address);
+
     await expect(contracts.goodGhosting.connect(player1).withdraw(0))
       .to.emit(contracts.goodGhosting, "Withdrawal")
       .withArgs(
@@ -2060,6 +2088,7 @@ export const shouldBehaveLikePlayersWithdrawingFromGGPool = async (strategyType:
         false,
         false,
         false,
+        0,
         strategyType,
       );
     });
@@ -2117,6 +2146,7 @@ export const shouldBehaveLikeAdminWithdrawingFeesFromGGPoolWithFeePercentMoreTha
       false,
       false,
       false,
+      0,
       strategyType,
     );
   });
@@ -2192,12 +2222,14 @@ export const shouldBehaveLikeAdminWithdrawingFeesFromGGPoolWithFeePercentMoreTha
       await advanceToEndOfGame(contracts.goodGhosting, segmentLength, depositCount);
 
       await contracts.goodGhosting.redeemFromExternalPool(0);
-      const rewardTokenBalance = await contracts.rewardToken.balanceOf(contracts.goodGhosting.address);
       if (strategyType === "curve") {
         governanceTokenBalance = await contracts.curve.balanceOf(contracts.goodGhosting.address);
       } else if (strategyType === "mobius") {
+        contracts.rewardToken = contracts.celo;
         governanceTokenBalance = await contracts.minter.balanceOf(contracts.goodGhosting.address);
       }
+      const rewardTokenBalance = await contracts.rewardToken.balanceOf(contracts.goodGhosting.address);
+
       await expect(contracts.goodGhosting.adminFeeWithdraw())
         .to.emit(contracts.goodGhosting, "AdminWithdrawal")
         .withArgs(
@@ -2223,12 +2255,14 @@ export const shouldBehaveLikeAdminWithdrawingFeesFromGGPoolWithFeePercentMoreTha
       await advanceToEndOfGame(contracts.goodGhosting, segmentLength, depositCount);
 
       await contracts.goodGhosting.redeemFromExternalPool(0);
-      const rewardTokenBalance = await contracts.rewardToken.balanceOf(contracts.goodGhosting.address);
       if (strategyType === "curve") {
         governanceTokenBalance = await contracts.curve.balanceOf(contracts.goodGhosting.address);
       } else if (strategyType === "mobius") {
+        contracts.rewardToken = contracts.celo;
         governanceTokenBalance = await contracts.minter.balanceOf(contracts.goodGhosting.address);
       }
+      const rewardTokenBalance = await contracts.rewardToken.balanceOf(contracts.goodGhosting.address);
+
       const contractBalance = await contracts.inboundToken.balanceOf(contracts.goodGhosting.address);
       const totalGamePrincipal = await contracts.goodGhosting.totalGamePrincipal();
       const grossInterest = contractBalance.sub(totalGamePrincipal);
@@ -2291,12 +2325,14 @@ export const shouldBehaveLikeAdminWithdrawingFeesFromGGPoolWithFeePercentMoreTha
         await contracts.mobiPool.transfer(contracts.strategy.address, ethers.utils.parseEther("1000"));
       }
       await contracts.goodGhosting.redeemFromExternalPool(0);
-      const rewardTokenBalance = await contracts.rewardToken.balanceOf(contracts.goodGhosting.address);
       if (strategyType === "curve") {
         governanceTokenBalance = await contracts.curve.balanceOf(contracts.goodGhosting.address);
       } else if (strategyType === "mobius") {
+        contracts.rewardToken = contracts.celo;
         governanceTokenBalance = await contracts.minter.balanceOf(contracts.goodGhosting.address);
       }
+      const rewardTokenBalance = await contracts.rewardToken.balanceOf(contracts.goodGhosting.address);
+
       const contractBalance = await contracts.inboundToken.balanceOf(contracts.goodGhosting.address);
       const totalGamePrincipal = await contracts.goodGhosting.totalGamePrincipal();
       const grossInterest = contractBalance.sub(totalGamePrincipal);
@@ -2350,6 +2386,8 @@ export const shouldBehaveLikeAdminWithdrawingFeesFromGGPoolWithFeePercentMoreTha
         await contracts.curvePool.add_liquidity([ethers.utils.parseEther("1000"), "0", "0"], 0, true);
         await contracts.curvePool.transfer(contracts.strategy.address, ethers.utils.parseEther("1000"));
       } else if (strategyType === "mobius") {
+        contracts.rewardToken = contracts.celo;
+
         await contracts.inboundToken
           .connect(deployer)
           .approve(contracts.mobiPool.address, ethers.utils.parseEther("100000"));
@@ -2447,6 +2485,9 @@ export const shouldBehaveLikeAdminWithdrawingFeesFromGGPoolWithFeePercentMoreTha
       const grossInterest = contractBalance.sub(totalGamePrincipal);
       const regularAdminFee = grossInterest.mul(ethers.BigNumber.from(1)).div(ethers.BigNumber.from(100));
       // There's no winner, so admin takes it all
+      if (strategyType === "mobius") {
+        contracts.rewardToken = contracts.celo;
+      }
       let adminMaticBalanceBeforeWithdraw = await contracts.rewardToken.balanceOf(deployer.address);
 
       let adminMaticBalanceAfterWithdraw = await contracts.rewardToken.balanceOf(deployer.address);
@@ -2507,6 +2548,8 @@ export const shouldBehaveLikeAdminWithdrawingFeesFromGGPoolWithFeePercentMoreTha
         await contracts.curvePool.add_liquidity([ethers.utils.parseEther("1000"), "0", "0"], 0, true);
         await contracts.curvePool.transfer(contracts.strategy.address, ethers.utils.parseEther("1000"));
       } else if (strategyType === "mobius") {
+        contracts.rewardToken = contracts.celo;
+
         await contracts.inboundToken
           .connect(deployer)
           .approve(contracts.mobiPool.address, ethers.utils.parseEther("100000"));
@@ -2580,6 +2623,8 @@ export const shouldBehaveLikeAdminWithdrawingFeesFromGGPoolWithFeePercentMoreTha
         await contracts.curvePool.add_liquidity([ethers.utils.parseEther("1000"), "0", "0"], 0, true);
         await contracts.curvePool.transfer(contracts.strategy.address, ethers.utils.parseEther("1000"));
       } else if (strategyType === "mobius") {
+        contracts.rewardToken = contracts.celo;
+
         await contracts.inboundToken
           .connect(deployer)
           .approve(contracts.mobiPool.address, ethers.utils.parseEther("100000"));
@@ -2626,6 +2671,7 @@ export const shouldBehaveLikeAdminWithdrawingFeesFromGGPoolWithFeePercentis0 = a
       false,
       false,
       false,
+      0,
       strategyType,
     );
   });
@@ -2690,6 +2736,7 @@ export const shouldBehaveLikeVariableDepositPool = async (strategyType: string) 
       true,
       false,
       false,
+      0,
       strategyType,
     );
   });
@@ -2763,6 +2810,8 @@ export const shouldBehaveLikeVariableDepositPool = async (strategyType: string) 
       await contracts.curvePool.add_liquidity([ethers.utils.parseEther("1000"), "0", "0"], 0, true);
       await contracts.curvePool.transfer(contracts.strategy.address, ethers.utils.parseEther("1000"));
     } else if (strategyType === "mobius") {
+      contracts.rewardToken = contracts.celo;
+
       await contracts.inboundToken
         .connect(deployer)
         .approve(contracts.mobiPool.address, ethers.utils.parseEther("100000"));
@@ -2879,6 +2928,8 @@ export const shouldBehaveLikeVariableDepositPool = async (strategyType: string) 
       await contracts.curvePool.add_liquidity([ethers.utils.parseEther("1000"), "0", "0"], 0, true);
       await contracts.curvePool.transfer(contracts.strategy.address, ethers.utils.parseEther("1000"));
     } else if (strategyType === "mobius") {
+      contracts.rewardToken = contracts.celo;
+
       await contracts.inboundToken
         .connect(deployer)
         .approve(contracts.mobiPool.address, ethers.utils.parseEther("100000"));
@@ -2926,6 +2977,9 @@ export const shouldBehaveLikeVariableDepositPool = async (strategyType: string) 
     } else if (strategyType === "mobius") {
       governanceTokenBalance = await contracts.minter.balanceOf(contracts.goodGhosting.address);
     }
+    const player1GovernanceRewardShare = ethers.BigNumber.from(governanceTokenBalance)
+      .mul(player1Share)
+      .div(ethers.BigNumber.from(100));
 
     await expect(contracts.goodGhosting.connect(player1).withdraw(0))
       .to.emit(contracts.goodGhosting, "Withdrawal")
@@ -2934,7 +2988,7 @@ export const shouldBehaveLikeVariableDepositPool = async (strategyType: string) 
         player1Deposit.add(player1ShareAmount),
         ethers.BigNumber.from(0),
         player1RewardShare,
-        governanceTokenBalance,
+        player1GovernanceRewardShare,
       );
 
     let player2Share = ethers.BigNumber.from(cummalativePlayer2IndexBeforeWithdraw)
@@ -2944,7 +2998,9 @@ export const shouldBehaveLikeVariableDepositPool = async (strategyType: string) 
     const player2RewardShare = ethers.BigNumber.from(rewardTokenBalance)
       .mul(player2Share)
       .div(ethers.BigNumber.from(100));
-
+    const player2GovernanceRewardShare = ethers.BigNumber.from(governanceTokenBalance)
+      .mul(player2Share)
+      .div(ethers.BigNumber.from(100));
     const player2Deposit = ethers.BigNumber.from(player2Info.amountPaid);
     await expect(contracts.goodGhosting.connect(player2).withdraw(0))
       .to.emit(contracts.goodGhosting, "Withdrawal")
@@ -2953,7 +3009,7 @@ export const shouldBehaveLikeVariableDepositPool = async (strategyType: string) 
         player2Deposit.add(player2ShareAmount),
         ethers.BigNumber.from(0),
         player2RewardShare,
-        governanceTokenBalance,
+        player2GovernanceRewardShare,
       );
   });
 
@@ -3011,6 +3067,7 @@ export const shouldBehaveLikeGGPoolWithTransactionalToken = async (strategyType:
       false,
       true,
       false,
+      0,
       strategyType,
     );
   });
@@ -3030,6 +3087,7 @@ export const shouldBehaveLikeGGPoolWithTransactionalToken = async (strategyType:
         false,
         true,
         false,
+        0,
         strategyType,
       ),
     ).to.be.revertedWith("invalid _inboundCurrency address");
@@ -3192,6 +3250,7 @@ export const shouldBehaveLikeGGPoolWithSameTokenAddresses = async (strategyType:
       false,
       false,
       true,
+      0,
       strategyType,
     );
     const accounts = await ethers.getSigners();
@@ -3279,3 +3338,5 @@ export const shouldBehaveLikeGGPoolWithSameTokenAddresses = async (strategyType:
     assert(rewardTokenBalanceAfterWithdraw.gt(rewardTokenBalanceBeforeWithdraw));
   });
 };
+
+export const shouldBehaveLikeGGPoolGeneratingYieldFromAtricryptoPool = async (strategyType: string) => {};

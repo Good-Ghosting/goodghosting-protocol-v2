@@ -44,6 +44,7 @@ describe("Pool using Curve Strategy", () => {
       false,
       false,
       false,
+      0,
       "curve",
     );
   });
@@ -81,6 +82,6 @@ describe("Pool using Curve Strategy", () => {
   });
 
   describe("players participate in a variable amount deposit pool", async () => {
-    await shouldBehaveLikeVariableDepositPool("aave");
+    await shouldBehaveLikeVariableDepositPool("curve");
   });
 });

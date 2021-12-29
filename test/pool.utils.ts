@@ -38,6 +38,7 @@ export const deployPool = async (
   isVariableAmount: boolean,
   isTransactionalToken: boolean,
   isSameAsRewardToken: boolean,
+  curvePoolType: number,
   strategyType: string,
 ) => {
   const [deployer, , player1, player2] = await ethers.getSigners();
@@ -113,7 +114,7 @@ export const deployPool = async (
       strategy = await curveStrategyDeployer.deploy(
         curvePool.address,
         0,
-        0,
+        curvePoolType,
         curveGauge.address,
         rewardToken.address,
         curve.address,
@@ -199,6 +200,7 @@ export const deployPool = async (
     mobiPool,
     mobiGauge,
     minter,
+    celo,
   };
 };
 
