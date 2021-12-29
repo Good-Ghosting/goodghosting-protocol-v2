@@ -3136,6 +3136,45 @@ export const shouldBehaveLikeGGPoolWithTransactionalToken = async (strategyType:
       .to.emit(contracts.goodGhosting, "EarlyWithdrawal")
       .withArgs(player1.address, playerInfo.amountPaid.sub(feeAmount), ethers.BigNumber.from(0));
   });
+
+  it("admin is able to withdraw rewards, when there are no winners in the pool", async () => {
+    const accounts = await ethers.getSigners();
+    const deployer = accounts[0];
+    const player1 = accounts[2];
+    const player2 = accounts[3];
+    await joinGame(contracts.goodGhosting, contracts.inboundToken, player2, segmentPayment, segmentPayment);
+    await joinGame(contracts.goodGhosting, contracts.inboundToken, player1, segmentPayment, segmentPayment);
+
+    for (let index = 1; index < depositCount - 1; index++) {
+      await ethers.provider.send("evm_increaseTime", [segmentLength]);
+      await ethers.provider.send("evm_mine", []);
+      await makeDeposit(contracts.goodGhosting, contracts.inboundToken, player2, segmentPayment, segmentPayment);
+      await makeDeposit(contracts.goodGhosting, contracts.inboundToken, player1, segmentPayment, segmentPayment);
+    }
+    // above, it accounted for 1st deposit window, and then the loop runs till depositCount - 1.
+    // now, we move 2 more segments (depositCount-1 and depositCount) to complete the game.
+    await ethers.provider.send("evm_increaseTime", [segmentLength * 2]);
+    await ethers.provider.send("evm_mine", []);
+    const waitingRoundLength = await contracts.goodGhosting.waitingRoundSegmentLength();
+    await ethers.provider.send("evm_increaseTime", [parseInt(waitingRoundLength.toString())]);
+    await ethers.provider.send("evm_mine", []);
+    // generating mock interest
+    await deployer.sendTransaction({
+      from: deployer.address,
+      to: contracts.goodGhosting.address,
+      value: ethers.utils.parseEther("25"),
+    });
+    await contracts.goodGhosting.connect(player1).redeemFromExternalPool(0);
+    const rewardTokenBalanceBeforeWithdraw = await contracts.rewardToken.balanceOf(deployer.address);
+    const transactionalTokenBalanceBeforeWithdraw = await ethers.provider.getBalance(deployer.address);
+    await contracts.goodGhosting.adminFeeWithdraw();
+
+    const transactionalTokenBalanceAfterWithdraw = await ethers.provider.getBalance(deployer.address);
+    const rewardTokenBalanceAfterWithdraw = await contracts.rewardToken.balanceOf(deployer.address);
+
+    assert(rewardTokenBalanceAfterWithdraw.gt(rewardTokenBalanceBeforeWithdraw));
+    assert(transactionalTokenBalanceAfterWithdraw.gt(transactionalTokenBalanceBeforeWithdraw));
+  });
 };
 
 export const shouldBehaveLikeGGPoolWithSameTokenAddresses = async (strategyType: string) => {
