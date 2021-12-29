@@ -37,6 +37,7 @@ export const deployPool = async (
   isInvestmentStrategy: boolean,
   isVariableAmount: boolean,
   isTransactionalToken: boolean,
+  isSameAsRewardToken: boolean,
   strategyType: string,
 ) => {
   const [deployer, , player1, player2] = await ethers.getSigners();
@@ -160,6 +161,9 @@ export const deployPool = async (
     ),
   ).to.be.revertedWith("_waitingRoundSegmentLength must be more than _segmentLength");
 
+  if (isSameAsRewardToken) {
+    inboundToken = rewardToken;
+  }
   const goodGhosting = await goodGhostingV2Deployer.deploy(
     isInboundToken ? inboundToken.address : inboundToken,
     depositCount,

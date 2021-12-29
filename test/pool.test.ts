@@ -16,6 +16,7 @@ import {
   shouldBehaveLikeAdminWithdrawingFeesFromGGPoolWithFeePercentMoreThan0,
   shouldBehaveLikeAdminWithdrawingFeesFromGGPoolWithFeePercentis0,
   shouldBehaveLikeGGPoolWithTransactionalToken,
+  shouldBehaveLikeGGPoolWithSameTokenAddresses,
 } from "./pool.behavior";
 
 chai.use(solidity);
@@ -47,6 +48,7 @@ describe("Pool using Aave strategy", () => {
       true,
       false,
       false,
+      false,
       "aave",
     );
   });
@@ -70,6 +72,7 @@ describe("Pool using Aave strategy", () => {
         true,
         false,
         true,
+        false,
         false,
         false,
         "aave",
@@ -104,6 +107,7 @@ describe("Pool using Aave strategy", () => {
         true,
         false,
         true,
+        false,
         false,
         false,
         "aave",
@@ -141,6 +145,7 @@ describe("Pool using Aave strategy", () => {
         true,
         false,
         false,
+        false,
         "aave",
       );
       const accounts = await ethers.getSigners();
@@ -173,6 +178,7 @@ describe("Pool using Aave strategy", () => {
         true,
         false,
         true,
+        false,
         false,
         false,
         "aave",
@@ -220,5 +226,9 @@ describe("Pool using Aave strategy", () => {
 
   describe("player participate in a pool with a transactional token as a deposit asset", async () => {
     await shouldBehaveLikeGGPoolWithTransactionalToken("aave");
+  });
+
+  describe("pool where deposit tokens is same as reward/governance token or both", async () => {
+    await shouldBehaveLikeGGPoolWithSameTokenAddresses("aave");
   });
 });
