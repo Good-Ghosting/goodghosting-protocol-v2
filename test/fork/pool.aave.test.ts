@@ -11,7 +11,6 @@ chai.use(solidity);
 const { expect } = chai;
 
 // dai holder
-let impersonateAddress;
 let impersonatedSigner: any;
 let daiInstance: any, wmaticInstance;
 let accounts: any[];
@@ -41,7 +40,7 @@ describe("Pool Aave/Moola Fork Tests", () => {
     accounts = await ethers.getSigners();
     let lendingPoolAddressProviderInstance: any, dataProviderInstance: any, incentiveControllerInstance: any;
 
-    impersonateAddress = "0x2DdA8dc2f67f1eB94b250CaEFAc9De16f70c5A51";
+    const impersonateAddress = process.env.DAI_ACCOUNT_HOLDER_FORKED_NETWORK;
     // Impersonate as another address
     await network.provider.request({
       method: "hardhat_impersonateAccount",
