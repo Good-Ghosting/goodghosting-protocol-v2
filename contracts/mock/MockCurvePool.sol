@@ -12,6 +12,7 @@ contract MockCurvePool is MintableERC20 {
         IERC20 _reserve
     ) MintableERC20(name, symbol) {
         reserve = _reserve;
+        _mint(msg.sender, 1000 ether);
     }
 
     function add_liquidity(
@@ -40,7 +41,7 @@ contract MockCurvePool is MintableERC20 {
         if (_min_amount == 900000000000000000) {
             IERC20(reserve).transfer(msg.sender, 6000000000000000000);
         } else {
-            IERC20(reserve).transfer(msg.sender, _token_amount);
+            IERC20(reserve).transfer(msg.sender, IERC20(reserve).balanceOf(address(this)));
         }
     }
 

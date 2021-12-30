@@ -2,7 +2,6 @@ const { ethers } = require("hardhat");
 import * as chai from "chai";
 import { assert } from "chai";
 import { solidity } from "ethereum-waffle";
-import { ContractType } from "hardhat/internal/hardhat-network/stack-traces/model";
 import { ERC20__factory } from "../src/types";
 import {
   mintTokens,
@@ -1123,6 +1122,39 @@ export const shouldBehaveLikeEarlyWithdrawingGGPool = async (strategyType: strin
     }
   });
 
+  if (strategyType === "curve" || strategyType === "mobius") {
+    it("user is able to do an early withdraw if there is an impermanent loss", async () => {
+      const accounts = await ethers.getSigners();
+      const player1 = accounts[2];
+      const player2 = accounts[3];
+
+      await joinGame(contracts.goodGhosting, contracts.inboundToken, player1, segmentPayment, segmentPayment);
+      await joinGame(contracts.goodGhosting, contracts.inboundToken, player2, segmentPayment, segmentPayment);
+
+      // The payment for the first segment was done upon joining, so we start counting from segment 2 (index 1)
+      for (let index = 1; index < depositCount; index++) {
+        await ethers.provider.send("evm_increaseTime", [segmentLength]);
+        await ethers.provider.send("evm_mine", []);
+        await approveToken(contracts.inboundToken, player1, contracts.goodGhosting.address, segmentPayment);
+        await contracts.goodGhosting.connect(player1).makeDeposit(0, segmentPayment);
+        // protocol deposit of the prev. deposit
+        await approveToken(contracts.inboundToken, player2, contracts.goodGhosting.address, segmentPayment);
+        await contracts.goodGhosting.connect(player2).makeDeposit(0, segmentPayment);
+      }
+      const player1Info = await contracts.goodGhosting.players(player1.address);
+
+      const feeAmount = player1Info.amountPaid.mul(ethers.BigNumber.from(1)).div(ethers.BigNumber.from(100));
+      const impermanentLossShareFromContract = await contracts.goodGhosting.impermanentLossShare();
+      const player1BeforeWithdrawBalance = await contracts.inboundToken.balanceOf(player1.address);
+
+      const player2BeforeWithdrawBalance = await contracts.inboundToken.balanceOf(player2.address);
+      const player2Info = await contracts.goodGhosting.players(player2.address);
+      await expect(contracts.goodGhosting.connect(player1).earlyWithdraw("900000000000000000"))
+        .to.emit(contracts.goodGhosting, "EarlyWithdrawal")
+        .withArgs(player1.address, player1Info.amountPaid.sub(feeAmount), player2Info.amountPaid);
+    });
+  }
+
   it("user is able to withdraw in the last segment when 2 players join the game and one of them early withdraws when the segment amount is less than withdraw amount", async () => {
     const accounts = await ethers.getSigners();
     const player1 = accounts[2];
@@ -1332,9 +1364,9 @@ export const shouldBehaveLikeRedeemingFromGGPool = async (strategyType: string) 
       await contracts.inboundToken
         .connect(deployer)
         .approve(contracts.curvePool.address, ethers.utils.parseEther("100000"));
-      await contracts.curvePool.connect(deployer).add_liquidity([ethers.utils.parseEther("1000"), "0", "0"], 0, true);
+      const poolTokenBalance = await contracts.curvePool.balanceOf(deployer.address);
 
-      await contracts.curvePool.transfer(contracts.strategy.address, ethers.utils.parseEther("1000"));
+      await contracts.curvePool.connect(deployer).transfer(contracts.strategy.address, poolTokenBalance.toString());
     } else if (strategyType === "mobius") {
       contracts.rewardToken = contracts.celo;
       await contracts.inboundToken
@@ -1344,8 +1376,8 @@ export const shouldBehaveLikeRedeemingFromGGPool = async (strategyType: string) 
 
       await contracts.mobiPool.transfer(contracts.strategy.address, ethers.utils.parseEther("1000"));
     }
-
     const result = await contracts.goodGhosting.redeemFromExternalPool(0);
+
     if (strategyType === "curve") {
       governanceTokenRewards = await contracts.curve.balanceOf(contracts.goodGhosting.address);
     } else if (strategyType === "mobius") {
@@ -1401,8 +1433,9 @@ export const shouldBehaveLikeRedeemingFromGGPool = async (strategyType: string) 
       await contracts.inboundToken
         .connect(deployer)
         .approve(contracts.curvePool.address, ethers.utils.parseEther("100000"));
-      await contracts.curvePool.add_liquidity([ethers.utils.parseEther("1000"), "0", "0"], 0, true);
-      await contracts.curvePool.transfer(contracts.strategy.address, ethers.utils.parseEther("1000"));
+      const poolTokenBalance = await contracts.curvePool.balanceOf(deployer.address);
+
+      await contracts.curvePool.connect(deployer).transfer(contracts.strategy.address, poolTokenBalance.toString());
     } else if (strategyType === "mobius") {
       await contracts.inboundToken
         .connect(deployer)
@@ -1470,8 +1503,9 @@ export const shouldBehaveLikeRedeemingFromGGPool = async (strategyType: string) 
       await contracts.inboundToken
         .connect(deployer)
         .approve(contracts.curvePool.address, ethers.utils.parseEther("100000"));
-      await contracts.curvePool.add_liquidity([ethers.utils.parseEther("1000"), "0", "0"], 0, true);
-      await contracts.curvePool.transfer(contracts.strategy.address, ethers.utils.parseEther("1000"));
+      const poolTokenBalance = await contracts.curvePool.balanceOf(deployer.address);
+
+      await contracts.curvePool.connect(deployer).transfer(contracts.strategy.address, poolTokenBalance.toString());
     } else if (strategyType === "mobius") {
       await contracts.inboundToken
         .connect(deployer)
@@ -1517,8 +1551,9 @@ export const shouldBehaveLikeRedeemingFromGGPool = async (strategyType: string) 
       await contracts.inboundToken
         .connect(deployer)
         .approve(contracts.curvePool.address, ethers.utils.parseEther("100000"));
-      await contracts.curvePool.add_liquidity([ethers.utils.parseEther("1000"), "0", "0"], 0, true);
-      await contracts.curvePool.transfer(contracts.strategy.address, ethers.utils.parseEther("1000"));
+      const poolTokenBalance = await contracts.curvePool.balanceOf(deployer.address);
+
+      await contracts.curvePool.connect(deployer).transfer(contracts.strategy.address, poolTokenBalance.toString());
     } else if (strategyType === "mobius") {
       await contracts.inboundToken
         .connect(deployer)
@@ -1765,8 +1800,9 @@ export const shouldBehaveLikePlayersWithdrawingFromGGPool = async (strategyType:
       await contracts.inboundToken
         .connect(deployer)
         .approve(contracts.curvePool.address, ethers.utils.parseEther("100000"));
-      await contracts.curvePool.add_liquidity([ethers.utils.parseEther("1000"), "0", "0"], 0, true);
-      await contracts.curvePool.transfer(contracts.strategy.address, ethers.utils.parseEther("1000"));
+      const poolTokenBalance = await contracts.curvePool.balanceOf(deployer.address);
+
+      await contracts.curvePool.connect(deployer).transfer(contracts.strategy.address, poolTokenBalance.toString());
     } else if (strategyType === "mobius") {
       contracts.rewardToken = contracts.celo;
 
@@ -1913,8 +1949,9 @@ export const shouldBehaveLikePlayersWithdrawingFromGGPool = async (strategyType:
       await contracts.inboundToken
         .connect(deployer)
         .approve(contracts.curvePool.address, ethers.utils.parseEther("100000"));
-      await contracts.curvePool.add_liquidity([ethers.utils.parseEther("1000"), "0", "0"], 0, true);
-      await contracts.curvePool.transfer(contracts.strategy.address, ethers.utils.parseEther("1000"));
+      const poolTokenBalance = await contracts.curvePool.balanceOf(deployer.address);
+
+      await contracts.curvePool.connect(deployer).transfer(contracts.strategy.address, poolTokenBalance.toString());
     } else if (strategyType === "mobius") {
       await contracts.inboundToken
         .connect(deployer)
@@ -1935,7 +1972,7 @@ export const shouldBehaveLikePlayersWithdrawingFromGGPool = async (strategyType:
     const player2WithdrawAmount = player2PostWithdrawBalance.sub(player2BeforeWithdrawBalance);
 
     // both players are winners, but player 2 made deposits before player 1 so it gets slightly higher interest.
-    assert(player2WithdrawAmount.gt(player1WithdrawAmount));
+    assert(player2WithdrawAmount.gte(player1WithdrawAmount));
   });
 
   it("emits Withdrawal event when user withdraws", async () => {
@@ -1968,8 +2005,9 @@ export const shouldBehaveLikePlayersWithdrawingFromGGPool = async (strategyType:
       await contracts.inboundToken
         .connect(deployer)
         .approve(contracts.curvePool.address, ethers.utils.parseEther("100000"));
-      await contracts.curvePool.add_liquidity([ethers.utils.parseEther("1000"), "0", "0"], 0, true);
-      await contracts.curvePool.transfer(contracts.strategy.address, ethers.utils.parseEther("1000"));
+      const poolTokenBalance = await contracts.curvePool.balanceOf(deployer.address);
+
+      await contracts.curvePool.connect(deployer).transfer(contracts.strategy.address, poolTokenBalance.toString());
     } else if (strategyType === "mobius") {
       await contracts.inboundToken
         .connect(deployer)
@@ -2197,8 +2235,9 @@ export const shouldBehaveLikeAdminWithdrawingFeesFromGGPoolWithFeePercentMoreTha
       await contracts.inboundToken
         .connect(deployer)
         .approve(contracts.curvePool.address, ethers.utils.parseEther("100000"));
-      await contracts.curvePool.add_liquidity([ethers.utils.parseEther("1000"), "0", "0"], 0, true);
-      await contracts.curvePool.transfer(contracts.strategy.address, ethers.utils.parseEther("1000"));
+      const poolTokenBalance = await contracts.curvePool.balanceOf(deployer.address);
+
+      await contracts.curvePool.connect(deployer).transfer(contracts.strategy.address, poolTokenBalance.toString());
     } else if (strategyType === "mobius") {
       await contracts.inboundToken
         .connect(deployer)
@@ -2314,8 +2353,9 @@ export const shouldBehaveLikeAdminWithdrawingFeesFromGGPoolWithFeePercentMoreTha
         await contracts.inboundToken
           .connect(deployer)
           .approve(contracts.curvePool.address, ethers.utils.parseEther("100000"));
-        await contracts.curvePool.add_liquidity([ethers.utils.parseEther("1000"), "0", "0"], 0, true);
-        await contracts.curvePool.transfer(contracts.strategy.address, ethers.utils.parseEther("1000"));
+        const poolTokenBalance = await contracts.curvePool.balanceOf(deployer.address);
+
+        await contracts.curvePool.connect(deployer).transfer(contracts.strategy.address, poolTokenBalance.toString());
       } else if (strategyType === "mobius") {
         await contracts.inboundToken
           .connect(deployer)
@@ -2383,8 +2423,9 @@ export const shouldBehaveLikeAdminWithdrawingFeesFromGGPoolWithFeePercentMoreTha
         await contracts.inboundToken
           .connect(deployer)
           .approve(contracts.curvePool.address, ethers.utils.parseEther("100000"));
-        await contracts.curvePool.add_liquidity([ethers.utils.parseEther("1000"), "0", "0"], 0, true);
-        await contracts.curvePool.transfer(contracts.strategy.address, ethers.utils.parseEther("1000"));
+        const poolTokenBalance = await contracts.curvePool.balanceOf(deployer.address);
+
+        await contracts.curvePool.connect(deployer).transfer(contracts.strategy.address, poolTokenBalance.toString());
       } else if (strategyType === "mobius") {
         contracts.rewardToken = contracts.celo;
 
@@ -2545,8 +2586,9 @@ export const shouldBehaveLikeAdminWithdrawingFeesFromGGPoolWithFeePercentMoreTha
         await contracts.inboundToken
           .connect(deployer)
           .approve(contracts.curvePool.address, ethers.utils.parseEther("100000"));
-        await contracts.curvePool.add_liquidity([ethers.utils.parseEther("1000"), "0", "0"], 0, true);
-        await contracts.curvePool.transfer(contracts.strategy.address, ethers.utils.parseEther("1000"));
+        const poolTokenBalance = await contracts.curvePool.balanceOf(deployer.address);
+
+        await contracts.curvePool.connect(deployer).transfer(contracts.strategy.address, poolTokenBalance.toString());
       } else if (strategyType === "mobius") {
         contracts.rewardToken = contracts.celo;
 
@@ -2620,8 +2662,9 @@ export const shouldBehaveLikeAdminWithdrawingFeesFromGGPoolWithFeePercentMoreTha
         await contracts.inboundToken
           .connect(deployer)
           .approve(contracts.curvePool.address, ethers.utils.parseEther("100000"));
-        await contracts.curvePool.add_liquidity([ethers.utils.parseEther("1000"), "0", "0"], 0, true);
-        await contracts.curvePool.transfer(contracts.strategy.address, ethers.utils.parseEther("1000"));
+        const poolTokenBalance = await contracts.curvePool.balanceOf(deployer.address);
+
+        await contracts.curvePool.connect(deployer).transfer(contracts.strategy.address, poolTokenBalance.toString());
       } else if (strategyType === "mobius") {
         contracts.rewardToken = contracts.celo;
 
@@ -2807,8 +2850,9 @@ export const shouldBehaveLikeVariableDepositPool = async (strategyType: string) 
       await contracts.inboundToken
         .connect(deployer)
         .approve(contracts.curvePool.address, ethers.utils.parseEther("100000"));
-      await contracts.curvePool.add_liquidity([ethers.utils.parseEther("1000"), "0", "0"], 0, true);
-      await contracts.curvePool.transfer(contracts.strategy.address, ethers.utils.parseEther("1000"));
+      const poolTokenBalance = await contracts.curvePool.balanceOf(deployer.address);
+
+      await contracts.curvePool.connect(deployer).transfer(contracts.strategy.address, poolTokenBalance.toString());
     } else if (strategyType === "mobius") {
       contracts.rewardToken = contracts.celo;
 
@@ -2925,8 +2969,9 @@ export const shouldBehaveLikeVariableDepositPool = async (strategyType: string) 
       await contracts.inboundToken
         .connect(deployer)
         .approve(contracts.curvePool.address, ethers.utils.parseEther("100000"));
-      await contracts.curvePool.add_liquidity([ethers.utils.parseEther("1000"), "0", "0"], 0, true);
-      await contracts.curvePool.transfer(contracts.strategy.address, ethers.utils.parseEther("1000"));
+      const poolTokenBalance = await contracts.curvePool.balanceOf(deployer.address);
+
+      await contracts.curvePool.connect(deployer).transfer(contracts.strategy.address, poolTokenBalance.toString());
     } else if (strategyType === "mobius") {
       contracts.rewardToken = contracts.celo;
 

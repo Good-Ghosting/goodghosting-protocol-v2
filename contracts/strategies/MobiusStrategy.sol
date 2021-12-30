@@ -85,6 +85,11 @@ contract MobiusStrategy is Ownable, IStrategy {
 
             pool.removeLiquidityOneToken(poolWithdrawAmount, 0, _minAmount, block.timestamp + 1000);
         }
+
+        // check for impermanent loss
+        if (IERC20(_inboundCurrency).balanceOf(address(this)) < _amount) {
+            _amount = IERC20(_inboundCurrency).balanceOf(address(this));
+        }
         // msg.sender will always be the pool contract (new owner)
         require(
             IERC20(_inboundCurrency).transfer(msg.sender, IERC20(_inboundCurrency).balanceOf(address(this))),
