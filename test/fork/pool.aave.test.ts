@@ -64,6 +64,7 @@ describe("Aave Pool Fork Tests", () => {
     strategy = await ethers.getContractFactory("AaveStrategy", accounts[0]);
     strategy = await strategy.deploy(
       lendingPoolAddressProviderInstance.address,
+      providers["aave"]["polygon"].wethGateway,
       dataProviderInstance.address,
       incentiveControllerInstance.address,
       wmaticInstance.address,
@@ -82,6 +83,7 @@ describe("Aave Pool Fork Tests", () => {
       deployConfigs.flexibleSegmentPayment,
       providers["aave"]["polygon"].incentiveToken,
       strategy.address,
+      false,
     );
 
     await strategy.connect(accounts[0]).transferOwnership(pool.address);
@@ -152,11 +154,31 @@ describe("Aave Pool Fork Tests", () => {
 
   it("funds are redeemed from the pool", async () => {
     await pool.redeemFromExternalPool(0);
+    const inboundTokenBalance = await daiInstance.balanceOf(pool.address);
+    console.log("inboundTokenBalance", inboundTokenBalance.toString());
+    const totalPrincipal = await pool.totalGamePrincipal();
+    console.log("totalPrincipal", totalPrincipal.toString());
+
+    const totalInterest = await pool.totalGameInterest();
+    console.log("totalInterest", totalInterest.toString());
+
+    assert(inboundTokenBalance.gt(totalPrincipal));
+    assert(totalInterest.gt(ethers.BigNumber.from(0)));
   });
 
   it("players are able to withdraw from the pool", async () => {
     for (let j = 1; j < 5; j++) {
+      const inboundTokenBalanceBeforeWithdraw = await daiInstance.balanceOf(accounts[j].address);
       await pool.connect(accounts[j]).withdraw(0);
+      const inboundTokenBalanceAfterWithdraw = await daiInstance.balanceOf(accounts[j].address);
+      assert(inboundTokenBalanceAfterWithdraw.gt(inboundTokenBalanceBeforeWithdraw));
     }
+  });
+
+  it("admin is able to withdraw from the pool", async () => {
+    const inboundTokenBalanceBeforeWithdraw = await daiInstance.balanceOf(accounts[0].address);
+    await pool.connect(accounts[0]).adminFeeWithdraw();
+    const inboundTokenBalanceAfterWithdraw = await daiInstance.balanceOf(accounts[0].address);
+    assert(inboundTokenBalanceAfterWithdraw.gt(inboundTokenBalanceBeforeWithdraw));
   });
 });

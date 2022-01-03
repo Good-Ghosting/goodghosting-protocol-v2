@@ -84,6 +84,7 @@ describe("Curve Pool Fork Tests", () => {
       deployConfigs.flexibleSegmentPayment,
       providers["aave"]["polygon"].incentiveToken,
       strategy.address,
+      false,
     );
 
     await strategy.connect(accounts[0]).transferOwnership(pool.address);

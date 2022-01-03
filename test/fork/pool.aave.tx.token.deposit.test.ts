@@ -144,11 +144,31 @@ describe("Aave Pool Fork Tests with the deposit token as transsactional token", 
 
   it("funds are redeemed from the pool", async () => {
     await pool.redeemFromExternalPool(0);
+    const inboundTokenBalance = await ethers.provider.getBalance(pool.address);
+    console.log("inboundTokenBalance", inboundTokenBalance.toString());
+    const totalPrincipal = await pool.totalGamePrincipal();
+    console.log("totalPrincipal", totalPrincipal.toString());
+
+    const totalInterest = await pool.totalGameInterest();
+    console.log("totalInterest", totalInterest.toString());
+
+    assert(inboundTokenBalance.gt(totalPrincipal));
+    assert(totalInterest.gt(ethers.BigNumber.from(0)));
   });
 
   it("players are able to withdraw from the pool", async () => {
     for (let j = 1; j < 5; j++) {
+      const inboundTokenBalanceBeforeWithdraw = await ethers.provider.getBalance(accounts[j].address);
       await pool.connect(accounts[j]).withdraw(0);
+      const inboundTokenBalanceAfterWithdraw = await ethers.provider.getBalance(accounts[j].address);
+      assert(inboundTokenBalanceAfterWithdraw.gt(inboundTokenBalanceBeforeWithdraw));
     }
+  });
+
+  it("admin is able to withdraw from the pool", async () => {
+    const inboundTokenBalanceBeforeWithdraw = await ethers.provider.getBalance(accounts[0].address);
+    await pool.connect(accounts[0]).adminFeeWithdraw();
+    const inboundTokenBalanceAfterWithdraw = await ethers.provider.getBalance(accounts[0].address);
+    assert(inboundTokenBalanceAfterWithdraw.gt(inboundTokenBalanceBeforeWithdraw));
   });
 });
