@@ -15,14 +15,7 @@ let impersonatedSigner: any;
 let daiInstance: any, wmaticInstance;
 let accounts: any[];
 let pool: any, strategy: any;
-const {
-  depositCount,
-  segmentLength,
-  segmentPayment: segmentPaymentInt,
-  waitingRoundSegmentLength,
-  earlyWithdrawFee,
-  maxPlayersCount,
-} = deployConfigs;
+const { depositCount, segmentLength, segmentPayment: segmentPaymentInt, earlyWithdrawFee } = deployConfigs;
 
 const daiDecimals = ethers.BigNumber.from("1000000000000000000");
 const segmentPayment = daiDecimals.mul(ethers.BigNumber.from(segmentPaymentInt)); // equivalent to 10 Inbound Token
@@ -108,27 +101,6 @@ describe("Aave Pool Fork Tests", () => {
       expect(playerBalance.eq(ethers.utils.parseEther("200")));
     }
   });
-
-  // it("checks if the contract's variables were properly initialized", async () => {
-  //   const inboundCurrencyResult = await pool.inboundToken();
-  //   const lastSegmentResult = await pool.lastSegment();
-  //   const segmentLengthResult = await pool.segmentLength();
-  //   const flexibleDepositFlag = await pool.flexibleSegmentPayment();
-  //   const segmentPaymentResult = await pool.segmentPayment();
-  //   const waitingSegmentLength = await pool.waitingRoundSegmentLength();
-  //   const expectedSegment = ethers.BigNumber.from(0);
-  //   const currentSegmentResult = await pool.getCurrentSegment();
-  //   const maxPlayersCountResult = await pool.maxPlayersCount();
-
-  //   expect(segmentPaymentResult.eq(segmentPayment));
-  //   expect(!flexibleDepositFlag);
-  //   expect(lastSegmentResult.eq(depositCount));
-  //   expect(waitingSegmentLength.eq(waitingRoundSegmentLength));
-  //   expect(currentSegmentResult.eq(expectedSegment));
-  //   expect(maxPlayersCountResult.eq(maxPlayersCount));
-  //   expect(segmentLengthResult.eq(segmentLength));
-  //   expect(inboundCurrencyResult == daiInstance.address);
-  // });
 
   it("players are able to approve inbound token and join the pool", async () => {
     for (let i = 0; i < 5; i++) {

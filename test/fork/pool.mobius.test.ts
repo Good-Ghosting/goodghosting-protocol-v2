@@ -70,51 +70,6 @@ contract("Pool with Mobius Strategy", accounts => {
       }
     });
 
-    // it("checks if the contract's variables were properly initialized", async () => {
-    //     const inboundCurrencyResult = await goodGhosting.daiToken.call();
-    //     const lastSegmentResult = await goodGhosting.lastSegment.call();
-    //     const segmentLengthResult = await goodGhosting.segmentLength.call();
-    //     const segmentPaymentResult = await goodGhosting.segmentPayment.call();
-    //     const expectedSegment = web3.utils.toBN(0);
-    //     const currentSegmentResult = await goodGhosting.getCurrentSegment.call();
-    //     const maxPlayersCountResult = await goodGhosting.maxPlayersCount.call();
-    //     assert(
-    //         inboundCurrencyResult === token.options.address,
-    //         `Inbound currency doesn't match. expected ${token.options.address}; got ${inboundCurrencyResult}`
-    //     );
-    //     if (process.env.NETWORK !== "local-polygon-vigil-fork-curve") {
-    //         const lendingPoolAddressProviderResult = await goodGhosting.lendingPoolAddressProvider.call();
-
-    //         assert(
-    //             lendingPoolAddressProviderResult ===
-    //             providersConfigs.lendingPoolAddressProvider,
-    //             `LendingPoolAddressesProvider doesn't match. expected ${providersConfigs.dataProvider}; got ${lendingPoolAddressProviderResult}`
-    //         );
-    //     }
-
-    //     assert(
-    //         web3.utils.toBN(lastSegmentResult).eq(web3.utils.toBN(depositCount)),
-    //         `LastSegment info doesn't match. expected ${depositCount}; got ${lastSegmentResult}`
-    //     );
-    //     assert(
-    //         web3.utils.toBN(segmentLengthResult).eq(web3.utils.toBN(segmentLength)),
-    //         `SegmentLength doesn't match. expected ${segmentLength}; got ${segmentLengthResult}`
-    //     );
-    //     assert(
-    //         web3.utils.toBN(segmentPaymentResult).eq(web3.utils.toBN(segmentPayment)),
-    //         `SegmentPayment doesn't match. expected ${segmentPayment}; got ${segmentPaymentResult}`
-    //     );
-    //     assert(
-    //         currentSegmentResult.eq(web3.utils.toBN(0)),
-    //         `should start at segment ${expectedSegment} but started at ${currentSegmentResult.toNumber()} instead.`
-    //     );
-    //     assert(
-    //         web3.utils.toBN(maxPlayersCountResult).eq(web3.utils.toBN(maxPlayersCount)),
-    //         `MaxPlayersCount doesn't match. expected ${maxPlayersCount.toString()}; got ${maxPlayersCountResult}`
-    //     );
-
-    // });
-
     it("players approve Inbound Token to contract and join the game", async () => {
       const userSlippageOptions = [1, 3, 4, 2, 1];
       for (let i = 0; i < players.length; i++) {
