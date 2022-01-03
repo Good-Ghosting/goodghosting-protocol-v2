@@ -23,7 +23,7 @@ chai.use(solidity);
 const { expect } = chai;
 
 describe("Pool using Aave strategy", () => {
-  if (process.env.NETWORK === "local-celo-mobius") {
+  if (process.env.NETWORK === "local-celo-mobius" || process.env.NETWORK === "local-moola") {
     return;
   }
   if (process.env.FORKING == "true") {
