@@ -94,6 +94,8 @@ exports.providers = {
         address: "0x765DE816845861e75A25fCA122bb6898B8B1282a",
         decimals: 18,
       },
+      wethGateway: "0x0000000000000000000000000000000000000000",
+      incentiveController: "0x0000000000000000000000000000000000000000",
       incentiveToken: "0x0000000000000000000000000000000000000000",
       // incentiveToken: "0x471EcE3750Da237f93B8E339c536989b8978a438", // CELO
     },

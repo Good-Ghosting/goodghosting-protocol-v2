@@ -1,6 +1,8 @@
 const abi = require("ethereumjs-abi");
 const GoodGhostingContract = artifacts.require("Pool");
-const StrategyArtifact = artifacts.require("MobiusStrategy");
+const MobiusStrategyArtifact = artifacts.require("MobiusStrategy");
+const MoolaStrategyArtifact = artifacts.require("AaveStrategy");
+
 const SafeMathLib = artifacts.require("SafeMath");
 
 const config = require("../deploy/deploy.config");
@@ -87,23 +89,38 @@ module.exports = function (deployer, network, accounts) {
   if (["test", "soliditycoverage"].includes(network)) return;
 
   deployer.then(async () => {
-    const poolConfigs = config.providers["celo"]["mobius"];
-    const mobiusGauge = poolConfigs.gauge;
-    const inboundCurrencyAddress = poolConfigs["cusd"].address;
-    const inboundCurrencyDecimals = poolConfigs["cusd"].decimals;
+    const mobiusPoolConfigs = config.providers["celo"]["mobius"];
+    const moolaPoolConfigs = config.providers["celo"]["moola"];
+    const lendingPoolProvider = moolaPoolConfigs.lendingPoolAddressProvider;
+    const dataProvider = moolaPoolConfigs.dataProvider;
+    const mobiusGauge = mobiusPoolConfigs.gauge;
+    const inboundCurrencyAddress = mobiusPoolConfigs["cusd"].address;
+    const inboundCurrencyDecimals = mobiusPoolConfigs["cusd"].decimals;
     const segmentPaymentWei = (config.deployConfigs.segmentPayment * 10 ** inboundCurrencyDecimals).toString();
-    const mobiusPool = poolConfigs.pool;
-    const mobi = poolConfigs.mobi;
-    const celo = poolConfigs.celo;
-    const minter = poolConfigs.minter;
+    const mobiusPool = mobiusPoolConfigs.pool;
+    const mobi = mobiusPoolConfigs.mobi;
+    const celo = mobiusPoolConfigs.celo;
+    const minter = mobiusPoolConfigs.minter;
     const maxPlayersCount = config.deployConfigs.maxPlayersCount;
-    const incentiveToken = poolConfigs.incentiveToken;
+    const incentiveToken = mobiusPoolConfigs.incentiveToken;
     const goodGhostingContract = GoodGhostingContract; // defaults to Ethereum version
+    let strategyArgs;
+    if (network === "local-celo-mobius")
+      strategyArgs = [MobiusStrategyArtifact, mobiusPool, mobiusGauge, minter, mobi, celo];
+    else
+      strategyArgs = [
+        MoolaStrategyArtifact,
+        lendingPoolProvider,
+        moolaPoolConfigs.wethGateway,
+        dataProvider,
+        moolaPoolConfigs.incentiveController,
+        moolaPoolConfigs.incentiveToken,
+      ];
 
-    const strategyArgs = [StrategyArtifact, mobiusPool, mobiusGauge, minter, mobi, celo];
     await deployer.deploy(...strategyArgs);
-
-    const strategyInstance = await StrategyArtifact.deployed();
+    let strategyInstance;
+    if (network === "local-celo-mobius") strategyInstance = await MobiusStrategyArtifact.deployed();
+    else strategyInstance = await MoolaStrategyArtifact.deployed();
 
     // Prepares deployment arguments
     const deploymentArgs = [

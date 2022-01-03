@@ -221,3 +221,4 @@ contract("Pool with Moola Strategy", accounts => {
     });
   });
 });
+export {};
