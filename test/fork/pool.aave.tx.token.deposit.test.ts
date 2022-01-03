@@ -30,7 +30,7 @@ const daiDecimals = ethers.BigNumber.from("1000000000000000000");
 const segmentPayment = daiDecimals.mul(ethers.BigNumber.from(segmentPaymentInt)); // equivalent to 10 Inbound Token
 const ZERO_ADDRESS = "0x0000000000000000000000000000000000000000";
 
-describe("Pool Aave/Moola Fork Tests with the deposit token as transsactional token", () => {
+describe("Aave Pool Fork Tests with the deposit token as transsactional token", () => {
   if (process.env.NETWORK === "local-celo-mobius") {
     return;
   }
@@ -125,7 +125,6 @@ describe("Pool Aave/Moola Fork Tests with the deposit token as transsactional to
 
   it("players are able to approve inbound token and join the pool", async () => {
     for (let i = 0; i < 5; i++) {
-      //   await wmaticInstance.connect(accounts[i]).approve(pool.address, ethers.utils.parseEther("200"));
       await pool.connect(accounts[i]).joinGame(0, 0, { value: segmentPayment });
       if (i == 0) {
         await pool.connect(accounts[i]).earlyWithdraw(0);

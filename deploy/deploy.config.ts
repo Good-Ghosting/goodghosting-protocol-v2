@@ -90,10 +90,6 @@ exports.providers = {
     moola: {
       lendingPoolAddressProvider: "0xD1088091A174d33412a968Fa34Cb67131188B332",
       dataProvider: "0x43d067ed784D9DD2ffEda73775e2CC4c560103A1",
-      dai: {
-        address: "0xE4fE50cdD716522A56204352f00AA110F731932d",
-        decimals: 18,
-      },
       cusd: {
         address: "0x765DE816845861e75A25fCA122bb6898B8B1282a",
         decimals: 18,
