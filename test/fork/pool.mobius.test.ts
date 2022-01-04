@@ -6,7 +6,7 @@ const wmatic = require("../../artifacts/contracts/mock/MintableERC20.sol/Mintabl
 const mobiusPool = require("../../artifacts/contracts/mobius/IMobiPool.sol/IMobiPool.json");
 const mobiusGauge = require("../../artifacts/contracts/mobius/IMobiGauge.sol/IMobiGauge.json");
 const ethers = require("ethers");
-const configs = require("../../deploy/deploy.config");
+const configs = require("../../deploy.config");
 
 contract("Pool with Mobius Strategy", accounts => {
   // Only executes this test file for local network fork
@@ -305,10 +305,10 @@ contract("Pool with Mobius Strategy", accounts => {
 
       mobiBalanceAfterRedeem = await mobi.methods.balanceOf(goodGhosting.address).call();
       celoBalanceAfterRedeem = await celo.methods.balanceOf(goodGhosting.address).call();
-      // console.log(mobiBalanceAfterRedeem.toString())
-      // console.log(celoBalanceAfterRedeem.toString())
-      // console.log(mobiBalanceBeforeRedeem.toString())
-      // console.log(celoBalanceBeforeRedeem.toString())
+      console.log(mobiBalanceAfterRedeem.toString());
+      console.log(celoBalanceAfterRedeem.toString());
+      console.log(mobiBalanceBeforeRedeem.toString());
+      console.log(celoBalanceBeforeRedeem.toString());
 
       assert(web3.utils.toBN(mobiBalanceBeforeRedeem).lt(web3.utils.toBN(mobiBalanceAfterRedeem)));
       assert(web3.utils.toBN(celoBalanceBeforeRedeem).lte(web3.utils.toBN(celoBalanceAfterRedeem)));

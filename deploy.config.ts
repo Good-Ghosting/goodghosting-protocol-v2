@@ -123,8 +123,8 @@ exports.deployConfigs = {
   selectedProvider: "aave", // name of the selected provider. Must be defined in the object {providers} above.
   inboundCurrencySymbol: "dai", // name of the inbound currency symbol. Must be defined in the object {providers.network} above.
   depositCount: 3, // integer number of segments
-  segmentLength: 600, // in seconds
-  waitingRoundSegmentLength: 900, // in seconds
+  segmentLength: 3600, // in seconds
+  waitingRoundSegmentLength: 3600, // in seconds
   flexibleSegmentPayment: false,
   segmentPayment: 1, // amount of tokens - i.e. 10 equals to 10 TOKENS (DAI, ETH, etc.);
   earlyWithdrawFee: 1, // i.e. 10 equals to 10%

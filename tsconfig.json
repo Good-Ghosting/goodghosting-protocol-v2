@@ -15,12 +15,7 @@
     "typeRoots": ["./node_modules/@types", "./types"],
     "types": ["node", "truffle-typings"]
   },
-  "include": [
-    "**/*.ts",
-    "deploy/deploy.config.ts",
-    "migrations/1_initial_migration.js",
-    "migrations/2_deploy_contracts.js"
-  ],
+  "include": ["**/*.ts", "deploy.config.ts", "migrations/1_initial_migration.js", "migrations/2_deploy_contracts.js"],
   "files": ["./hardhat.config.ts"],
   "exclude": ["node_modules", "example", "build"]
 }

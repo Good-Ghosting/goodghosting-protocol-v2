@@ -4,7 +4,7 @@ const timeMachine = require("ganache-time-traveler");
 const truffleAssert = require("truffle-assertions");
 const wmatic = require("../../artifacts/contracts/mock/MintableERC20.sol/MintableERC20.json");
 const ethers = require("ethers");
-const configs = require("../../deploy/deploy.config");
+const configs = require("../../deploy.config");
 
 contract("Pool with Moola Strategy", accounts => {
   // Only executes this test file for local network fork

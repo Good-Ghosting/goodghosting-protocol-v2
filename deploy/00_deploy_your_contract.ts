@@ -1,7 +1,7 @@
 // deploy/00_deploy_your_contract.js
 
 const { ethers } = require("hardhat");
-import { providers, deployConfigs } from "./deploy.config";
+import { providers, deployConfigs } from "../deploy.config";
 
 module.exports = async ({ getNamedAccounts, deployments, getChainId }) => {
   const { deploy } = deployments;

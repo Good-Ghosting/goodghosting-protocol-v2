@@ -1,7 +1,7 @@
 import * as chai from "chai";
 import { solidity } from "ethereum-waffle";
 const { network, ethers } = require("hardhat");
-const { providers, deployConfigs } = require("../../deploy/deploy.config");
+const { providers, deployConfigs } = require("../../deploy.config");
 const aavepoolABI = require("../../abi-external/curve-aave-pool-abi.json");
 const atricryptopoolABI = require("../../abi-external/curve-atricrypto-pool-abi.json");
 const curveGauge = require("../../artifacts/contracts/curve/ICurveGauge.sol/ICurveGauge.json");

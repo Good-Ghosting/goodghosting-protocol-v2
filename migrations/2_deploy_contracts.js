@@ -5,7 +5,7 @@ const MoolaStrategyArtifact = artifacts.require("AaveStrategy");
 
 const SafeMathLib = artifacts.require("SafeMath");
 
-const config = require("../deploy/deploy.config");
+const config = require("../deploy.config");
 
 function printSummary(
   // contract's constructor parameters

@@ -1,7 +1,7 @@
 import * as chai from "chai";
 import { solidity } from "ethereum-waffle";
 const { network, ethers } = require("hardhat");
-const { providers, deployConfigs } = require("../../deploy/deploy.config");
+const { providers, deployConfigs } = require("../../deploy.config");
 import * as lendingProvider from "../../artifacts/contracts/aave/ILendingPoolAddressesProvider.sol/ILendingPoolAddressesProvider.json";
 import * as incentiveController from "../../artifacts/contracts/aave/IncentiveController.sol/IncentiveController.json";
 import * as wmatic from "../../artifacts/contracts/mock/MintableERC20.sol/MintableERC20.json";
