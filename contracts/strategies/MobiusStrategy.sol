@@ -109,10 +109,8 @@ contract MobiusStrategy is Ownable, IStrategy {
             );
             pool.removeLiquidityOneToken(lpToken.balanceOf(address(this)), 0, _minAmount, block.timestamp + 1000);
         }
-        require(mobi.balanceOf(address(this)) >= 100 ether, "invalid");
 
         if (address(mobi) != address(0)) {
-            require(mobi.balanceOf(address(this)) >= 100 ether, "invalid");
             require(mobi.transfer(msg.sender, mobi.balanceOf(address(this))), "Transfer Failed");
         }
         if (address(celo) != address(0)) {
