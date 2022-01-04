@@ -26,6 +26,11 @@ function printSummary(
     minter,
     mobi,
     celo,
+    lendingPoolProvider,
+    wethGateway,
+    dataProvider,
+    incentiveController,
+    rewardToken,
   },
   // additional logging info
   { networkName, selectedProvider, inboundCurrencySymbol, segmentPayment, owner },
@@ -57,7 +62,29 @@ function printSummary(
     strategy,
   ];
 
+  var mobiusStrategyParameterTypes = [
+    "address", // mobius pool
+    "address", // mobius gauge
+    "address", // minter
+    "address", // mobi
+    "address", // celo
+  ];
+
+  var mobiusStrategyValues = [mobiusPool, mobiusGauge, minter, mobi, celo];
+
+  var moolaStrategyParameterTypes = [
+    "address", // lendingPoolProvider
+    "address", // wethGateway
+    "address", // dataProvider
+    "address", // incentiveController
+    "address", // rewardToken
+  ];
+
+  var moolaStrategyValues = [lendingPoolProvider, wethGateway, dataProvider, incentiveController, rewardToken];
+
   var poolEncodedParameters = abi.rawEncode(poolParameterTypes, poolParameterValues);
+  var mobiusStrategylEncodedParameters = abi.rawEncode(mobiusStrategyParameterTypes, mobiusStrategyValues);
+  var moolsStrategylEncodedParameters = abi.rawEncode(moolaStrategyParameterTypes, moolaStrategyValues);
 
   console.log("\n\n\n----------------------------------------------------");
   console.log("GoogGhosting Holding Pool deployed with the following arguments:");
@@ -76,6 +103,21 @@ function printSummary(
   console.log(`Flexible Deposit Pool: ${flexibleDepositSegment}`);
   console.log(`Incentive Token: ${incentiveToken}`);
   console.log(`Strategy: ${strategy}`);
+  if (networkName === "local-celo-mobius") {
+    console.log(`Mobius Pool: ${mobiusPool}`);
+    console.log(`Mobius Gauge: ${mobiusGauge}`);
+    console.log(`Mobius Minter: ${minter}`);
+    console.log(`Mobi Token: ${mobi}`);
+    console.log(`Celo Token: ${celo}`);
+    console.log("Mobius Strategy Encoded Params: ", mobiusStrategylEncodedParameters.toString("hex"));
+  } else {
+    console.log(`Lending Pool Provider: ${lendingPoolProvider}`);
+    console.log(`WETHGateway: ${wethGateway}`);
+    console.log(`Data Provider: ${dataProvider}`);
+    console.log(`IncentiveController: ${incentiveController}`);
+    console.log(`Reward Token: ${rewardToken}`);
+    console.log("Moola Strategy Encoded Params: ", moolsStrategylEncodedParameters.toString("hex"));
+  }
   console.log("\n\nConstructor Arguments ABI-Encoded:");
   console.log(poolEncodedParameters.toString("hex"));
   console.log("\n\n\n\n");
@@ -167,6 +209,11 @@ module.exports = function (deployer, network, accounts) {
         minter,
         mobi,
         celo,
+        lendingPoolProvider,
+        wethGateway: moolaPoolConfigs.wethGateway,
+        dataProvider,
+        incentiveController: moolaPoolConfigs.incentiveController,
+        rewardToken: moolaPoolConfigs.incentiveToken,
       },
       {
         networkName: process.env.NETWORK,
