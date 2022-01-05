@@ -47,6 +47,7 @@ function printSummary(
     "bool", // flexibleDepositSegment
     "address", // incentiveToken
     "address", // strategy
+    "bool", // isTransactionalToken
   ];
   var poolParameterValues = [
     inboundCurrencyAddress,
@@ -60,6 +61,7 @@ function printSummary(
     flexibleDepositSegment,
     incentiveToken,
     strategy,
+    config.deployConfigs.isTransactionalToken,
   ];
 
   var mobiusStrategyParameterTypes = [
@@ -101,6 +103,8 @@ function printSummary(
   console.log(`Custom Pool Fee: ${adminFee}%`);
   console.log(`Max Quantity of Players: ${maxPlayersCount}`);
   console.log(`Flexible Deposit Pool: ${flexibleDepositSegment}`);
+  console.log(`Transactional Token Depsoit Pool: ${config.deployConfigs.isTransactionalToken}`);
+
   console.log(`Incentive Token: ${incentiveToken}`);
   console.log(`Strategy: ${strategy}`);
   if (networkName === "local-celo-mobius") {
@@ -178,7 +182,7 @@ module.exports = function (deployer, network, accounts) {
       config.deployConfigs.flexibleSegmentPayment,
       incentiveToken,
       strategyInstance.address,
-      false,
+      config.deployConfigs.isTransactionalToken,
     ];
 
     // Deploys the Pool Contract
