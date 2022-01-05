@@ -1,5 +1,23 @@
+const Web3 = require("web3");
+
 require("dotenv").config();
 require("ts-node/register");
+
+const ContractKit = require("@celo/contractkit");
+const getAccount = require("./getAccount").getAccount;
+// use mainnet rpc as default
+const web3 = new Web3(process.env.CELO_RPC || "https://forno.celo.org/");
+
+const kit = ContractKit.newKitFromWeb3(web3);
+
+async function awaitWrapper() {
+  let account = await getAccount();
+  if (account) {
+    kit.connection.addAccount(account.privateKey);
+  }
+  return kit.connection.web3.currentProvider;
+}
+awaitWrapper();
 
 module.exports = {
   test_file_extension_regexp: /.*\.ts$/,
@@ -26,6 +44,16 @@ module.exports = {
   },
 
   networks: {
+    "celo-moola": {
+      provider: kit.connection.web3.currentProvider, // CeloProvider
+      network_id: 42220,
+      gasPrice: 1000000000, // 1 Gwei
+    },
+    "celo-mobius": {
+      provider: kit.connection.web3.currentProvider, // CeloProvider
+      network_id: 42220,
+      gasPrice: 1000000000, // 1 Gwei
+    },
     "local-celo-mobius": {
       host: "127.0.0.1",
       port: 8545,

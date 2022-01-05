@@ -151,9 +151,9 @@ module.exports = function (deployer, network, accounts) {
     const incentiveToken = mobiusPoolConfigs.incentiveToken;
     const goodGhostingContract = GoodGhostingContract; // defaults to Ethereum version
     let strategyArgs;
-    if (network === "local-celo-mobius")
+    if (network === "local-celo-mobius" || network === "celo-mobius") {
       strategyArgs = [MobiusStrategyArtifact, mobiusPool, mobiusGauge, minter, mobi, celo];
-    else
+    } else if (network === "celo-moola" || network === "celo-moola") {
       strategyArgs = [
         MoolaStrategyArtifact,
         lendingPoolProvider,
@@ -162,6 +162,7 @@ module.exports = function (deployer, network, accounts) {
         moolaPoolConfigs.incentiveController,
         moolaPoolConfigs.incentiveToken,
       ];
+    }
 
     await deployer.deploy(...strategyArgs);
     let strategyInstance;
