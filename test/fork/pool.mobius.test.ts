@@ -431,3 +431,4 @@ contract("Pool with Mobius Strategy", accounts => {
     });
   });
 });
+export {};

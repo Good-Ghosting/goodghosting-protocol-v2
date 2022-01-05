@@ -2,10 +2,8 @@ import "@nomiclabs/hardhat-waffle";
 import "@typechain/hardhat";
 import "hardhat-gas-reporter";
 import "solidity-coverage";
-
 import "./tasks/accounts";
 import "./tasks/deploy";
-
 import { resolve } from "path";
 import "@nomiclabs/hardhat-truffle5";
 import { config as dotenvConfig } from "dotenv";
@@ -21,6 +19,7 @@ const chainIds = {
   mainnet: 1,
   rinkeby: 4,
   ropsten: 3,
+  polygon: 137,
 };
 
 // Ensure that we have all the environment variables we need.
@@ -35,7 +34,7 @@ if (!infuraApiKey) {
 }
 
 function getChainConfig(network: keyof typeof chainIds): NetworkUserConfig {
-  const url: string = "https://" + network + ".infura.io/v3/" + infuraApiKey;
+  const url: string | undefined = infuraApiKey;
   return {
     accounts: {
       count: 10,
@@ -70,6 +69,7 @@ const config: HardhatUserConfig = {
     kovan: getChainConfig("kovan"),
     rinkeby: getChainConfig("rinkeby"),
     ropsten: getChainConfig("ropsten"),
+    polygon: getChainConfig("polygon"),
   },
   paths: {
     artifacts: "./artifacts",
