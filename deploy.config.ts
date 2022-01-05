@@ -126,6 +126,7 @@ exports.deployConfigs = {
   segmentLength: 3600, // in seconds
   waitingRoundSegmentLength: 3600, // in seconds
   flexibleSegmentPayment: false,
+  isTransactionalToken: false,
   segmentPayment: 1, // amount of tokens - i.e. 10 equals to 10 TOKENS (DAI, ETH, etc.);
   earlyWithdrawFee: 1, // i.e. 10 equals to 10%
   adminFee: 1, // i.e. 5 equals to 5%
