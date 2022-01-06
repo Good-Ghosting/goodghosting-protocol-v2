@@ -126,17 +126,7 @@ contract MobiusStrategy is Ownable, IStrategy {
         );
     }
 
-    function getGameParams()
-        external
-        view
-        override
-        returns (
-            uint256,
-            uint256,
-            uint256,
-            uint256
-        )
-    {}
+    function getTotalAmount(address _inboundCurrency) external view override returns (uint256) {}
 
     function getRewardToken() external view override returns (IERC20) {
         return celo;

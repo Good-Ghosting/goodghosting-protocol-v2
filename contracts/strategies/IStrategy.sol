@@ -17,15 +17,7 @@ interface IStrategy {
         bool variableDeposits
     ) external;
 
-    function getGameParams()
-        external
-        view
-        returns (
-            uint256,
-            uint256,
-            uint256,
-            uint256
-        );
+    function getTotalAmount(address _inboundCurrency) external view returns (uint256);
 
     function getRewardToken() external view returns (IERC20);
 

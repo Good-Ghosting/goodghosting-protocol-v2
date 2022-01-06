@@ -17,9 +17,6 @@ contract AaveStrategy is Ownable, IStrategy {
     /// @notice Address of the Aave V2 weth gateway contract
     IWETHGateway public immutable wethGateway;
 
-    /// @notice Address of the interest bearing token received when funds are transferred to the external pool
-    AToken public adaiToken;
-
     /// @notice Which Aave instance we use to swap Inbound Token to interest bearing aDAI
     ILendingPoolAddressesProvider public immutable lendingPoolAddressProvider;
 
@@ -84,7 +81,7 @@ contract AaveStrategy is Ownable, IStrategy {
         } else {
             (adaiTokenAddress, , ) = dataProvider.getReserveTokensAddresses(_inboundCurrency);
         }
-        adaiToken = AToken(adaiTokenAddress);
+        AToken adaiToken = AToken(adaiTokenAddress);
         if (adaiToken.balanceOf(address(this)) > 0) {
             if (_inboundCurrency == address(0) || _inboundCurrency == address(rewardToken)) {
                 require(adaiToken.approve(address(wethGateway), _amount), "Fail to approve allowance to wethGateway");
@@ -121,7 +118,7 @@ contract AaveStrategy is Ownable, IStrategy {
         } else {
             (adaiTokenAddress, , ) = dataProvider.getReserveTokensAddresses(_inboundCurrency);
         }
-        adaiToken = AToken(adaiTokenAddress);
+        AToken adaiToken = AToken(adaiTokenAddress);
         // Withdraws funds (principal + interest + rewards) from external pool
         if (adaiToken.balanceOf(address(this)) > 0) {
             if (_inboundCurrency == address(0) || _inboundCurrency == address(rewardToken)) {
@@ -166,17 +163,17 @@ contract AaveStrategy is Ownable, IStrategy {
         }
     }
 
-    function getGameParams()
-        external
-        view
-        override
-        returns (
-            uint256,
-            uint256,
-            uint256,
-            uint256
-        )
-    {}
+    function getTotalAmount(address _inboundCurrency) external view override returns (uint256) {
+        // atoken address in v2 is fetched from data provider contract
+        address adaiTokenAddress;
+        if (_inboundCurrency == address(0)) {
+            (adaiTokenAddress, , ) = dataProvider.getReserveTokensAddresses(address(rewardToken));
+        } else {
+            (adaiTokenAddress, , ) = dataProvider.getReserveTokensAddresses(_inboundCurrency);
+        }
+        AToken adaiToken = AToken(adaiTokenAddress);
+        return adaiToken.balanceOf(address(this));
+    }
 
     function getRewardToken() external view override returns (IERC20) {
         return rewardToken;
