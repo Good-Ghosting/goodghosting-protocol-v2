@@ -47,12 +47,12 @@ module.exports = {
     "celo-moola": {
       provider: kit.connection.web3.currentProvider, // CeloProvider
       network_id: 42220,
-      gasPrice: 1000000000, // 1 Gwei
+      gas: 5000000,
     },
     "celo-mobius": {
       provider: kit.connection.web3.currentProvider, // CeloProvider
       network_id: 42220,
-      gasPrice: 1000000000, // 1 Gwei
+      gas: 5000000,
     },
     "local-celo-mobius": {
       host: "127.0.0.1",
