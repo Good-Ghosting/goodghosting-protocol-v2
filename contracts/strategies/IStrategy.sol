@@ -11,7 +11,21 @@ interface IStrategy {
         uint256 _minAmount
     ) external;
 
-    function redeem(address _inboundCurrency, uint256 _minAmount) external;
+    function redeem(
+        address _inboundCurrency,
+        uint256 _minAmount,
+        bool variableDeposits
+    ) external;
+
+    function getGameParams()
+        external
+        view
+        returns (
+            uint256,
+            uint256,
+            uint256,
+            uint256
+        );
 
     function getRewardToken() external view returns (IERC20);
 

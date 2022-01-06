@@ -97,7 +97,11 @@ contract MobiusStrategy is Ownable, IStrategy {
         );
     }
 
-    function redeem(address _inboundCurrency, uint256 _minAmount) external override onlyOwner {
+    function redeem(
+        address _inboundCurrency,
+        uint256 _minAmount,
+        bool variableDeposits
+    ) external override onlyOwner {
         uint256 gaugeBalance = gauge.balanceOf(address(this));
         if (gaugeBalance > 0) {
             minter.mint(address(gauge));
@@ -121,6 +125,18 @@ contract MobiusStrategy is Ownable, IStrategy {
             "Transfer Failed"
         );
     }
+
+    function getGameParams()
+        external
+        view
+        override
+        returns (
+            uint256,
+            uint256,
+            uint256,
+            uint256
+        )
+    {}
 
     function getRewardToken() external view override returns (IERC20) {
         return celo;

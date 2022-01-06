@@ -109,7 +109,11 @@ contract AaveStrategy is Ownable, IStrategy {
         }
     }
 
-    function redeem(address _inboundCurrency, uint256 _minAmount) external override onlyOwner {
+    function redeem(
+        address _inboundCurrency,
+        uint256 _minAmount,
+        bool variableDeposits
+    ) external override onlyOwner {
         // atoken address in v2 is fetched from data provider contract
         address adaiTokenAddress;
         if (_inboundCurrency == address(0)) {
@@ -161,6 +165,18 @@ contract AaveStrategy is Ownable, IStrategy {
             );
         }
     }
+
+    function getGameParams()
+        external
+        view
+        override
+        returns (
+            uint256,
+            uint256,
+            uint256,
+            uint256
+        )
+    {}
 
     function getRewardToken() external view override returns (IERC20) {
         return rewardToken;
