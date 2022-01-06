@@ -305,12 +305,9 @@ contract("Pool with Mobius Strategy", accounts => {
 
       mobiBalanceAfterRedeem = await mobi.methods.balanceOf(goodGhosting.address).call();
       celoBalanceAfterRedeem = await celo.methods.balanceOf(goodGhosting.address).call();
-      console.log(mobiBalanceAfterRedeem.toString());
-      console.log(celoBalanceAfterRedeem.toString());
-      console.log(mobiBalanceBeforeRedeem.toString());
-      console.log(celoBalanceBeforeRedeem.toString());
 
       assert(web3.utils.toBN(mobiBalanceBeforeRedeem).lt(web3.utils.toBN(mobiBalanceAfterRedeem)));
+      // for some reason forking mainnet we don't get back celo rewards so the before and after balance is equal
       assert(web3.utils.toBN(celoBalanceBeforeRedeem).lte(web3.utils.toBN(celoBalanceAfterRedeem)));
 
       const contractsDaiBalance = web3.utils.toBN(
@@ -360,20 +357,16 @@ contract("Pool with Mobius Strategy", accounts => {
 
         mobiRewardBalanceAfter = web3.utils.toBN(await mobi.methods.balanceOf(player).call({ from: admin }));
         celoRewardBalanceAfter = web3.utils.toBN(await celo.methods.balanceOf(player).call({ from: admin }));
-        // console.log(mobiRewardBalanceAfter.toString())
-        // console.log(celoRewardBalanceAfter.toString())
-        // console.log(mobiRewardBalanceBefore.toString())
-        // console.log(celoRewardBalanceBefore.toString())
 
-        // curve rewards accrue slowly
         assert(
           mobiRewardBalanceAfter.gt(mobiRewardBalanceBefore),
-          "expected curve balance after withdrawal to be greater than before withdrawal",
+          "expected mobi balance after withdrawal to be greater than before withdrawal",
         );
 
+        // for some reason forking mainnet we don't get back celo rewards
         assert(
           celoRewardBalanceAfter.lte(celoRewardBalanceBefore),
-          "expected curve balance after withdrawal to be greater than before withdrawal",
+          "expected celo balance after withdrawal to be equal to before withdrawal",
         );
 
         truffleAssert.eventEmitted(
@@ -407,18 +400,15 @@ contract("Pool with Mobius Strategy", accounts => {
 
         mobiRewardBalanceAfter = web3.utils.toBN(await mobi.methods.balanceOf(admin).call({ from: admin }));
         celoRewardBalanceAfter = web3.utils.toBN(await celo.methods.balanceOf(admin).call({ from: admin }));
-        // console.log(mobiRewardBalanceAfter.toString())
-        // console.log(celoRewardBalanceAfter.toString())
-        // console.log(mobiRewardBalanceBefore.toString())
-        // console.log(celoRewardBalanceBefore.toString())
-        assert(
-          mobiRewardBalanceAfter.eq(mobiRewardBalanceBefore),
-          "expected curve balance after withdrawal to be greater than before withdrawal",
-        );
 
         assert(
+          mobiRewardBalanceAfter.eq(mobiRewardBalanceBefore),
+          "expected mobi balance after withdrawal to be greater than before withdrawal",
+        );
+        // for some reason forking mainnet we don't get back celo rewards
+        assert(
           celoRewardBalanceAfter.gte(celoRewardBalanceBefore),
-          "expected curve balance after withdrawal to be greater than before withdrawal",
+          "expected celo balance after withdrawal to be equal to before withdrawal",
         );
 
         truffleAssert.eventEmitted(
