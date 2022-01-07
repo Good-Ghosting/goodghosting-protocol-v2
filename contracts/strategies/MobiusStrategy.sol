@@ -126,7 +126,19 @@ contract MobiusStrategy is Ownable, IStrategy {
         );
     }
 
-    function getTotalAmount(address _inboundCurrency) external view override returns (uint256) {}
+    function getTotalAmount(address _inboundCurrency) external view override returns (uint256) {
+        uint256 gaugeBalance = gauge.balanceOf(address(this));
+        uint256 totalAccumalatedAmount = pool.calculateRemoveLiquidityOneToken(address(this), gaugeBalance, 0);
+        return totalAccumalatedAmount;
+    }
+
+    function getAccumalatedRewardTokenAmount(address _inboundCurrency) external override returns (uint256) {
+        return gauge.claimable_reward_write(address(this), address(celo));
+    }
+
+    function getAccumalatedGovernanceTokenAmount(address _inboundCurrency) external override returns (uint256) {
+        return 0;
+    }
 
     function getRewardToken() external view override returns (IERC20) {
         return celo;

@@ -175,6 +175,25 @@ contract AaveStrategy is Ownable, IStrategy {
         return adaiToken.balanceOf(address(this));
     }
 
+    function getAccumalatedRewardTokenAmount(address _inboundCurrency) external override returns (uint256) {
+        // atoken address in v2 is fetched from data provider contract
+        address adaiTokenAddress;
+        if (_inboundCurrency == address(0)) {
+            (adaiTokenAddress, , ) = dataProvider.getReserveTokensAddresses(address(rewardToken));
+        } else {
+            (adaiTokenAddress, , ) = dataProvider.getReserveTokensAddresses(_inboundCurrency);
+        }
+        AToken adaiToken = AToken(adaiTokenAddress);
+        // Claims the rewards from the external pool
+        address[] memory assets = new address[](1);
+        assets[0] = address(adaiToken);
+        return incentiveController.getRewardsBalance(assets, address(this));
+    }
+
+    function getAccumalatedGovernanceTokenAmount(address _inboundCurrency) external override returns (uint256) {
+        return 0;
+    }
+
     function getRewardToken() external view override returns (IERC20) {
         return rewardToken;
     }

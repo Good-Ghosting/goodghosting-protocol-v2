@@ -19,6 +19,10 @@ interface IStrategy {
 
     function getTotalAmount(address _inboundCurrency) external view returns (uint256);
 
+    function getAccumalatedRewardTokenAmount(address _inboundCurrency) external returns (uint256);
+
+    function getAccumalatedGovernanceTokenAmount(address _inboundCurrency) external returns (uint256);
+
     function getRewardToken() external view returns (IERC20);
 
     function getGovernanceToken() external view returns (IERC20);

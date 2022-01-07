@@ -197,7 +197,24 @@ contract CurveStrategy is Ownable, IStrategy {
         );
     }
 
-    function getTotalAmount(address _inboundCurrency) external view override returns (uint256) {}
+    function getTotalAmount(address _inboundCurrency) external view override returns (uint256) {
+        uint256 gaugeBalance = gauge.balanceOf(address(this));
+        uint256 totalAccumalatedAmount = 0;
+        if (poolType == AAVE_POOL) {
+            totalAccumalatedAmount = pool.calc_withdraw_one_coin(gaugeBalance, inboundTokenIndex);
+        } else {
+            totalAccumalatedAmount = pool.calc_withdraw_one_coin(gaugeBalance, uint256(uint128(inboundTokenIndex)));
+        }
+        return totalAccumalatedAmount;
+    }
+
+    function getAccumalatedRewardTokenAmount(address _inboundCurrency) external override returns (uint256) {
+        return gauge.claimable_reward_write(address(this), address(rewardToken));
+    }
+
+    function getAccumalatedGovernanceTokenAmount(address _inboundCurrency) external override returns (uint256) {
+        return gauge.claimable_reward_write(address(this), address(curve));
+    }
 
     function getRewardToken() external view override returns (IERC20) {
         return rewardToken;
