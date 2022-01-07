@@ -10,4 +10,6 @@ interface IMobiGauge {
     function balanceOf(address user) external view returns (uint256);
 
     function claimable_reward_write(address _addr, address _token) external returns (uint256);
+
+    function integrate_fraction(address _addr) external view returns (uint256);
 }
