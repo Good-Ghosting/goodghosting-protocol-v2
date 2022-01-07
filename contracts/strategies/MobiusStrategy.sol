@@ -100,18 +100,34 @@ contract MobiusStrategy is Ownable, IStrategy {
     function redeem(
         address _inboundCurrency,
         uint256 _minAmount,
+        uint256 _amount,
         bool variableDeposits
     ) external override onlyOwner {
         uint256 gaugeBalance = gauge.balanceOf(address(this));
         if (gaugeBalance > 0) {
             minter.mint(address(gauge));
-            gauge.withdraw(gaugeBalance, true);
+            if (variableDeposits) {
+                uint256[] memory amounts = new uint256[](2);
+                amounts[0] = _amount;
+                amounts[1] = 0;
+                uint256 poolWithdrawAmount = pool.calculateTokenAmount(address(this), amounts, true);
 
-            require(
-                lpToken.approve(address(pool), lpToken.balanceOf(address(this))),
-                "Fail to approve allowance to pool"
-            );
-            pool.removeLiquidityOneToken(lpToken.balanceOf(address(this)), 0, _minAmount, block.timestamp + 1000);
+                if (gaugeBalance < poolWithdrawAmount) {
+                    poolWithdrawAmount = gaugeBalance;
+                }
+
+                gauge.withdraw(poolWithdrawAmount, false);
+                require(lpToken.approve(address(pool), poolWithdrawAmount), "Fail to approve allowance to pool");
+
+                pool.removeLiquidityOneToken(poolWithdrawAmount, 0, _minAmount, block.timestamp + 1000);
+            } else {
+                gauge.withdraw(gaugeBalance, true);
+                require(
+                    lpToken.approve(address(pool), lpToken.balanceOf(address(this))),
+                    "Fail to approve allowance to pool"
+                );
+                pool.removeLiquidityOneToken(lpToken.balanceOf(address(this)), 0, _minAmount, block.timestamp + 1000);
+            }
         }
 
         if (address(mobi) != address(0)) {

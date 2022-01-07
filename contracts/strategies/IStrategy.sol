@@ -13,6 +13,7 @@ interface IStrategy {
 
     function redeem(
         address _inboundCurrency,
+        uint256 _amount,
         uint256 _minAmount,
         bool variableDeposits
     ) external;

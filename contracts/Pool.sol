@@ -480,6 +480,9 @@ contract Pool is Ownable, Pausable {
         }
 
         emit Withdrawal(msg.sender, payout, playerIncentive, playerReward, playerGovernanceTokenReward);
+        if (flexibleSegmentPayment) {
+            strategy.redeem(inboundToken, _minAmount, payout, flexibleSegmentPayment);
+        }
 
         if (isTransactionalToken) {
             (bool success, ) = msg.sender.call{ value: payout }("");
@@ -559,7 +562,7 @@ contract Pool is Ownable, Pausable {
         uint256 totalBalance = 0;
         if (!flexibleSegmentPayment) {
             // Withdraws funds (principal + interest + rewards) from external pool
-            strategy.redeem(inboundToken, _minAmount, flexibleSegmentPayment);
+            strategy.redeem(inboundToken, _minAmount, 0, flexibleSegmentPayment);
 
             if (isTransactionalToken) {
                 totalBalance = address(this).balance;

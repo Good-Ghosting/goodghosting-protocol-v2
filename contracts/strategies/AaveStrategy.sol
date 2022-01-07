@@ -109,8 +109,10 @@ contract AaveStrategy is Ownable, IStrategy {
     function redeem(
         address _inboundCurrency,
         uint256 _minAmount,
+        uint256 _amount,
         bool variableDeposits
     ) external override onlyOwner {
+        uint256 redeemAmount = variableDeposits ? _amount : type(uint256).max;
         // atoken address in v2 is fetched from data provider contract
         address adaiTokenAddress;
         if (_inboundCurrency == address(0)) {
@@ -123,17 +125,17 @@ contract AaveStrategy is Ownable, IStrategy {
         if (adaiToken.balanceOf(address(this)) > 0) {
             if (_inboundCurrency == address(0) || _inboundCurrency == address(rewardToken)) {
                 require(
-                    adaiToken.approve(address(wethGateway), type(uint256).max),
+                    adaiToken.approve(address(wethGateway), redeemAmount),
                     "Fail to approve allowance to wethGateway"
                 );
 
-                wethGateway.withdrawETH(address(lendingPool), type(uint256).max, address(this));
+                wethGateway.withdrawETH(address(lendingPool), redeemAmount, address(this));
                 if (_inboundCurrency == address(rewardToken)) {
                     // Wraps MATIC back into WMATIC
                     WMatic(address(rewardToken)).deposit{ value: address(this).balance }();
                 }
             } else {
-                lendingPool.withdraw(_inboundCurrency, type(uint256).max, address(this));
+                lendingPool.withdraw(_inboundCurrency, redeemAmount, address(this));
             }
         }
         // Claims the rewards from the external pool
