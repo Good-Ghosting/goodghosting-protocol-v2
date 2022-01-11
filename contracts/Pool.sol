@@ -163,6 +163,16 @@ contract Pool is Ownable, Pausable {
         _;
     }
 
+    modifier whenGameHasFixedDepositAmount() {
+        require(!flexibleSegmentPayment, "Flexible Deposit Game");
+        _;
+    }
+
+    modifier whenGameHasFlexibleDepositAmount() {
+        require(flexibleSegmentPayment, "Non Flexible Deposit Game");
+        _;
+    }
+
     /**
         Creates a new instance of GoodGhosting game
         @param _inboundCurrency Smart contract address of inbound currency used for the game.
@@ -434,9 +444,14 @@ contract Pool is Ownable, Pausable {
         require(!player.withdrawn, "Player has already withdrawn");
         player.withdrawn = true;
 
-        // First player to withdraw redeems everyone's funds
-        if (!redeemed) {
-            redeemFromExternalPool(_minAmount);
+        if (!flexibleSegmentPayment) {
+            // First player to withdraw redeems everyone's funds
+            if (!redeemed) {
+                redeemFromExternalPoolForFixedDepositPool(_minAmount);
+                (_minAmount);
+            }
+        } else {
+            setGlobalPoolParamsForFlexibleDepositPool(_minAmount);
         }
 
         uint256 payout = player.amountPaid;
@@ -556,21 +571,22 @@ contract Pool is Ownable, Pausable {
 
     /// @notice Redeems funds from the external pool and updates the internal accounting controls related to the game stats.
     /// @dev Can only be called after the game is completed.
-    function redeemFromExternalPool(uint256 _minAmount) public virtual whenGameIsCompleted {
+    function redeemFromExternalPoolForFixedDepositPool(uint256 _minAmount)
+        public
+        virtual
+        whenGameIsCompleted
+        whenGameHasFixedDepositAmount
+    {
         require(!redeemed, "Redeem operation already happened for the game");
         redeemed = true;
         uint256 totalBalance = 0;
-        if (!flexibleSegmentPayment) {
-            // Withdraws funds (principal + interest + rewards) from external pool
-            strategy.redeem(inboundToken, _minAmount, 0, flexibleSegmentPayment);
+        // Withdraws funds (principal + interest + rewards) from external pool
+        strategy.redeem(inboundToken, _minAmount, 0, flexibleSegmentPayment);
 
-            if (isTransactionalToken) {
-                totalBalance = address(this).balance;
-            } else {
-                totalBalance = IERC20(inboundToken).balanceOf(address(this));
-            }
+        if (isTransactionalToken) {
+            totalBalance = address(this).balance;
         } else {
-            totalBalance = strategy.getTotalAmount(inboundToken);
+            totalBalance = IERC20(inboundToken).balanceOf(address(this));
         }
 
         // calculates gross interest
@@ -607,17 +623,12 @@ contract Pool is Ownable, Pausable {
         rewardToken = strategy.getRewardToken();
         strategyGovernanceToken = strategy.getGovernanceToken();
 
-        if (!flexibleSegmentPayment) {
-            if (address(rewardToken) != address(0) && inboundToken != address(rewardToken)) {
-                rewardTokenAmount = rewardToken.balanceOf(address(this));
-            }
+        if (address(rewardToken) != address(0) && inboundToken != address(rewardToken)) {
+            rewardTokenAmount = rewardToken.balanceOf(address(this));
+        }
 
-            if (address(strategyGovernanceToken) != address(0) && inboundToken != address(strategyGovernanceToken)) {
-                strategyGovernanceTokenAmount = strategyGovernanceToken.balanceOf(address(this));
-            }
-        } else {
-            rewardTokenAmount = strategy.getAccumalatedRewardTokenAmount(inboundToken);
-            strategyGovernanceTokenAmount = strategy.getAccumalatedGovernanceTokenAmount(inboundToken);
+        if (address(strategyGovernanceToken) != address(0) && inboundToken != address(strategyGovernanceToken)) {
+            strategyGovernanceTokenAmount = strategyGovernanceToken.balanceOf(address(this));
         }
 
         // If there's an incentive token address defined, sets the total incentive amount to be distributed among winners.
@@ -631,9 +642,76 @@ contract Pool is Ownable, Pausable {
         }
 
         emit FundsRedeemedFromExternalPool(
-            flexibleSegmentPayment ? totalBalance : isTransactionalToken
-                ? address(this).balance
-                : IERC20(inboundToken).balanceOf(address(this)),
+            isTransactionalToken ? address(this).balance : IERC20(inboundToken).balanceOf(address(this)),
+            totalGamePrincipal,
+            totalGameInterest,
+            totalIncentiveAmount,
+            rewardTokenAmount,
+            strategyGovernanceTokenAmount
+        );
+    }
+
+    /// @notice Redeems funds from the external pool and updates the internal accounting controls related to the game stats.
+    /// @dev Can only be called after the game is completed.
+    function setGlobalPoolParamsForFlexibleDepositPool(uint256 _minAmount)
+        public
+        virtual
+        whenGameIsCompleted
+        whenGameHasFlexibleDepositAmount
+    {
+        uint256 totalBalance = 0;
+
+        totalBalance = strategy.getTotalAmount(inboundToken);
+
+        // calculates gross interest
+        uint256 grossInterest = 0;
+        // Sanity check to avoid reverting due to overflow in the "subtraction" below.
+        // This could only happen in case Aave changes the 1:1 ratio between
+        // aToken vs. Token in the future
+        if (totalBalance >= totalGamePrincipal) {
+            grossInterest = totalBalance.sub(totalGamePrincipal);
+        } else {
+            // handling impermanent loss case
+            impermanentLossShare = (totalBalance.mul(uint256(100))).div(totalGamePrincipal);
+            totalGamePrincipal = totalBalance;
+        }
+
+        // calculates the performance/admin fee (takes a cut - the admin percentage fee - from the pool's interest).
+        // calculates the "gameInterest" (net interest) that will be split among winners in the game
+        uint256 _adminFeeAmount;
+        if (adminFee > 0) {
+            _adminFeeAmount = (grossInterest.mul(adminFee)).div(uint256(100));
+            totalGameInterest = grossInterest.sub(_adminFeeAmount);
+        } else {
+            _adminFeeAmount = 0;
+            totalGameInterest = grossInterest;
+        }
+
+        // when there's no winners, admin takes all the interest + rewards
+        if (winnerCount == 0) {
+            adminFeeAmount = grossInterest;
+        } else {
+            adminFeeAmount = _adminFeeAmount;
+        }
+
+        rewardToken = strategy.getRewardToken();
+        strategyGovernanceToken = strategy.getGovernanceToken();
+
+        rewardTokenAmount = strategy.getAccumalatedRewardTokenAmount(inboundToken);
+        strategyGovernanceTokenAmount = strategy.getAccumalatedGovernanceTokenAmount(inboundToken);
+
+        // If there's an incentive token address defined, sets the total incentive amount to be distributed among winners.
+        if (
+            address(incentiveToken) != address(0) &&
+            address(rewardToken) != address(incentiveToken) &&
+            address(strategyGovernanceToken) != address(incentiveToken) &&
+            inboundToken != address(incentiveToken)
+        ) {
+            totalIncentiveAmount = IERC20(incentiveToken).balanceOf(address(this));
+        }
+
+        emit FundsRedeemedFromExternalPool(
+            totalBalance,
             totalGamePrincipal,
             totalGameInterest,
             totalIncentiveAmount,
