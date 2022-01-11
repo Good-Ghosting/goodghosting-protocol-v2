@@ -387,5 +387,5 @@ export const redeem = async (
     goodGhosting,
     depositAmount,
   );
-  await goodGhosting.connect(player).redeemFromExternalPool(0);
+  await goodGhosting.connect(player).redeemFromExternalPoolForFixedDepositPool(0);
 };

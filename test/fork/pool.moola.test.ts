@@ -148,7 +148,7 @@ contract("Pool with Moola Strategy", accounts => {
     it("redeems funds from external pool", async () => {
       let eventAmount = web3.utils.toBN(0);
       let result;
-      result = await goodGhosting.redeemFromExternalPool(0, {
+      result = await goodGhosting.redeemFromExternalPoolForFixedDepositPool(0, {
         from: admin,
       });
 

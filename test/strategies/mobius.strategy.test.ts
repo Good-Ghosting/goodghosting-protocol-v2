@@ -81,7 +81,7 @@ describe("Pool using Mobius Strategy", () => {
     await shouldBehaveLikeAdminWithdrawingFeesFromGGPoolWithFeePercentis0("mobius");
   });
 
-  describe("players participate in a variable amount deposit pool", async () => {
-    await shouldBehaveLikeVariableDepositPool("mobius");
-  });
+  // describe("players participate in a variable amount deposit pool", async () => {
+  //   await shouldBehaveLikeVariableDepositPool("mobius");
+  // });
 });

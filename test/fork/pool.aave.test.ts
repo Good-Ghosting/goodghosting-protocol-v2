@@ -153,7 +153,7 @@ describe("Aave Pool Fork Tests", () => {
   });
 
   it("funds are redeemed from the pool", async () => {
-    await pool.redeemFromExternalPool(0);
+    await pool.redeemFromExternalPoolForFixedDepositPool(0);
     const inboundTokenBalance = await daiInstance.balanceOf(pool.address);
     console.log("inboundTokenBalance", inboundTokenBalance.toString());
     const totalPrincipal = await pool.totalGamePrincipal();

@@ -143,7 +143,7 @@ describe("Aave Pool Fork Tests with the deposit token same as reward token", () 
   });
 
   it("funds are redeemed from the pool", async () => {
-    await pool.redeemFromExternalPool(0);
+    await pool.redeemFromExternalPoolForFixedDepositPool(0);
     const inboundTokenBalance = await wmaticInstance.balanceOf(pool.address);
     console.log("inboundTokenBalance", inboundTokenBalance.toString());
 

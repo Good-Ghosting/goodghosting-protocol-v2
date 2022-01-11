@@ -292,7 +292,7 @@ describe("Curve Pool Fork Tests", () => {
       minAmount = userProvidedMinAmount;
     }
 
-    await pool.redeemFromExternalPool(minAmount.toString());
+    await pool.redeemFromExternalPoolForFixedDepositPool(minAmount.toString());
     const inboundTokenBalance = await daiInstance.balanceOf(pool.address);
     console.log("inboundTokenBalance", inboundTokenBalance.toString());
     const totalPrincipal = await pool.totalGamePrincipal();

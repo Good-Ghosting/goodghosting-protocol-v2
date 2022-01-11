@@ -299,7 +299,7 @@ contract("Pool with Mobius Strategy", accounts => {
 
       let eventAmount = web3.utils.toBN(0);
       let result;
-      result = await goodGhosting.redeemFromExternalPool(minAmount.toString(), {
+      result = await goodGhosting.redeemFromExternalPoolForFixedDepositPool(minAmount.toString(), {
         from: admin,
       });
 
