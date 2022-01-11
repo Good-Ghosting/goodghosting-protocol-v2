@@ -153,9 +153,7 @@ contract MobiusStrategy is Ownable, IStrategy {
     }
 
     function getAccumalatedGovernanceTokenAmount(address _inboundCurrency) external override returns (uint256) {
-        uint256 total_mint = gauge.integrate_fraction(address(this));
-        uint256 to_mint = total_mint - minter.minted(address(this), address(gauge));
-        return to_mint;
+        return gauge.claimable_reward_write(address(this), address(mobi));
     }
 
     function getRewardToken() external view override returns (IERC20) {
