@@ -3004,16 +3004,24 @@ export const shouldBehaveLikeVariableDepositPool = async (strategyType: string) 
       );
     }
 
+    const player1BalanceBeforeWithdraw = await contracts.inboundToken.balanceOf(player1.address);
+    const player1RewardBalanceBeforeWithdraw = await contracts.rewardToken.balanceOf(player1.address);
+
     let result = await contracts.goodGhosting.connect(player1).withdraw(0);
+
+    const player1RewardBalanceAfterWithdraw = await contracts.rewardToken.balanceOf(player1.address);
+    const player1BalanceAfterWithdraw = await contracts.inboundToken.balanceOf(player1.address);
+
+    const rewardDifferenceForPlayer1 = player1RewardBalanceAfterWithdraw.sub(player1RewardBalanceBeforeWithdraw);
+    const differenceForPlayer1 = player1BalanceAfterWithdraw.sub(player1BalanceBeforeWithdraw);
+    const interestEarnedByPlayer1 = differenceForPlayer1.sub(ethers.BigNumber.from(player1Info.amountPaid));
 
     let governanceTokenBalance = 0;
     const cummalativePlayerIndexSum = await contracts.goodGhosting.cummalativePlayerIndexSum();
-    const gameInterest = await contracts.goodGhosting.totalGameInterest();
 
     let player1Share = ethers.BigNumber.from(cummalativePlayer1IndexBeforeWithdraw)
       .mul(ethers.BigNumber.from(100))
       .div(ethers.BigNumber.from(cummalativePlayerIndexSum));
-    const player1ShareAmount = ethers.BigNumber.from(gameInterest).mul(player1Share).div(ethers.BigNumber.from(100));
 
     const player1Deposit = ethers.BigNumber.from(player1Info.amountPaid);
     const rewardTokenBalance = await contracts.rewardToken.balanceOf(contracts.goodGhosting.address);
@@ -3034,30 +3042,42 @@ export const shouldBehaveLikeVariableDepositPool = async (strategyType: string) 
       .to.emit(contracts.goodGhosting, "Withdrawal")
       .withArgs(
         player1.address,
-        player1Deposit.add(player1ShareAmount),
+        player1Deposit.add(interestEarnedByPlayer1),
         ethers.BigNumber.from(0),
-        player1RewardShare,
+        rewardDifferenceForPlayer1,
         player1GovernanceRewardShare,
       );
 
     let player2Share = ethers.BigNumber.from(cummalativePlayer2IndexBeforeWithdraw)
       .mul(ethers.BigNumber.from(100))
       .div(ethers.BigNumber.from(cummalativePlayerIndexSum));
-    const player2ShareAmount = ethers.BigNumber.from(gameInterest).mul(player2Share).div(ethers.BigNumber.from(100));
-    const player2RewardShare = ethers.BigNumber.from(rewardTokenBalance)
-      .mul(player2Share)
-      .div(ethers.BigNumber.from(100));
+
     const player2GovernanceRewardShare = ethers.BigNumber.from(governanceTokenBalance)
       .mul(player2Share)
       .div(ethers.BigNumber.from(100));
     const player2Deposit = ethers.BigNumber.from(player2Info.amountPaid);
-    await expect(contracts.goodGhosting.connect(player2).withdraw(0))
+
+    const player2BalanceBeforeWithdraw = await contracts.inboundToken.balanceOf(player2.address);
+    const player2RewardBalanceBeforeWithdraw = await contracts.rewardToken.balanceOf(player2.address);
+
+    result = await contracts.goodGhosting.connect(player2).withdraw(0);
+
+    const player2RewardBalanceAfterWithdraw = await contracts.rewardToken.balanceOf(player2.address);
+    const player2BalanceAfterWithdraw = await contracts.inboundToken.balanceOf(player2.address);
+
+    const rewardDifferenceForPlayer2 = player2RewardBalanceAfterWithdraw.sub(player2RewardBalanceBeforeWithdraw);
+    const differenceForPlayer2 = player2BalanceAfterWithdraw.sub(player2BalanceBeforeWithdraw);
+    const interestEarnedByPlayer2 = differenceForPlayer2.sub(ethers.BigNumber.from(player2Info.amountPaid));
+    assert(interestEarnedByPlayer2.gt(interestEarnedByPlayer1));
+    assert(rewardDifferenceForPlayer2.gt(rewardDifferenceForPlayer1));
+
+    await expect(result)
       .to.emit(contracts.goodGhosting, "Withdrawal")
       .withArgs(
         player2.address,
-        player2Deposit.add(player2ShareAmount),
+        player2Deposit.add(interestEarnedByPlayer2),
         ethers.BigNumber.from(0),
-        player2RewardShare,
+        rewardDifferenceForPlayer2,
         player2GovernanceRewardShare,
       );
   });
