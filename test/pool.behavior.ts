@@ -2863,10 +2863,10 @@ export const shouldBehaveLikeVariableDepositPool = async (strategyType: string) 
 
       await contracts.mobiPool.transfer(contracts.strategy.address, ethers.utils.parseEther("1000"));
     }
-    await contracts.goodGhosting.redeemFromExternalPoolForFixedDepositPool(0);
 
     const player1Info = await contracts.goodGhosting.players(player1.address);
     const player2Info = await contracts.goodGhosting.players(player2.address);
+
     let cummalativePlayer1IndexBeforeWithdraw = ethers.BigNumber.from(0),
       cummalativePlayer2IndexBeforeWithdraw = ethers.BigNumber.from(0);
     for (let i = 0; i <= player1Info.mostRecentSegmentPaid; i++) {
@@ -2884,13 +2884,16 @@ export const shouldBehaveLikeVariableDepositPool = async (strategyType: string) 
     }
     // since player1 deposited high amount the player index is more
     assert(cummalativePlayer1IndexBeforeWithdraw.lt(cummalativePlayer2IndexBeforeWithdraw));
+
     const player1BalanceBeforeWithdraw = await contracts.inboundToken.balanceOf(player1.address);
     const player2BalanceBeforeWithdraw = await contracts.inboundToken.balanceOf(player2.address);
 
     await contracts.goodGhosting.connect(player1).withdraw(0);
     await contracts.goodGhosting.connect(player2).withdraw(0);
+
     const player1BalanceAfterWithdraw = await contracts.inboundToken.balanceOf(player1.address);
     const player2BalanceAfterWithdraw = await contracts.inboundToken.balanceOf(player2.address);
+
     // since player1 deposited high amount it get's more interest
     assert(
       player1BalanceAfterWithdraw
@@ -2982,7 +2985,6 @@ export const shouldBehaveLikeVariableDepositPool = async (strategyType: string) 
 
       await contracts.mobiPool.transfer(contracts.strategy.address, ethers.utils.parseEther("1000"));
     }
-    await contracts.goodGhosting.redeemFromExternalPoolForFixedDepositPool(0);
 
     const player1Info = await contracts.goodGhosting.players(player1.address);
     const player2Info = await contracts.goodGhosting.players(player2.address);
@@ -3001,6 +3003,8 @@ export const shouldBehaveLikeVariableDepositPool = async (strategyType: string) 
         ethers.BigNumber.from(index2.toString()),
       );
     }
+
+    let result = await contracts.goodGhosting.connect(player1).withdraw(0);
 
     let governanceTokenBalance = 0;
     const cummalativePlayerIndexSum = await contracts.goodGhosting.cummalativePlayerIndexSum();
@@ -3026,7 +3030,7 @@ export const shouldBehaveLikeVariableDepositPool = async (strategyType: string) 
       .mul(player1Share)
       .div(ethers.BigNumber.from(100));
 
-    await expect(contracts.goodGhosting.connect(player1).withdraw(0))
+    await expect(result)
       .to.emit(contracts.goodGhosting, "Withdrawal")
       .withArgs(
         player1.address,

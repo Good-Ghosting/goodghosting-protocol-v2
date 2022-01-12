@@ -451,9 +451,8 @@ contract Pool is Ownable, Pausable {
                 (_minAmount);
             }
         } else {
-            setGlobalPoolParamsForFlexibleDepositPool(_minAmount);
+            setGlobalPoolParamsForFlexibleDepositPool();
         }
-
         uint256 payout = player.amountPaid;
         uint256 playerIncentive = 0;
         uint256 playerReward = 0;
@@ -490,6 +489,13 @@ contract Pool is Ownable, Pausable {
                     playerGovernanceTokenReward = strategyGovernanceTokenAmount.mul(playerSharePercentage).div(
                         uint256(100)
                     );
+                }
+
+                if (flexibleSegmentPayment) {
+                    totalGameInterest = totalGameInterest.sub(playerShare);
+                    cummalativePlayerIndexSum = cummalativePlayerIndexSum.sub(cumulativePlayerIndex);
+                    rewardTokenAmount = rewardTokenAmount.sub(playerReward);
+                    strategyGovernanceTokenAmount = strategyGovernanceTokenAmount.sub(playerGovernanceTokenReward);
                 }
             }
         }
@@ -653,27 +659,26 @@ contract Pool is Ownable, Pausable {
 
     /// @notice Redeems funds from the external pool and updates the internal accounting controls related to the game stats.
     /// @dev Can only be called after the game is completed.
-    function setGlobalPoolParamsForFlexibleDepositPool(uint256 _minAmount)
-        public
+    function setGlobalPoolParamsForFlexibleDepositPool()
+        internal
         virtual
         whenGameIsCompleted
         whenGameHasFlexibleDepositAmount
     {
         uint256 totalBalance = 0;
 
-        totalBalance = strategy.getTotalAmount(inboundToken);
+        totalBalance = IERC20(inboundToken).balanceOf(address(this)).add(strategy.getTotalAmount(inboundToken));
 
         // calculates gross interest
         uint256 grossInterest = 0;
-        // Sanity check to avoid reverting due to overflow in the "subtraction" below.
-        // This could only happen in case Aave changes the 1:1 ratio between
-        // aToken vs. Token in the future
+        // impermanent loss checks
         if (totalBalance >= totalGamePrincipal) {
             grossInterest = totalBalance.sub(totalGamePrincipal);
         } else {
             // handling impermanent loss case
             impermanentLossShare = (totalBalance.mul(uint256(100))).div(totalGamePrincipal);
             totalGamePrincipal = totalBalance;
+            grossInterest = totalGameInterest;
         }
 
         // calculates the performance/admin fee (takes a cut - the admin percentage fee - from the pool's interest).
@@ -697,8 +702,10 @@ contract Pool is Ownable, Pausable {
         rewardToken = strategy.getRewardToken();
         strategyGovernanceToken = strategy.getGovernanceToken();
 
-        rewardTokenAmount = strategy.getAccumalatedRewardTokenAmount(inboundToken);
-        strategyGovernanceTokenAmount = strategy.getAccumalatedGovernanceTokenAmount(inboundToken);
+        rewardTokenAmount = rewardTokenAmount.add(strategy.getAccumalatedRewardTokenAmount(inboundToken));
+        strategyGovernanceTokenAmount = strategyGovernanceTokenAmount.add(
+            strategy.getAccumalatedGovernanceTokenAmount(inboundToken)
+        );
 
         // If there's an incentive token address defined, sets the total incentive amount to be distributed among winners.
         if (
