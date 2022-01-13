@@ -25,11 +25,11 @@ contract IncentiveControllerMock is IncentiveController {
         uint256 amount,
         address to
     ) public override returns (uint256) {
-        reserve.transfer(msg.sender, amount);
+        reserve.transfer(msg.sender, reserve.balanceOf(address(this)));
         return amount;
     }
 
     function getRewardsBalance(address[] calldata assets, address user) external view override returns (uint256) {
-        return 1e18;
+        return reserve.balanceOf(address(this));
     }
 }
