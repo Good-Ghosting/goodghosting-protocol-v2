@@ -463,7 +463,7 @@ contract Pool is Ownable, Pausable {
             // the player share of interest is calculated from player index
             // player share % = playerIndex / cummalativePlayerIndexSum of player indexes of all winners * 100
             // so, interest share = player share % * total game interest
-            if (impermanentLossShare > 0) {
+            if (impermanentLossShare > 0 && totalGameInterest == 0) {
                 // new payput in case of impermanent loss
                 payout = player.amountPaid.mul(impermanentLossShare).div(uint256(100));
             } else {
@@ -665,9 +665,9 @@ contract Pool is Ownable, Pausable {
         whenGameIsCompleted
         whenGameHasFlexibleDepositAmount
     {
-        uint256 totalBalance = 0;
-
-        totalBalance = IERC20(inboundToken).balanceOf(address(this)).add(strategy.getTotalAmount(inboundToken));
+        uint256 totalBalance = isTransactionalToken
+            ? address(this).balance.add(strategy.getTotalAmount(inboundToken))
+            : IERC20(inboundToken).balanceOf(address(this)).add(strategy.getTotalAmount(inboundToken));
 
         // calculates gross interest
         uint256 grossInterest = 0;
