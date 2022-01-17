@@ -14,6 +14,12 @@ contract MockMobiusPool is MintableERC20 {
         reserve = _reserve;
     }
 
+    function send_liquidity(uint256 _amount) external returns (uint256) {
+        reserve.transferFrom(msg.sender, address(this), _amount);
+        _mint(msg.sender, _amount);
+        return _amount;
+    }
+
     function addLiquidity(
         uint256[] calldata amounts,
         uint256 minToMint,

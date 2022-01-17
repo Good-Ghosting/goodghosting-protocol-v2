@@ -95,7 +95,9 @@ contract LendingPoolAddressesProviderMock is ILendingPoolAddressesProvider, ILen
         uint256 amount,
         address to
     ) public override {
-        amount = IERC20(address(this)).balanceOf(msg.sender);
+        if (amount > IERC20(address(this)).balanceOf(msg.sender)) {
+            amount = IERC20(address(this)).balanceOf(msg.sender);
+        }
         _burn(to, amount);
         IERC20(asset).transfer(to, amount);
     }
@@ -113,7 +115,9 @@ contract LendingPoolAddressesProviderMock is ILendingPoolAddressesProvider, ILen
         uint256 amount,
         address to
     ) public override {
-        amount = IERC20(address(this)).balanceOf(msg.sender);
+        if (amount > IERC20(address(this)).balanceOf(msg.sender)) {
+            amount = IERC20(address(this)).balanceOf(msg.sender);
+        }
         _burn(to, amount);
         msg.sender.call{ value: amount }("");
     }
