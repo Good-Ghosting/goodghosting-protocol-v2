@@ -82,9 +82,9 @@ describe("Pool using Curve Strategy", () => {
     await shouldBehaveLikeAdminWithdrawingFeesFromGGPoolWithFeePercentis0("curve");
   });
 
-  // describe("players participate in a variable amount deposit pool", async () => {
-  //   await shouldBehaveLikeVariableDepositPool("curve");
-  // });
+  describe("players participate in a variable amount deposit pool", async () => {
+    await shouldBehaveLikeVariableDepositPool("curve");
+  });
 
   describe("players participate in a pool which deposits in atricrypto pool", async () => {
     await shouldBehaveLikeGGPoolGeneratingYieldFromAtricryptoPool("curve");

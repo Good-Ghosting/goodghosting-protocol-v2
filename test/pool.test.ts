@@ -225,9 +225,9 @@ describe("Pool using Aave strategy", () => {
     await shouldBehaveLikeAdminWithdrawingFeesFromGGPoolWithFeePercentis0("aave");
   });
 
-  // describe("players participate in a variable amount deposit pool", async () => {
-  //   await shouldBehaveLikeVariableDepositPool("aave");
-  // });
+  describe("players participate in a variable amount deposit pool", async () => {
+    await shouldBehaveLikeVariableDepositPool("aave");
+  });
 
   describe("player participate in a pool with a transactional token as a deposit asset", async () => {
     await shouldBehaveLikeGGPoolWithTransactionalToken("aave");
