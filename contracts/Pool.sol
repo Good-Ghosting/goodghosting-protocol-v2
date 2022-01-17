@@ -702,10 +702,15 @@ contract Pool is Ownable, Pausable {
         rewardToken = strategy.getRewardToken();
         strategyGovernanceToken = strategy.getGovernanceToken();
 
-        rewardTokenAmount = rewardTokenAmount.add(strategy.getAccumalatedRewardTokenAmount(inboundToken));
-        strategyGovernanceTokenAmount = strategyGovernanceTokenAmount.add(
-            strategy.getAccumalatedGovernanceTokenAmount(inboundToken)
-        );
+        if (address(rewardToken) != address(0) && inboundToken != address(rewardToken)) {
+            rewardTokenAmount = rewardTokenAmount.add(strategy.getAccumalatedRewardTokenAmount(inboundToken));
+        }
+
+        if (address(strategyGovernanceToken) != address(0) && inboundToken != address(strategyGovernanceToken)) {
+            strategyGovernanceTokenAmount = strategyGovernanceTokenAmount.add(
+                strategy.getAccumalatedGovernanceTokenAmount(inboundToken)
+            );
+        }
 
         // If there's an incentive token address defined, sets the total incentive amount to be distributed among winners.
         if (

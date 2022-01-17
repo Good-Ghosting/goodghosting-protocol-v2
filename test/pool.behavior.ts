@@ -3387,11 +3387,86 @@ export const shouldBehaveLikeVariableDepositPool = async (strategyType: string) 
           0,
         );
     });
+
+    it("players are able to participate in a pool where reward token is same as deposit token", async () => {
+      contracts = await deployPool(
+        depositCount,
+        segmentLength,
+        segmentPayment,
+        1,
+        1,
+        maxPlayersCount,
+        true,
+        false,
+        true,
+        true,
+        false,
+        true,
+        0,
+        strategyType,
+      );
+      const accounts = await ethers.getSigners();
+      const player1 = accounts[2];
+      const player2 = accounts[3];
+      await contracts.rewardToken.connect(player1).deposit({ value: ethers.utils.parseEther("100") });
+      await contracts.rewardToken.connect(player2).deposit({ value: ethers.utils.parseEther("100") });
+
+      await joinGame(
+        contracts.goodGhosting,
+        contracts.inboundToken,
+        player2,
+        segmentPayment,
+        ethers.BigNumber.from(segmentPayment).mul(ethers.BigNumber.from("2")).toString(),
+      );
+      await joinGame(
+        contracts.goodGhosting,
+        contracts.inboundToken,
+        player1,
+        segmentPayment,
+        ethers.BigNumber.from(segmentPayment).div(ethers.BigNumber.from("2")).toString(),
+      );
+
+      for (let index = 1; index < depositCount; index++) {
+        await ethers.provider.send("evm_increaseTime", [segmentLength]);
+        await ethers.provider.send("evm_mine", []);
+        await makeDeposit(
+          contracts.goodGhosting,
+          contracts.inboundToken,
+          player2,
+          segmentPayment,
+          ethers.BigNumber.from(segmentPayment).mul(ethers.BigNumber.from("2")).toString(),
+        );
+        await makeDeposit(
+          contracts.goodGhosting,
+          contracts.inboundToken,
+          player1,
+          segmentPayment,
+          ethers.BigNumber.from(segmentPayment).div(ethers.BigNumber.from("2")).toString(),
+        );
+      }
+      // above, it accounted for 1st deposit window, and then the loop runs till depositCount - 1.
+      // now, we move 2 more segments (depositCount-1 and depositCount) to complete the game.
+      await ethers.provider.send("evm_increaseTime", [segmentLength]);
+      await ethers.provider.send("evm_mine", []);
+      const waitingRoundLength = await contracts.goodGhosting.waitingRoundSegmentLength();
+      await ethers.provider.send("evm_increaseTime", [parseInt(waitingRoundLength.toString())]);
+      await ethers.provider.send("evm_mine", []);
+
+      const rewardTokenPlayer1BalanceBeforeWithdraw = await contracts.inboundToken.balanceOf(player1.address);
+      await contracts.goodGhosting.connect(player1).withdraw(0);
+      const rewardTokenAmount = await contracts.goodGhosting.rewardTokenAmount();
+      assert(rewardTokenAmount.eq(ethers.BigNumber.from("0")));
+      const rewardTokenPlayer2BalanceBeforeWithdraw = await contracts.inboundToken.balanceOf(player2.address);
+      await contracts.goodGhosting.connect(player2).withdraw(0);
+      const rewardTokenPlayer1BalanceAfterWithdraw = await contracts.inboundToken.balanceOf(player1.address);
+      const rewardTokenPlayer2BalanceAfterWithdraw = await contracts.inboundToken.balanceOf(player2.address);
+      assert(rewardTokenPlayer2BalanceAfterWithdraw.gt(rewardTokenPlayer2BalanceBeforeWithdraw));
+      assert(rewardTokenPlayer1BalanceAfterWithdraw.gt(rewardTokenPlayer1BalanceBeforeWithdraw));
+    });
   }
 
   it("reverts if flexible deposit amounts are enabled and the player deposit different amount in different segments", async () => {
     const accounts = await ethers.getSigners();
-    const deployer = accounts[0];
     const player1 = accounts[2];
     const player2 = accounts[3];
 
@@ -3632,8 +3707,8 @@ export const shouldBehaveLikeGGPoolWithSameTokenAddresses = async (strategyType:
     const accounts = await ethers.getSigners();
     const player1 = accounts[2];
     const player2 = accounts[3];
-    await contracts.rewardToken.connect(player1).deposit({ value: ethers.utils.parseEther("30") });
-    await contracts.rewardToken.connect(player2).deposit({ value: ethers.utils.parseEther("30") });
+    await contracts.rewardToken.connect(player1).deposit({ value: ethers.utils.parseEther("100") });
+    await contracts.rewardToken.connect(player2).deposit({ value: ethers.utils.parseEther("100") });
   });
 
   it("players join a pool and are able to redeem and withdraw when the deposit token and reward token are same", async () => {
