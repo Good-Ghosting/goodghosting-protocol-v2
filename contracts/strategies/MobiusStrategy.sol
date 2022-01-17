@@ -116,7 +116,7 @@ contract MobiusStrategy is Ownable, IStrategy {
                     poolWithdrawAmount = gaugeBalance;
                 }
 
-                gauge.withdraw(poolWithdrawAmount, false);
+                gauge.withdraw(poolWithdrawAmount, true);
                 require(lpToken.approve(address(pool), poolWithdrawAmount), "Fail to approve allowance to pool");
 
                 pool.removeLiquidityOneToken(poolWithdrawAmount, 0, _minAmount, block.timestamp + 1000);
