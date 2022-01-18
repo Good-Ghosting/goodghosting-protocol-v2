@@ -3465,6 +3465,74 @@ export const shouldBehaveLikeVariableDepositPool = async (strategyType: string) 
     });
   }
 
+  if (strategyType === "curve" || strategyType === "mobius") {
+    it("players are able to withdraw in case there is a impermanent loss", async () => {
+      const accounts = await ethers.getSigners();
+      const player1 = accounts[2];
+      const player2 = accounts[3];
+
+      await joinGame(
+        contracts.goodGhosting,
+        contracts.inboundToken,
+        player2,
+        segmentPayment,
+        ethers.BigNumber.from(segmentPayment).mul(ethers.BigNumber.from("2")).toString(),
+      );
+      await joinGame(
+        contracts.goodGhosting,
+        contracts.inboundToken,
+        player1,
+        segmentPayment,
+        ethers.BigNumber.from(segmentPayment).div(ethers.BigNumber.from("2")).toString(),
+      );
+
+      for (let index = 1; index < depositCount; index++) {
+        await ethers.provider.send("evm_increaseTime", [segmentLength]);
+        await ethers.provider.send("evm_mine", []);
+        await makeDeposit(
+          contracts.goodGhosting,
+          contracts.inboundToken,
+          player2,
+          segmentPayment,
+          ethers.BigNumber.from(segmentPayment).mul(ethers.BigNumber.from("2")).toString(),
+        );
+        await makeDeposit(
+          contracts.goodGhosting,
+          contracts.inboundToken,
+          player1,
+          segmentPayment,
+          ethers.BigNumber.from(segmentPayment).div(ethers.BigNumber.from("2")).toString(),
+        );
+      }
+      // above, it accounted for 1st deposit window, and then the loop runs till depositCount - 1.
+      // now, we move 2 more segments (depositCount-1 and depositCount) to complete the game.
+      await ethers.provider.send("evm_increaseTime", [segmentLength]);
+      await ethers.provider.send("evm_mine", []);
+
+      const waitingRoundLength = await contracts.goodGhosting.waitingRoundSegmentLength();
+      await ethers.provider.send("evm_increaseTime", [parseInt(waitingRoundLength.toString())]);
+      await ethers.provider.send("evm_mine", []);
+
+      const player1BeforeWithdrawBalance = await contracts.inboundToken.balanceOf(player1.address);
+      const player1Info = await contracts.goodGhosting.players(player1.address);
+
+      const player2BeforeWithdrawBalance = await contracts.inboundToken.balanceOf(player2.address);
+      const player2Info = await contracts.goodGhosting.players(player2.address);
+      await contracts.goodGhosting.connect(player1).withdraw("9000");
+
+      await contracts.goodGhosting.connect(player2).withdraw("9000");
+      const player1AfterWithdrawBalance = await contracts.inboundToken.balanceOf(player1.address);
+      const player2AfterWithdrawBalance = await contracts.inboundToken.balanceOf(player2.address);
+
+      const player1Difference = player1AfterWithdrawBalance.sub(player1BeforeWithdrawBalance);
+
+      const player2Difference = player2AfterWithdrawBalance.sub(player2BeforeWithdrawBalance);
+      assert(player1Difference.lt(player1Info.amountPaid));
+      assert(player2Difference.lt(player2Info.amountPaid));
+      assert(player2Difference.gt(player1Difference));
+    });
+  }
+
   it("reverts if flexible deposit amounts are enabled and the player deposit different amount in different segments", async () => {
     const accounts = await ethers.getSigners();
     const player1 = accounts[2];
