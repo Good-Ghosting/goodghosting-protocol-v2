@@ -262,7 +262,9 @@ contract Pool is Ownable, Pausable {
     /// @notice Allows the admin to withdraw the performance fee, if applicable. This function can be called only by the contract's admin.
     /// @dev Cannot be called before the game ends.
     function adminFeeWithdraw() external virtual onlyOwner whenGameIsCompleted {
-        require(redeemed, "Funds not redeemed from external pool");
+        if (!flexibleSegmentPayment) {
+            require(redeemed, "Funds not redeemed from external pool");
+        }
         require(!adminWithdraw, "Admin has already withdrawn");
         adminWithdraw = true;
 
@@ -273,6 +275,7 @@ contract Pool is Ownable, Pausable {
         uint256 adminGovernanceTokenAmount = 0;
 
         if (adminFeeAmount > 0) {
+            strategy.redeem(inboundToken, 0, adminFeeAmount, flexibleSegmentPayment);
             if (isTransactionalToken) {
                 (bool success, ) = msg.sender.call{ value: adminFeeAmount }("");
                 require(success);
@@ -505,7 +508,10 @@ contract Pool is Ownable, Pausable {
             }
         }
 
-        if (flexibleSegmentPayment) strategy.redeem(inboundToken, _minAmount, payout, flexibleSegmentPayment);
+        if (flexibleSegmentPayment) {
+            totalGamePrincipal = totalGamePrincipal.sub(player.amountPaid);
+            strategy.redeem(inboundToken, _minAmount, payout, flexibleSegmentPayment);
+        }
 
         if (isTransactionalToken) {
             (bool success, ) = msg.sender.call{ value: payout }("");
@@ -680,15 +686,16 @@ contract Pool is Ownable, Pausable {
             // handling impermanent loss case
             impermanentLossShare = (totalBalance.mul(uint256(100))).div(totalGamePrincipal);
             totalGamePrincipal = totalBalance;
-            grossInterest = totalGameInterest;
         }
 
         // calculates the performance/admin fee (takes a cut - the admin percentage fee - from the pool's interest).
         // calculates the "gameInterest" (net interest) that will be split among winners in the game
         uint256 _adminFeeAmount;
         if (adminFee > 0) {
-            _adminFeeAmount = (grossInterest.mul(adminFee)).div(uint256(100));
-            totalGameInterest = grossInterest.sub(_adminFeeAmount);
+            if (adminFeeAmount == 0) {
+                _adminFeeAmount = (grossInterest.mul(adminFee)).div(uint256(100));
+                totalGameInterest = grossInterest.sub(_adminFeeAmount);
+            }
         } else {
             _adminFeeAmount = 0;
             totalGameInterest = grossInterest;
@@ -697,7 +704,7 @@ contract Pool is Ownable, Pausable {
         // when there's no winners, admin takes all the interest + rewards
         if (winnerCount == 0) {
             adminFeeAmount = grossInterest;
-        } else {
+        } else if (adminFeeAmount == 0) {
             adminFeeAmount = _adminFeeAmount;
         }
 
