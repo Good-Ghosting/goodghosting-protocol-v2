@@ -464,7 +464,7 @@ contract Pool is Ownable, Pausable {
             // the player share of interest is calculated from player index
             // player share % = playerIndex / cummalativePlayerIndexSum of player indexes of all winners * 100
             // so, interest share = player share % * total game interest
-            if (totalGameInterest == 0) {
+            if (impermanentLossShare > 0 && totalGameInterest == 0) {
                 // new payput in case of impermanent loss
                 payout = player.amountPaid.mul(impermanentLossShare).div(uint256(100));
             } else {
