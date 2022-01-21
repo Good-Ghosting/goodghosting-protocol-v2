@@ -1026,7 +1026,7 @@ export const shouldBehaveLikeEarlyWithdrawingGGPool = async (strategyType: strin
     await ethers.provider.send("evm_mine", []);
     // Expect Player1 to get back their deposit minus the early withdraw fee defined in the constructor.
     const player1PreWithdrawBalance = await contracts.inboundToken.balanceOf(player1.address);
-    await contracts.goodGhosting.connect(player1).earlyWithdraw(0);
+    await contracts.goodGhosting.connect(player1).earlyWithdraw("90");
     const player1PostWithdrawBalance = await contracts.inboundToken.balanceOf(player1.address);
     const feeAmount = ethers.BigNumber.from(segmentPayment)
       .mul(ethers.BigNumber.from(1))
@@ -1066,7 +1066,7 @@ export const shouldBehaveLikeEarlyWithdrawingGGPool = async (strategyType: strin
     await ethers.provider.send("evm_mine", []);
     // Expect Player1 to get back their deposit minus the early withdraw fee defined in the constructor.
     const player1PreWithdrawBalance = await contracts.inboundToken.balanceOf(player1.address);
-    await contracts.goodGhosting.connect(player1).earlyWithdraw(0);
+    await contracts.goodGhosting.connect(player1).earlyWithdraw("90");
     const player1PostWithdrawBalance = await contracts.inboundToken.balanceOf(player1.address);
     const feeAmount = ethers.BigNumber.from(segmentPayment)
       .mul(ethers.BigNumber.from(1))
@@ -1377,7 +1377,7 @@ export const shouldBehaveLikeRedeemingFromGGPool = async (strategyType: string) 
 
       await contracts.mobiPool.transfer(contracts.strategy.address, ethers.utils.parseEther("1000"));
     }
-    const result = await contracts.goodGhosting.redeemFromExternalPoolForFixedDepositPool(0);
+    const result = await contracts.goodGhosting.redeemFromExternalPoolForFixedDepositPool("90");
 
     if (strategyType === "curve") {
       governanceTokenRewards = await contracts.curve.balanceOf(contracts.goodGhosting.address);
@@ -1445,7 +1445,7 @@ export const shouldBehaveLikeRedeemingFromGGPool = async (strategyType: string) 
 
       await contracts.mobiPool.transfer(contracts.strategy.address, ethers.utils.parseEther("1000"));
     }
-    await contracts.goodGhosting.redeemFromExternalPoolForFixedDepositPool(0);
+    await contracts.goodGhosting.redeemFromExternalPoolForFixedDepositPool("90");
     const contractsDaiBalance = await contracts.inboundToken.balanceOf(contracts.goodGhosting.address);
     const principalAmount = await contracts.goodGhosting.totalGamePrincipal();
     const totalInterest = await contracts.goodGhosting.totalGameInterest();
@@ -1515,7 +1515,7 @@ export const shouldBehaveLikeRedeemingFromGGPool = async (strategyType: string) 
 
       await contracts.mobiPool.transfer(contracts.strategy.address, ethers.utils.parseEther("1000"));
     }
-    await contracts.goodGhosting.redeemFromExternalPoolForFixedDepositPool(0);
+    await contracts.goodGhosting.redeemFromExternalPoolForFixedDepositPool("90");
     const contractsDaiBalance = await contracts.inboundToken.balanceOf(contracts.goodGhosting.address);
     const principalAmount = await contracts.goodGhosting.totalGamePrincipal();
     const totalInterest = await contracts.goodGhosting.totalGameInterest();
@@ -1563,7 +1563,7 @@ export const shouldBehaveLikeRedeemingFromGGPool = async (strategyType: string) 
 
       await contracts.mobiPool.transfer(contracts.strategy.address, ethers.utils.parseEther("1000"));
     }
-    await contracts.goodGhosting.redeemFromExternalPoolForFixedDepositPool(0);
+    await contracts.goodGhosting.redeemFromExternalPoolForFixedDepositPool("90");
     const contractsDaiBalance = await contracts.inboundToken.balanceOf(contracts.goodGhosting.address);
     const principalAmount = await contracts.goodGhosting.totalGamePrincipal();
     const totalInterest = await contracts.goodGhosting.totalGameInterest();
@@ -1818,7 +1818,7 @@ export const shouldBehaveLikePlayersWithdrawingFromGGPool = async (strategyType:
     const player1PreWithdrawBalance = await contracts.inboundToken.balanceOf(player1.address);
     let playerMaticBalanceBeforeWithdraw = await contracts.rewardToken.balanceOf(player1.address);
 
-    await contracts.goodGhosting.connect(player1).withdraw(0);
+    await contracts.goodGhosting.connect(player1).withdraw("90");
     let playerMaticBalanceAfterWithdraw = await contracts.rewardToken.balanceOf(player1.address);
     assert(playerMaticBalanceAfterWithdraw.eq(playerMaticBalanceBeforeWithdraw));
     const player1PostWithdrawBalance = await contracts.inboundToken.balanceOf(player1.address);
@@ -1963,7 +1963,7 @@ export const shouldBehaveLikePlayersWithdrawingFromGGPool = async (strategyType:
     }
 
     const player1BeforeWithdrawBalance = await contracts.inboundToken.balanceOf(player1.address);
-    await contracts.goodGhosting.connect(player1).withdraw(0);
+    await contracts.goodGhosting.connect(player1).withdraw("90");
     const player1PostWithdrawBalance = await contracts.inboundToken.balanceOf(player1.address);
     const player1WithdrawAmount = player1PostWithdrawBalance.sub(player1BeforeWithdrawBalance);
 
@@ -2017,7 +2017,7 @@ export const shouldBehaveLikePlayersWithdrawingFromGGPool = async (strategyType:
 
       await contracts.mobiPool.transfer(contracts.strategy.address, ethers.utils.parseEther("1000"));
     }
-    await contracts.goodGhosting.redeemFromExternalPoolForFixedDepositPool(0);
+    await contracts.goodGhosting.redeemFromExternalPoolForFixedDepositPool("90");
     const gameInterest = await contracts.goodGhosting.totalGameInterest();
     const playerInfo = await contracts.goodGhosting.players(player1.address);
     const cummalativePlayerIndexSum = await contracts.goodGhosting.cummalativePlayerIndexSum();
@@ -2247,7 +2247,7 @@ export const shouldBehaveLikeAdminWithdrawingFeesFromGGPoolWithFeePercentMoreTha
 
       await contracts.mobiPool.transfer(contracts.strategy.address, ethers.utils.parseEther("1000"));
     }
-    await contracts.goodGhosting.redeemFromExternalPoolForFixedDepositPool(0);
+    await contracts.goodGhosting.redeemFromExternalPoolForFixedDepositPool("90");
     await contracts.goodGhosting.adminFeeWithdraw();
     await expect(contracts.goodGhosting.adminFeeWithdraw()).to.be.revertedWith("Admin has already withdrawn");
   });
@@ -2365,7 +2365,7 @@ export const shouldBehaveLikeAdminWithdrawingFeesFromGGPoolWithFeePercentMoreTha
 
         await contracts.mobiPool.transfer(contracts.strategy.address, ethers.utils.parseEther("1000"));
       }
-      await contracts.goodGhosting.redeemFromExternalPoolForFixedDepositPool(0);
+      await contracts.goodGhosting.redeemFromExternalPoolForFixedDepositPool("90");
       if (strategyType === "curve") {
         governanceTokenBalance = await contracts.curve.balanceOf(contracts.goodGhosting.address);
       } else if (strategyType === "mobius") {
@@ -2437,7 +2437,7 @@ export const shouldBehaveLikeAdminWithdrawingFeesFromGGPoolWithFeePercentMoreTha
 
         await contracts.mobiPool.transfer(contracts.strategy.address, ethers.utils.parseEther("1000"));
       }
-      await contracts.goodGhosting.redeemFromExternalPoolForFixedDepositPool(0);
+      await contracts.goodGhosting.redeemFromExternalPoolForFixedDepositPool("90");
       const rewardTokenBalance = await contracts.rewardToken.balanceOf(contracts.goodGhosting.address);
       if (strategyType === "curve") {
         governanceTokenBalance = await contracts.curve.balanceOf(contracts.goodGhosting.address);
@@ -2600,7 +2600,7 @@ export const shouldBehaveLikeAdminWithdrawingFeesFromGGPoolWithFeePercentMoreTha
 
         await contracts.mobiPool.transfer(contracts.strategy.address, ethers.utils.parseEther("1000"));
       }
-      await contracts.goodGhosting.redeemFromExternalPoolForFixedDepositPool(0);
+      await contracts.goodGhosting.redeemFromExternalPoolForFixedDepositPool("90");
       const contractBalance = await contracts.inboundToken.balanceOf(contracts.goodGhosting.address);
       const totalGamePrincipal = await contracts.goodGhosting.totalGamePrincipal();
       const grossInterest = contractBalance.sub(totalGamePrincipal);
@@ -2676,7 +2676,7 @@ export const shouldBehaveLikeAdminWithdrawingFeesFromGGPoolWithFeePercentMoreTha
 
         await contracts.mobiPool.transfer(contracts.strategy.address, ethers.utils.parseEther("1000"));
       }
-      await contracts.goodGhosting.redeemFromExternalPoolForFixedDepositPool(0);
+      await contracts.goodGhosting.redeemFromExternalPoolForFixedDepositPool("90");
       const contractBalance = await contracts.inboundToken.balanceOf(contracts.goodGhosting.address);
       const totalGamePrincipal = await contracts.goodGhosting.totalGamePrincipal();
       const grossInterest = contractBalance.sub(totalGamePrincipal);
@@ -2850,21 +2850,26 @@ export const shouldBehaveLikeVariableDepositPool = async (strategyType: string) 
     } else if (strategyType === "curve") {
       await mintTokens(contracts.inboundToken, deployer.address);
       const tokenBalance = await contracts.inboundToken.balanceOf(deployer.address);
-
+      // console.log(tokenBalance.toString())
       await contracts.inboundToken.connect(deployer).approve(contracts.curvePool.address, tokenBalance);
 
-      await contracts.curvePool.connect(deployer).send_liquidity(tokenBalance);
+      await contracts.curvePool.connect(deployer).send_liquidity(ethers.utils.parseEther("20"));
+      await contracts.curvePool.connect(deployer).approve(contracts.curveGauge.address, tokenBalance);
+      await contracts.curveGauge.connect(deployer).deposit(ethers.utils.parseEther("20"));
 
-      await contracts.curvePool.connect(deployer).transfer(contracts.strategy.address, tokenBalance.toString());
+      await contracts.curveGauge.connect(deployer).transfer(contracts.strategy.address, ethers.utils.parseEther("10"));
     } else if (strategyType === "mobius") {
       await mintTokens(contracts.inboundToken, deployer.address);
       const tokenBalance = await contracts.inboundToken.balanceOf(deployer.address);
 
       await contracts.inboundToken.connect(deployer).approve(contracts.mobiPool.address, tokenBalance);
 
-      await contracts.mobiPool.connect(deployer).send_liquidity(tokenBalance);
+      await contracts.mobiPool.connect(deployer).send_liquidity(ethers.utils.parseEther("20"));
 
-      await contracts.mobiPool.connect(deployer).transfer(contracts.strategy.address, tokenBalance.toString());
+      await contracts.mobiPool.connect(deployer).approve(contracts.mobiGauge.address, tokenBalance);
+      await contracts.mobiGauge.connect(deployer).deposit(ethers.utils.parseEther("20"));
+
+      await contracts.mobiGauge.connect(deployer).transfer(contracts.strategy.address, ethers.utils.parseEther("10"));
     }
 
     const player1Info = await contracts.goodGhosting.players(player1.address);
@@ -2889,12 +2894,10 @@ export const shouldBehaveLikeVariableDepositPool = async (strategyType: string) 
     assert(cummalativePlayer1IndexBeforeWithdraw.lt(cummalativePlayer2IndexBeforeWithdraw));
 
     const player1BalanceBeforeWithdraw = await contracts.inboundToken.balanceOf(player1.address);
-    const player2BalanceBeforeWithdraw = await contracts.inboundToken.balanceOf(player2.address);
-
     await contracts.goodGhosting.connect(player1).withdraw(0);
-    await contracts.goodGhosting.connect(player2).withdraw(0);
-
     const player1BalanceAfterWithdraw = await contracts.inboundToken.balanceOf(player1.address);
+    const player2BalanceBeforeWithdraw = await contracts.inboundToken.balanceOf(player2.address);
+    await contracts.goodGhosting.connect(player2).withdraw("800000000000000000");
     const player2BalanceAfterWithdraw = await contracts.inboundToken.balanceOf(player2.address);
 
     // since player1 deposited high amount it get's more interest
@@ -2974,12 +2977,14 @@ export const shouldBehaveLikeVariableDepositPool = async (strategyType: string) 
     } else if (strategyType === "curve") {
       await mintTokens(contracts.inboundToken, deployer.address);
       const tokenBalance = await contracts.inboundToken.balanceOf(deployer.address);
-
+      // console.log(tokenBalance.toString())
       await contracts.inboundToken.connect(deployer).approve(contracts.curvePool.address, tokenBalance);
 
-      await contracts.curvePool.connect(deployer).send_liquidity(tokenBalance);
+      await contracts.curvePool.connect(deployer).send_liquidity(ethers.utils.parseEther("100"));
+      await contracts.curvePool.connect(deployer).approve(contracts.curveGauge.address, tokenBalance);
+      await contracts.curveGauge.connect(deployer).deposit(ethers.utils.parseEther("100"));
 
-      await contracts.curvePool.connect(deployer).transfer(contracts.strategy.address, tokenBalance.toString());
+      await contracts.curveGauge.connect(deployer).transfer(contracts.strategy.address, ethers.utils.parseEther("50"));
     } else if (strategyType === "mobius") {
       contracts.rewardToken = contracts.minter;
       await mintTokens(contracts.inboundToken, deployer.address);
@@ -2987,9 +2992,12 @@ export const shouldBehaveLikeVariableDepositPool = async (strategyType: string) 
 
       await contracts.inboundToken.connect(deployer).approve(contracts.mobiPool.address, tokenBalance);
 
-      await contracts.mobiPool.connect(deployer).send_liquidity(tokenBalance);
+      await contracts.mobiPool.connect(deployer).send_liquidity(ethers.utils.parseEther("100"));
 
-      await contracts.mobiPool.connect(deployer).transfer(contracts.strategy.address, tokenBalance.toString());
+      await contracts.mobiPool.connect(deployer).approve(contracts.mobiGauge.address, tokenBalance);
+      await contracts.mobiGauge.connect(deployer).deposit(ethers.utils.parseEther("100"));
+
+      await contracts.mobiGauge.connect(deployer).transfer(contracts.strategy.address, ethers.utils.parseEther("50"));
     }
 
     const player1Info = await contracts.goodGhosting.players(player1.address);
@@ -3060,7 +3068,7 @@ export const shouldBehaveLikeVariableDepositPool = async (strategyType: string) 
     } else if (strategyType === "mobius") {
       player2GovernanceTokenBalanceBeforeWithdraw = await contracts.mobi.balanceOf(player2.address);
     }
-    result = await contracts.goodGhosting.connect(player2).withdraw(0);
+    result = await contracts.goodGhosting.connect(player2).withdraw("800000000000000000");
 
     const player2RewardBalanceAfterWithdraw = await contracts.rewardToken.balanceOf(player2.address);
     const player2BalanceAfterWithdraw = await contracts.inboundToken.balanceOf(player2.address);
@@ -3468,6 +3476,7 @@ export const shouldBehaveLikeVariableDepositPool = async (strategyType: string) 
   if (strategyType === "curve" || strategyType === "mobius") {
     it("players are able to withdraw in case there is a impermanent loss", async () => {
       const accounts = await ethers.getSigners();
+      const deployer = accounts[0];
       const player1 = accounts[2];
       const player2 = accounts[3];
 
@@ -3518,17 +3527,25 @@ export const shouldBehaveLikeVariableDepositPool = async (strategyType: string) 
 
       const player2BeforeWithdrawBalance = await contracts.inboundToken.balanceOf(player2.address);
       const player2Info = await contracts.goodGhosting.players(player2.address);
+
+      if (strategyType === "curve") {
+        await contracts.curveGauge.connect(deployer).drain(ethers.utils.parseEther("5"));
+      } else if (strategyType === "mobius") {
+        await contracts.mobiGauge.connect(deployer).drain(ethers.utils.parseEther("5"));
+      }
       await contracts.goodGhosting.connect(player1).withdraw("9000");
 
-      await contracts.goodGhosting.connect(player2).withdraw("9000");
+      await contracts.goodGhosting.connect(player2).withdraw("800000000000000000");
+
       const player1AfterWithdrawBalance = await contracts.inboundToken.balanceOf(player1.address);
       const player2AfterWithdrawBalance = await contracts.inboundToken.balanceOf(player2.address);
 
       const player1Difference = player1AfterWithdrawBalance.sub(player1BeforeWithdrawBalance);
 
       const player2Difference = player2AfterWithdrawBalance.sub(player2BeforeWithdrawBalance);
-      assert(player1Difference.lt(player1Info.amountPaid));
-      assert(player2Difference.lt(player2Info.amountPaid));
+
+      assert(player1Difference.lte(player1Info.amountPaid));
+      assert(player2Difference.lte(player2Info.amountPaid));
       assert(player2Difference.gt(player1Difference));
     });
   }
