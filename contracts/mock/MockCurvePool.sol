@@ -43,13 +43,15 @@ contract MockCurvePool is MintableERC20 {
         bool _use_underlying
     ) external returns (uint256) {
         uint256 amt = _token_amount;
-        if (_min_amount != 9000) {
+        if (_min_amount != 9000 && _min_amount != 0) {
             _token_amount = IERC20(address(this)).balanceOf(msg.sender);
             amt = IERC20(reserve).balanceOf(address(this));
         }
         _burn(msg.sender, _token_amount);
         if (_min_amount == 900000000000000000) {
             IERC20(reserve).transfer(msg.sender, 6000000000000000000);
+        } else if (_min_amount == 800000000000000000) {
+            IERC20(reserve).transfer(msg.sender, IERC20(reserve).balanceOf(address(this)));
         } else {
             IERC20(reserve).transfer(msg.sender, amt);
         }
@@ -61,32 +63,26 @@ contract MockCurvePool is MintableERC20 {
         uint256 _min_amount
     ) external {
         uint256 amt = _token_amount;
-        if (_min_amount != 9000) {
+        if (_min_amount != 9000 && _min_amount != 0) {
             _token_amount = IERC20(address(this)).balanceOf(msg.sender);
             amt = IERC20(reserve).balanceOf(address(this));
         }
         _burn(msg.sender, _token_amount);
         if (_min_amount == 900000000000000000) {
             IERC20(reserve).transfer(msg.sender, 6000000000000000000);
+        } else if (_min_amount == 800000000000000000) {
+            IERC20(reserve).transfer(msg.sender, IERC20(reserve).balanceOf(address(this)));
         } else {
             IERC20(reserve).transfer(msg.sender, amt);
         }
     }
 
     function calc_withdraw_one_coin(uint256 _token_amount, int128 i) external view returns (uint256) {
-        if (IERC20(address(this)).balanceOf(msg.sender) == 0) {
-            return 10 ether;
-        } else {
-            return IERC20(address(this)).balanceOf(msg.sender);
-        }
+        return _token_amount * 2 + IERC20(address(this)).balanceOf(msg.sender);
     }
 
     function calc_withdraw_one_coin(uint256 _token_amount, uint256 i) external view returns (uint256) {
-        if (IERC20(address(this)).balanceOf(msg.sender) == 0) {
-            return 10 ether;
-        } else {
-            return IERC20(address(this)).balanceOf(msg.sender);
-        }
+        return _token_amount * 2 + IERC20(address(this)).balanceOf(msg.sender);
     }
 
     function calc_token_amount(uint256[3] calldata _amounts, bool is_deposit) external view returns (uint256) {
