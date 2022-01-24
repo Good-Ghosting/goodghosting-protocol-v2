@@ -3530,22 +3530,22 @@ export const shouldBehaveLikeVariableDepositPool = async (strategyType: string) 
 
       if (strategyType === "curve") {
         await contracts.curveGauge.connect(deployer).drain(ethers.utils.parseEther("5"));
+        await contracts.curvePool.connect(deployer).drain(ethers.utils.parseEther("5"));
       } else if (strategyType === "mobius") {
         await contracts.mobiGauge.connect(deployer).drain(ethers.utils.parseEther("5"));
+        await contracts.mobiPool.connect(deployer).drain(ethers.utils.parseEther("5"));
       }
+
       await contracts.goodGhosting.connect(player1).withdraw("9000");
-
       await contracts.goodGhosting.connect(player2).withdraw("800000000000000000");
-
       const player1AfterWithdrawBalance = await contracts.inboundToken.balanceOf(player1.address);
       const player2AfterWithdrawBalance = await contracts.inboundToken.balanceOf(player2.address);
 
       const player1Difference = player1AfterWithdrawBalance.sub(player1BeforeWithdrawBalance);
-
       const player2Difference = player2AfterWithdrawBalance.sub(player2BeforeWithdrawBalance);
 
-      assert(player1Difference.lte(player1Info.amountPaid));
-      assert(player2Difference.lte(player2Info.amountPaid));
+      assert(player1Difference.lt(player1Info.amountPaid));
+      assert(player2Difference.lt(player2Info.amountPaid));
       assert(player2Difference.gt(player1Difference));
     });
   }

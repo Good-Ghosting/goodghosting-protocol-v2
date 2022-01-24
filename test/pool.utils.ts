@@ -106,6 +106,8 @@ export const deployPool = async (
       curvePool.address,
       rewardToken.address,
     );
+    await curvePool.setGauge(curveGauge.address);
+
     await rewardToken.mint(curveGauge.address, ethers.utils.parseEther("100000"));
     await curve.mint(curveGauge.address, ethers.utils.parseEther("100000"));
 
@@ -130,7 +132,7 @@ export const deployPool = async (
     const mobiGaugeDeployer = new MockMobiusGauge__factory(deployer);
     mobiGauge = await mobiGaugeDeployer.deploy("LP-GAUGE", "LP-GAUGE", mobi.address, mobiPool.address);
     await mobi.mint(mobiGauge.address, ethers.utils.parseEther("100000"));
-
+    await mobiPool.setGauge(mobiGauge.address);
     if (isInvestmentStrategy) {
       const mobiStrategyDeployer = new MobiusStrategy__factory(deployer);
       strategy = await mobiStrategyDeployer.deploy(
