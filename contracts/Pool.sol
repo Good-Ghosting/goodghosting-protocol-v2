@@ -464,6 +464,11 @@ contract Pool is Ownable, Pausable {
 
         if (player.isWinner) {
             // Player is a winner and gets a bonus!
+            uint256 cumulativePlayerIndex = 0;
+            for (uint256 i = 0; i <= players[msg.sender].mostRecentSegmentPaid; i++) {
+                cumulativePlayerIndex = cumulativePlayerIndex.add(playerIndex[msg.sender][i]);
+            }
+            // Player is a winner and gets a bonus!
             // the player share of interest is calculated from player index
             // player share % = playerIndex / cummalativePlayerIndexSum of player indexes of all winners * 100
             // so, interest share = player share % * total game interest
@@ -471,18 +476,11 @@ contract Pool is Ownable, Pausable {
                 // new payput in case of impermanent loss
                 payout = player.amountPaid.mul(impermanentLossShare).div(uint256(100));
             } else {
-                // Player is a winner and gets a bonus!
-                uint256 cumulativePlayerIndex = 0;
-                for (uint256 i = 0; i <= players[msg.sender].mostRecentSegmentPaid; i++) {
-                    cumulativePlayerIndex = cumulativePlayerIndex.add(playerIndex[msg.sender][i]);
-                }
-
                 playerSharePercentage = cumulativePlayerIndex.mul(100).div(cummalativePlayerIndexSum);
                 uint256 playerShare = totalGameInterest.mul(playerSharePercentage).div(uint256(100));
                 payout = payout.add(playerShare);
                 if (flexibleSegmentPayment) {
                     totalGameInterest = totalGameInterest.sub(playerShare);
-                    cummalativePlayerIndexSum = cummalativePlayerIndexSum.sub(cumulativePlayerIndex);
                 }
             }
 
@@ -503,14 +501,23 @@ contract Pool is Ownable, Pausable {
             emit Withdrawal(msg.sender, payout, playerIncentive, playerReward, playerGovernanceTokenReward);
 
             if (flexibleSegmentPayment) {
+                cummalativePlayerIndexSum = cummalativePlayerIndexSum.sub(cumulativePlayerIndex);
                 rewardTokenAmount = rewardTokenAmount.sub(playerReward);
                 strategyGovernanceTokenAmount = strategyGovernanceTokenAmount.sub(playerGovernanceTokenReward);
             }
         }
 
         if (flexibleSegmentPayment) {
-            totalGamePrincipal = totalGamePrincipal.sub(player.amountPaid);
+            if (totalGamePrincipal < player.amountPaid) {
+                totalGamePrincipal = 0;
+            } else {
+                totalGamePrincipal = totalGamePrincipal.sub(player.amountPaid);
+            }
             strategy.redeem(inboundToken, _minAmount, payout, flexibleSegmentPayment);
+        }
+
+        if (payout > IERC20(inboundToken).balanceOf(address(this)) && impermanentLossShare > 0) {
+            payout = IERC20(inboundToken).balanceOf(address(this));
         }
 
         if (isTransactionalToken) {
