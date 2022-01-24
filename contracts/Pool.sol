@@ -516,14 +516,16 @@ contract Pool is Ownable, Pausable {
             strategy.redeem(inboundToken, _minAmount, payout, flexibleSegmentPayment);
         }
 
-        if (payout > IERC20(inboundToken).balanceOf(address(this)) && impermanentLossShare > 0) {
-            payout = IERC20(inboundToken).balanceOf(address(this));
-        }
-
         if (isTransactionalToken) {
+            if (payout > address(this).balance && impermanentLossShare > 0) {
+                payout = address(this).balance;
+            }
             (bool success, ) = msg.sender.call{ value: payout }("");
             require(success);
         } else {
+            if (payout > IERC20(inboundToken).balanceOf(address(this)) && impermanentLossShare > 0) {
+                payout = IERC20(inboundToken).balanceOf(address(this));
+            }
             require(IERC20(inboundToken).transfer(msg.sender, payout), "Fail to transfer ERC20 tokens on withdraw");
         }
 
