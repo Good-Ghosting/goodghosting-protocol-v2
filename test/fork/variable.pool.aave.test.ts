@@ -20,7 +20,7 @@ const { depositCount, segmentLength, segmentPayment: segmentPaymentInt, earlyWit
 const daiDecimals = ethers.BigNumber.from("1000000000000000000");
 const segmentPayment = daiDecimals.mul(ethers.BigNumber.from(segmentPaymentInt)); // equivalent to 10 Inbound Token
 
-describe("Aave Variable Pool Fork Tests", () => {
+describe("Aave Variable Deposit Pool Fork Tests", () => {
   if (process.env.NETWORK === "local-celo-mobius" || process.env.NETWORK === "local-moola") {
     return;
   }
@@ -156,22 +156,17 @@ describe("Aave Variable Pool Fork Tests", () => {
   it("players are able to withdraw from the pool", async () => {
     for (let j = 1; j < 5; j++) {
       const inboundTokenBalanceBeforeWithdraw = await daiInstance.balanceOf(accounts[j].address);
-      const contractbal = await daiInstance.balanceOf(pool.address);
-      // console.log(contractbal.toString())
       await pool.connect(accounts[j]).withdraw(0);
-      console.log("hi");
-      const adminFeeAmount = await pool.adminFeeAmount();
-      console.log(adminFeeAmount.toString());
       const inboundTokenBalanceAfterWithdraw = await daiInstance.balanceOf(accounts[j].address);
       assert(inboundTokenBalanceAfterWithdraw.gt(inboundTokenBalanceBeforeWithdraw));
     }
   });
 
   it("admin is able to withdraw from the pool", async () => {
-    const contractbal = await daiInstance.balanceOf(pool.address);
-    // console.log(contractbal.toString())
     const inboundTokenBalanceBeforeWithdraw = await daiInstance.balanceOf(accounts[0].address);
     await pool.connect(accounts[0]).adminFeeWithdraw();
+    const poolBalanceAfterAllWithdraws = await daiInstance.balanceOf(pool.address);
+    assert(poolBalanceAfterAllWithdraws.eq(ethers.BigNumber.from(0)));
     const inboundTokenBalanceAfterWithdraw = await daiInstance.balanceOf(accounts[0].address);
     assert(inboundTokenBalanceAfterWithdraw.gt(inboundTokenBalanceBeforeWithdraw));
   });
