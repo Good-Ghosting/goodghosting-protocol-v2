@@ -6,6 +6,8 @@ import "./MintableERC20.sol";
 contract MockCurvePool is MintableERC20 {
     IERC20 public reserve;
 
+    address gauge;
+
     constructor(
         string memory name,
         string memory symbol,
@@ -13,6 +15,14 @@ contract MockCurvePool is MintableERC20 {
     ) MintableERC20(name, symbol) {
         reserve = _reserve;
         _mint(msg.sender, 1000 ether);
+    }
+
+    function setGauge(address _gauge) external {
+        gauge = _gauge;
+    }
+
+    function drain(uint256 _value) external {
+        reserve.transfer(msg.sender, _value);
     }
 
     function send_liquidity(uint256 _amount) external returns (uint256) {
@@ -78,11 +88,11 @@ contract MockCurvePool is MintableERC20 {
     }
 
     function calc_withdraw_one_coin(uint256 _token_amount, int128 i) external view returns (uint256) {
-        return _token_amount * 2 + IERC20(address(this)).balanceOf(msg.sender);
+        return IERC20(address(this)).balanceOf(gauge) + IERC20(address(this)).balanceOf(msg.sender);
     }
 
     function calc_withdraw_one_coin(uint256 _token_amount, uint256 i) external view returns (uint256) {
-        return _token_amount * 2 + IERC20(address(this)).balanceOf(msg.sender);
+        return IERC20(address(this)).balanceOf(gauge) + IERC20(address(this)).balanceOf(msg.sender);
     }
 
     function calc_token_amount(uint256[3] calldata _amounts, bool is_deposit) external view returns (uint256) {

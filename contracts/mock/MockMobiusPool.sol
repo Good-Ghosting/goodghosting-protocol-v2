@@ -6,12 +6,22 @@ import "./MintableERC20.sol";
 contract MockMobiusPool is MintableERC20 {
     IERC20 public reserve;
 
+    address gauge;
+
     constructor(
         string memory name,
         string memory symbol,
         IERC20 _reserve
     ) MintableERC20(name, symbol) {
         reserve = _reserve;
+    }
+
+    function setGauge(address _gauge) external {
+        gauge = _gauge;
+    }
+
+    function drain(uint256 _value) external {
+        reserve.transfer(msg.sender, _value);
     }
 
     function send_liquidity(uint256 _amount) external returns (uint256) {
@@ -56,7 +66,7 @@ contract MockMobiusPool is MintableERC20 {
         uint256 tokenAmount,
         uint8 tokenIndex
     ) external view returns (uint256) {
-        return tokenAmount * 2 + IERC20(address(this)).balanceOf(msg.sender);
+        return IERC20(address(this)).balanceOf(gauge) + IERC20(address(this)).balanceOf(msg.sender);
     }
 
     function calculateTokenAmount(
