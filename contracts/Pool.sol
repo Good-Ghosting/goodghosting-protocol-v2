@@ -280,6 +280,9 @@ contract Pool is Ownable, Pausable {
                 (bool success, ) = msg.sender.call{ value: adminFeeAmount }("");
                 require(success);
             } else {
+                if (adminFeeAmount > IERC20(inboundToken).balanceOf(address(this))) {
+                    adminFeeAmount = IERC20(inboundToken).balanceOf(address(this));
+                }
                 require(
                     IERC20(inboundToken).transfer(owner(), adminFeeAmount),
                     "Fail to transfer ER20 tokens to admin"
@@ -523,7 +526,7 @@ contract Pool is Ownable, Pausable {
             (bool success, ) = msg.sender.call{ value: payout }("");
             require(success);
         } else {
-            if (payout > IERC20(inboundToken).balanceOf(address(this)) && impermanentLossShare > 0) {
+            if (payout > IERC20(inboundToken).balanceOf(address(this))) {
                 payout = IERC20(inboundToken).balanceOf(address(this));
             }
             require(IERC20(inboundToken).transfer(msg.sender, payout), "Fail to transfer ERC20 tokens on withdraw");
