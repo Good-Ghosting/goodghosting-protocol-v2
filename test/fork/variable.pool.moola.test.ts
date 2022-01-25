@@ -4,7 +4,7 @@ const truffleAssert = require("truffle-assertions");
 const wmatic = require("../../artifacts/contracts/mock/MintableERC20.sol/MintableERC20.json");
 const configs = require("../../deploy.config");
 
-contract("Pool with Moola Strategy", accounts => {
+contract("Variable Deposit Pool with Moola Strategy", accounts => {
   // Only executes this test file for local network fork
   if (!["local-variable-moola"].includes(process.env.NETWORK ? process.env.NETWORK : "")) return;
 
