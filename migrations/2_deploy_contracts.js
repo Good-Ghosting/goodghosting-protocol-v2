@@ -107,7 +107,7 @@ function printSummary(
 
   console.log(`Incentive Token: ${incentiveToken}`);
   console.log(`Strategy: ${strategy}`);
-  if (networkName === "local-celo-mobius") {
+  if (networkName === "local-celo-mobius" || networkName === "local-variable-celo-mobius") {
     console.log(`Mobius Pool: ${mobiusPool}`);
     console.log(`Mobius Gauge: ${mobiusGauge}`);
     console.log(`Mobius Minter: ${minter}`);
@@ -151,7 +151,7 @@ module.exports = function (deployer, network, accounts) {
     const incentiveToken = mobiusPoolConfigs.incentiveToken;
     const goodGhostingContract = GoodGhostingContract; // defaults to Ethereum version
     let strategyArgs;
-    if (network === "local-celo-mobius" || network === "celo-mobius") {
+    if (network === "local-celo-mobius" || network === "celo-mobius" || network === "local-variable-celo-mobius") {
       strategyArgs = [MobiusStrategyArtifact, mobiusPool, mobiusGauge, minter, mobi, celo];
     } else if (network === "local-moola" || network === "local-variable-moola" || network === "celo-moola") {
       strategyArgs = [
@@ -166,7 +166,8 @@ module.exports = function (deployer, network, accounts) {
 
     await deployer.deploy(...strategyArgs);
     let strategyInstance;
-    if (network === "local-celo-mobius") strategyInstance = await MobiusStrategyArtifact.deployed();
+    if (network === "local-celo-mobius" || network === "local-variable-celo-mobius")
+      strategyInstance = await MobiusStrategyArtifact.deployed();
     else strategyInstance = await MoolaStrategyArtifact.deployed();
 
     // Prepares deployment arguments
@@ -186,7 +187,7 @@ module.exports = function (deployer, network, accounts) {
       config.deployConfigs.isTransactionalToken,
     ];
 
-    if (network === "local-variable-moola") {
+    if (network === "local-variable-moola" || network === "local-variable-celo-mobius") {
       deploymentArgs = [
         goodGhostingContract,
         inboundCurrencyAddress,

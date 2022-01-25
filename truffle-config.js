@@ -61,6 +61,13 @@ module.exports = {
       gas: 5000000,
     },
 
+    "local-variable-celo-mobius": {
+      host: "127.0.0.1",
+      port: 8545,
+      network_id: "*",
+      gas: 5000000,
+    },
+
     "local-moola": {
       host: "127.0.0.1",
       port: 8545,

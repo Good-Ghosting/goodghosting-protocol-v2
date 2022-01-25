@@ -24,7 +24,8 @@ describe("Aave Pool Fork Tests", () => {
   if (
     process.env.NETWORK === "local-celo-mobius" ||
     process.env.NETWORK === "local-moola" ||
-    process.env.NETWORK === "local-variable-moola"
+    process.env.NETWORK === "local-variable-moola" ||
+    process.env.NETWORK === "local-variable-celo-mobius"
   ) {
     return;
   }
