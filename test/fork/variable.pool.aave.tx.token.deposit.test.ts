@@ -24,7 +24,11 @@ const segmentPayment = daiDecimals.mul(ethers.BigNumber.from(segmentPaymentInt))
 const ZERO_ADDRESS = "0x0000000000000000000000000000000000000000";
 
 describe("Aave Variable Deposit Pool Fork Tests with the deposit token as transsactional token", () => {
-  if (process.env.NETWORK === "local-celo-mobius" || process.env.NETWORK === "local-moola") {
+  if (
+    process.env.NETWORK === "local-celo-mobius" ||
+    process.env.NETWORK === "local-moola" ||
+    process.env.NETWORK === "local-variable-moola"
+  ) {
     return;
   }
 

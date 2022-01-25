@@ -92,6 +92,7 @@
     "test": "hardhat test",
     "test:fork:celo:mobius": "truffle test --network local-celo-mobius",
     "test:fork:celo:moola": "truffle test --network local-moola",
+    "test:fork:variable:celo:moola": "truffle test --network local-variable-moola",
     "typechain": "cross-env TS_NODE_TRANSPILE_ONLY=true hardhat typechain",
     "generate": "truffle compile && typechain --target truffle './build/**/*.json'",
     "prepare": "yarn generate"

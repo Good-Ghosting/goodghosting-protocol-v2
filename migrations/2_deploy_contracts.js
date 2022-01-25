@@ -153,7 +153,7 @@ module.exports = function (deployer, network, accounts) {
     let strategyArgs;
     if (network === "local-celo-mobius" || network === "celo-mobius") {
       strategyArgs = [MobiusStrategyArtifact, mobiusPool, mobiusGauge, minter, mobi, celo];
-    } else if (network === "celo-moola" || network === "celo-moola") {
+    } else if (network === "local-moola" || network === "local-variable-moola" || network === "celo-moola") {
       strategyArgs = [
         MoolaStrategyArtifact,
         lendingPoolProvider,
@@ -170,7 +170,7 @@ module.exports = function (deployer, network, accounts) {
     else strategyInstance = await MoolaStrategyArtifact.deployed();
 
     // Prepares deployment arguments
-    const deploymentArgs = [
+    let deploymentArgs = [
       goodGhostingContract,
       inboundCurrencyAddress,
       config.deployConfigs.depositCount,
@@ -185,6 +185,25 @@ module.exports = function (deployer, network, accounts) {
       strategyInstance.address,
       config.deployConfigs.isTransactionalToken,
     ];
+
+    if (network === "local-variable-moola") {
+      deploymentArgs = [
+        goodGhostingContract,
+        inboundCurrencyAddress,
+        config.deployConfigs.depositCount,
+        config.deployConfigs.segmentLength,
+        config.deployConfigs.waitingRoundSegmentLength,
+        segmentPaymentWei,
+        config.deployConfigs.earlyWithdrawFee,
+        config.deployConfigs.adminFee,
+        maxPlayersCount,
+        true,
+        incentiveToken,
+        strategyInstance.address,
+        config.deployConfigs.isTransactionalToken,
+      ];
+      config.deployConfigs.flexibleSegmentPayment = true;
+    }
 
     // Deploys the Pool Contract
     await deployer.deploy(SafeMathLib);

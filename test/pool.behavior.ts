@@ -2,7 +2,6 @@ const { ethers } = require("hardhat");
 import * as chai from "chai";
 import { assert } from "chai";
 import { solidity } from "ethereum-waffle";
-import { contract } from "hardhat";
 import { ERC20__factory } from "../src/types";
 import {
   mintTokens,

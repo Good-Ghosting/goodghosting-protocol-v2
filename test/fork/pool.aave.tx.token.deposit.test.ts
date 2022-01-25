@@ -24,7 +24,11 @@ const segmentPayment = daiDecimals.mul(ethers.BigNumber.from(segmentPaymentInt))
 const ZERO_ADDRESS = "0x0000000000000000000000000000000000000000";
 
 describe("Aave Pool Fork Tests with the deposit token as transsactional token", () => {
-  if (process.env.NETWORK === "local-celo-mobius" || process.env.NETWORK === "local-moola") {
+  if (
+    process.env.NETWORK === "local-celo-mobius" ||
+    process.env.NETWORK === "local-moola" ||
+    process.env.NETWORK === "local-variable-moola"
+  ) {
     return;
   }
 
@@ -80,11 +84,6 @@ describe("Aave Pool Fork Tests with the deposit token as transsactional token", 
     );
 
     await strategy.connect(accounts[0]).transferOwnership(pool.address);
-
-    // send out tokens to the players
-    for (let i = 0; i < 5; i++) {
-      await wmaticInstance.connect(accounts[i]).deposit({ value: ethers.utils.parseEther("3") });
-    }
   });
 
   it("checks if users have their balance increased", async () => {

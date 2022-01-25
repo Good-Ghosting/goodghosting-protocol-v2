@@ -67,6 +67,13 @@ module.exports = {
       network_id: "*",
       gas: 5000000,
     },
+
+    "local-variable-moola": {
+      host: "127.0.0.1",
+      port: 8545,
+      network_id: "*",
+      gas: 5000000,
+    },
   },
 
   compilers: {

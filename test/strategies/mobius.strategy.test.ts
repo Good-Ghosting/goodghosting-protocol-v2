@@ -17,7 +17,11 @@ import {
 chai.use(solidity);
 
 describe("Pool using Mobius Strategy", () => {
-  if (process.env.NETWORK === "local-celo-mobius" || process.env.NETWORK === "local-moola") {
+  if (
+    process.env.NETWORK === "local-celo-mobius" ||
+    process.env.NETWORK === "local-moola" ||
+    process.env.NETWORK === "local-variable-moola"
+  ) {
     return;
   }
 

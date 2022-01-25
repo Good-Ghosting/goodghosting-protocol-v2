@@ -23,7 +23,11 @@ const daiDecimals = ethers.BigNumber.from("1000000000000000000");
 const segmentPayment = daiDecimals.mul(ethers.BigNumber.from(segmentPaymentInt)); // equivalent to 10 Inbound Token
 
 describe("Aave Pool Fork Tests with the deposit token same as reward token", () => {
-  if (process.env.NETWORK === "local-celo-mobius" || process.env.NETWORK === "local-moola") {
+  if (
+    process.env.NETWORK === "local-celo-mobius" ||
+    process.env.NETWORK === "local-moola" ||
+    process.env.NETWORK === "local-variable-moola"
+  ) {
     return;
   }
 
