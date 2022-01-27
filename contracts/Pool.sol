@@ -268,6 +268,10 @@ contract Pool is Ownable, Pausable {
         require(!adminWithdraw, "Admin has already withdrawn");
         adminWithdraw = true;
 
+        if (flexibleSegmentPayment && winnerCount == 0) {
+            setGlobalPoolParamsForFlexibleDepositPool();
+        }
+
         // when there are no winners, admin will be able to withdraw the
         // additional incentives sent to the pool, avoiding locking the funds.
         uint256 adminIncentiveAmount = 0;
