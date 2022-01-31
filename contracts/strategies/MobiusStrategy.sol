@@ -26,6 +26,9 @@ contract MobiusStrategy is Ownable, IStrategy {
     /// @notice mobi lp token
     IERC20 public lpToken;
 
+    uint256 public celorewards;
+    uint256 public mobirewards;
+
     constructor(
         IMobiPool _pool,
         IMobiGauge _gauge,
@@ -149,11 +152,13 @@ contract MobiusStrategy is Ownable, IStrategy {
     }
 
     function getAccumalatedRewardTokenAmount(address _inboundCurrency) external override returns (uint256) {
-        return gauge.claimable_reward_write(address(this), address(celo));
+        celorewards = gauge.claimable_reward(address(this), address(celo));
+        return celorewards;
     }
 
     function getAccumalatedGovernanceTokenAmount(address _inboundCurrency) external override returns (uint256) {
-        return gauge.claimable_reward_write(address(this), address(mobi));
+        mobirewards = gauge.claimable_tokens(address(this));
+        return mobirewards;
     }
 
     function getRewardToken() external view override returns (IERC20) {
