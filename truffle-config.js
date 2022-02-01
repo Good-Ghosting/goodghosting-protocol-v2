@@ -33,7 +33,6 @@ module.exports = {
 
   // Set default mocha options here, use special reporters etc.
   mocha: {
-    // timeout: 100000
     reporter: "eth-gas-reporter",
     reporterOptions: {
       currency: "USD",
@@ -54,27 +53,36 @@ module.exports = {
       network_id: 42220,
       gas: 5000000,
     },
+    "local-polygon-curve": {
+      host: "127.0.0.1",
+      port: 8545,
+      network_id: "*",
+      gas: 5000000,
+    },
+    "local-variable-polygon-curve": {
+      host: "127.0.0.1",
+      port: 8545,
+      network_id: "*",
+      gas: 5000000,
+    },
     "local-celo-mobius": {
       host: "127.0.0.1",
       port: 8545,
       network_id: "*",
       gas: 5000000,
     },
-
     "local-variable-celo-mobius": {
       host: "127.0.0.1",
       port: 8545,
       network_id: "*",
       gas: 5000000,
     },
-
     "local-moola": {
       host: "127.0.0.1",
       port: 8545,
       network_id: "*",
       gas: 5000000,
     },
-
     "local-variable-moola": {
       host: "127.0.0.1",
       port: 8545,
