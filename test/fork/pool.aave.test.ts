@@ -12,7 +12,7 @@ const { expect } = chai;
 
 // dai holder
 let impersonatedSigner: any;
-let daiInstance: any, wmaticInstance;
+let daiInstance: any, wmaticInstance: any;
 let accounts: any[];
 let pool: any, strategy: any;
 const { depositCount, segmentLength, segmentPayment: segmentPaymentInt, earlyWithdrawFee } = deployConfigs;
@@ -174,9 +174,12 @@ describe("Aave Pool Fork Tests", () => {
   it("players are able to withdraw from the pool", async () => {
     for (let j = 1; j < 5; j++) {
       const inboundTokenBalanceBeforeWithdraw = await daiInstance.balanceOf(accounts[j].address);
+      const rewardTokenBalanceBeforeWithdraw = await wmaticInstance.balanceOf(accounts[j].address);
       await pool.connect(accounts[j]).withdraw(0);
+      const rewardTokenBalanceAfterWithdraw = await wmaticInstance.balanceOf(accounts[j].address);
       const inboundTokenBalanceAfterWithdraw = await daiInstance.balanceOf(accounts[j].address);
       assert(inboundTokenBalanceAfterWithdraw.gt(inboundTokenBalanceBeforeWithdraw));
+      assert(rewardTokenBalanceAfterWithdraw.gt(rewardTokenBalanceBeforeWithdraw));
     }
   });
 

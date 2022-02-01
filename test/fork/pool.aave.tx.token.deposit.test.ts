@@ -159,9 +159,12 @@ describe("Aave Pool Fork Tests with the deposit token as transsactional token", 
   it("players are able to withdraw from the pool", async () => {
     for (let j = 1; j < 5; j++) {
       const inboundTokenBalanceBeforeWithdraw = await ethers.provider.getBalance(accounts[j].address);
+      const rewardTokenBalanceBeforeWithdraw = await wmaticInstance.balanceOf(accounts[j].address);
       await pool.connect(accounts[j]).withdraw(0);
+      const rewardTokenBalanceAfterWithdraw = await wmaticInstance.balanceOf(accounts[j].address);
       const inboundTokenBalanceAfterWithdraw = await ethers.provider.getBalance(accounts[j].address);
       assert(inboundTokenBalanceAfterWithdraw.gt(inboundTokenBalanceBeforeWithdraw));
+      assert(rewardTokenBalanceAfterWithdraw.gt(rewardTokenBalanceBeforeWithdraw));
     }
   });
 
