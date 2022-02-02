@@ -150,12 +150,23 @@ describe("Aave Pool Fork Tests with the deposit token same as reward token", () 
   });
 
   it("players are able to withdraw from the pool", async () => {
+    const largeDepositUserRewardTokenBalanceBeforeWithdraw = await wmaticInstance.balanceOf(accounts[1].address);
+    const smallDepositUserRewardTokenBalanceBeforeWithdraw = await wmaticInstance.balanceOf(accounts[2].address);
     for (let j = 1; j < 5; j++) {
       const inboundTokenBalanceBeforeWithdraw = await wmaticInstance.balanceOf(accounts[j].address);
       await pool.connect(accounts[j]).withdraw(0);
       const inboundTokenBalanceAfterWithdraw = await wmaticInstance.balanceOf(accounts[j].address);
       assert(inboundTokenBalanceAfterWithdraw.gt(inboundTokenBalanceBeforeWithdraw));
     }
+    const largeDepositUserRewardTokenBalanceAftertWithdraw = await wmaticInstance.balanceOf(accounts[1].address);
+    const smallDepositUserRewardTokenBalanceWithdrawWithdraw = await wmaticInstance.balanceOf(accounts[2].address);
+    const rewardtokenDiffPlayer1 = largeDepositUserRewardTokenBalanceAftertWithdraw.sub(
+      largeDepositUserRewardTokenBalanceBeforeWithdraw,
+    );
+    const rewardtokenDiffForPlayer2 = smallDepositUserRewardTokenBalanceBeforeWithdraw.sub(
+      smallDepositUserRewardTokenBalanceWithdrawWithdraw,
+    );
+    assert(rewardtokenDiffForPlayer2.lt(rewardtokenDiffPlayer1));
   });
 
   it("admin is able to withdraw from the pool", async () => {

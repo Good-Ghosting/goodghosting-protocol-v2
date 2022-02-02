@@ -159,6 +159,10 @@ describe("Aave Variable Deposit Pool Fork Tests", () => {
   });
 
   it("players are able to withdraw from the pool", async () => {
+    const largeDepositUserInboundTokenBalanceBeforeWithdraw = await daiInstance.balanceOf(accounts[1].address);
+    const largeDepositUserRewardTokenBalanceBeforeWithdraw = await wmaticInstance.balanceOf(accounts[1].address);
+    const smallDepositUserInboundTokenBalanceBeforeWithdraw = await daiInstance.balanceOf(accounts[2].address);
+    const smallDepositUserRewardTokenBalanceBeforeWithdraw = await wmaticInstance.balanceOf(accounts[2].address);
     for (let j = 1; j < 5; j++) {
       const inboundTokenBalanceBeforeWithdraw = await daiInstance.balanceOf(accounts[j].address);
       const rewardTokenBalanceBeforeWithdraw = await wmaticInstance.balanceOf(accounts[j].address);
@@ -168,6 +172,24 @@ describe("Aave Variable Deposit Pool Fork Tests", () => {
       assert(inboundTokenBalanceAfterWithdraw.gt(inboundTokenBalanceBeforeWithdraw));
       assert(rewardTokenBalanceAfterWithdraw.gte(rewardTokenBalanceBeforeWithdraw));
     }
+    const largeDepositUserInboundTokenBalanceAfterWithdraw = await daiInstance.balanceOf(accounts[1].address);
+    const largeDepositUserRewardTokenBalanceAftertWithdraw = await wmaticInstance.balanceOf(accounts[1].address);
+    const smallDepositUserInboundTokenBalanceWithdrawWithdraw = await daiInstance.balanceOf(accounts[2].address);
+    const smallDepositUserRewardTokenBalanceWithdrawWithdraw = await wmaticInstance.balanceOf(accounts[2].address);
+    const inboundtokenDiffForPlayer1 = largeDepositUserInboundTokenBalanceAfterWithdraw.sub(
+      largeDepositUserInboundTokenBalanceBeforeWithdraw,
+    );
+    const rewardtokenDiffPlayer1 = largeDepositUserRewardTokenBalanceAftertWithdraw.sub(
+      largeDepositUserRewardTokenBalanceBeforeWithdraw,
+    );
+    const inboundtokenDiffForPlayer2 = smallDepositUserInboundTokenBalanceBeforeWithdraw.sub(
+      smallDepositUserInboundTokenBalanceWithdrawWithdraw,
+    );
+    const rewardtokenDiffForPlayer2 = smallDepositUserRewardTokenBalanceBeforeWithdraw.sub(
+      smallDepositUserRewardTokenBalanceWithdrawWithdraw,
+    );
+    assert(inboundtokenDiffForPlayer2.lt(inboundtokenDiffForPlayer1));
+    assert(rewardtokenDiffForPlayer2.lte(rewardtokenDiffPlayer1));
   });
 
   it("admin is able to withdraw from the pool", async () => {
