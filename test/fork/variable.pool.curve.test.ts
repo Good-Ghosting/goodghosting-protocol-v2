@@ -104,8 +104,6 @@ contract("Variale Deposit Pool with Curve Strategy", accounts => {
                 .sub(web3.utils.toBN(slippageFromContract).mul(web3.utils.toBN("10")).div(web3.utils.toBN("10000")))
             : userProvidedMinAmount.sub(userProvidedMinAmount.mul(web3.utils.toBN("10")).div(web3.utils.toBN("10000")));
         if (i == 2) {
-          const playerBalance = await token.methods.balanceOf(player).call({ from: admin });
-          console.log(`player`, web3.utils.fromWei(playerBalance));
           result = await goodGhosting.joinGame(minAmountWithFees.toString(), web3.utils.toWei("23"), { from: player });
           // got logs not defined error when keep the event assertion check outside of the if-else
           truffleAssert.eventEmitted(
@@ -317,32 +315,51 @@ contract("Variale Deposit Pool with Curve Strategy", accounts => {
     });
 
     it("players withdraw from contract", async () => {
+      const largeDepositPlayerInboundTokenBalanceBefore = web3.utils.toBN(
+        await token.methods.balanceOf(players[2]).call({ from: admin }),
+      );
+      const largeDepositPlayerCurveRewardBalanceBefore = web3.utils.toBN(
+        await curve.methods.balanceOf(players[2]).call({ from: admin }),
+      );
+      const largeDepositPlayerWmaticRewardBalanceBefore = web3.utils.toBN(
+        await wmatic.methods.balanceOf(players[2]).call({ from: admin }),
+      );
+      const smallDepositPlayerCurveRewardBalanceBefore = web3.utils.toBN(
+        await curve.methods.balanceOf(players[3]).call({ from: admin }),
+      );
+      const smallDepositPlayerWmaticRewardBalanceBefore = web3.utils.toBN(
+        await wmatic.methods.balanceOf(players[3]).call({ from: admin }),
+      );
+      const smallDepositPlayerInboundTokenBalanceBefore = web3.utils.toBN(
+        await token.methods.balanceOf(players[3]).call({ from: admin }),
+      );
+
       // starts from 2, since player1 (loser), requested an early withdraw and player 2 withdrew after the last segment
       for (let i = 2; i < players.length - 1; i++) {
         const player = players[i];
-        let mobiRewardBalanceBefore = web3.utils.toBN(0);
-        let mobiRewardBalanceAfter = web3.utils.toBN(0);
-        let celoRewardBalanceBefore = web3.utils.toBN(0);
-        let celoRewardBalanceAfter = web3.utils.toBN(0);
+        let curveRewardBalanceBefore = web3.utils.toBN(0);
+        let curveRewardBalanceAfter = web3.utils.toBN(0);
+        let wmaticRewardBalanceBefore = web3.utils.toBN(0);
+        let wmaticRewardBalanceAfter = web3.utils.toBN(0);
 
-        mobiRewardBalanceBefore = web3.utils.toBN(await curve.methods.balanceOf(player).call({ from: admin }));
-        celoRewardBalanceBefore = web3.utils.toBN(await wmatic.methods.balanceOf(player).call({ from: admin }));
+        curveRewardBalanceBefore = web3.utils.toBN(await curve.methods.balanceOf(player).call({ from: admin }));
+        wmaticRewardBalanceBefore = web3.utils.toBN(await wmatic.methods.balanceOf(player).call({ from: admin }));
 
         let result;
         // redeem already called hence passing in 0
         result = await goodGhosting.withdraw(0, { from: player });
 
-        mobiRewardBalanceAfter = web3.utils.toBN(await curve.methods.balanceOf(player).call({ from: admin }));
-        celoRewardBalanceAfter = web3.utils.toBN(await wmatic.methods.balanceOf(player).call({ from: admin }));
+        curveRewardBalanceAfter = web3.utils.toBN(await curve.methods.balanceOf(player).call({ from: admin }));
+        wmaticRewardBalanceAfter = web3.utils.toBN(await wmatic.methods.balanceOf(player).call({ from: admin }));
 
         assert(
-          mobiRewardBalanceAfter.gt(mobiRewardBalanceBefore),
+          curveRewardBalanceAfter.gt(curveRewardBalanceBefore),
           "expected curve balance after withdrawal to be greater than before withdrawal",
         );
 
         // for some reason forking mainnet we don't get back wmatic rewards
         assert(
-          celoRewardBalanceAfter.lte(celoRewardBalanceBefore),
+          wmaticRewardBalanceBefore.lte(wmaticRewardBalanceAfter),
           "expected wmatic balance after withdrawal to be equal to before withdrawal",
         );
 
@@ -357,6 +374,47 @@ contract("Variale Deposit Pool with Curve Strategy", accounts => {
           "withdrawal event failure",
         );
       }
+      const largeDepositPlayerInboundTokenBalanceAfter = web3.utils.toBN(
+        await token.methods.balanceOf(players[2]).call({ from: admin }),
+      );
+      const smallDepositPlayerInboundTokenBalanceAfter = web3.utils.toBN(
+        await token.methods.balanceOf(players[3]).call({ from: admin }),
+      );
+      const largeDepositPlayerCurveRewardBalanceAfter = web3.utils.toBN(
+        await curve.methods.balanceOf(players[2]).call({ from: admin }),
+      );
+      const largeDepositPlayerWmaticRewardBalanceAfter = web3.utils.toBN(
+        await wmatic.methods.balanceOf(players[2]).call({ from: admin }),
+      );
+      const smallDepositPlayerCurveRewardBalanceAfter = web3.utils.toBN(
+        await curve.methods.balanceOf(players[3]).call({ from: admin }),
+      );
+      const smallDepositPlayerWmaticRewardBalanceAfter = web3.utils.toBN(
+        await wmatic.methods.balanceOf(players[3]).call({ from: admin }),
+      );
+
+      const inboundTokenBalanceDiffForPlayer1 = largeDepositPlayerInboundTokenBalanceAfter.sub(
+        largeDepositPlayerInboundTokenBalanceBefore,
+      );
+      const inboundTokenBalanceDiffForPlayer2 = smallDepositPlayerInboundTokenBalanceAfter.sub(
+        smallDepositPlayerInboundTokenBalanceBefore,
+      );
+
+      const curveBalanceDiffForPlayer1 = largeDepositPlayerCurveRewardBalanceAfter.sub(
+        largeDepositPlayerCurveRewardBalanceBefore,
+      );
+      const wmaticBalanceDiffForPlayer1 = largeDepositPlayerWmaticRewardBalanceAfter.sub(
+        largeDepositPlayerWmaticRewardBalanceBefore,
+      );
+      const curveBalanceDiffForPlayer2 = smallDepositPlayerCurveRewardBalanceAfter.sub(
+        smallDepositPlayerCurveRewardBalanceBefore,
+      );
+      const wmaticBalanceDiffForPlayer2 = smallDepositPlayerWmaticRewardBalanceAfter.sub(
+        smallDepositPlayerWmaticRewardBalanceBefore,
+      );
+      assert(curveBalanceDiffForPlayer1.gt(curveBalanceDiffForPlayer2));
+      assert(wmaticBalanceDiffForPlayer1.gte(wmaticBalanceDiffForPlayer2));
+      assert(inboundTokenBalanceDiffForPlayer1.gt(inboundTokenBalanceDiffForPlayer2));
     });
 
     it("admin withdraws admin fee from contract", async () => {
