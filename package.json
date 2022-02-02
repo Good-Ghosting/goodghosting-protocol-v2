@@ -79,6 +79,7 @@
     "deploy:polygon": "npx hardhat run --network polygon ./scripts/deploy.ts",
     "deploy:celo-moola": "truffle deploy -f 2 --network celo-moola --reset",
     "deploy:celo-mobius": "truffle deploy -f 2 --network celo-mobius --reset",
+    "deploy:polygon-curve": "truffle deploy -f 2 --network polygon-curve --reset",
     "lint": "yarn lint:sol && yarn lint:ts && yarn prettier:check",
     "lint:sol": "solhint --config ./.solhint.json --max-warnings 0 \"contracts/**/*.sol\"",
     "lint:ts": "eslint --config ./.eslintrc.yaml --ignore-path ./.eslintignore --ext .js,.ts .",
@@ -100,6 +101,7 @@
   },
   "dependencies": {
     "@celo/contractkit": "^1.5.0",
+    "@truffle/hdwallet-provider": "^2.0.2",
     "ethereumjs-abi": "^0.6.8",
     "ganache-time-traveler": "^1.0.16",
     "hardhat": "^2.8.3",
