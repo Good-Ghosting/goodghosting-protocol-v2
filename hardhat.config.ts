@@ -2,8 +2,6 @@ import "@nomiclabs/hardhat-waffle";
 import "@typechain/hardhat";
 import "hardhat-gas-reporter";
 import "solidity-coverage";
-import "./tasks/accounts";
-import "./tasks/deploy";
 import { resolve } from "path";
 import "@nomiclabs/hardhat-truffle5";
 import { config as dotenvConfig } from "dotenv";
@@ -61,8 +59,9 @@ const config: HardhatUserConfig = {
       },
       forking: {
         enabled: process.env.FORKING === "true",
-        url: `https://matic-mainnet.chainstacklabs.com`,
+        url: `https://polygon-mainnet.infura.io/v3/ba8ebf8d84404b3280256fc6fa1cc12a`,
       },
+      // gas: 5000000,
       chainId: chainIds.hardhat,
     },
     goerli: getChainConfig("goerli"),
