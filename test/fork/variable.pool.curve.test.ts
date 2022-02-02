@@ -421,28 +421,28 @@ contract("Variale Deposit Pool with Curve Strategy", accounts => {
       if (adminFee > 0) {
         const expectedAmount = web3.utils.toBN(await goodGhosting.adminFeeAmount.call({ from: admin }));
 
-        let mobiRewardBalanceBefore = web3.utils.toBN(0);
-        let mobiRewardBalanceAfter = web3.utils.toBN(0);
-        let celoRewardBalanceBefore = web3.utils.toBN(0);
-        let celoRewardBalanceAfter = web3.utils.toBN(0);
+        let curveRewardBalanceBefore = web3.utils.toBN(0);
+        let curveRewardBalanceAfter = web3.utils.toBN(0);
+        let wmaticRewardBalanceBefore = web3.utils.toBN(0);
+        let wmaticRewardBalanceAfter = web3.utils.toBN(0);
 
-        mobiRewardBalanceBefore = web3.utils.toBN(await curve.methods.balanceOf(admin).call({ from: admin }));
-        celoRewardBalanceBefore = web3.utils.toBN(await wmatic.methods.balanceOf(admin).call({ from: admin }));
+        curveRewardBalanceBefore = web3.utils.toBN(await curve.methods.balanceOf(admin).call({ from: admin }));
+        wmaticRewardBalanceBefore = web3.utils.toBN(await wmatic.methods.balanceOf(admin).call({ from: admin }));
 
         const result = await goodGhosting.adminFeeWithdraw({
           from: admin,
         });
 
-        mobiRewardBalanceAfter = web3.utils.toBN(await curve.methods.balanceOf(admin).call({ from: admin }));
-        celoRewardBalanceAfter = web3.utils.toBN(await wmatic.methods.balanceOf(admin).call({ from: admin }));
+        curveRewardBalanceAfter = web3.utils.toBN(await curve.methods.balanceOf(admin).call({ from: admin }));
+        wmaticRewardBalanceAfter = web3.utils.toBN(await wmatic.methods.balanceOf(admin).call({ from: admin }));
 
         assert(
-          mobiRewardBalanceAfter.eq(mobiRewardBalanceBefore),
+          curveRewardBalanceAfter.eq(curveRewardBalanceBefore),
           "expected curve balance after withdrawal to be greater than before withdrawal",
         );
         // for some reason forking mainnet we don't get back wmatic rewards
         assert(
-          celoRewardBalanceAfter.gte(celoRewardBalanceBefore),
+          wmaticRewardBalanceAfter.gte(wmaticRewardBalanceBefore),
           "expected wmatic balance after withdrawal to be equal to before withdrawal",
         );
 
