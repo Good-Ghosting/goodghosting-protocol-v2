@@ -12,27 +12,14 @@ async function main() {
   ).toString();
 
   console.log("Account balance:", (await deployer.getBalance()).toString());
-  let strategy: any;
-  if (process.env.NETWORK === "polygon-aave") {
-    const AaveStrategy = await ethers.getContractFactory("AaveStrategy");
-    strategy = await AaveStrategy.deploy(
-      providers["aave"]["polygon"].lendingPoolAddressProvider,
-      providers["aave"]["polygon"].wethGateway,
-      providers["aave"]["polygon"].dataProvider,
-      providers["aave"]["polygon"].incentiveController,
-      providers["aave"]["polygon"].wmatic,
-    );
-  } else if (process.env.NETWORK === "polygon-curve") {
-    const CurveStrategy = await ethers.getContractFactory("CurveStrategy");
-    strategy = await CurveStrategy.deploy(
-      providers["aave"]["polygon-curve"].pool,
-      providers["aave"]["polygon-curve"].tokenIndex,
-      providers["aave"]["polygon-curve"].poolType,
-      providers["aave"]["polygon-curve"].gauge,
-      providers["aave"]["polygon-curve"].wmatic,
-      providers["aave"]["polygon-curve"].curve,
-    );
-  }
+  const AaveStrategy = await ethers.getContractFactory("AaveStrategy");
+  const strategy = await AaveStrategy.deploy(
+    providers["aave"]["polygon"].lendingPoolAddressProvider,
+    providers["aave"]["polygon"].wethGateway,
+    providers["aave"]["polygon"].dataProvider,
+    providers["aave"]["polygon"].incentiveController,
+    providers["aave"]["polygon"].wmatic,
+  );
 
   console.log("Strategy Address:", strategy.address);
 
@@ -86,24 +73,6 @@ async function main() {
     deployConfigs.isTransactionalToken,
   ];
 
-  var curveStrategyParameterTypes = [
-    "address", // mobius pool
-    "int128", // token index
-    "uint64", // pool type
-    "address", // mobius gauge
-    "address", // wmatic
-    "address", // curve
-  ];
-
-  var curveStrategyValues = [
-    providers["aave"]["polygon-curve"].pool,
-    providers["aave"]["polygon-curve"].tokenIndex,
-    providers["aave"]["polygon-curve"].poolType,
-    providers["aave"]["polygon-curve"].gauge,
-    providers["aave"]["polygon-curve"].wmatic,
-    providers["aave"]["polygon-curve"].curve,
-  ];
-
   var aaveStrategyParameterTypes = [
     "address", // lendingPoolProvider
     "address", // wethGateway
@@ -121,7 +90,6 @@ async function main() {
   ];
 
   var poolEncodedParameters = abi.rawEncode(poolParameterTypes, poolParameterValues);
-  var curveStrategylEncodedParameters = abi.rawEncode(curveStrategyParameterTypes, curveStrategyValues);
   var aaveStrategylEncodedParameters = abi.rawEncode(aaveStrategyParameterTypes, aaveStrategyValues);
 
   console.log("\n\n\n----------------------------------------------------");
@@ -146,22 +114,12 @@ async function main() {
   console.log(`Transactional Token Depsoit Pool: ${deployConfigs.isTransactionalToken}`);
   console.log(`Incentive Token: ${providers["aave"]["polygon"].incentiveToken}`);
   console.log(`Strategy: ${strategy.address}`);
-  if (process.env.NETWORK === "polygon-aave") {
-    console.log(`Lending Pool Provider: ${providers["aave"]["polygon"].lendingPoolAddressProvider}`);
-    console.log(`WETHGateway: ${providers["aave"]["polygon"].wethGateway}`);
-    console.log(`Data Provider: ${providers["aave"]["polygon"].dataProvider}`);
-    console.log(`IncentiveController: ${providers["aave"]["polygon"].incentiveController}`);
-    console.log(`Reward Token: ${providers["aave"]["polygon"].wmatic}`);
-    console.log("Aave Strategy Encoded Params: ", aaveStrategylEncodedParameters.toString("hex"));
-  } else {
-    console.log(`Curve Pool: ${providers["aave"]["polygon-curve"].pool}`);
-    console.log(`Curve Gauge: ${providers["aave"]["polygon-curve"].gauge}`);
-    console.log(`Token Index in Pool: ${providers["aave"]["polygon-curve"].tokenIndex}`);
-    console.log(`Pool Type: ${providers["aave"]["polygon-curve"].poolType}`);
-    console.log(`Reward Token: ${providers["aave"]["polygon-curve"].wmatic}`);
-    console.log(`Curve Token: ${providers["aave"]["polygon-curve"].curve}`);
-    console.log("Curve Strategy Encoded Params: ", curveStrategylEncodedParameters.toString("hex"));
-  }
+  console.log(`Lending Pool Provider: ${providers["aave"]["polygon"].lendingPoolAddressProvider}`);
+  console.log(`WETHGateway: ${providers["aave"]["polygon"].wethGateway}`);
+  console.log(`Data Provider: ${providers["aave"]["polygon"].dataProvider}`);
+  console.log(`IncentiveController: ${providers["aave"]["polygon"].incentiveController}`);
+  console.log(`Reward Token: ${providers["aave"]["polygon"].wmatic}`);
+  console.log("Aave Strategy Encoded Params: ", aaveStrategylEncodedParameters.toString("hex"));
   console.log("\n\nConstructor Arguments ABI-Encoded:");
   console.log(poolEncodedParameters.toString("hex"));
   console.log("\n\n\n\n");
