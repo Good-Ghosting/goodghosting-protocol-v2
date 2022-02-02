@@ -6,12 +6,12 @@ const configs = require("../../deploy.config");
 
 contract("Variable Deposit Pool with Moola Strategy", accounts => {
   // Only executes this test file for local network fork
-  if (!["local-variable-moola"].includes(process.env.NETWORK ? process.env.NETWORK : "")) return;
+  if (!["local-variable-celo-moola"].includes(process.env.NETWORK ? process.env.NETWORK : "")) return;
 
   const unlockedDaiAccount = process.env.DAI_ACCOUNT_HOLDER_FORKED_NETWORK;
   let providersConfigs: any;
   let GoodGhostingArtifact: any;
-  if (process.env.NETWORK === "local-variable-moola") {
+  if (process.env.NETWORK === "local-variable-celo-moola") {
     GoodGhostingArtifact = Pool;
     providersConfigs = configs.providers.celo.moola;
   }
@@ -25,7 +25,7 @@ contract("Variable Deposit Pool with Moola Strategy", accounts => {
   const userWithdrawingAfterLastSegment = players[1];
   const daiDecimals = web3.utils.toBN(1000000000000000000);
   const segmentPayment = daiDecimals.mul(web3.utils.toBN(segmentPaymentInt)); // equivalent to 10 Inbound Token
-  const daiAmount = segmentPayment.mul(web3.utils.toBN(depositCount * 4)).toString();
+  const daiAmount = segmentPayment.mul(web3.utils.toBN(depositCount * 5)).toString();
   let goodGhosting: any;
 
   describe("simulates a full game with 5 players and 4 of them winning the game and with admin fee % as 0", async () => {
@@ -154,11 +154,17 @@ contract("Variable Deposit Pool with Moola Strategy", accounts => {
     });
 
     it("players withdraw from contract", async () => {
+      const largeDepositPlayerInboundTokenBalanceBefore = web3.utils.toBN(
+        await token.methods.balanceOf(players[2]).call({ from: admin }),
+      );
+
+      const smallDepositPlayerInboundTokenBalanceBefore = web3.utils.toBN(
+        await token.methods.balanceOf(players[3]).call({ from: admin }),
+      );
+
       // starts from 2, since player1 (loser), requested an early withdraw and player 2 withdrew after the last segment
       for (let i = 2; i < players.length - 1; i++) {
-        console.log(i);
         const player = players[i];
-
         const inboundBalanceBeforeWithdraw = await token.methods.balanceOf(player).call({ from: admin });
 
         let result;
@@ -177,6 +183,21 @@ contract("Variable Deposit Pool with Moola Strategy", accounts => {
           "withdrawal event failure",
         );
       }
+      const largeDepositPlayerInboundTokenBalanceAfter = web3.utils.toBN(
+        await token.methods.balanceOf(players[2]).call({ from: admin }),
+      );
+      const smallDepositPlayerInboundTokenBalanceAfter = web3.utils.toBN(
+        await token.methods.balanceOf(players[3]).call({ from: admin }),
+      );
+
+      const inboundTokenBalanceDiffForPlayer1 = largeDepositPlayerInboundTokenBalanceAfter.sub(
+        largeDepositPlayerInboundTokenBalanceBefore,
+      );
+      const inboundTokenBalanceDiffForPlayer2 = smallDepositPlayerInboundTokenBalanceAfter.sub(
+        smallDepositPlayerInboundTokenBalanceBefore,
+      );
+
+      assert(inboundTokenBalanceDiffForPlayer1.gt(inboundTokenBalanceDiffForPlayer2));
     });
 
     it("admin withdraws admin fee from contract", async () => {
