@@ -23,8 +23,8 @@ const segmentPayment = daiDecimals.mul(ethers.BigNumber.from(segmentPaymentInt))
 describe("Aave Variable Deposit Pool Fork Tests", () => {
   if (
     process.env.NETWORK === "local-celo-mobius" ||
-    process.env.NETWORK === "local-moola" ||
-    process.env.NETWORK === "local-variable-moola" ||
+    process.env.NETWORK === "local-celo-moola" ||
+    process.env.NETWORK === "local-variable-celo-moola" ||
     process.env.NETWORK === "local-variable-celo-mobius" ||
     process.env.NETWORK === "local-polygon-curve" ||
     process.env.NETWORK === "local-variable-polygon-curve"

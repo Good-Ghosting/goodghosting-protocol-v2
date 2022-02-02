@@ -41,6 +41,7 @@ function printSummary(
   // additional logging info
   { networkName, selectedProvider, inboundCurrencySymbol, segmentPayment, owner },
 ) {
+  console.log(networkName);
   var poolParameterTypes = [
     "address", // inboundCurrencyAddress
     "uint256", // depositCount
@@ -183,8 +184,8 @@ module.exports = function (deployer, network, accounts) {
       network === "local-celo-mobius" ||
       network === "local-variable-celo-mobius" ||
       network === "celo-mobius" ||
-      network === "local-moola" ||
-      network === "local-variable-moola" ||
+      network === "local-celo-moola" ||
+      network === "local-variable-celo-moola" ||
       network === "celo-moola"
         ? mobiusPoolConfigs["cusd"].address
         : curvePoolConfigs["dai"].address;
@@ -200,7 +201,7 @@ module.exports = function (deployer, network, accounts) {
     let strategyArgs;
     if (network === "local-celo-mobius" || network === "celo-mobius" || network === "local-variable-celo-mobius") {
       strategyArgs = [MobiusStrategyArtifact, mobiusPool, mobiusGauge, minter, mobi, celo];
-    } else if (network === "local-moola" || network === "local-variable-moola" || network === "celo-moola") {
+    } else if (network === "local-celo-moola" || network === "local-variable-celo-moola" || network === "celo-moola") {
       strategyArgs = [
         MoolaStrategyArtifact,
         lendingPoolProvider,
@@ -225,7 +226,7 @@ module.exports = function (deployer, network, accounts) {
     let strategyInstance;
     if (network === "local-celo-mobius" || network === "celo-mobius" || network === "local-variable-celo-mobius")
       strategyInstance = await MobiusStrategyArtifact.deployed();
-    else if (network === "local-moola" || network === "local-variable-moola" || network === "celo-moola")
+    else if (network === "local-celo-moola" || network === "local-variable-celo-moola" || network === "celo-moola")
       strategyInstance = await MoolaStrategyArtifact.deployed();
     else strategyInstance = await CurveStrategyArtifact.deployed();
 
@@ -247,7 +248,7 @@ module.exports = function (deployer, network, accounts) {
     ];
 
     if (
-      network === "local-variable-moola" ||
+      network === "local-variable-celo-moola" ||
       network === "local-variable-celo-mobius" ||
       network === "local-variable-polygon-curve"
     ) {
