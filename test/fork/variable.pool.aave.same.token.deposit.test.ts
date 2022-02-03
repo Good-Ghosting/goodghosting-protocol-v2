@@ -1,6 +1,6 @@
 import * as chai from "chai";
 import { solidity } from "ethereum-waffle";
-const { network, ethers } = require("hardhat");
+const { ethers } = require("hardhat");
 const { providers, deployConfigs } = require("../../deploy.config");
 const lendingProvider = require("../../artifacts/contracts/aave/ILendingPoolAddressesProvider.sol/ILendingPoolAddressesProvider.json");
 import * as incentiveController from "../../artifacts/contracts/aave/IncentiveController.sol/IncentiveController.json";

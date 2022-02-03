@@ -5,7 +5,6 @@ const truffleAssert = require("truffle-assertions");
 const wmatic = require("../../artifacts/contracts/mock/MintableERC20.sol/MintableERC20.json");
 const mobiusPool = require("../../artifacts/contracts/mobius/IMobiPool.sol/IMobiPool.json");
 const mobiusGauge = require("../../artifacts/contracts/mobius/IMobiGauge.sol/IMobiGauge.json");
-const ethers = require("ethers");
 const configs = require("../../deploy.config");
 
 contract("Pool with Mobius Strategy", accounts => {
