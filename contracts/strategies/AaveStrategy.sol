@@ -10,6 +10,10 @@ import "../polygon/WMatic.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
+/**
+  @notice
+  Interacts with aave protocol to generate interest for the goodghosting pool it is used in, so it's responsible for deposits, withdrawals and getting rewards and sending these back to the pool.
+*/
 contract AaveStrategy is Ownable, IStrategy {
     /// @notice Address of the Aave V2 incentive controller contract
     IncentiveController public immutable incentiveController;
@@ -29,6 +33,55 @@ contract AaveStrategy is Ownable, IStrategy {
     /// @notice reward token address for eg wmatic in case of polygon deployment
     IERC20 public immutable rewardToken;
 
+    //*********************************************************************//
+    // ------------------------- external views -------------------------- //
+    //*********************************************************************//
+
+    /** 
+    @notice
+    Returns the total accumalated amount i.e principal + interest stored in aave, only used in case of variable deposit pools.
+    @param _inboundCurrency Address of the inbound token.
+    @return Total accumalated amount.
+    */
+    function getTotalAmount(address _inboundCurrency) external view override returns (uint256) {
+        // atoken address in v2 is fetched from data provider contract
+        address adaiTokenAddress;
+        if (_inboundCurrency == address(0)) {
+            (adaiTokenAddress, , ) = dataProvider.getReserveTokensAddresses(address(rewardToken));
+        } else {
+            (adaiTokenAddress, , ) = dataProvider.getReserveTokensAddresses(_inboundCurrency);
+        }
+        AToken adaiToken = AToken(adaiTokenAddress);
+        return adaiToken.balanceOf(address(this));
+    }
+
+    /** 
+    @notice
+    Returns the instance of the reward token
+    */
+    function getRewardToken() external view override returns (IERC20) {
+        return rewardToken;
+    }
+
+    /** 
+    @notice
+    Returns the instance of the governance token
+    */
+    function getGovernanceToken() external view override returns (IERC20) {
+        return IERC20(address(0));
+    }
+
+    //*********************************************************************//
+    // -------------------------- constructor ---------------------------- //
+    //*********************************************************************//
+
+  /** 
+    @param _lendingPoolAddressProvider A contract which is used as a registry on aave.
+    @param _wethGateway A contract which is used to make deposits/withdrawals on transaction token pool on aave.
+    @param _dataProvider A contract which mints ERC-721's that represent project ownership and transfers.
+    @param _incentiveController A contract which acts as a registry for reserve tokens on aave.
+    @param _rewardToken A contract which acts as the reward token for this strategy.
+  */
     constructor(
         ILendingPoolAddressesProvider _lendingPoolAddressProvider,
         IWETHGateway _wethGateway,
@@ -49,17 +102,22 @@ contract AaveStrategy is Ownable, IStrategy {
         rewardToken = _rewardToken;
     }
 
+    /**
+    @notice
+    Deposits funds into aave.
+    @param _inboundCurrency Address of the inbound token.
+    @param _minAmount Used for aam strategies, since every strategy overrides from the same strategy interface hence it is defined here.
+    */
     function invest(address _inboundCurrency, uint256 _minAmount) external payable override onlyOwner {
-        uint256 contractBalance = 0;
+        uint256 contractBalance = IERC20(_inboundCurrency).balanceOf(address(this));
         if (_inboundCurrency == address(0) || _inboundCurrency == address(rewardToken)) {
             if (_inboundCurrency == address(rewardToken)) {
                 // unwraps WMATIC back into MATIC
-                WMatic(address(rewardToken)).withdraw(IERC20(_inboundCurrency).balanceOf(address(this)));
+                WMatic(address(rewardToken)).withdraw(contractBalance);
             }
             // Deposits MATIC into the pool
             wethGateway.depositETH{ value: address(this).balance }(address(lendingPool), address(this), 155);
         } else {
-            contractBalance = IERC20(_inboundCurrency).balanceOf(address(this));
             require(
                 IERC20(_inboundCurrency).approve(address(lendingPool), contractBalance),
                 "Fail to approve allowance to lending pool"
@@ -68,6 +126,13 @@ contract AaveStrategy is Ownable, IStrategy {
         }
     }
 
+    /**
+    @notice
+    Withdraws funds from aave in case of an early withdrawal.
+    @param _inboundCurrency Address of the inbound token.
+    @param _amount Amount to withdraw.
+    @param _minAmount Used for aam strategies, since every strategy overrides from the same strategy interface hence it is defined here.
+    */
     function earlyWithdraw(
         address _inboundCurrency,
         uint256 _amount,
@@ -106,11 +171,19 @@ contract AaveStrategy is Ownable, IStrategy {
         }
     }
 
+    /**
+    @notice
+    Withdraws funds from aave in case of an early withdrawal.
+    @param _inboundCurrency Address of the inbound token.
+    @param _amount Amount to withdraw.
+    @param variableDeposits Bool Flag which determines whether the deposit is to be made in context of a variable deposit pool or not.
+    @param _minAmount Used for aam strategies, since every strategy overrides from the same strategy interface hence it is defined here.
+    */
     function redeem(
         address _inboundCurrency,
-        uint256 _minAmount,
         uint256 _amount,
-        bool variableDeposits
+        bool variableDeposits,
+        uint256 _minAmount,
     ) external override onlyOwner {
         uint256 redeemAmount = variableDeposits ? _amount : type(uint256).max;
         // atoken address in v2 is fetched from data provider contract
@@ -165,18 +238,11 @@ contract AaveStrategy is Ownable, IStrategy {
         }
     }
 
-    function getTotalAmount(address _inboundCurrency) external view override returns (uint256) {
-        // atoken address in v2 is fetched from data provider contract
-        address adaiTokenAddress;
-        if (_inboundCurrency == address(0)) {
-            (adaiTokenAddress, , ) = dataProvider.getReserveTokensAddresses(address(rewardToken));
-        } else {
-            (adaiTokenAddress, , ) = dataProvider.getReserveTokensAddresses(_inboundCurrency);
-        }
-        AToken adaiToken = AToken(adaiTokenAddress);
-        return adaiToken.balanceOf(address(this));
-    }
-
+    /**
+    @notice
+    Returns total accumalated reward token amount.
+    @param _inboundCurrency Address of the inbound token.
+    */
     function getAccumalatedRewardTokenAmount(address _inboundCurrency) external override returns (uint256) {
         // atoken address in v2 is fetched from data provider contract
         address adaiTokenAddress;
@@ -192,16 +258,13 @@ contract AaveStrategy is Ownable, IStrategy {
         return incentiveController.getRewardsBalance(assets, address(this));
     }
 
+    /**
+    @notice
+    Returns total accumalated governance token amount.
+    @param _inboundCurrency Address of the inbound token.
+    */
     function getAccumalatedGovernanceTokenAmount(address _inboundCurrency) external override returns (uint256) {
         return 0;
-    }
-
-    function getRewardToken() external view override returns (IERC20) {
-        return rewardToken;
-    }
-
-    function getGovernanceToken() external view override returns (IERC20) {
-        return IERC20(address(0));
     }
 
     // Fallback Functions for calldata and reciever for handling only ether transfer
