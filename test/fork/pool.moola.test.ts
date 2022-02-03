@@ -1,9 +1,7 @@
 const Pool = artifacts.require("Pool");
-const MoolasStrategy = artifacts.require("AaveStrategy");
 const timeMachine = require("ganache-time-traveler");
 const truffleAssert = require("truffle-assertions");
 const wmatic = require("../../artifacts/contracts/mock/MintableERC20.sol/MintableERC20.json");
-const ethers = require("ethers");
 const configs = require("../../deploy.config");
 
 contract("Pool with Moola Strategy", accounts => {
@@ -132,7 +130,6 @@ contract("Pool with Moola Strategy", accounts => {
       // above, it accounted for 1st deposit window, and then the loop runs till depositCount - 1.
       // now, we move 2 more segments (depositCount-1 and depositCount) to complete the game.
       const winnerCountBeforeEarlyWithdraw = await goodGhosting.winnerCount();
-      const playerInfo = await goodGhosting.players(userWithdrawingAfterLastSegment);
 
       await goodGhosting.earlyWithdraw(0, { from: userWithdrawingAfterLastSegment });
 
@@ -186,9 +183,18 @@ contract("Pool with Moola Strategy", accounts => {
       for (let i = 2; i < players.length - 1; i++) {
         const player = players[i];
 
+        let inboundTokenBalanceBeforeWithdraw = web3.utils.toBN(0);
+        let inboundTokenBalanceAfterWithdraw = web3.utils.toBN(0);
+
+        inboundTokenBalanceBeforeWithdraw = web3.utils.toBN(
+          await token.methods.balanceOf(player).call({ from: admin }),
+        );
+
         let result;
         // redeem already called hence passing in 0
         result = await goodGhosting.withdraw(0, { from: player });
+        inboundTokenBalanceAfterWithdraw = web3.utils.toBN(await token.methods.balanceOf(player).call({ from: admin }));
+        assert(inboundTokenBalanceAfterWithdraw.gt(inboundTokenBalanceBeforeWithdraw));
 
         truffleAssert.eventEmitted(
           result,
@@ -205,11 +211,18 @@ contract("Pool with Moola Strategy", accounts => {
 
     it("admin withdraws admin fee from contract", async () => {
       if (adminFee > 0) {
+        let inboundTokenBalanceBeforeWithdraw = web3.utils.toBN(0);
+        let inboundTokenBalanceAfterWithdraw = web3.utils.toBN(0);
+
+        inboundTokenBalanceBeforeWithdraw = web3.utils.toBN(await token.methods.balanceOf(admin).call({ from: admin }));
+
         const expectedAmount = web3.utils.toBN(await goodGhosting.adminFeeAmount.call({ from: admin }));
 
         const result = await goodGhosting.adminFeeWithdraw({
           from: admin,
         });
+        inboundTokenBalanceAfterWithdraw = web3.utils.toBN(await token.methods.balanceOf(admin).call({ from: admin }));
+        assert(inboundTokenBalanceAfterWithdraw.gt(inboundTokenBalanceBeforeWithdraw));
 
         truffleAssert.eventEmitted(
           result,
