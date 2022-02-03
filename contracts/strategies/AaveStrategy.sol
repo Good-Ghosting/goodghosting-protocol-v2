@@ -173,7 +173,7 @@ contract AaveStrategy is Ownable, IStrategy {
 
     /**
     @notice
-    Redeems funds from aave when the waiting round for the pool is over.
+    Redeems funds from aave when the waiting round for the good ghosting pool is over.
     @param _inboundCurrency Address of the inbound token.
     @param _amount Amount to withdraw.
     @param variableDeposits Bool Flag which determines whether the deposit is to be made in context of a variable deposit pool or not.

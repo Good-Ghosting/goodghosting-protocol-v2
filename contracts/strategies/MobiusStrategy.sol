@@ -7,6 +7,10 @@ import "../mobius/IMobiGauge.sol";
 import "../mobius/IMinter.sol";
 import "./IStrategy.sol";
 
+/**
+  @notice
+  Interacts with mobius protocol to generate interest & additional rewards for the goodghosting pool it is used in, so it's responsible for deposits, staking lp tokens, withdrawals and getting rewards and sending these back to the pool.
+*/
 contract MobiusStrategy is Ownable, IStrategy {
     /// @notice pool address
     IMobiPool public pool;
@@ -26,6 +30,49 @@ contract MobiusStrategy is Ownable, IStrategy {
     /// @notice mobi lp token
     IERC20 public lpToken;
 
+    //*********************************************************************//
+    // ------------------------- external views -------------------------- //
+    //*********************************************************************//
+
+    /** 
+    @notice
+    Returns the total accumalated amount i.e principal + interest stored in aave, only used in case of variable deposit pools.
+    @param _inboundCurrency Address of the inbound token.
+    @return Total accumalated amount.
+    */
+    function getTotalAmount(address _inboundCurrency) external view override returns (uint256) {
+        uint256 gaugeBalance = gauge.balanceOf(address(this));
+        uint256 totalAccumalatedAmount = pool.calculateRemoveLiquidityOneToken(address(this), gaugeBalance, 0);
+        return totalAccumalatedAmount;
+    }
+
+    /** 
+    @notice
+    Returns the instance of the reward token
+    */
+    function getRewardToken() external view override returns (IERC20) {
+        return celo;
+    }
+
+    /** 
+    @notice
+    Returns the instance of the governance token
+    */
+    function getGovernanceToken() external view override returns (IERC20) {
+        return mobi;
+    }
+
+    //*********************************************************************//
+    // -------------------------- constructor ---------------------------- //
+    //*********************************************************************//
+
+    /** 
+    @param _pool Mobius Pool Contract.
+    @param _gauge Mobius Gauge Contract.
+    @param _minter Mobius Minter Contract used for getting mobi rewards.
+    @param _mobi Mobi Contract.
+    @param _celo Celo Contract.
+    */
     constructor(
         IMobiPool _pool,
         IMobiGauge _gauge,
@@ -46,13 +93,18 @@ contract MobiusStrategy is Ownable, IStrategy {
         lpToken = IERC20(pool.getLpToken());
     }
 
+    /**
+    @notice
+    Deposits funds into mobius pool and then stake the lp tokens into curve gauge.
+    @param _inboundCurrency Address of the inbound token.
+    @param _minAmount Slippage based amount to cover for impermanent loss scenario .
+    */
     function invest(address _inboundCurrency, uint256 _minAmount) external payable override onlyOwner {
         uint256 contractBalance = IERC20(_inboundCurrency).balanceOf(address(this));
         require(IERC20(_inboundCurrency).approve(address(pool), contractBalance), "Fail to approve allowance to pool");
 
         uint256[] memory amounts = new uint256[](2);
         amounts[0] = contractBalance;
-        amounts[1] = 0;
 
         pool.addLiquidity(amounts, _minAmount, block.timestamp + 1000);
 
@@ -63,6 +115,13 @@ contract MobiusStrategy is Ownable, IStrategy {
         gauge.deposit(lpToken.balanceOf(address(this)));
     }
 
+    /**
+    @notice
+    Unstakes and Withdraw's funds from mobius in case of an early withdrawal .
+    @param _inboundCurrency Address of the inbound token.
+    @param _amount Amount to withdraw.
+    @param _minAmount Slippage based amount to cover for impermanent loss scenario .
+    */
     function earlyWithdraw(
         address _inboundCurrency,
         uint256 _amount,
@@ -70,7 +129,6 @@ contract MobiusStrategy is Ownable, IStrategy {
     ) external override onlyOwner {
         uint256[] memory amounts = new uint256[](2);
         amounts[0] = _amount;
-        amounts[1] = 0;
 
         uint256 gaugeBalance = gauge.balanceOf(address(this));
         if (gaugeBalance > 0) {
@@ -97,6 +155,14 @@ contract MobiusStrategy is Ownable, IStrategy {
         );
     }
 
+    /**
+    @notice
+    Redeems funds from mobius after unstaking when the waiting round for the good ghosting pool is over.
+    @param _inboundCurrency Address of the inbound token.
+    @param _amount Amount to withdraw.
+    @param variableDeposits Bool Flag which determines whether the deposit is to be made in context of a variable deposit pool or not.
+    @param _minAmount Slippage based amount to cover for impermanent loss scenario .
+    */
     function redeem(
         address _inboundCurrency,
         uint256 _amount,
@@ -109,7 +175,6 @@ contract MobiusStrategy is Ownable, IStrategy {
             if (variableDeposits) {
                 uint256[] memory amounts = new uint256[](2);
                 amounts[0] = _amount;
-                amounts[1] = 0;
                 uint256 poolWithdrawAmount = pool.calculateTokenAmount(address(this), amounts, true);
 
                 if (gaugeBalance < poolWithdrawAmount) {
@@ -142,25 +207,21 @@ contract MobiusStrategy is Ownable, IStrategy {
         );
     }
 
-    function getTotalAmount(address _inboundCurrency) external view override returns (uint256) {
-        uint256 gaugeBalance = gauge.balanceOf(address(this));
-        uint256 totalAccumalatedAmount = pool.calculateRemoveLiquidityOneToken(address(this), gaugeBalance, 0);
-        return totalAccumalatedAmount;
-    }
-
+    /**
+    @notice
+    Returns total accumalated reward token amount.
+    @param _inboundCurrency Address of the inbound token.
+    */
     function getAccumalatedRewardTokenAmount(address _inboundCurrency) external override returns (uint256) {
         return gauge.claimable_reward(address(this), address(celo));
     }
 
+    /**
+    @notice
+    Returns total accumalated governance token amount.
+    @param _inboundCurrency Address of the inbound token.
+    */
     function getAccumalatedGovernanceTokenAmount(address _inboundCurrency) external override returns (uint256) {
         return gauge.claimable_tokens(address(this));
-    }
-
-    function getRewardToken() external view override returns (IERC20) {
-        return celo;
-    }
-
-    function getGovernanceToken() external view override returns (IERC20) {
-        return mobi;
     }
 }
