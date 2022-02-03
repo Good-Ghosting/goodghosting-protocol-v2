@@ -279,7 +279,7 @@ contract Pool is Ownable, Pausable {
         uint256 adminGovernanceTokenAmount = 0;
 
         if (adminFeeAmount > 0) {
-            strategy.redeem(inboundToken, 0, adminFeeAmount, flexibleSegmentPayment);
+            strategy.redeem(inboundToken, adminFeeAmount, flexibleSegmentPayment, 0);
             if (isTransactionalToken) {
                 (bool success, ) = msg.sender.call{ value: adminFeeAmount }("");
                 require(success);
@@ -520,7 +520,7 @@ contract Pool is Ownable, Pausable {
             } else {
                 totalGamePrincipal = totalGamePrincipal.sub(player.amountPaid);
             }
-            strategy.redeem(inboundToken, _minAmount, payout, flexibleSegmentPayment);
+            strategy.redeem(inboundToken, payout, flexibleSegmentPayment, _minAmount);
         }
 
         if (isTransactionalToken) {
@@ -611,7 +611,7 @@ contract Pool is Ownable, Pausable {
         redeemed = true;
         uint256 totalBalance = 0;
         // Withdraws funds (principal + interest + rewards) from external pool
-        strategy.redeem(inboundToken, _minAmount, 0, flexibleSegmentPayment);
+        strategy.redeem(inboundToken, 0, flexibleSegmentPayment, _minAmount);
 
         if (isTransactionalToken) {
             totalBalance = address(this).balance;

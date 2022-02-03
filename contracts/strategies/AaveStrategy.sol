@@ -12,7 +12,7 @@ import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
 /**
   @notice
-  Interacts with aave protocol to generate interest for the goodghosting pool it is used in, so it's responsible for deposits, withdrawals and getting rewards and sending these back to the pool.
+  Interacts with aave & moola protocol to generate interest for the goodghosting pool it is used in, so it's responsible for deposits, withdrawals and getting rewards and sending these back to the pool.
 */
 contract AaveStrategy is Ownable, IStrategy {
     /// @notice Address of the Aave V2 incentive controller contract
@@ -173,7 +173,7 @@ contract AaveStrategy is Ownable, IStrategy {
 
     /**
     @notice
-    Withdraws funds from aave in case of an early withdrawal.
+    Redeems funds from aave when the waiting round for the pool is over.
     @param _inboundCurrency Address of the inbound token.
     @param _amount Amount to withdraw.
     @param variableDeposits Bool Flag which determines whether the deposit is to be made in context of a variable deposit pool or not.
@@ -183,7 +183,7 @@ contract AaveStrategy is Ownable, IStrategy {
         address _inboundCurrency,
         uint256 _amount,
         bool variableDeposits,
-        uint256 _minAmount,
+        uint256 _minAmount
     ) external override onlyOwner {
         uint256 redeemAmount = variableDeposits ? _amount : type(uint256).max;
         // atoken address in v2 is fetched from data provider contract

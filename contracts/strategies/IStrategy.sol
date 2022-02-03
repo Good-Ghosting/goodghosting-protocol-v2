@@ -14,8 +14,8 @@ interface IStrategy {
     function redeem(
         address _inboundCurrency,
         uint256 _amount,
-        uint256 _minAmount,
-        bool variableDeposits
+        bool variableDeposits,
+        uint256 _minAmount
     ) external;
 
     function getTotalAmount(address _inboundCurrency) external view returns (uint256);

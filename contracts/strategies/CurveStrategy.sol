@@ -6,6 +6,10 @@ import "../curve/ICurvePool.sol";
 import "../curve/ICurveGauge.sol";
 import "./IStrategy.sol";
 
+/**
+  @notice
+  Interacts with curve protocol to generate interest & additional rewards for the goodghosting pool it is used in, so it's responsible for deposits, staking lp tokens, withdrawals and getting rewards and sending these back to the pool.
+*/
 contract CurveStrategy is Ownable, IStrategy {
     /// @notice pool address
     ICurvePool public pool;
@@ -40,6 +44,55 @@ contract CurveStrategy is Ownable, IStrategy {
     /// @notice flag to differentiate between aave and atricrypto pool
     uint64 public immutable poolType;
 
+    //*********************************************************************//
+    // ------------------------- external views -------------------------- //
+    //*********************************************************************//
+
+    /** 
+    @notice
+    Returns the total accumalated amount i.e principal + interest stored in aave, only used in case of variable deposit pools.
+    @param _inboundCurrency Address of the inbound token.
+    @return Total accumalated amount.
+    */
+    function getTotalAmount(address _inboundCurrency) external view override returns (uint256) {
+        uint256 gaugeBalance = gauge.balanceOf(address(this));
+        uint256 totalAccumalatedAmount = 0;
+        if (poolType == AAVE_POOL) {
+            totalAccumalatedAmount = pool.calc_withdraw_one_coin(gaugeBalance, inboundTokenIndex);
+        } else {
+            totalAccumalatedAmount = pool.calc_withdraw_one_coin(gaugeBalance, uint256(uint128(inboundTokenIndex)));
+        }
+        return totalAccumalatedAmount;
+    }
+
+    /** 
+    @notice
+    Returns the instance of the reward token
+    */
+    function getRewardToken() external view override returns (IERC20) {
+        return rewardToken;
+    }
+
+    /** 
+    @notice
+    Returns the instance of the governance token
+    */
+    function getGovernanceToken() external view override returns (IERC20) {
+        return curve;
+    }
+
+    //*********************************************************************//
+    // -------------------------- constructor ---------------------------- //
+    //*********************************************************************//
+
+    /** 
+    @param _pool Curve Pool Contract.
+    @param _inboundTokenIndex Deposit token index in the pool.
+    @param _poolType Pool type to diffrentiate b/w the pools.
+    @param _gauge Curve Gauge Contract used to stake lp tokens.
+    @param _rewardToken A contract which acts as the reward token for this strategy.
+    @param _curve Curve Contract.
+  */
     constructor(
         ICurvePool _pool,
         int128 _inboundTokenIndex,
@@ -65,6 +118,12 @@ contract CurveStrategy is Ownable, IStrategy {
         }
     }
 
+    /**
+    @notice
+    Deposits funds into curve pool and then stake the lp tokens into curve gauge.
+    @param _inboundCurrency Address of the inbound token.
+    @param _minAmount Slippage based amount to cover for impermanent loss scenario .
+    */
     function invest(address _inboundCurrency, uint256 _minAmount) external payable override onlyOwner {
         uint256 contractBalance = IERC20(_inboundCurrency).balanceOf(address(this));
         require(IERC20(_inboundCurrency).approve(address(pool), contractBalance), "Fail to approve allowance to pool");
@@ -93,18 +152,18 @@ contract CurveStrategy is Ownable, IStrategy {
         gauge.deposit(lpToken.balanceOf(address(this)));
     }
 
+    /**
+    @notice
+    Unstakes and Withdraw's funds from curve in case of an early withdrawal .
+    @param _inboundCurrency Address of the inbound token.
+    @param _amount Amount to withdraw.
+    @param _minAmount Slippage based amount to cover for impermanent loss scenario .
+    */
     function earlyWithdraw(
         address _inboundCurrency,
         uint256 _amount,
         uint256 _minAmount
     ) external override onlyOwner {
-        /*
-        Code of curve's aave and curve's atricrypto pools are completely different.
-        Curve's Aave Pool (pool type 0): in this contract, all funds "sit" in the pool's smart contract.
-        Curve's Atricrypto pool (pool type 1): this contract integrates with other pools
-            and funds sit in those pools. Hence, an approval transaction is required because
-            it is communicating with external contracts
-        */
         uint256 gaugeBalance = gauge.balanceOf(address(this));
         if (gaugeBalance > 0) {
             if (poolType == AAVE_POOL) {
@@ -136,7 +195,13 @@ contract CurveStrategy is Ownable, IStrategy {
 
                 // passes false not to claim rewards
                 gauge.withdraw(poolWithdrawAmount, false);
-
+                /*
+                Code of curve's aave and curve's atricrypto pools are completely different.
+                Curve's Aave Pool (pool type 0): in this contract, all funds "sit" in the pool's smart contract.
+                Curve's Atricrypto pool (pool type 1): this contract integrates with other pools
+                and funds sit in those pools. Hence, an approval transaction is required because
+                it is communicating with external contracts
+                */
                 require(lpToken.approve(address(pool), poolWithdrawAmount), "Fail to approve allowance to pool");
                 pool.remove_liquidity_one_coin(poolWithdrawAmount, uint256(uint128(inboundTokenIndex)), _minAmount);
             }
@@ -152,74 +217,71 @@ contract CurveStrategy is Ownable, IStrategy {
         );
     }
 
+    /**
+    @notice
+    Redeems funds from curve after unstaking when the waiting round for the pool is over.
+    @param _inboundCurrency Address of the inbound token.
+    @param _amount Amount to withdraw.
+    @param variableDeposits Bool Flag which determines whether the deposit is to be made in context of a variable deposit pool or not.
+    @param _minAmount Slippage based amount to cover for impermanent loss scenario .
+    */
     function redeem(
         address _inboundCurrency,
-        uint256 _minAmount,
         uint256 _amount,
-        bool variableDeposits
+        bool variableDeposits,
+        uint256 _minAmount
     ) external override onlyOwner {
         uint256 gaugeBalance = gauge.balanceOf(address(this));
         if (gaugeBalance > 0) {
-            if (variableDeposits) {
-                if (poolType == AAVE_POOL) {
+            uint256 poolWithdrawAmount = 0;
+            uint256 amountToWithdrawFromGauge = 0;
+            uint256 amountToWithdrawFromPool = 0;
+            uint256 lpTokenBalance = lpToken.balanceOf(address(this));
+            if (poolType == AAVE_POOL) {
+                if (variableDeposits) {
                     uint256[NUM_AAVE_TOKENS] memory amounts; // fixed-sized array is initialized w/ [0, 0, 0]
                     amounts[uint256(uint128(inboundTokenIndex))] = _amount;
-                    uint256 poolWithdrawAmount = pool.calc_token_amount(amounts, true);
+                    poolWithdrawAmount = pool.calc_token_amount(amounts, true);
 
                     if (gaugeBalance < poolWithdrawAmount) {
                         poolWithdrawAmount = gaugeBalance;
                     }
-
-                    // passes false not to claim rewards
-                    gauge.withdraw(poolWithdrawAmount, true);
-
-                    pool.remove_liquidity_one_coin(
-                        poolWithdrawAmount,
-                        inboundTokenIndex,
-                        _minAmount,
-                        true // redeems underlying coin (dai, usdc, usdt), instead of aTokens
-                    );
-                } else if (poolType == ATRI_CRYPTO_POOL) {
+                }
+                amountToWithdrawFromGauge = variableDeposits ? poolWithdrawAmount : gaugeBalance;
+                gauge.withdraw(amountToWithdrawFromGauge, true);
+                amountToWithdrawFromPool = variableDeposits ? poolWithdrawAmount : lpTokenBalance;
+                pool.remove_liquidity_one_coin(
+                    amountToWithdrawFromPool,
+                    inboundTokenIndex,
+                    _minAmount,
+                    true // redeems underlying coin (dai, usdc, usdt), instead of aTokens
+                );
+            } else {
+                if (variableDeposits) {
                     uint256[NUM_ATRI_CRYPTO_TOKENS] memory amounts; // fixed-sized array is initialized w/ [0, 0, 0, 0, 0]
                     amounts[uint256(uint128(inboundTokenIndex))] = _amount;
-                    uint256 poolWithdrawAmount = pool.calc_token_amount(amounts, true);
-
+                    poolWithdrawAmount = pool.calc_token_amount(amounts, true);
                     if (gaugeBalance < poolWithdrawAmount) {
                         poolWithdrawAmount = gaugeBalance;
                     }
-
-                    // passes false not to claim rewards
-                    gauge.withdraw(poolWithdrawAmount, true);
-
-                    require(lpToken.approve(address(pool), poolWithdrawAmount), "Fail to approve allowance to pool");
-                    pool.remove_liquidity_one_coin(poolWithdrawAmount, uint256(uint128(inboundTokenIndex)), _minAmount);
                 }
-            } else {
-                // passes true to also claim rewards
-                gauge.withdraw(gaugeBalance, true);
-
+                amountToWithdrawFromGauge = variableDeposits ? poolWithdrawAmount : gaugeBalance;
+                gauge.withdraw(amountToWithdrawFromGauge, true);
+                amountToWithdrawFromPool = variableDeposits ? poolWithdrawAmount : lpTokenBalance;
                 /*
-        Code of curve's aave and curve's atricrypto pools are completely different.
-        Curve's Aave Pool (pool type 0): in this contract, all funds "sit" in the pool's smart contract.
-        Curve's Atricrypto pool (pool type 1): this contract integrates with other pools
-            and funds sit in those pools. Hence, an approval transaction is required because
-            it is communicating with external contracts
-        */
-                uint256 lpTokenBalance = lpToken.balanceOf(address(this));
-                if (lpTokenBalance > 0) {
-                    if (poolType == AAVE_POOL) {
-                        pool.remove_liquidity_one_coin(
-                            lpTokenBalance,
-                            inboundTokenIndex,
-                            _minAmount,
-                            true // redeems underlying coin (dai, usdc, usdt), instead of aTokens
-                        );
-                    } else if (poolType == ATRI_CRYPTO_POOL) {
-                        require(lpToken.approve(address(pool), lpTokenBalance), "Fail to approve allowance to pool");
+                Code of curve's aave and curve's atricrypto pools are completely different.
+                Curve's Aave Pool (pool type 0): in this contract, all funds "sit" in the pool's smart contract.
+                Curve's Atricrypto pool (pool type 1): this contract integrates with other pools
+                and funds sit in those pools. Hence, an approval transaction is required because
+                it is communicating with external contracts
+                */
+                require(lpToken.approve(address(pool), amountToWithdrawFromPool), "Fail to approve allowance to pool");
 
-                        pool.remove_liquidity_one_coin(lpTokenBalance, uint256(uint128(inboundTokenIndex)), _minAmount);
-                    }
-                }
+                pool.remove_liquidity_one_coin(
+                    amountToWithdrawFromPool,
+                    uint256(uint128(inboundTokenIndex)),
+                    _minAmount
+                );
             }
         }
 
@@ -235,30 +297,21 @@ contract CurveStrategy is Ownable, IStrategy {
         );
     }
 
-    function getTotalAmount(address _inboundCurrency) external view override returns (uint256) {
-        uint256 gaugeBalance = gauge.balanceOf(address(this));
-        uint256 totalAccumalatedAmount = 0;
-        if (poolType == AAVE_POOL) {
-            totalAccumalatedAmount = pool.calc_withdraw_one_coin(gaugeBalance, inboundTokenIndex);
-        } else {
-            totalAccumalatedAmount = pool.calc_withdraw_one_coin(gaugeBalance, uint256(uint128(inboundTokenIndex)));
-        }
-        return totalAccumalatedAmount;
-    }
-
+    /**
+    @notice
+    Returns total accumalated reward token amount.
+    @param _inboundCurrency Address of the inbound token.
+    */
     function getAccumalatedRewardTokenAmount(address _inboundCurrency) external override returns (uint256) {
         return gauge.claimable_reward_write(address(this), address(rewardToken));
     }
 
+    /**
+    @notice
+    Returns total accumalated governance token amount.
+    @param _inboundCurrency Address of the inbound token.
+    */
     function getAccumalatedGovernanceTokenAmount(address _inboundCurrency) external override returns (uint256) {
         return gauge.claimable_reward_write(address(this), address(curve));
-    }
-
-    function getRewardToken() external view override returns (IERC20) {
-        return rewardToken;
-    }
-
-    function getGovernanceToken() external view override returns (IERC20) {
-        return curve;
     }
 }

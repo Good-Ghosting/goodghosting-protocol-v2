@@ -99,9 +99,9 @@ contract MobiusStrategy is Ownable, IStrategy {
 
     function redeem(
         address _inboundCurrency,
-        uint256 _minAmount,
         uint256 _amount,
-        bool variableDeposits
+        bool variableDeposits,
+        uint256 _minAmount
     ) external override onlyOwner {
         uint256 gaugeBalance = gauge.balanceOf(address(this));
         if (gaugeBalance > 0) {
