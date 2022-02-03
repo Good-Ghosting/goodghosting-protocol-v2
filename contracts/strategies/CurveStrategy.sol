@@ -122,7 +122,7 @@ contract CurveStrategy is Ownable, IStrategy {
     @notice
     Deposits funds into curve pool and then stake the lp tokens into curve gauge.
     @param _inboundCurrency Address of the inbound token.
-    @param _minAmount Slippage based amount to cover for impermanent loss scenario .
+    @param _minAmount Slippage based amount to cover for impermanent loss scenario.
     */
     function invest(address _inboundCurrency, uint256 _minAmount) external payable override onlyOwner {
         uint256 contractBalance = IERC20(_inboundCurrency).balanceOf(address(this));
@@ -157,7 +157,7 @@ contract CurveStrategy is Ownable, IStrategy {
     Unstakes and Withdraw's funds from curve in case of an early withdrawal .
     @param _inboundCurrency Address of the inbound token.
     @param _amount Amount to withdraw.
-    @param _minAmount Slippage based amount to cover for impermanent loss scenario .
+    @param _minAmount Slippage based amount to cover for impermanent loss scenario.
     */
     function earlyWithdraw(
         address _inboundCurrency,
@@ -223,7 +223,7 @@ contract CurveStrategy is Ownable, IStrategy {
     @param _inboundCurrency Address of the inbound token.
     @param _amount Amount to withdraw.
     @param variableDeposits Bool Flag which determines whether the deposit is to be made in context of a variable deposit pool or not.
-    @param _minAmount Slippage based amount to cover for impermanent loss scenario .
+    @param _minAmount Slippage based amount to cover for impermanent loss scenario.
     */
     function redeem(
         address _inboundCurrency,

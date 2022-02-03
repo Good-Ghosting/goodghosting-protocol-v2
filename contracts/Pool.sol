@@ -5,104 +5,106 @@ import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/security/Pausable.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/utils/math/SafeMath.sol";
-
 import "./strategies/IStrategy.sol";
 
-/// @title GoodGhosting V2 Contract
-/// @notice Used for games deployed on a EVM Network
+/**
+@title GoodGhosting V2 Contract
+@notice Allows users to join a pool with a yield bearing strategy, the winners get interest and rewards, losers get their principal back.
+*/
 contract Pool is Ownable, Pausable {
-    // using for better readability
+    /// using for better readability.
     using SafeMath for uint256;
 
-    /// @notice Multiplier used for calculating playerIndex to avoid precision issues
+    /// @notice Multiplier used for calculating playerIndex to avoid precision issues.
     uint256 public constant MULTIPLIER = 10**5;
 
     /// @notice Stores the total amount of net interest received in the game.
     uint256 public totalGameInterest;
 
-    /// @notice total principal amount
+    /// @notice total principal amount.
     uint256 public totalGamePrincipal;
 
-    /// @notice performance fee amount allocated to the admin
+    /// @notice performance fee amount allocated to the admin.
     uint256 public adminFeeAmount;
 
-    /// @notice player index cummalativePlayerIndexSum
+    /// @notice player index cummalativePlayerIndexSum.
     uint256 public cummalativePlayerIndexSum;
 
-    /// @notice total amount of incentive tokens to be distributed among winners
+    /// @notice total amount of incentive tokens to be distributed among winners.
     uint256 public totalIncentiveAmount = 0;
 
-    /// @notice Controls the amount of active players in the game (ignores players that early withdraw)
+    /// @notice Controls the amount of active players in the game (ignores players that early withdraw).
     uint256 public activePlayersCount = 0;
 
-    /// @notice winner counter to track no of winners
+    /// @notice winner counter to track no of winners.
     uint256 public winnerCount = 0;
 
-    /// @notice The amount to be paid on each segment
+    /// @notice The amount to be paid on each segment.
     uint256 public segmentPayment;
 
-    /// @notice The number of segments in the game (segment count)
+    /// @notice The number of segments in the game (segment count).
     uint256 public immutable lastSegment;
 
-    /// @notice When the game started (deployed timestamp)
+    /// @notice When the game started (deployed timestamp).
     uint256 public immutable firstSegmentStart;
 
     uint256 public immutable waitingRoundSegmentStart;
 
-    /// @notice The time duration (in seconds) of each segment
+    /// @notice The time duration (in seconds) of each segment.
     uint256 public immutable segmentLength;
 
-    /// @notice The time duration (in seconds) of each segment
+    /// @notice The time duration (in seconds) of each segment.
     uint256 public immutable waitingRoundSegmentLength;
 
-    /// @notice The early withdrawal fee (percentage)
+    /// @notice The early withdrawal fee (percentage).
     uint128 public immutable earlyWithdrawalFee;
 
-    /// @notice The performance admin fee (percentage)
+    /// @notice The performance admin fee (percentage).
     uint128 public immutable adminFee;
 
-    /// @notice Defines the max quantity of players allowed in the game
+    /// @notice Defines the max quantity of players allowed in the game.
     uint256 public immutable maxPlayersCount;
 
-    /// @notice share % from impermanent loss
+    /// @notice share % from impermanent loss.
     uint256 public impermanentLossShare;
 
-    /// @notice totalGovernancetoken balance
+    /// @notice totalGovernancetoken balance.
     uint256 public strategyGovernanceTokenAmount = 0;
 
-    /// @notice total rewardTokenAmount balance
+    /// @notice total rewardTokenAmount balance.
     uint256 public rewardTokenAmount = 0;
 
-    /// @notice Controls if tokens were redeemed or not from the pool
+    /// @notice Controls if tokens were redeemed or not from the pool.
     bool public redeemed;
 
-    /// @notice Flag which determines whether the segment payment is fixed or not
+    /// @notice Flag which determines whether the segment payment is fixed or not.
     bool public immutable flexibleSegmentPayment;
 
-    /// @notice Flag which determines whether the deposit token is a transactional token like eth or matic
+    /// @notice Flag which determines whether the deposit token is a transactional token like eth or matic.
     bool public isTransactionalToken;
 
     /// @notice controls if admin withdrew or not the performance fee.
     bool public adminWithdraw;
 
-    /// @notice Ownership Control flag
+    /// @notice Ownership Control flag.
     bool public allowRenouncingOwnership = false;
 
     /// @notice Strategy Contract Address
     IStrategy public immutable strategy;
 
-    /// @notice Address of the token used for depositing into the game by players
+    /// @notice Address of the token used for depositing into the game by players.
     address public immutable inboundToken;
 
     /// @notice Defines an optional token address used to provide additional incentives to users. Accepts "0x0" adresses when no incentive token exists.
     IERC20 public immutable incentiveToken;
 
-    /// @notice address of additional reward token accured from investing via different strategies like wmatic
+    /// @notice address of additional reward token accured from investing via different strategies like wmatic.
     IERC20 public rewardToken;
 
-    /// @notice address of strategyGovernanceToken accured from investing via different strategies like curve
+    /// @notice address of strategyGovernanceToken accured from investing via different strategies like curve.
     IERC20 public strategyGovernanceToken;
 
+    /// @notice struct for storing all player stats.
     struct Player {
         bool withdrawn;
         bool canRejoin;
@@ -113,13 +115,18 @@ contract Pool is Ownable, Pausable {
         uint256 flexibleDepositAmount;
     }
 
-    /// @notice Stores info about the players in the game
+    /// @notice Stores info about the players in the game.
     mapping(address => Player) public players;
 
+    /// @notice Stores info about the player index which is used to determine the share of interest of each winner.
     mapping(address => mapping(uint256 => uint256)) public playerIndex;
 
-    /// @notice list of players
+    /// @notice list of players.
     address[] public iterablePlayers;
+
+    //*********************************************************************//
+    // ------------------------- events -------------------------- //
+    //*********************************************************************//
 
     event JoinedGame(address indexed player, uint256 amount);
 
@@ -153,6 +160,10 @@ contract Pool is Ownable, Pausable {
         uint256 adminGovernanceRewardAmount
     );
 
+    //*********************************************************************//
+    // ------------------------- modifiers -------------------------- //
+    //*********************************************************************//
+
     modifier whenGameIsCompleted() {
         require(isGameCompleted(), "Game is not completed");
         _;
@@ -172,6 +183,43 @@ contract Pool is Ownable, Pausable {
         require(flexibleSegmentPayment, "Non Flexible Deposit Game");
         _;
     }
+
+    //*********************************************************************//
+    // ------------------------- external views -------------------------- //
+    //*********************************************************************//
+
+    /// @dev Checks if the game is completed or not.
+    /// @return "true" if completeted; otherwise, "false".
+    function isGameCompleted() public view returns (bool) {
+        // Game is completed when the current segment is greater than "lastSegment" of the game.
+        return getCurrentSegment() > lastSegment;
+    }
+
+    /// @dev gets the number of players in the game.
+    /// @return number of players.
+    function getNumberOfPlayers() external view returns (uint256) {
+        return iterablePlayers.length;
+    }
+
+    /// @dev Calculates the current segment of the game.
+    /// @return current game segment.
+    function getCurrentSegment() public view returns (uint256) {
+        uint256 currentSegment;
+        if (
+            waitingRoundSegmentStart <= block.timestamp &&
+            block.timestamp <= (waitingRoundSegmentStart.add(waitingRoundSegmentLength))
+        ) {
+            uint256 waitingRoundSegment = block.timestamp.sub(waitingRoundSegmentStart).div(waitingRoundSegmentLength);
+            currentSegment = lastSegment.add(waitingRoundSegment);
+        } else {
+            currentSegment = block.timestamp.sub(firstSegmentStart).div(segmentLength);
+        }
+        return currentSegment;
+    }
+
+    //*********************************************************************//
+    // ------------------------- constructor -------------------------- //
+    //*********************************************************************//
 
     /**
         Creates a new instance of GoodGhosting game
@@ -238,29 +286,192 @@ contract Pool is Ownable, Pausable {
         incentiveToken = _incentiveToken;
     }
 
-    /// @notice pauses the game. This function can be called only by the contract's admin.
+    //*********************************************************************//
+    // ------------------------- internal methods -------------------------- //
+    //*********************************************************************//
+    
+    /**
+    @dev Initializes the player stats when they join..
+    @param _minAmount Slippage based amount to cover for impermanent loss scenario.
+    @param _depositAmount Variable Deposit Amount in case of a variable deposit pool.
+    */
+    function _joinGame(uint256 _minAmount, uint256 _depositAmount) internal virtual {
+        require(getCurrentSegment() == 0, "Game has already started");
+        require(
+            players[msg.sender].addr != msg.sender || players[msg.sender].canRejoin,
+            "Cannot join the game more than once"
+        );
+
+        activePlayersCount = activePlayersCount.add(1);
+        require(activePlayersCount <= maxPlayersCount, "Reached max quantity of players allowed");
+
+        bool canRejoin = players[msg.sender].canRejoin;
+        uint256 amount = flexibleSegmentPayment ? _depositAmount : segmentPayment;
+        if (isTransactionalToken) {
+            require(msg.value == amount, "Insufficient Amount");
+        }
+
+        Player memory newPlayer = Player({
+            addr: msg.sender,
+            mostRecentSegmentPaid: 0,
+            amountPaid: 0,
+            withdrawn: false,
+            canRejoin: false,
+            isWinner: false,
+            flexibleDepositAmount: flexibleSegmentPayment ? _depositAmount : 0
+        });
+        players[msg.sender] = newPlayer;
+        if (!canRejoin) {
+            iterablePlayers.push(msg.sender);
+        }
+
+        emit JoinedGame(msg.sender, amount);
+        _transferInboundTokenToContract(_minAmount, amount);
+    }
+
+    /**
+        @dev Manages the transfer of funds from the player to the specific strategy used for the game/pool and updates the player index 
+             which determines the interest and reward share of the winner based on the deposit amount amount and the time they deposit in a particular segment.
+        @param _minAmount Slippage based amount to cover for impermanent loss scenario.
+        @param _depositAmount Variable Deposit Amount in case of a variable deposit pool.
+     */
+    function _transferInboundTokenToContract(uint256 _minAmount, uint256 _depositAmount) internal virtual {
+        if (!isTransactionalToken) {
+            require(
+                IERC20(inboundToken).allowance(msg.sender, address(this)) >= _depositAmount,
+                "You need to have allowance to do transfer Inbound Token on the smart contract"
+            );
+        }
+
+        uint256 currentSegment = getCurrentSegment();
+        players[msg.sender].mostRecentSegmentPaid = currentSegment;
+
+        players[msg.sender].amountPaid = players[msg.sender].amountPaid.add(_depositAmount);
+        // PLAYER INDEX CALCULATION TO DETERMINE INTEREST SHARE
+        // player index = prev. segment player index + segment amount deposited / time stamp of deposit
+        uint256 currentSegmentplayerIndex = _depositAmount.mul(MULTIPLIER).div(block.timestamp);
+        playerIndex[msg.sender][currentSegment] = currentSegmentplayerIndex;
+
+        // check if this is deposit for the last segment. If yes, the player is a winner.
+        // since both join game and deposit method call this method so having it here
+        if (currentSegment == lastSegment.sub(1)) {
+            // array indexes start from 0
+            winnerCount = winnerCount.add(uint256(1));
+            players[msg.sender].isWinner = true;
+            for (uint256 i = 0; i <= players[msg.sender].mostRecentSegmentPaid; i++) {
+                cummalativePlayerIndexSum = cummalativePlayerIndexSum.add(playerIndex[msg.sender][i]);
+            }
+        }
+        totalGamePrincipal = totalGamePrincipal.add(_depositAmount);
+        if (!isTransactionalToken) {
+            require(
+                IERC20(inboundToken).transferFrom(msg.sender, address(strategy), _depositAmount),
+                "Transfer failed"
+            );
+        }
+
+        strategy.invest{ value: msg.value }(inboundToken, _minAmount);
+    }
+
+    /// @dev Sets the game stats without redeeming the funds from the strategy.
+    /// Can only be called after the game is completed when each player withdraws.
+    function setGlobalPoolParamsForFlexibleDepositPool()
+        internal
+        virtual
+        whenGameIsCompleted
+        whenGameHasFlexibleDepositAmount
+    {
+        uint256 totalBalance = isTransactionalToken
+            ? address(this).balance.add(strategy.getTotalAmount(inboundToken))
+            : IERC20(inboundToken).balanceOf(address(this)).add(strategy.getTotalAmount(inboundToken));
+
+        // calculates gross interest
+        uint256 grossInterest = 0;
+        // impermanent loss checks
+        if (totalBalance >= totalGamePrincipal) {
+            grossInterest = totalBalance.sub(totalGamePrincipal);
+        } else {
+            // handling impermanent loss case
+            impermanentLossShare = (totalBalance.mul(uint256(100))).div(totalGamePrincipal);
+            totalGamePrincipal = totalBalance;
+        }
+
+        // calculates the performance/admin fee (takes a cut - the admin percentage fee - from the pool's interest).
+        // calculates the "gameInterest" (net interest) that will be split among winners in the game
+        uint256 _adminFeeAmount;
+        if (adminFee > 0) {
+            if (adminFeeAmount == 0) {
+                _adminFeeAmount = (grossInterest.mul(adminFee)).div(uint256(100));
+                totalGameInterest = grossInterest.sub(_adminFeeAmount);
+            }
+        } else {
+            _adminFeeAmount = 0;
+            totalGameInterest = grossInterest;
+        }
+
+        // when there's no winners, admin takes all the interest + rewards
+        if (winnerCount == 0) {
+            adminFeeAmount = grossInterest;
+        } else if (adminFeeAmount == 0) {
+            adminFeeAmount = _adminFeeAmount;
+        }
+
+        rewardToken = strategy.getRewardToken();
+        strategyGovernanceToken = strategy.getGovernanceToken();
+
+        if (address(rewardToken) != address(0) && inboundToken != address(rewardToken)) {
+            rewardTokenAmount = rewardTokenAmount.add(strategy.getAccumalatedRewardTokenAmount(inboundToken));
+        }
+
+        if (address(strategyGovernanceToken) != address(0) && inboundToken != address(strategyGovernanceToken)) {
+            strategyGovernanceTokenAmount = strategyGovernanceTokenAmount.add(
+                strategy.getAccumalatedGovernanceTokenAmount(inboundToken)
+            );
+        }
+
+        // If there's an incentive token address defined, sets the total incentive amount to be distributed among winners.
+        if (
+            address(incentiveToken) != address(0) &&
+            address(rewardToken) != address(incentiveToken) &&
+            address(strategyGovernanceToken) != address(incentiveToken) &&
+            inboundToken != address(incentiveToken)
+        ) {
+            totalIncentiveAmount = IERC20(incentiveToken).balanceOf(address(this));
+        }
+
+        emit FundsRedeemedFromExternalPool(
+            totalBalance,
+            totalGamePrincipal,
+            totalGameInterest,
+            totalIncentiveAmount,
+            rewardTokenAmount,
+            strategyGovernanceTokenAmount
+        );
+    }
+
+    /// @dev pauses the game. This function can be called only by the contract's admin.
     function pause() external onlyOwner whenNotPaused {
         _pause();
     }
 
-    /// @notice unpauses the game. This function can be called only by the contract's admin.
+    /// @dev unpauses the game. This function can be called only by the contract's admin.
     function unpause() external onlyOwner whenPaused {
         _unpause();
     }
 
-    /// @notice Unlocks renounceOwnership.
+    /// @dev Unlocks renounceOwnership.
     function unlockRenounceOwnership() external onlyOwner {
         allowRenouncingOwnership = true;
     }
 
-    /// @notice Renounces Ownership.
+    /// @dev Renounces Ownership.
     function renounceOwnership() public override onlyOwner {
         require(allowRenouncingOwnership, "Not allowed");
         super.renounceOwnership();
     }
 
-    /// @notice Allows the admin to withdraw the performance fee, if applicable. This function can be called only by the contract's admin.
-    /// @dev Cannot be called before the game ends.
+    /// @dev Allows the admin to withdraw the performance fee, if applicable. This function can be called only by the contract's admin.
+    /// Cannot be called before the game ends.
     function adminFeeWithdraw() external virtual onlyOwner whenGameIsCompleted {
         if (!flexibleSegmentPayment) {
             require(redeemed, "Funds not redeemed from external pool");
@@ -330,77 +541,19 @@ contract Pool is Ownable, Pausable {
         );
     }
 
-    /// @notice Calculates the current segment of the game.
-    /// @return current game segment
-    function getCurrentSegment() public view returns (uint256) {
-        uint256 currentSegment;
-        if (
-            waitingRoundSegmentStart <= block.timestamp &&
-            block.timestamp <= (waitingRoundSegmentStart.add(waitingRoundSegmentLength))
-        ) {
-            uint256 waitingRoundSegment = block.timestamp.sub(waitingRoundSegmentStart).div(waitingRoundSegmentLength);
-            currentSegment = lastSegment.add(waitingRoundSegment);
-        } else {
-            currentSegment = block.timestamp.sub(firstSegmentStart).div(segmentLength);
-        }
-        return currentSegment;
-    }
-
-    /// @notice Checks if the game is completed or not.
-    /// @return "true" if completeted; otherwise, "false".
-    function isGameCompleted() public view returns (bool) {
-        // Game is completed when the current segment is greater than "lastSegment" of the game.
-        return getCurrentSegment() > lastSegment;
-    }
-
-    /// @notice gets the number of players in the game
-    /// @return number of players
-    function getNumberOfPlayers() external view returns (uint256) {
-        return iterablePlayers.length;
-    }
-
-    /// @notice Allows a player to join the game
+    /**
+    @dev Allows a player to join the game/pool by makking the first deposit.
+    @param _minAmount Slippage based amount to cover for impermanent loss scenario.
+    @param _depositAmount Variable Deposit Amount in case of a variable deposit pool.
+    */
     function joinGame(uint256 _minAmount, uint256 _depositAmount) external payable virtual whenNotPaused {
         _joinGame(_minAmount, _depositAmount);
     }
 
-    /// @notice Allows a player to join the game and controls
-    function _joinGame(uint256 _minAmount, uint256 _depositAmount) internal virtual {
-        require(getCurrentSegment() == 0, "Game has already started");
-        require(
-            players[msg.sender].addr != msg.sender || players[msg.sender].canRejoin,
-            "Cannot join the game more than once"
-        );
-
-        activePlayersCount = activePlayersCount.add(1);
-        require(activePlayersCount <= maxPlayersCount, "Reached max quantity of players allowed");
-
-        bool canRejoin = players[msg.sender].canRejoin;
-        uint256 amount = flexibleSegmentPayment ? _depositAmount : segmentPayment;
-        if (isTransactionalToken) {
-            require(msg.value == amount, "Insufficient Amount");
-        }
-
-        Player memory newPlayer = Player({
-            addr: msg.sender,
-            mostRecentSegmentPaid: 0,
-            amountPaid: 0,
-            withdrawn: false,
-            canRejoin: false,
-            isWinner: false,
-            flexibleDepositAmount: flexibleSegmentPayment ? _depositAmount : 0
-        });
-        players[msg.sender] = newPlayer;
-        if (!canRejoin) {
-            iterablePlayers.push(msg.sender);
-        }
-
-        emit JoinedGame(msg.sender, amount);
-        _transferInboundTokenToContract(_minAmount, amount);
-    }
-
-    /// @notice Allows a player to withdraws funds before the game ends. An early withdrawl fee is charged.
-    /// @dev Cannot be called after the game is completed.
+    /**
+    @dev Allows a player to withdraws funds before the game ends. An early withdrawl fee is charged.
+    @param _minAmount Slippage based amount to cover for impermanent loss scenario in case of a amm strategy like curve or mobius.
+    */
     function earlyWithdraw(uint256 _minAmount) external whenNotPaused whenGameIsNotCompleted {
         Player storage player = players[msg.sender];
         require(player.amountPaid > 0, "Player does not exist");
@@ -447,7 +600,10 @@ contract Pool is Ownable, Pausable {
         }
     }
 
-    /// @notice Allows player to withdraw their funds after the game ends with no loss (fee). Winners get a share of the interest earned.
+    /**
+    @dev Allows player to withdraw their funds after the game ends with no loss (fee). Winners get a share of the interest earned & additional rewards based on the player index.
+    @param _minAmount Slippage based amount to cover for impermanent loss scenario in case of a amm strategy like curve or mobius.
+    */
     function withdraw(uint256 _minAmount) external virtual {
         Player storage player = players[msg.sender];
         require(player.amountPaid > 0, "Player does not exist");
@@ -558,7 +714,11 @@ contract Pool is Ownable, Pausable {
         }
     }
 
-    /// @notice Allows players to make deposits for the game segments, after joining the game.
+    /**
+    @dev Allows players to make deposits for the game segments, after joining the game.
+    @param _minAmount Slippage based amount to cover for impermanent loss scenario.
+    @param _depositAmount Variable Deposit Amount in case of a variable deposit pool.
+    */
     function makeDeposit(uint256 _minAmount, uint256 _depositAmount) external payable whenNotPaused {
         require(!players[msg.sender].withdrawn, "Player already withdraw from game");
         // only registered players can deposit
@@ -599,8 +759,10 @@ contract Pool is Ownable, Pausable {
         _transferInboundTokenToContract(_minAmount, amount);
     }
 
-    /// @notice Redeems funds from the external pool and updates the internal accounting controls related to the game stats.
-    /// @dev Can only be called after the game is completed.
+    /**
+    @dev Redeems funds from the external pool and updates the game stats.
+    @param _minAmount Slippage based amount to cover for impermanent loss scenario.
+    */
     function redeemFromExternalPoolForFixedDepositPool(uint256 _minAmount)
         public
         virtual
@@ -679,124 +841,6 @@ contract Pool is Ownable, Pausable {
             rewardTokenAmount,
             strategyGovernanceTokenAmount
         );
-    }
-
-    /// @notice Redeems funds from the external pool and updates the internal accounting controls related to the game stats.
-    /// @dev Can only be called after the game is completed.
-    function setGlobalPoolParamsForFlexibleDepositPool()
-        internal
-        virtual
-        whenGameIsCompleted
-        whenGameHasFlexibleDepositAmount
-    {
-        uint256 totalBalance = isTransactionalToken
-            ? address(this).balance.add(strategy.getTotalAmount(inboundToken))
-            : IERC20(inboundToken).balanceOf(address(this)).add(strategy.getTotalAmount(inboundToken));
-
-        // calculates gross interest
-        uint256 grossInterest = 0;
-        // impermanent loss checks
-        if (totalBalance >= totalGamePrincipal) {
-            grossInterest = totalBalance.sub(totalGamePrincipal);
-        } else {
-            // handling impermanent loss case
-            impermanentLossShare = (totalBalance.mul(uint256(100))).div(totalGamePrincipal);
-            totalGamePrincipal = totalBalance;
-        }
-
-        // calculates the performance/admin fee (takes a cut - the admin percentage fee - from the pool's interest).
-        // calculates the "gameInterest" (net interest) that will be split among winners in the game
-        uint256 _adminFeeAmount;
-        if (adminFee > 0) {
-            if (adminFeeAmount == 0) {
-                _adminFeeAmount = (grossInterest.mul(adminFee)).div(uint256(100));
-                totalGameInterest = grossInterest.sub(_adminFeeAmount);
-            }
-        } else {
-            _adminFeeAmount = 0;
-            totalGameInterest = grossInterest;
-        }
-
-        // when there's no winners, admin takes all the interest + rewards
-        if (winnerCount == 0) {
-            adminFeeAmount = grossInterest;
-        } else if (adminFeeAmount == 0) {
-            adminFeeAmount = _adminFeeAmount;
-        }
-
-        rewardToken = strategy.getRewardToken();
-        strategyGovernanceToken = strategy.getGovernanceToken();
-
-        if (address(rewardToken) != address(0) && inboundToken != address(rewardToken)) {
-            rewardTokenAmount = rewardTokenAmount.add(strategy.getAccumalatedRewardTokenAmount(inboundToken));
-        }
-
-        if (address(strategyGovernanceToken) != address(0) && inboundToken != address(strategyGovernanceToken)) {
-            strategyGovernanceTokenAmount = strategyGovernanceTokenAmount.add(
-                strategy.getAccumalatedGovernanceTokenAmount(inboundToken)
-            );
-        }
-
-        // If there's an incentive token address defined, sets the total incentive amount to be distributed among winners.
-        if (
-            address(incentiveToken) != address(0) &&
-            address(rewardToken) != address(incentiveToken) &&
-            address(strategyGovernanceToken) != address(incentiveToken) &&
-            inboundToken != address(incentiveToken)
-        ) {
-            totalIncentiveAmount = IERC20(incentiveToken).balanceOf(address(this));
-        }
-
-        emit FundsRedeemedFromExternalPool(
-            totalBalance,
-            totalGamePrincipal,
-            totalGameInterest,
-            totalIncentiveAmount,
-            rewardTokenAmount,
-            strategyGovernanceTokenAmount
-        );
-    }
-
-    /**
-        @dev Manages the transfer of funds from the player to the contract, recording
-        the required accounting operations to control the user's position in the pool.
-     */
-    function _transferInboundTokenToContract(uint256 _minAmount, uint256 _depositAmount) internal virtual {
-        if (!isTransactionalToken) {
-            require(
-                IERC20(inboundToken).allowance(msg.sender, address(this)) >= _depositAmount,
-                "You need to have allowance to do transfer Inbound Token on the smart contract"
-            );
-        }
-
-        uint256 currentSegment = getCurrentSegment();
-        players[msg.sender].mostRecentSegmentPaid = currentSegment;
-
-        players[msg.sender].amountPaid = players[msg.sender].amountPaid.add(_depositAmount);
-        // PLAYER INDEX CALCULATION TO DETERMINE INTEREST SHARE
-        // player index = prev. segment player index + segment amount deposited / time stamp of deposit
-        uint256 currentSegmentplayerIndex = _depositAmount.mul(MULTIPLIER).div(block.timestamp);
-        playerIndex[msg.sender][currentSegment] = currentSegmentplayerIndex;
-
-        // check if this is deposit for the last segment. If yes, the player is a winner.
-        // since both join game and deposit method call this method so having it here
-        if (currentSegment == lastSegment.sub(1)) {
-            // array indexes start from 0
-            winnerCount = winnerCount.add(uint256(1));
-            players[msg.sender].isWinner = true;
-            for (uint256 i = 0; i <= players[msg.sender].mostRecentSegmentPaid; i++) {
-                cummalativePlayerIndexSum = cummalativePlayerIndexSum.add(playerIndex[msg.sender][i]);
-            }
-        }
-        totalGamePrincipal = totalGamePrincipal.add(_depositAmount);
-        if (!isTransactionalToken) {
-            require(
-                IERC20(inboundToken).transferFrom(msg.sender, address(strategy), _depositAmount),
-                "Transfer failed"
-            );
-        }
-
-        strategy.invest{ value: msg.value }(inboundToken, _minAmount);
     }
 
     // Fallback Functions for calldata and reciever for handling only ether transfer
