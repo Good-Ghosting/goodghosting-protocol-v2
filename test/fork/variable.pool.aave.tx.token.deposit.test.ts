@@ -178,19 +178,19 @@ describe("Aave Variable Deposit Pool Fork Tests with the deposit token as transs
     }
     const largeDepositUserInboundTokenBalanceAfterWithdraw = await ethers.provider.getBalance(accounts[1].address);
     const largeDepositUserRewardTokenBalanceAftertWithdraw = await wmaticInstance.balanceOf(accounts[1].address);
-    const smallDepositUserInboundTokenBalanceWithdrawWithdraw = await ethers.provider.getBalance(accounts[2].address);
-    const smallDepositUserRewardTokenBalanceWithdrawWithdraw = await wmaticInstance.balanceOf(accounts[2].address);
+    const smallDepositUserInboundTokenBalanceAfterWithdraw = await ethers.provider.getBalance(accounts[2].address);
+    const smallDepositUserRewardTokenBalanceAfterWithdraw = await wmaticInstance.balanceOf(accounts[2].address);
     const inboundtokenDiffForPlayer1 = largeDepositUserInboundTokenBalanceAfterWithdraw.sub(
       largeDepositUserInboundTokenBalanceBeforeWithdraw,
     );
     const rewardtokenDiffPlayer1 = largeDepositUserRewardTokenBalanceAftertWithdraw.sub(
       largeDepositUserRewardTokenBalanceBeforeWithdraw,
     );
-    const inboundtokenDiffForPlayer2 = smallDepositUserInboundTokenBalanceBeforeWithdraw.sub(
-      smallDepositUserInboundTokenBalanceWithdrawWithdraw,
+    const inboundtokenDiffForPlayer2 = smallDepositUserInboundTokenBalanceAfterWithdraw.sub(
+      smallDepositUserInboundTokenBalanceBeforeWithdraw,
     );
-    const rewardtokenDiffForPlayer2 = smallDepositUserRewardTokenBalanceBeforeWithdraw.sub(
-      smallDepositUserRewardTokenBalanceWithdrawWithdraw,
+    const rewardtokenDiffForPlayer2 = smallDepositUserRewardTokenBalanceAfterWithdraw.sub(
+      smallDepositUserRewardTokenBalanceBeforeWithdraw,
     );
     assert(inboundtokenDiffForPlayer2.lt(inboundtokenDiffForPlayer1));
     assert(rewardtokenDiffForPlayer2.lte(rewardtokenDiffPlayer1));
