@@ -109,20 +109,19 @@ contract AaveStrategy is Ownable, IStrategy {
     @param _minAmount Used for aam strategies, since every strategy overrides from the same strategy interface hence it is defined here.
     */
     function invest(address _inboundCurrency, uint256 _minAmount) external payable override onlyOwner {
-        uint256 contractBalance = IERC20(_inboundCurrency).balanceOf(address(this));
         if (_inboundCurrency == address(0) || _inboundCurrency == address(rewardToken)) {
             if (_inboundCurrency == address(rewardToken)) {
                 // unwraps WMATIC back into MATIC
-                WMatic(address(rewardToken)).withdraw(contractBalance);
+                WMatic(address(rewardToken)).withdraw(IERC20(_inboundCurrency).balanceOf(address(this)));
             }
             // Deposits MATIC into the pool
             wethGateway.depositETH{ value: address(this).balance }(address(lendingPool), address(this), 155);
         } else {
             require(
-                IERC20(_inboundCurrency).approve(address(lendingPool), contractBalance),
+                IERC20(_inboundCurrency).approve(address(lendingPool), IERC20(_inboundCurrency).balanceOf(address(this))),
                 "Fail to approve allowance to lending pool"
             );
-            lendingPool.deposit(_inboundCurrency, contractBalance, address(this), 155);
+            lendingPool.deposit(_inboundCurrency, IERC20(_inboundCurrency).balanceOf(address(this)), address(this), 155);
         }
     }
 
