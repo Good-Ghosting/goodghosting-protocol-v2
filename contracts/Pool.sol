@@ -16,7 +16,7 @@ contract Pool is Ownable, Pausable {
     using SafeMath for uint256;
 
     /// @notice Multiplier used for calculating playerIndex to avoid precision issues.
-    uint256 public constant MULTIPLIER = 10**5;
+    uint256 public constant MULTIPLIER = 10**8;
 
     /// @notice Stores the total amount of net interest received in the game.
     uint256 public totalGameInterest;
@@ -289,7 +289,7 @@ contract Pool is Ownable, Pausable {
     //*********************************************************************//
     // ------------------------- internal methods -------------------------- //
     //*********************************************************************//
-    
+
     /**
     @dev Initializes the player stats when they join..
     @param _minAmount Slippage based amount to cover for impermanent loss scenario.
@@ -381,6 +381,8 @@ contract Pool is Ownable, Pausable {
         whenGameIsCompleted
         whenGameHasFlexibleDepositAmount
     {
+        // Since this is only called in the case of variable deposit & it is called everytime a player decides to withdraw,
+        // so totalBalance keeps a track of the ucrrent balance & the accumalated principal + interest stored in the strategy protocol.
         uint256 totalBalance = isTransactionalToken
             ? address(this).balance.add(strategy.getTotalAmount(inboundToken))
             : IERC20(inboundToken).balanceOf(address(this)).add(strategy.getTotalAmount(inboundToken));
@@ -400,6 +402,7 @@ contract Pool is Ownable, Pausable {
         // calculates the "gameInterest" (net interest) that will be split among winners in the game
         uint256 _adminFeeAmount;
         if (adminFee > 0) {
+            // since this method is called when each player withdraws in a variable deposit game/pool so we need to make sure that if the admin fee % is more than 0 then the fee is only calculated once.
             if (adminFeeAmount == 0) {
                 _adminFeeAmount = (grossInterest.mul(adminFee)).div(uint256(100));
                 totalGameInterest = grossInterest.sub(_adminFeeAmount);
@@ -419,6 +422,7 @@ contract Pool is Ownable, Pausable {
         rewardToken = strategy.getRewardToken();
         strategyGovernanceToken = strategy.getGovernanceToken();
 
+        // the reward calaculation is the sum of the current reward amount the remaining rewards being accumalated in the strategy protocols.
         if (address(rewardToken) != address(0) && inboundToken != address(rewardToken)) {
             rewardTokenAmount = rewardTokenAmount.add(strategy.getAccumalatedRewardTokenAmount(inboundToken));
         }
@@ -492,6 +496,9 @@ contract Pool is Ownable, Pausable {
         if (adminFeeAmount > 0) {
             strategy.redeem(inboundToken, adminFeeAmount, flexibleSegmentPayment, 0);
             if (isTransactionalToken) {
+                if (adminFeeAmount > address(this).balance) {
+                    adminFeeAmount = address(this).balance;
+                }
                 (bool success, ) = msg.sender.call{ value: adminFeeAmount }("");
                 require(success);
             } else {
@@ -551,7 +558,7 @@ contract Pool is Ownable, Pausable {
     }
 
     /**
-    @dev Allows a player to withdraws funds before the game ends. An early withdrawl fee is charged.
+    @dev Allows a player to withdraw funds before the game ends. An early withdrawal fee is charged.
     @param _minAmount Slippage based amount to cover for impermanent loss scenario in case of a amm strategy like curve or mobius.
     */
     function earlyWithdraw(uint256 _minAmount) external whenNotPaused whenGameIsNotCompleted {
@@ -614,7 +621,6 @@ contract Pool is Ownable, Pausable {
             // First player to withdraw redeems everyone's funds
             if (!redeemed) {
                 redeemFromExternalPoolForFixedDepositPool(_minAmount);
-                (_minAmount);
             }
         } else {
             setGlobalPoolParamsForFlexibleDepositPool();
@@ -626,28 +632,30 @@ contract Pool is Ownable, Pausable {
         uint256 playerSharePercentage = 0;
 
         if (player.isWinner) {
-            // Player is a winner and gets a bonus!
+            // Calculate Cummalative index for each player
             uint256 cumulativePlayerIndex = 0;
             for (uint256 i = 0; i <= players[msg.sender].mostRecentSegmentPaid; i++) {
                 cumulativePlayerIndex = cumulativePlayerIndex.add(playerIndex[msg.sender][i]);
             }
-            // Player is a winner and gets a bonus!
-            // the player share of interest is calculated from player index
-            // player share % = playerIndex / cummalativePlayerIndexSum of player indexes of all winners * 100
-            // so, interest share = player share % * total game interest
+
             if (impermanentLossShare > 0 && totalGameInterest == 0) {
                 // new payput in case of impermanent loss
                 payout = player.amountPaid.mul(impermanentLossShare).div(uint256(100));
             } else {
+                // Player is a winner and gets a bonus!
+                // the player share of interest is calculated from player index
+                // player share % = playerIndex / cummalativePlayerIndexSum of player indexes of all winners * 100
+                // so, interest share = player share % * total game interest
                 playerSharePercentage = cumulativePlayerIndex.mul(100).div(cummalativePlayerIndexSum);
                 uint256 playerShare = totalGameInterest.mul(playerSharePercentage).div(uint256(100));
                 payout = payout.add(playerShare);
                 if (flexibleSegmentPayment) {
+                    // Updating the totalGameInterest after each player withdraws
                     totalGameInterest = totalGameInterest.sub(playerShare);
                 }
             }
 
-            // If there's additional incentives, distributes them to winners
+            // Calculates winner's share of the additional rewards & incentives
             if (totalIncentiveAmount > 0) {
                 playerIncentive = totalIncentiveAmount.mul(playerSharePercentage).div(uint256(100));
             }
@@ -667,9 +675,10 @@ contract Pool is Ownable, Pausable {
                 cummalativePlayerIndexSum = cummalativePlayerIndexSum.sub(cumulativePlayerIndex);
                 rewardTokenAmount = rewardTokenAmount.sub(playerReward);
                 strategyGovernanceTokenAmount = strategyGovernanceTokenAmount.sub(playerGovernanceTokenReward);
+                totalIncentiveAmount = totalIncentiveAmount.sub(playerIncentive);
             }
         }
-
+        // Updating total principal as well after each player withdraws
         if (flexibleSegmentPayment) {
             if (totalGamePrincipal < player.amountPaid) {
                 totalGamePrincipal = 0;
@@ -678,9 +687,11 @@ contract Pool is Ownable, Pausable {
             }
             strategy.redeem(inboundToken, payout, flexibleSegmentPayment, _minAmount);
         }
-
+        
+        // sending the inbound token amount i.e principal + interest to the winners and just the principal in case of players
+        // adding a balance safety check to ensure the tx does not revert in case of impermanent loss
         if (isTransactionalToken) {
-            if (payout > address(this).balance && impermanentLossShare > 0) {
+            if (payout > address(this).balance) {
                 payout = address(this).balance;
             }
             (bool success, ) = msg.sender.call{ value: payout }("");
@@ -692,6 +703,7 @@ contract Pool is Ownable, Pausable {
             require(IERC20(inboundToken).transfer(msg.sender, payout), "Fail to transfer ERC20 tokens on withdraw");
         }
 
+        // sending the rewards & incentives to the winners
         if (playerIncentive > 0) {
             require(
                 IERC20(incentiveToken).transfer(msg.sender, playerIncentive),
