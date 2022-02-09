@@ -149,6 +149,15 @@ contract Pool is Ownable, Pausable {
         uint256 totalGovernanceRewardAmount
     );
 
+    event VariablePoolParamsSet(
+        uint256 totalAmount,
+        uint256 totalGamePrincipal,
+        uint256 totalGameInterest,
+        uint256 totalIncentiveAmount,
+        uint256 totalRewardAAmount,
+        uint256 totalGovernanceRewardAmount
+    );
+
     event EarlyWithdrawal(address indexed player, uint256 amount, uint256 totalGamePrincipal);
 
     event AdminWithdrawal(
@@ -443,7 +452,7 @@ contract Pool is Ownable, Pausable {
             totalIncentiveAmount = IERC20(incentiveToken).balanceOf(address(this));
         }
 
-        emit FundsRedeemedFromExternalPool(
+        emit VariablePoolParamsSet(
             totalBalance,
             totalGamePrincipal,
             totalGameInterest,
@@ -669,8 +678,6 @@ contract Pool is Ownable, Pausable {
                 );
             }
 
-            emit Withdrawal(msg.sender, payout, playerIncentive, playerReward, playerGovernanceTokenReward);
-
             if (flexibleSegmentPayment) {
                 cummalativePlayerIndexSum = cummalativePlayerIndexSum.sub(cumulativePlayerIndex);
                 rewardTokenAmount = rewardTokenAmount.sub(playerReward);
@@ -678,6 +685,7 @@ contract Pool is Ownable, Pausable {
                 totalIncentiveAmount = totalIncentiveAmount.sub(playerIncentive);
             }
         }
+        emit Withdrawal(msg.sender, payout, playerIncentive, playerReward, playerGovernanceTokenReward);
         // Updating total principal as well after each player withdraws
         if (flexibleSegmentPayment) {
             if (totalGamePrincipal < player.amountPaid) {
