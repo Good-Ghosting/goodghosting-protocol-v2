@@ -1,7 +1,7 @@
 const { ethers } = require("hardhat");
 import * as chai from "chai";
 import { solidity } from "ethereum-waffle";
-import { approveToken, deployPool, unableToJoinGame, joinGame, shouldNotBeAbleToDeposit } from "./pool.utils";
+import { approveToken, deployPool, unableToJoinGame, joinGame, shouldNotBeAbleToDeposit } from "../pool.utils";
 
 import {
   shouldBehaveLikeGGPool,
@@ -17,7 +17,7 @@ import {
   shouldBehaveLikeAdminWithdrawingFeesFromGGPoolWithFeePercentis0,
   shouldBehaveLikeGGPoolWithTransactionalToken,
   shouldBehaveLikeGGPoolWithSameTokenAddresses,
-} from "./pool.behavior";
+} from "../pool.behavior";
 
 chai.use(solidity);
 const { expect } = chai;
