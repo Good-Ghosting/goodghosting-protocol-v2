@@ -5,7 +5,6 @@ const truffleAssert = require("truffle-assertions");
 const wmatic = require("../../artifacts/contracts/mock/MintableERC20.sol/MintableERC20.json");
 const mobiusPool = require("../../artifacts/contracts/mobius/IMobiPool.sol/IMobiPool.json");
 const mobiusGauge = require("../../artifacts/contracts/mobius/IMobiGauge.sol/IMobiGauge.json");
-const ethers = require("ethers");
 const configs = require("../../deploy.config");
 
 contract("Variable Deposit Pool with Mobius Strategy", accounts => {
@@ -27,7 +26,6 @@ contract("Variable Deposit Pool with Mobius Strategy", accounts => {
     segmentPayment: segmentPaymentInt,
     adminFee,
     earlyWithdrawFee,
-    maxPlayersCount,
   } = configs.deployConfigs;
   // const BN = web3.utils.toBN; // https://web3js.readthedocs.io/en/v1.2.7/web3-utils.html#bn
   let token: any;
@@ -75,9 +73,7 @@ contract("Variable Deposit Pool with Mobius Strategy", accounts => {
       const userSlippageOptions = [1, 3, 4, 2, 1];
       for (let i = 0; i < players.length; i++) {
         const player = players[i];
-        await token.methods
-          .approve(goodGhosting.address, web3.utils.toWei("200").toString().toString())
-          .send({ from: player });
+        await token.methods.approve(goodGhosting.address, web3.utils.toWei("200").toString()).send({ from: player });
         let playerEvent = "";
         let paymentEvent = 0;
         let result, slippageFromContract;
@@ -314,21 +310,19 @@ contract("Variable Deposit Pool with Mobius Strategy", accounts => {
 
         mobiRewardBalanceBefore = web3.utils.toBN(await mobi.methods.balanceOf(player).call({ from: admin }));
         celoRewardBalanceBefore = web3.utils.toBN(await celo.methods.balanceOf(player).call({ from: admin }));
-        const playerInfo = await goodGhosting.players(player);
 
         let result;
         // redeem already called hence passing in 0
-        result = await goodGhosting.withdraw(playerInfo.amountPaid.toString(), { from: player });
-
+        result = await goodGhosting.withdraw(0, { from: player });
         mobiRewardBalanceAfter = web3.utils.toBN(await mobi.methods.balanceOf(player).call({ from: admin }));
         celoRewardBalanceAfter = web3.utils.toBN(await celo.methods.balanceOf(player).call({ from: admin }));
-        // TODO: CHECK MOBI REWARD BALANCE
+
         assert(
-          mobiRewardBalanceAfter.gte(mobiRewardBalanceBefore),
+          mobiRewardBalanceAfter.gt(mobiRewardBalanceBefore),
           "expected mobi balance after withdrawal to be greater than before withdrawal",
         );
 
-        // for some reason forking mainnet we don't get back celo rewards
+        // // for some reason forking mainnet we don't get back celo rewards
         assert(
           celoRewardBalanceAfter.lte(celoRewardBalanceBefore),
           "expected celo balance after withdrawal to be equal to before withdrawal",
@@ -345,6 +339,14 @@ contract("Variable Deposit Pool with Mobius Strategy", accounts => {
           "withdrawal event failure",
         );
       }
+      const mobiRewardBalanceAfter = web3.utils.toBN(
+        await mobi.methods.balanceOf(goodGhosting.address).call({ from: admin }),
+      );
+      const celoRewardBalanceAfter = web3.utils.toBN(
+        await celo.methods.balanceOf(goodGhosting.address).call({ from: admin }),
+      );
+      assert(mobiRewardBalanceAfter.eq(web3.utils.toBN(0)));
+      assert(celoRewardBalanceAfter.eq(web3.utils.toBN(0)));
     });
 
     it("admin withdraws admin fee from contract", async () => {
@@ -376,12 +378,14 @@ contract("Variable Deposit Pool with Mobius Strategy", accounts => {
           "expected celo balance after withdrawal to be equal to before withdrawal",
         );
 
-        // truffleAssert.eventEmitted(
-        //   result,
-        //   "AdminWithdrawal",
-        //   (ev: any) => expectedAmount.eq(ev.adminFeeAmount),
-        //   "admin fee withdrawal event failure",
-        // );
+        truffleAssert.eventEmitted(
+          result,
+          "AdminWithdrawal",
+          async (ev: any) => {
+            return expectedAmount.gte(ev.adminFeeAmount);
+          },
+          "admin fee withdrawal event failure",
+        );
       }
     });
   });
