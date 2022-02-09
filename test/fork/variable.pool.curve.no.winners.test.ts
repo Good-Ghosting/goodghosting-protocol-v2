@@ -174,7 +174,7 @@ contract("Variale Deposit Pool with Curve Strategy with no winners", accounts =>
       }
     });
 
-    it("fast forward the game ", async () => {
+    it("fast forward the game", async () => {
       // The payment for the first segment was done upon joining, so we start counting from segment 2 (index 1)
       for (let segmentIndex = 1; segmentIndex < depositCount; segmentIndex++) {
         await timeMachine.advanceTime(segmentLength);
