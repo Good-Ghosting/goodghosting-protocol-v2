@@ -7,6 +7,16 @@ import "../mobius/IMobiGauge.sol";
 import "../mobius/IMinter.sol";
 import "./IStrategy.sol";
 
+//*********************************************************************//
+// --------------------------- custom errors ------------------------- //
+//*********************************************************************//
+error INVALID_AMOUNT();
+error INVALID_CELO_TOKEN();
+error INVALID_GAUGE();
+error INVALID_MINTER();
+error INVALID_MOBI_TOKEN();
+error INVALID_POOL();
+
 /**
   @notice
   Interacts with mobius protocol to generate interest & additional rewards for the goodghosting pool it is used in, so it's responsible for deposits, staking lp tokens, withdrawals and getting rewards and sending these back to the pool.
@@ -80,11 +90,22 @@ contract MobiusStrategy is Ownable, IStrategy {
         IERC20 _mobi,
         IERC20 _celo
     ) {
-        require(address(_pool) != address(0), "invalid _pool address");
-        require(address(_gauge) != address(0), "invalid _gauge address");
-        require(address(_minter) != address(0), "invalid _minter address");
-        require(address(_mobi) != address(0), "invalid _mobi address");
-        require(address(_celo) != address(0), "invalid _celo address");
+        if (address(_pool) == address(0)) {
+            revert INVALID_POOL();
+        }
+        if (address(_gauge) == address(0)) {
+            revert INVALID_GAUGE();
+        }
+        if (address(_minter) == address(0)) {
+            revert INVALID_MINTER();
+        }
+        if (address(_mobi) == address(0)) {
+            revert INVALID_MOBI_TOKEN();
+        }
+        if (address(_celo) == address(0)) {
+            revert INVALID_CELO_TOKEN();
+        }
+
         pool = _pool;
         gauge = _gauge;
         minter = _minter;
@@ -101,17 +122,15 @@ contract MobiusStrategy is Ownable, IStrategy {
     */
     function invest(address _inboundCurrency, uint256 _minAmount) external payable override onlyOwner {
         uint256 contractBalance = IERC20(_inboundCurrency).balanceOf(address(this));
-        require(IERC20(_inboundCurrency).approve(address(pool), contractBalance), "Fail to approve allowance to pool");
+        IERC20(_inboundCurrency).approve(address(pool), contractBalance);
 
         uint256[] memory amounts = new uint256[](2);
         amounts[0] = contractBalance;
 
         pool.addLiquidity(amounts, _minAmount, block.timestamp + 1000);
 
-        require(
-            lpToken.approve(address(gauge), lpToken.balanceOf(address(this))),
-            "Fail to approve allowance to gauge"
-        );
+        
+        lpToken.approve(address(gauge), lpToken.balanceOf(address(this)));
         gauge.deposit(lpToken.balanceOf(address(this)));
     }
 
@@ -127,6 +146,9 @@ contract MobiusStrategy is Ownable, IStrategy {
         uint256 _amount,
         uint256 _minAmount
     ) external override onlyOwner {
+        if (_amount == 0) {
+           revert INVALID_AMOUNT();
+        }
         uint256[] memory amounts = new uint256[](2);
         amounts[0] = _amount;
 
@@ -139,7 +161,7 @@ contract MobiusStrategy is Ownable, IStrategy {
             }
 
             gauge.withdraw(poolWithdrawAmount, false);
-            require(lpToken.approve(address(pool), poolWithdrawAmount), "Fail to approve allowance to pool");
+            lpToken.approve(address(pool), poolWithdrawAmount);
 
             pool.removeLiquidityOneToken(poolWithdrawAmount, 0, _minAmount, block.timestamp + 1000);
         }
@@ -149,10 +171,7 @@ contract MobiusStrategy is Ownable, IStrategy {
             _amount = IERC20(_inboundCurrency).balanceOf(address(this));
         }
         // msg.sender will always be the pool contract (new owner)
-        require(
-            IERC20(_inboundCurrency).transfer(msg.sender, IERC20(_inboundCurrency).balanceOf(address(this))),
-            "Transfer Failed"
-        );
+        IERC20(_inboundCurrency).transfer(msg.sender, IERC20(_inboundCurrency).balanceOf(address(this)));
     }
 
     /**
@@ -182,29 +201,25 @@ contract MobiusStrategy is Ownable, IStrategy {
                 }
 
                 gauge.withdraw(poolWithdrawAmount, true);
-                require(lpToken.approve(address(pool), poolWithdrawAmount), "Fail to approve allowance to pool");
+                lpToken.approve(address(pool), poolWithdrawAmount);
 
                 pool.removeLiquidityOneToken(poolWithdrawAmount, 0, _minAmount, block.timestamp + 1000);
             } else {
                 gauge.withdraw(gaugeBalance, true);
-                require(
-                    lpToken.approve(address(pool), lpToken.balanceOf(address(this))),
-                    "Fail to approve allowance to pool"
-                );
+                
+                lpToken.approve(address(pool), lpToken.balanceOf(address(this)));
                 pool.removeLiquidityOneToken(lpToken.balanceOf(address(this)), 0, _minAmount, block.timestamp + 1000);
             }
         }
 
         if (address(mobi) != address(0)) {
-            require(mobi.transfer(msg.sender, mobi.balanceOf(address(this))), "Transfer Failed");
+            mobi.transfer(msg.sender, mobi.balanceOf(address(this)));
         }
         if (address(celo) != address(0)) {
-            require(celo.transfer(msg.sender, celo.balanceOf(address(this))), "Transfer Failed");
+            celo.transfer(msg.sender, celo.balanceOf(address(this)));
         }
-        require(
-            IERC20(_inboundCurrency).transfer(msg.sender, IERC20(_inboundCurrency).balanceOf(address(this))),
-            "Transfer Failed"
-        );
+        
+        IERC20(_inboundCurrency).transfer(msg.sender, IERC20(_inboundCurrency).balanceOf(address(this)));
     }
 
     /**
