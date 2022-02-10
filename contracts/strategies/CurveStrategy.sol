@@ -6,6 +6,15 @@ import "../curve/ICurvePool.sol";
 import "../curve/ICurveGauge.sol";
 import "./IStrategy.sol";
 
+//*********************************************************************//
+// --------------------------- custom errors ------------------------- //
+//*********************************************************************//
+error INVALID_AMOUNT();
+error INVALID_CURVE_TOKEN();
+error INVALID_GAUGE();
+error INVALID_POOL();
+error INVALID_REWARD_TOKEN();
+
 /**
   @notice
   Interacts with curve protocol to generate interest & additional rewards for the goodghosting pool it is used in, so it's responsible for deposits, staking lp tokens, withdrawals and getting rewards and sending these back to the pool.
@@ -101,9 +110,19 @@ contract CurveStrategy is Ownable, IStrategy {
         IERC20 _rewardToken,
         IERC20 _curve
     ) {
-        require(address(_pool) != address(0), "invalid _pool address");
-        require(address(_gauge) != address(0), "invalid _gauge address");
-        require(address(_curve) != address(0), "invalid _curve address");
+        if (address(_pool) == address(0)) {
+            revert INVALID_POOL();
+        }
+        if (address(_gauge) == address(0)) {
+            revert INVALID_GAUGE();
+        }
+        if (address(_curve) == address(0)) {
+            revert INVALID_CURVE_TOKEN();
+        }
+        if (address(_rewardToken) == address(0)) {
+            revert INVALID_REWARD_TOKEN();
+        }
+
         pool = _pool;
         gauge = _gauge;
         curve = _curve;
@@ -126,7 +145,7 @@ contract CurveStrategy is Ownable, IStrategy {
     */
     function invest(address _inboundCurrency, uint256 _minAmount) external payable override onlyOwner {
         uint256 contractBalance = IERC20(_inboundCurrency).balanceOf(address(this));
-        require(IERC20(_inboundCurrency).approve(address(pool), contractBalance), "Fail to approve allowance to pool");
+        IERC20(_inboundCurrency).approve(address(pool), contractBalance);
         /*
         Constants "NUM_AAVE_TOKENS" and "NUM_ATRI_CRYPTO_TOKENS" have to be a constant type actually,
             otherwise the signature becomes different and the external call will fail.
@@ -145,10 +164,8 @@ contract CurveStrategy is Ownable, IStrategy {
             pool.add_liquidity(amounts, _minAmount);
         }
 
-        require(
-            lpToken.approve(address(gauge), lpToken.balanceOf(address(this))),
-            "Fail to approve allowance to gauge"
-        );
+        
+        lpToken.approve(address(gauge), lpToken.balanceOf(address(this)));
         gauge.deposit(lpToken.balanceOf(address(this)));
     }
 
@@ -164,6 +181,9 @@ contract CurveStrategy is Ownable, IStrategy {
         uint256 _amount,
         uint256 _minAmount
     ) external override onlyOwner {
+        if (_amount == 0) {
+           revert INVALID_AMOUNT();
+        }
         uint256 gaugeBalance = gauge.balanceOf(address(this));
         if (gaugeBalance > 0) {
             if (poolType == AAVE_POOL) {
@@ -202,7 +222,7 @@ contract CurveStrategy is Ownable, IStrategy {
                 and funds sit in those pools. Hence, an approval transaction is required because
                 it is communicating with external contracts
                 */
-                require(lpToken.approve(address(pool), poolWithdrawAmount), "Fail to approve allowance to pool");
+                lpToken.approve(address(pool), poolWithdrawAmount);
                 pool.remove_liquidity_one_coin(poolWithdrawAmount, uint256(uint128(inboundTokenIndex)), _minAmount);
             }
         }
@@ -211,10 +231,7 @@ contract CurveStrategy is Ownable, IStrategy {
             _amount = IERC20(_inboundCurrency).balanceOf(address(this));
         }
         // msg.sender will always be the pool contract (new owner)
-        require(
-            IERC20(_inboundCurrency).transfer(msg.sender, IERC20(_inboundCurrency).balanceOf(address(this))),
-            "Transfer Failed"
-        );
+        IERC20(_inboundCurrency).transfer(msg.sender, IERC20(_inboundCurrency).balanceOf(address(this)));
     }
 
     /**
@@ -270,7 +287,7 @@ contract CurveStrategy is Ownable, IStrategy {
                     and funds sit in those pools. Hence, an approval transaction is required because
                     it is communicating with external contracts
                     */
-                    require(lpToken.approve(address(pool), poolWithdrawAmount), "Fail to approve allowance to pool");
+                    lpToken.approve(address(pool), poolWithdrawAmount);
                     pool.remove_liquidity_one_coin(poolWithdrawAmount, uint256(uint128(inboundTokenIndex)), _minAmount);
                 }
             } else {
@@ -294,8 +311,7 @@ contract CurveStrategy is Ownable, IStrategy {
                         and funds sit in those pools. Hence, an approval transaction is required because
                         it is communicating with external contracts
                          */
-                        require(lpToken.approve(address(pool), lpTokenBalance), "Fail to approve allowance to pool");
-
+                        lpToken.approve(address(pool), lpTokenBalance);
                         pool.remove_liquidity_one_coin(lpTokenBalance, uint256(uint128(inboundTokenIndex)), _minAmount);
                     }
                 }
@@ -303,15 +319,12 @@ contract CurveStrategy is Ownable, IStrategy {
         }
 
         if (address(rewardToken) != address(0)) {
-            require(rewardToken.transfer(msg.sender, rewardToken.balanceOf(address(this))), "Transfer Failed");
+           rewardToken.transfer(msg.sender, rewardToken.balanceOf(address(this)));
         }
         if (address(curve) != address(0)) {
-            require(curve.transfer(msg.sender, curve.balanceOf(address(this))), "Transfer Failed");
+           curve.transfer(msg.sender, curve.balanceOf(address(this)));
         }
-        require(
-            IERC20(_inboundCurrency).transfer(msg.sender, IERC20(_inboundCurrency).balanceOf(address(this))),
-            "Transfer Failed"
-        );
+           IERC20(_inboundCurrency).transfer(msg.sender, IERC20(_inboundCurrency).balanceOf(address(this)));
     }
 
     /**
