@@ -96,7 +96,7 @@ describe("Pool using Aave strategy", () => {
         player1,
         segmentPayment,
         segmentPayment,
-        "Game has already started",
+        "GAME_ALREADY_STARTED()",
       );
     });
   });
@@ -134,7 +134,7 @@ describe("Pool using Aave strategy", () => {
         player1,
         segmentPayment,
         segmentPayment,
-        "Game has already started",
+        "GAME_ALREADY_STARTED()",
       );
     });
   });
@@ -170,7 +170,7 @@ describe("Pool using Aave strategy", () => {
         player1,
         segmentPayment,
         segmentPayment,
-        "Player didn't pay the previous segment - game over!",
+        "PLAYER_DID_NOT_PAID_PREVIOUS_SEGMENT()",
       );
     });
   });
@@ -207,7 +207,7 @@ describe("Pool using Aave strategy", () => {
       await ethers.provider.send("evm_mine", []);
       await approveToken(contracts.inboundToken, player1, contracts.goodGhosting.address, segmentPayment);
       await expect(contracts.goodGhosting.connect(player1).makeDeposit(0, segmentPayment)).to.be.revertedWith(
-        "Player already withdraw from game",
+        "PLAYER_ALREADY_WITHDREW_EARLY()",
       );
     });
   });

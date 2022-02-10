@@ -110,7 +110,7 @@ export const shouldBehaveLikeGGPool = async (strategyType: string) => {
         0,
         strategyType,
       ),
-    ).to.be.revertedWith("_earlyWithdrawalFee must be greater than zero");
+    ).to.be.revertedWith("INVALID_EARLY_WITHDRAW_FEE()");
   });
 
   it("reverts if the contract is deployed with invalid inbound token address", async () => {
@@ -131,7 +131,7 @@ export const shouldBehaveLikeGGPool = async (strategyType: string) => {
         0,
         strategyType,
       ),
-    ).to.be.revertedWith("invalid _inboundCurrency address");
+    ).to.be.revertedWith("INVALID_INBOUND_TOKEN()");
   });
 
   it("reverts if the contract is deployed with invalid strategy address", async () => {
@@ -152,7 +152,7 @@ export const shouldBehaveLikeGGPool = async (strategyType: string) => {
         0,
         strategyType,
       ),
-    ).to.be.revertedWith("invalid _strategy address");
+    ).to.be.revertedWith("INVALID_STRATEGY()");
   });
 
   it("reverts if the contract is deployed with segment count as 0", async () => {
@@ -173,7 +173,7 @@ export const shouldBehaveLikeGGPool = async (strategyType: string) => {
         0,
         strategyType,
       ),
-    ).to.be.revertedWith("depositCount must be greater than zero");
+    ).to.be.revertedWith("INVALID_DEPOSIT_COUNT()");
   });
 
   it("reverts if the contract is deployed with segment length as 0", async () => {
@@ -194,7 +194,7 @@ export const shouldBehaveLikeGGPool = async (strategyType: string) => {
         0,
         strategyType,
       ),
-    ).to.be.revertedWith("_segmentLength must be greater than zero");
+    ).to.be.revertedWith("INVALID_SEGMENT_LENGTH()");
   });
 
   it("reverts if the contract is deployed with segment payment as 0", async () => {
@@ -215,7 +215,7 @@ export const shouldBehaveLikeGGPool = async (strategyType: string) => {
         0,
         strategyType,
       ),
-    ).to.be.revertedWith("_segmentPayment must be greater than zero");
+    ).to.be.revertedWith("INVALID_SEGMENT_PAYMENT()");
   });
 
   it("reverts if the contract is deployed with early withdraw fee more than 10%", async () => {
@@ -236,7 +236,7 @@ export const shouldBehaveLikeGGPool = async (strategyType: string) => {
         0,
         strategyType,
       ),
-    ).to.be.revertedWith("_earlyWithdrawalFee must be less than or equal to 10%");
+    ).to.be.revertedWith("INVALID_EARLY_WITHDRAW_FEE()");
   });
 
   it("reverts if the contract is deployed with admin fee more than 20%", async () => {
@@ -257,7 +257,7 @@ export const shouldBehaveLikeGGPool = async (strategyType: string) => {
         0,
         strategyType,
       ),
-    ).to.be.revertedWith("_customFee must be less than or equal to 20%");
+    ).to.be.revertedWith("INVALID_CUSTOM_FEE()");
   });
 
   it("reverts if the contract is deployed with max player count equal to zero", async () => {
@@ -278,7 +278,7 @@ export const shouldBehaveLikeGGPool = async (strategyType: string) => {
         0,
         strategyType,
       ),
-    ).to.be.revertedWith("_maxPlayersCount must be greater than zero");
+    ).to.be.revertedWith("INVALID_MAX_PLAYER_COUNT()");
   });
 
   it("accepts setting type(uint256).max as the max number of players", async () => {
@@ -429,7 +429,7 @@ export const shouldBehaveLikeGGPool = async (strategyType: string) => {
   });
 
   it("reverts when admins tries to renounceOwnership without unlocking it first", async () => {
-    await expect(contracts.goodGhosting.renounceOwnership()).to.be.revertedWith("Not allowed");
+    await expect(contracts.goodGhosting.renounceOwnership()).to.be.revertedWith("RENOUNCE_OWNERSHIP_NOT_ALLOWED()");
   });
 
   it("allows admin to renounceOwnership after unlocking it first", async () => {
@@ -481,7 +481,7 @@ export const shouldBehaveLikeJoiningGGPool = async (strategyType: string) => {
     const accounts = await ethers.getSigners();
     const player1 = accounts[2];
     await expect(contracts.goodGhosting.connect(player1).joinGame(0, segmentPayment)).to.be.revertedWith(
-      "You need to have allowance to do transfer Inbound Token on the smart contract",
+      "INSUFFICIENT_ALLOWANCE()",
     );
   });
 
@@ -495,7 +495,7 @@ export const shouldBehaveLikeJoiningGGPool = async (strategyType: string) => {
       player1,
       segmentPayment,
       segmentPayment,
-      "Cannot join the game more than once",
+      "PLAYER_ALREADY_JOINED()",
     );
   });
 
@@ -533,7 +533,7 @@ export const shouldBehaveLikeJoiningGGPool = async (strategyType: string) => {
       deployer,
       segmentPayment,
       segmentPayment,
-      "Reached max quantity of players allowed",
+      "MAX_PLAYER_COUNT_REACHED()",
     );
   });
 
@@ -616,7 +616,7 @@ export const shouldBehaveLikeJoiningGGPool = async (strategyType: string) => {
       deployer,
       segmentPayment,
       segmentPayment,
-      "Reached max quantity of players allowed",
+      "MAX_PLAYER_COUNT_REACHED()",
     );
   });
 
@@ -714,7 +714,7 @@ export const shouldBehaveLikeReJoiningGGPool = async (strategyType: string) => {
       player1,
       segmentPayment,
       segmentPayment,
-      "Cannot join the game more than once",
+      "PLAYER_ALREADY_JOINED()",
     );
   });
 
@@ -800,7 +800,7 @@ export const shouldBehaveLikeDepositingGGPool = async (strategyType: string) => 
       player1,
       segmentPayment,
       segmentPayment,
-      "Sender is not a player",
+      "NOT_PLAYER()",
     );
   });
 
@@ -814,7 +814,7 @@ export const shouldBehaveLikeDepositingGGPool = async (strategyType: string) => 
       player1,
       segmentPayment,
       segmentPayment,
-      "Deposit available only between segment 1 and segment n-1 (penultimate)",
+      "DEPOSIT_NOT_ALLOWED()",
     );
   });
 
@@ -835,7 +835,7 @@ export const shouldBehaveLikeDepositingGGPool = async (strategyType: string) => 
       player1,
       segmentPayment,
       segmentPayment,
-      "Deposit available only between segment 1 and segment n-1 (penultimate)",
+      "DEPOSIT_NOT_ALLOWED()",
     );
   });
 
@@ -857,7 +857,7 @@ export const shouldBehaveLikeDepositingGGPool = async (strategyType: string) => 
       player1,
       segmentPayment,
       segmentPayment,
-      "Deposit available only between segment 1 and segment n-1 (penultimate)",
+      "DEPOSIT_NOT_ALLOWED()",
     );
   });
 
@@ -875,7 +875,7 @@ export const shouldBehaveLikeDepositingGGPool = async (strategyType: string) => 
       player1,
       segmentPayment,
       segmentPayment,
-      "Player already paid current segment",
+      "PLAYER_ALREADY_PAID_IN_CURRENT_SEGMENT()",
     );
   });
 
@@ -979,9 +979,7 @@ export const shouldBehaveLikeEarlyWithdrawingGGPool = async (strategyType: strin
     await advanceToEndOfGame(contracts.goodGhosting, segmentLength, depositCount);
     const accounts = await ethers.getSigners();
     const player1 = accounts[2];
-    await expect(contracts.goodGhosting.connect(player1).earlyWithdraw(0)).to.be.revertedWith(
-      "Game is already completed",
-    );
+    await expect(contracts.goodGhosting.connect(player1).earlyWithdraw(0)).to.be.revertedWith("GAME_COMPLETED()");
   });
 
   it("reverts if a non-player tries to withdraw", async () => {
@@ -990,7 +988,9 @@ export const shouldBehaveLikeEarlyWithdrawingGGPool = async (strategyType: strin
     const player2 = accounts[3];
 
     await joinGame(contracts.goodGhosting, contracts.inboundToken, player1, segmentPayment, segmentPayment);
-    await expect(contracts.goodGhosting.connect(player2).earlyWithdraw(0)).to.be.revertedWith("Player does not exist");
+    await expect(contracts.goodGhosting.connect(player2).earlyWithdraw(0)).to.be.revertedWith(
+      "PLAYER_DOES_NOT_EXIST()",
+    );
   });
 
   it("sets withdrawn flag to true after user withdraws before end of game", async () => {
@@ -1013,7 +1013,7 @@ export const shouldBehaveLikeEarlyWithdrawingGGPool = async (strategyType: strin
     await ethers.provider.send("evm_mine", []);
     await contracts.goodGhosting.connect(player1).earlyWithdraw(0);
     await expect(contracts.goodGhosting.connect(player1).earlyWithdraw(0)).to.be.revertedWith(
-      "Player has already withdrawn",
+      "PLAYER_ALREADY_WITHDREW_EARLY()",
     );
   });
 
@@ -1285,7 +1285,7 @@ export const shouldBehaveLikeRedeemingFromGGPool = async (strategyType: string) 
     const player1 = accounts[2];
     await expect(
       contracts.goodGhosting.connect(player1).redeemFromExternalPoolForFixedDepositPool(0),
-    ).to.be.revertedWith("Game is not completed");
+    ).to.be.revertedWith("GAME_NOT_COMPLETED()");
   });
 
   it("reverts if funds were already redeemed", async () => {
@@ -1854,9 +1854,7 @@ export const shouldBehaveLikePlayersWithdrawingFromGGPool = async (strategyType:
       segmentPayment,
     );
     await contracts.goodGhosting.connect(player1).withdraw(0);
-    await expect(contracts.goodGhosting.connect(player1).withdraw(0)).to.be.revertedWith(
-      "Player has already withdrawn",
-    );
+    await expect(contracts.goodGhosting.connect(player1).withdraw(0)).to.be.revertedWith("PLAYER_ALREADY_WITHDREW()");
   });
 
   it("reverts if a non-player tries to withdraw", async () => {
@@ -1872,7 +1870,7 @@ export const shouldBehaveLikePlayersWithdrawingFromGGPool = async (strategyType:
       segmentLength,
       segmentPayment,
     );
-    await expect(contracts.goodGhosting.connect(deployer).withdraw(0)).to.be.revertedWith("Player does not exist");
+    await expect(contracts.goodGhosting.connect(deployer).withdraw(0)).to.be.revertedWith("PLAYER_DOES_NOT_EXIST()");
   });
 
   it("sets withdrawn flag to true after user withdraws", async () => {
@@ -2203,7 +2201,9 @@ export const shouldBehaveLikeAdminWithdrawingFeesFromGGPoolWithFeePercentMoreTha
       segmentPayment,
     );
 
-    await expect(contracts.goodGhosting.adminFeeWithdraw()).to.be.revertedWith("Funds not redeemed from external pool");
+    await expect(contracts.goodGhosting.adminFeeWithdraw()).to.be.revertedWith(
+      "FUNDS_NOT_REDEEMED_FROM_EXTERNAL_POOL()",
+    );
   });
 
   it("when admin tries to withdraw fees again", async () => {
@@ -2248,7 +2248,7 @@ export const shouldBehaveLikeAdminWithdrawingFeesFromGGPoolWithFeePercentMoreTha
     }
     await contracts.goodGhosting.redeemFromExternalPoolForFixedDepositPool("90");
     await contracts.goodGhosting.adminFeeWithdraw();
-    await expect(contracts.goodGhosting.adminFeeWithdraw()).to.be.revertedWith("Admin has already withdrawn");
+    await expect(contracts.goodGhosting.adminFeeWithdraw()).to.be.revertedWith("ADMIN_FEE_WITHDRAWN()");
   });
 
   context("with no winners in the game", async () => {
@@ -2997,12 +2997,12 @@ export const shouldBehaveLikeVariableDepositPool = async (strategyType: string) 
         if (index == 1) {
           await approveToken(contracts.inboundToken, player1, contracts.goodGhosting.address, segmentPayment);
           await expect(contracts.goodGhosting.connect(player1).makeDeposit(0, segmentPayment)).to.be.revertedWith(
-            "Flexible amount needs to be same across all segments",
+            "INVALID_FLEXIBLE_AMOUNT()",
           );
 
           await approveToken(contracts.inboundToken, player2, contracts.goodGhosting.address, segmentPayment);
           await expect(contracts.goodGhosting.connect(player2).makeDeposit(0, segmentPayment)).to.be.revertedWith(
-            "Flexible amount needs to be same across all segments",
+            "INVALID_FLEXIBLE_AMOUNT()",
           );
         }
       }
@@ -4530,12 +4530,12 @@ export const shouldBehaveLikeVariableDepositPool = async (strategyType: string) 
       if (index == 1) {
         await approveToken(contracts.inboundToken, player1, contracts.goodGhosting.address, segmentPayment);
         await expect(contracts.goodGhosting.connect(player1).makeDeposit(0, segmentPayment)).to.be.revertedWith(
-          "Flexible amount needs to be same across all segments",
+          "INVALID_FLEXIBLE_AMOUNT()",
         );
 
         await approveToken(contracts.inboundToken, player2, contracts.goodGhosting.address, segmentPayment);
         await expect(contracts.goodGhosting.connect(player2).makeDeposit(0, segmentPayment)).to.be.revertedWith(
-          "Flexible amount needs to be same across all segments",
+          "INVALID_FLEXIBLE_AMOUNT()",
         );
       }
     }
@@ -4580,7 +4580,7 @@ export const shouldBehaveLikeGGPoolWithTransactionalToken = async (strategyType:
         0,
         strategyType,
       ),
-    ).to.be.revertedWith("invalid _inboundCurrency address");
+    ).to.be.revertedWith("INVALID_INBOUND_TOKEN()");
   });
 
   it("players join the game and are able to redeem back the funds", async () => {

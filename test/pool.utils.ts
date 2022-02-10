@@ -162,7 +162,7 @@ export const deployPool = async (
       isInvestmentStrategy ? strategy.address : strategy,
       isTransactionalToken,
     ),
-  ).to.be.revertedWith("_waitingRoundSegmentLength must be more than _segmentLength");
+  ).to.be.revertedWith("INVALID_WAITING_ROUND_SEGMENT_LENGTH()");
 
   if (isSameAsRewardToken) {
     inboundToken = rewardToken;

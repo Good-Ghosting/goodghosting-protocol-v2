@@ -100,7 +100,6 @@ module.exports = {
         ),
       network_id: 137, // Polygon mainnet id
       networkCheckTimeout: 60000,
-      //gas: 7017622, //
       gasPrice: 30000000000, // 30 Gwei
       confirmations: 2, // # of confs to wait between deployments. (default: 0)
       timeoutBlocks: 50, // # of blocks before a deployment times out  (minimum/default: 50)
