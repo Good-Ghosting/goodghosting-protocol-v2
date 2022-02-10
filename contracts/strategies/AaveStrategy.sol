@@ -10,6 +10,17 @@ import "../polygon/WMatic.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
+//*********************************************************************//
+// --------------------------- custom errors ------------------------- //
+//*********************************************************************//
+error INVALID_AMOUNT();
+error INVALID_DATA_PROVIDER();
+error INVALID_INCENTIVE_CONTROLLER();
+error INVALID_LENDING_POOL_ADDRESS_PROVIDER();
+error INVALID_REWARD_TOKEN();
+error INVALID_WETH_GATEWAY();
+error TRANSACTIONAL_TOKEN_TRANSFER_FAILURE();
+
 /**
   @notice
   Interacts with aave & moola protocol to generate interest for the goodghosting pool it is used in, so it's responsible for deposits, withdrawals and getting rewards and sending these back to the pool.
@@ -89,8 +100,25 @@ contract AaveStrategy is Ownable, IStrategy {
         address _incentiveController,
         IERC20 _rewardToken
     ) {
-        require(address(_lendingPoolAddressProvider) != address(0), "invalid _lendingPoolAddressProvider address");
-        require(address(_dataProvider) != address(0), "invalid _dataProvider address");
+        if (address(_lendingPoolAddressProvider) == address(0)) {
+            revert INVALID_LENDING_POOL_ADDRESS_PROVIDER();
+        }
+        if (address(_wethGateway) == address(0)) {
+            revert INVALID_WETH_GATEWAY();
+        }
+          
+        if (address(_dataProvider) == address(0)) {
+            revert INVALID_DATA_PROVIDER();
+        }
+
+        if (address(_incentiveController) == address(0)) {
+            revert INVALID_INCENTIVE_CONTROLLER();
+        }
+
+        if (address(_rewardToken) == address(0)) {
+            revert INVALID_REWARD_TOKEN();
+        }
+
         lendingPoolAddressProvider = _lendingPoolAddressProvider;
         // address(0) for non-polygon deployment
         incentiveController = IncentiveController(_incentiveController);
@@ -117,10 +145,7 @@ contract AaveStrategy is Ownable, IStrategy {
             // Deposits MATIC into the pool
             wethGateway.depositETH{ value: address(this).balance }(address(lendingPool), address(this), 155);
         } else {
-            require(
-                IERC20(_inboundCurrency).approve(address(lendingPool), IERC20(_inboundCurrency).balanceOf(address(this))),
-                "Fail to approve allowance to lending pool"
-            );
+            IERC20(_inboundCurrency).approve(address(lendingPool), IERC20(_inboundCurrency).balanceOf(address(this)));
             lendingPool.deposit(_inboundCurrency, IERC20(_inboundCurrency).balanceOf(address(this)), address(this), 155);
         }
     }
@@ -137,7 +162,9 @@ contract AaveStrategy is Ownable, IStrategy {
         uint256 _amount,
         uint256 _minAmount
     ) external override onlyOwner {
-        require(_amount > 0, "_amount is 0");
+        if (_amount == 0) {
+           revert INVALID_AMOUNT();
+        }
         // atoken address in v2 is fetched from data provider contract
         address adaiTokenAddress;
         if (_inboundCurrency == address(0)) {
@@ -148,7 +175,7 @@ contract AaveStrategy is Ownable, IStrategy {
         AToken adaiToken = AToken(adaiTokenAddress);
         if (adaiToken.balanceOf(address(this)) > 0) {
             if (_inboundCurrency == address(0) || _inboundCurrency == address(rewardToken)) {
-                require(adaiToken.approve(address(wethGateway), _amount), "Fail to approve allowance to wethGateway");
+                adaiToken.approve(address(wethGateway), _amount);
 
                 wethGateway.withdrawETH(address(lendingPool), _amount, address(this));
                 if (_inboundCurrency == address(rewardToken)) {
@@ -161,12 +188,11 @@ contract AaveStrategy is Ownable, IStrategy {
         }
         if (_inboundCurrency == address(0)) {
             (bool success, ) = msg.sender.call{ value: address(this).balance }("");
-            require(success);
+            if (!success) {
+                revert TRANSACTIONAL_TOKEN_TRANSFER_FAILURE();
+            }
         } else {
-            require(
-                IERC20(_inboundCurrency).transfer(msg.sender, IERC20(_inboundCurrency).balanceOf(address(this))),
-                "Transfer Failed"
-            );
+            IERC20(_inboundCurrency).transfer(msg.sender, IERC20(_inboundCurrency).balanceOf(address(this)));
         }
     }
 
@@ -196,10 +222,7 @@ contract AaveStrategy is Ownable, IStrategy {
         // Withdraws funds (principal + interest + rewards) from external pool
         if (adaiToken.balanceOf(address(this)) > 0) {
             if (_inboundCurrency == address(0) || _inboundCurrency == address(rewardToken)) {
-                require(
-                    adaiToken.approve(address(wethGateway), redeemAmount),
-                    "Fail to approve allowance to wethGateway"
-                );
+                adaiToken.approve(address(wethGateway), redeemAmount);
 
                 wethGateway.withdrawETH(address(lendingPool), redeemAmount, address(this));
                 if (_inboundCurrency == address(rewardToken)) {
@@ -222,18 +245,17 @@ contract AaveStrategy is Ownable, IStrategy {
             }
             // moola the celo version of aave does not have the incentive controller logic
             if (rewardToken.balanceOf(address(this)) > 0) {
-                require(rewardToken.transfer(msg.sender, rewardToken.balanceOf(address(this))), "Transfer Failed");
+                rewardToken.transfer(msg.sender, rewardToken.balanceOf(address(this)));
             }
         }
 
         if (_inboundCurrency == address(0)) {
             (bool success, ) = msg.sender.call{ value: address(this).balance }("");
-            require(success);
+            if (!success) {
+                revert TRANSACTIONAL_TOKEN_TRANSFER_FAILURE();
+            }
         } else {
-            require(
-                IERC20(_inboundCurrency).transfer(msg.sender, IERC20(_inboundCurrency).balanceOf(address(this))),
-                "Transfer Failed"
-            );
+            IERC20(_inboundCurrency).transfer(msg.sender, IERC20(_inboundCurrency).balanceOf(address(this)));
         }
     }
 
