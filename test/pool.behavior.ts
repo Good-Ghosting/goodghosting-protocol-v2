@@ -3489,7 +3489,7 @@ export const shouldBehaveLikeVariableDepositPool = async (strategyType: string) 
       const adminBalanceAfterWithdraw = await contracts.inboundToken.balanceOf(deployer.address);
       const adminBalanceDiff = adminBalanceAfterWithdraw.sub(adminBalanceBeforeWithdraw).toString();
       const adminCalculatedFee = await contracts.goodGhosting.adminFeeAmount(0);
-      assert(ethers.BigNumber.from(adminBalanceDiff).eq(adminCalculatedFee[0]));
+      assert(ethers.BigNumber.from(adminBalanceDiff).eq(adminCalculatedFee));
       assert(adminBalanceAfterWithdraw.gt(adminBalanceBeforeWithdraw));
       assert(adminRewardBalanceAfterWithdraw.gt(adminRewardBalanceBeforeWithdraw));
     });
