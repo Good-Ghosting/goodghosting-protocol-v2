@@ -146,7 +146,7 @@ contract Pool is Ownable, Pausable {
         address addr;
         uint256 mostRecentSegmentPaid;
         uint256 amountPaid;
-        uint256 flexibleDepositAmount;
+        uint256 depositAmount;
     }
 
     /// @notice Stores info about the players in the game.
@@ -382,7 +382,7 @@ contract Pool is Ownable, Pausable {
             withdrawn: false,
             canRejoin: false,
             isWinner: false,
-            flexibleDepositAmount: flexibleSegmentPayment ? _depositAmount : 0
+            depositAmount: flexibleSegmentPayment ? _depositAmount : segmentPayment
         });
         players[msg.sender] = newPlayer;
         if (!canRejoin) {
@@ -790,7 +790,7 @@ contract Pool is Ownable, Pausable {
             revert NOT_PLAYER();
         }
         if (flexibleSegmentPayment) {
-            if (_depositAmount != players[msg.sender].flexibleDepositAmount) {
+            if (_depositAmount != players[msg.sender].depositAmount) {
                 revert INVALID_FLEXIBLE_AMOUNT();
             }
         }
