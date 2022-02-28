@@ -46,6 +46,12 @@ export const shouldBehaveLikeGGPool = async (strategyType: string) => {
     );
   });
 
+  it("admin is able to reduce eary withdrawal fees", async () => {
+    await contracts.goodGhosting.lowerEarlyWithdrawFees(0);
+    const earlyWithdrawalFee = await contracts.goodGhosting.earlyWithdrawalFee();
+    assert(earlyWithdrawalFee.eq(ethers.BigNumber.from(0)));
+  });
+
   it("check if inbound and interest token have distinct addresses", async () => {
     const inBoundTokenAddress = contracts.inboundToken.address;
     let interestTokenAddress;

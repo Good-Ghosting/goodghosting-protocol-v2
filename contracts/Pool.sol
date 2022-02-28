@@ -66,14 +66,14 @@ contract Pool is Ownable, Pausable {
     /// @notice The time duration (in seconds) of each segment.
     uint256 public immutable waitingRoundSegmentLength;
 
-    /// @notice The early withdrawal fee (percentage).
-    uint128 public immutable earlyWithdrawalFee;
-
     /// @notice The performance admin fee (percentage).
     uint128 public immutable adminFee;
 
     /// @notice Defines the max quantity of players allowed in the game.
     uint256 public immutable maxPlayersCount;
+
+    /// @notice The early withdrawal fee (percentage).
+    uint128 public earlyWithdrawalFee;
 
     /// @notice Stores the total amount of net interest received in the game.
     uint256 public totalGameInterest;
@@ -527,6 +527,17 @@ contract Pool is Ownable, Pausable {
             revert RENOUNCE_OWNERSHIP_NOT_ALLOWED();
         }
         super.renounceOwnership();
+    }
+
+    /**
+    @dev Allows admin to set a lower early withdrawal fee.
+    @param _newEarlyWithdrawFees New earlywithdrawal fee.
+    */
+    function lowerEarlyWithdrawFees(uint128 _newEarlyWithdrawFees) external virtual onlyOwner {
+        if (_newEarlyWithdrawFees >= earlyWithdrawalFee) {
+            revert INVALID_EARLY_WITHDRAW_FEE();
+        }
+        earlyWithdrawalFee = _newEarlyWithdrawFees;
     }
 
     /// @dev Allows the admin to withdraw the performance fee, if applicable. This function can be called only by the contract's admin.
