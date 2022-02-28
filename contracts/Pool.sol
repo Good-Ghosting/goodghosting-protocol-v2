@@ -52,6 +52,29 @@ contract Pool is Ownable, Pausable {
     /// @notice Multiplier used for calculating playerIndex to avoid precision issues.
     uint256 public constant MULTIPLIER = 10**8;
 
+        /// @notice The number of segments in the game (segment count).
+    uint256 public immutable lastSegment;
+
+    /// @notice When the game started (deployed timestamp).
+    uint256 public immutable firstSegmentStart;
+
+    uint256 public immutable waitingRoundSegmentStart;
+
+    /// @notice The time duration (in seconds) of each segment.
+    uint256 public immutable segmentLength;
+
+    /// @notice The time duration (in seconds) of each segment.
+    uint256 public immutable waitingRoundSegmentLength;
+
+    /// @notice The early withdrawal fee (percentage).
+    uint128 public immutable earlyWithdrawalFee;
+
+    /// @notice The performance admin fee (percentage).
+    uint128 public immutable adminFee;
+
+    /// @notice Defines the max quantity of players allowed in the game.
+    uint256 public immutable maxPlayersCount;
+
     /// @notice Stores the total amount of net interest received in the game.
     uint256 public totalGameInterest;
 
@@ -75,29 +98,6 @@ contract Pool is Ownable, Pausable {
 
     /// @notice The amount to be paid on each segment.
     uint256 public segmentPayment;
-
-    /// @notice The number of segments in the game (segment count).
-    uint256 public immutable lastSegment;
-
-    /// @notice When the game started (deployed timestamp).
-    uint256 public immutable firstSegmentStart;
-
-    uint256 public immutable waitingRoundSegmentStart;
-
-    /// @notice The time duration (in seconds) of each segment.
-    uint256 public immutable segmentLength;
-
-    /// @notice The time duration (in seconds) of each segment.
-    uint256 public immutable waitingRoundSegmentLength;
-
-    /// @notice The early withdrawal fee (percentage).
-    uint128 public immutable earlyWithdrawalFee;
-
-    /// @notice The performance admin fee (percentage).
-    uint128 public immutable adminFee;
-
-    /// @notice Defines the max quantity of players allowed in the game.
-    uint256 public immutable maxPlayersCount;
 
     /// @notice share % from impermanent loss.
     uint256 public impermanentLossShare;
@@ -288,18 +288,16 @@ contract Pool is Ownable, Pausable {
     ) {
         flexibleSegmentPayment = _flexibleSegmentPayment;
         isTransactionalToken = _isTransactionalToken;
-        if (_customFee > 20) {
+        if (_customFee > 100) {
             revert INVALID_CUSTOM_FEE();
         }
-        if (_earlyWithdrawalFee > 10) {
-            revert INVALID_EARLY_WITHDRAW_FEE();
-        }
-        if (_earlyWithdrawalFee == 0) {
+        if (_earlyWithdrawalFee > 100) {
             revert INVALID_EARLY_WITHDRAW_FEE();
         }
         if (_maxPlayersCount == 0) {
             revert INVALID_MAX_PLAYER_COUNT();
         }
+
         if (isTransactionalToken) {
             if (address(_inboundCurrency) != address(0)) {
                 revert INVALID_INBOUND_TOKEN();

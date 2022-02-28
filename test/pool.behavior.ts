@@ -92,13 +92,13 @@ export const shouldBehaveLikeGGPool = async (strategyType: string) => {
     );
   });
 
-  it("reverts if the contract is deployed with 0% early withdraw fee", async () => {
+  it("reverts if the contract is deployed with more than 100% early withdraw fee", async () => {
     await expect(
       deployPool(
         depositCount,
         segmentLength,
         segmentPayment,
-        0,
+        101,
         0,
         maxPlayersCount,
         true,
@@ -218,35 +218,14 @@ export const shouldBehaveLikeGGPool = async (strategyType: string) => {
     ).to.be.revertedWith("INVALID_SEGMENT_PAYMENT()");
   });
 
-  it("reverts if the contract is deployed with early withdraw fee more than 10%", async () => {
-    await expect(
-      deployPool(
-        depositCount,
-        segmentLength,
-        segmentPayment,
-        20,
-        0,
-        maxPlayersCount,
-        true,
-        false,
-        true,
-        false,
-        false,
-        false,
-        0,
-        strategyType,
-      ),
-    ).to.be.revertedWith("INVALID_EARLY_WITHDRAW_FEE()");
-  });
-
-  it("reverts if the contract is deployed with admin fee more than 20%", async () => {
+  it("reverts if the contract is deployed with admin fee more than 100%", async () => {
     await expect(
       deployPool(
         depositCount,
         segmentLength,
         segmentPayment,
         1,
-        25,
+        101,
         maxPlayersCount,
         true,
         false,
