@@ -340,7 +340,7 @@ contract("Pool with Mobius Strategy with no winners", accounts => {
 
     it("admin withdraws admin fee from contract", async () => {
       if (adminFee > 0) {
-        const expectedAmount = web3.utils.toBN(await goodGhosting.adminFeeAmount.call({ from: admin }));
+        const expectedAmount = web3.utils.toBN(await goodGhosting.adminFeeAmount(0));
 
         let mobiRewardBalanceBefore = web3.utils.toBN(0);
         let mobiRewardBalanceAfter = web3.utils.toBN(0);

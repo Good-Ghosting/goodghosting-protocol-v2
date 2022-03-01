@@ -217,9 +217,9 @@ contract("Pool with Curve Strategy with no winners", accounts => {
     it("redeems funds from external pool", async () => {
       const userSlippage = 1;
       let minAmount;
-      let mobiBalanceBeforeRedeem, mobiBalanceAfterRedeem, celoBalanceBeforeRedeem, celoBalanceAfterRedeem;
-      mobiBalanceBeforeRedeem = await curve.methods.balanceOf(goodGhosting.address).call();
-      celoBalanceBeforeRedeem = await wmatic.methods.balanceOf(goodGhosting.address).call();
+      let curveBalanceBeforeRedeem, curveBalanceAfterRedeem, wmaticBalanceBeforeRedeem, wmaticBalanceAfterRedeem;
+      curveBalanceBeforeRedeem = await curve.methods.balanceOf(goodGhosting.address).call();
+      wmaticBalanceBeforeRedeem = await wmatic.methods.balanceOf(goodGhosting.address).call();
 
       const gaugeTokenBalance = await gaugeToken.methods.balanceOf(curveStrategy.address).call();
       minAmount = await pool.methods
@@ -240,12 +240,12 @@ contract("Pool with Curve Strategy with no winners", accounts => {
         from: admin,
       });
 
-      mobiBalanceAfterRedeem = await curve.methods.balanceOf(goodGhosting.address).call();
-      celoBalanceAfterRedeem = await wmatic.methods.balanceOf(goodGhosting.address).call();
+      curveBalanceAfterRedeem = await curve.methods.balanceOf(goodGhosting.address).call();
+      wmaticBalanceAfterRedeem = await wmatic.methods.balanceOf(goodGhosting.address).call();
 
-      assert(web3.utils.toBN(mobiBalanceBeforeRedeem).lt(web3.utils.toBN(mobiBalanceAfterRedeem)));
+      assert(web3.utils.toBN(curveBalanceAfterRedeem).gt(web3.utils.toBN(curveBalanceBeforeRedeem)));
       // for some reason forking mainnet we don't get back wmatic rewards so the before and after balance is equal
-      assert(web3.utils.toBN(celoBalanceBeforeRedeem).lte(web3.utils.toBN(celoBalanceAfterRedeem)));
+      assert(web3.utils.toBN(wmaticBalanceAfterRedeem).gte(web3.utils.toBN(wmaticBalanceBeforeRedeem)));
 
       const contractsDaiBalance = web3.utils.toBN(
         await token.methods.balanceOf(goodGhosting.address).call({ from: admin }),
@@ -265,12 +265,9 @@ contract("Pool with Curve Strategy with no winners", accounts => {
             .div(web3.utils.toBN("100"));
           eventAmount = web3.utils.toBN(ev.totalAmount.toString());
 
-          return (
-            web3.utils
-              .toBN(ev.totalGameInterest)
-              .eq(web3.utils.toBN(ev.totalAmount).sub(web3.utils.toBN(ev.totalGamePrincipal))),
-            eventAmount.eq(contractsDaiBalance) && adminFee.lt(ev.totalGameInterest)
-          );
+          return web3.utils
+            .toBN(ev.totalGameInterest)
+            .eq(web3.utils.toBN(ev.totalAmount).sub(web3.utils.toBN(ev.totalGamePrincipal)));
         },
         `FundsRedeemedFromExternalPool error - event amount: ${eventAmount.toString()}; expectAmount: ${contractsDaiBalance.toString()}`,
       );
@@ -280,29 +277,29 @@ contract("Pool with Curve Strategy with no winners", accounts => {
       // starts from 2, since player1 (loser), requested an early withdraw and player 2 withdrew after the last segment
       for (let i = 2; i < players.length - 1; i++) {
         const player = players[i];
-        let mobiRewardBalanceBefore = web3.utils.toBN(0);
-        let mobiRewardBalanceAfter = web3.utils.toBN(0);
-        let celoRewardBalanceBefore = web3.utils.toBN(0);
-        let celoRewardBalanceAfter = web3.utils.toBN(0);
+        let curveRewardBalanceBefore = web3.utils.toBN(0);
+        let curveRewardBalanceAfter = web3.utils.toBN(0);
+        let wmaticRewardBalanceBefore = web3.utils.toBN(0);
+        let wmaticRewardBalanceAfter = web3.utils.toBN(0);
 
-        mobiRewardBalanceBefore = web3.utils.toBN(await curve.methods.balanceOf(player).call({ from: admin }));
-        celoRewardBalanceBefore = web3.utils.toBN(await wmatic.methods.balanceOf(player).call({ from: admin }));
+        curveRewardBalanceBefore = web3.utils.toBN(await curve.methods.balanceOf(player).call({ from: admin }));
+        wmaticRewardBalanceBefore = web3.utils.toBN(await wmatic.methods.balanceOf(player).call({ from: admin }));
 
         let result;
         // redeem already called hence passing in 0
         result = await goodGhosting.withdraw(0, { from: player });
 
-        mobiRewardBalanceAfter = web3.utils.toBN(await curve.methods.balanceOf(player).call({ from: admin }));
-        celoRewardBalanceAfter = web3.utils.toBN(await wmatic.methods.balanceOf(player).call({ from: admin }));
+        curveRewardBalanceAfter = web3.utils.toBN(await curve.methods.balanceOf(player).call({ from: admin }));
+        wmaticRewardBalanceAfter = web3.utils.toBN(await wmatic.methods.balanceOf(player).call({ from: admin }));
 
         assert(
-          mobiRewardBalanceAfter.eq(mobiRewardBalanceBefore),
-          "expected curve balance after withdrawal to be greater than before withdrawal",
+          curveRewardBalanceAfter.eq(curveRewardBalanceBefore),
+          "expected curve balance after withdrawal to be equal than before withdrawal",
         );
 
         // for some reason forking mainnet we don't get back wmatic rewards
         assert(
-          celoRewardBalanceAfter.eq(celoRewardBalanceBefore),
+          wmaticRewardBalanceAfter.eq(wmaticRewardBalanceBefore),
           "expected wmatic balance after withdrawal to be equal to before withdrawal",
         );
       }
@@ -310,30 +307,29 @@ contract("Pool with Curve Strategy with no winners", accounts => {
 
     it("admin withdraws admin fee from contract", async () => {
       if (adminFee > 0) {
-        const expectedAmount = web3.utils.toBN(await goodGhosting.adminFeeAmount.call({ from: admin }));
+        const expectedAmount = web3.utils.toBN(await goodGhosting.adminFeeAmount(0));
 
-        let mobiRewardBalanceBefore = web3.utils.toBN(0);
-        let mobiRewardBalanceAfter = web3.utils.toBN(0);
-        let celoRewardBalanceBefore = web3.utils.toBN(0);
-        let celoRewardBalanceAfter = web3.utils.toBN(0);
+        let curveRewardBalanceBefore = web3.utils.toBN(0);
+        let curveRewardBalanceAfter = web3.utils.toBN(0);
+        let wmaticRewardBalanceBefore = web3.utils.toBN(0);
+        let wmaticRewardBalanceAfter = web3.utils.toBN(0);
 
-        mobiRewardBalanceBefore = web3.utils.toBN(await curve.methods.balanceOf(admin).call({ from: admin }));
-        celoRewardBalanceBefore = web3.utils.toBN(await wmatic.methods.balanceOf(admin).call({ from: admin }));
+        curveRewardBalanceBefore = web3.utils.toBN(await curve.methods.balanceOf(admin).call({ from: admin }));
+        wmaticRewardBalanceBefore = web3.utils.toBN(await wmatic.methods.balanceOf(admin).call({ from: admin }));
 
         const result = await goodGhosting.adminFeeWithdraw({
           from: admin,
         });
 
-        mobiRewardBalanceAfter = web3.utils.toBN(await curve.methods.balanceOf(admin).call({ from: admin }));
-        celoRewardBalanceAfter = web3.utils.toBN(await wmatic.methods.balanceOf(admin).call({ from: admin }));
-
+        curveRewardBalanceAfter = web3.utils.toBN(await curve.methods.balanceOf(admin).call({ from: admin }));
+        wmaticRewardBalanceAfter = web3.utils.toBN(await wmatic.methods.balanceOf(admin).call({ from: admin }));
         assert(
-          mobiRewardBalanceAfter.gt(mobiRewardBalanceBefore),
+          curveRewardBalanceAfter.gt(curveRewardBalanceBefore),
           "expected curve balance after withdrawal to be greater than before withdrawal",
         );
         // for some reason forking mainnet we don't get back wmatic rewards
         assert(
-          celoRewardBalanceAfter.gte(celoRewardBalanceBefore),
+          wmaticRewardBalanceAfter.gte(wmaticRewardBalanceBefore),
           "expected wmatic balance after withdrawal to be equal to before withdrawal",
         );
 

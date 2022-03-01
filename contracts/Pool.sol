@@ -590,12 +590,12 @@ contract Pool is Ownable, Pausable {
                 }
                 IERC20(inboundToken).transfer(owner(), adminFeeAmount[0]);
             }
-            if (address(rewardToken) != address(0) && rewardTokenAmount > 0) {
+            if (address(rewardToken) != address(0)) {
                 adminRewardTokenAmount = adminFeeAmount[1];
                 rewardToken.transfer(owner(), adminFeeAmount[1]);
             }
 
-            if (address(strategyGovernanceToken) != address(0) && strategyGovernanceTokenAmount > 0) {
+            if (address(strategyGovernanceToken) != address(0)) {
                 adminGovernanceTokenAmount = adminFeeAmount[2];
                 strategyGovernanceToken.transfer(owner(), adminFeeAmount[2]);
             }

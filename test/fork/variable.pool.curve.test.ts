@@ -429,13 +429,13 @@ contract("Variale Deposit Pool with Curve Strategy", accounts => {
       assert(wmaticBalanceDiffForPlayer1.gte(wmaticBalanceDiffForPlayer2));
       assert(inboundTokenBalanceDiffForPlayer1.gt(inboundTokenBalanceDiffForPlayer2));
       assert(inboundTokenPoolBalance.eq(web3.utils.toBN(0)));
-      assert(curveRewardTokenPoolBalance.eq(web3.utils.toBN(0)));
-      assert(wmaticRewardTokenBalance.eq(web3.utils.toBN(0)));
+      assert(curveRewardTokenPoolBalance.gt(web3.utils.toBN(0)));
+      assert(wmaticRewardTokenBalance.gte(web3.utils.toBN(0)));
     });
 
     it("admin withdraws admin fee from contract", async () => {
       if (adminFee > 0) {
-        const expectedAmount = web3.utils.toBN(await goodGhosting.adminFeeAmount.call({ from: admin }));
+        const expectedAmount = web3.utils.toBN(await goodGhosting.adminFeeAmount(0));
 
         let curveRewardBalanceBefore = web3.utils.toBN(0);
         let curveRewardBalanceAfter = web3.utils.toBN(0);
@@ -464,8 +464,22 @@ contract("Variale Deposit Pool with Curve Strategy", accounts => {
         curveRewardBalanceAfter = web3.utils.toBN(await curve.methods.balanceOf(admin).call({ from: admin }));
         wmaticRewardBalanceAfter = web3.utils.toBN(await wmatic.methods.balanceOf(admin).call({ from: admin }));
 
+        truffleAssert.eventEmitted(
+          result,
+          "AdminWithdrawal",
+          async (ev: any) => {
+            console.log("event logss");
+            console.log(ev.adminFeeAmount.toString());
+            console.log(ev.adminRewardAAmount.toString());
+            console.log(ev.adminGovernanceRewardAmount.toString());
+
+            return expectedAmount.gte(ev.adminFeeAmount);
+          },
+          "admin fee withdrawal event failure",
+        );
+
         assert(
-          curveRewardBalanceAfter.eq(curveRewardBalanceBefore),
+          curveRewardBalanceAfter.gt(curveRewardBalanceBefore),
           "expected curve balance after withdrawal to be greater than before withdrawal",
         );
         // for some reason forking mainnet we don't get back wmatic rewards
@@ -473,19 +487,9 @@ contract("Variale Deposit Pool with Curve Strategy", accounts => {
           wmaticRewardBalanceAfter.gte(wmaticRewardBalanceBefore),
           "expected wmatic balance after withdrawal to be equal to before withdrawal",
         );
-
         assert(inboundTokenPoolBalance.eq(web3.utils.toBN(0)));
-        assert(curveRewardTokenPoolBalance.eq(web3.utils.toBN(0)));
-        assert(wmaticRewardTokenBalance.eq(web3.utils.toBN(0)));
-
-        truffleAssert.eventEmitted(
-          result,
-          "AdminWithdrawal",
-          async (ev: any) => {
-            return expectedAmount.gte(ev.adminFeeAmount);
-          },
-          "admin fee withdrawal event failure",
-        );
+        assert(curveRewardTokenPoolBalance.gte(web3.utils.toBN(0)));
+        assert(wmaticRewardTokenBalance.gte(web3.utils.toBN(0)));
       }
     });
   });

@@ -228,7 +228,7 @@ contract("Variable Deposit Pool with Mobius Strategy with no winners", accounts 
 
     it("admin withdraws admin fee from contract", async () => {
       if (adminFee > 0) {
-        const expectedAmount = web3.utils.toBN(await goodGhosting.adminFeeAmount.call({ from: admin }));
+        const expectedAmount = web3.utils.toBN(await goodGhosting.adminFeeAmount(0));
 
         let mobiRewardBalanceBefore = web3.utils.toBN(0);
         let mobiRewardBalanceAfter = web3.utils.toBN(0);
@@ -261,7 +261,7 @@ contract("Variable Deposit Pool with Mobius Strategy with no winners", accounts 
         const celoPoolRewardBalanceAfter = web3.utils.toBN(
           await celo.methods.balanceOf(goodGhosting.address).call({ from: admin }),
         );
-        assert(mobiPoolRewardBalanceAfter.eq(web3.utils.toBN(0)));
+        assert(mobiPoolRewardBalanceAfter.gte(web3.utils.toBN(0)));
         assert(celoPoolRewardBalanceAfter.eq(web3.utils.toBN(0)));
 
         truffleAssert.eventEmitted(
