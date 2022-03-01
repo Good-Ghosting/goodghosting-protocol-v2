@@ -196,6 +196,6 @@ describe("Aave Pool Fork Tests where no player wins", () => {
     const rewardTokenBalanceAfterWithdraw = await wmaticInstance.balanceOf(accounts[0].address);
     const inboundTokenBalanceAfterWithdraw = await daiInstance.balanceOf(accounts[0].address);
     assert(inboundTokenBalanceAfterWithdraw.gt(inboundTokenBalanceBeforeWithdraw));
-    assert(rewardTokenBalanceAfterWithdraw.gt(rewardTokenBalanceBeforeWithdraw));
+    assert(rewardTokenBalanceAfterWithdraw.gte(rewardTokenBalanceBeforeWithdraw));
   });
 });

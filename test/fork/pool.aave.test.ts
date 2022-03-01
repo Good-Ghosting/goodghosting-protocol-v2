@@ -165,7 +165,6 @@ describe("Aave Pool Fork Tests", () => {
     console.log("inboundTokenBalance", inboundTokenBalance.toString());
     const totalPrincipal = await pool.totalGamePrincipal();
     console.log("totalPrincipal", totalPrincipal.toString());
-
     const totalInterest = await pool.totalGameInterest();
     console.log("totalInterest", totalInterest.toString());
 
@@ -181,7 +180,7 @@ describe("Aave Pool Fork Tests", () => {
       const rewardTokenBalanceAfterWithdraw = await wmaticInstance.balanceOf(accounts[j].address);
       const inboundTokenBalanceAfterWithdraw = await daiInstance.balanceOf(accounts[j].address);
       assert(inboundTokenBalanceAfterWithdraw.gt(inboundTokenBalanceBeforeWithdraw));
-      assert(rewardTokenBalanceAfterWithdraw.gt(rewardTokenBalanceBeforeWithdraw));
+      assert(rewardTokenBalanceAfterWithdraw.gte(rewardTokenBalanceBeforeWithdraw));
     }
   });
 

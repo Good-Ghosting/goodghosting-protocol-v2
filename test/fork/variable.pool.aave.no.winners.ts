@@ -207,6 +207,6 @@ describe("Aave Variable Deposit Pool Fork Tests with no winners", () => {
     assert(poolBalanceAfterAllWithdraws.eq(ethers.BigNumber.from(0)));
     const inboundTokenBalanceAfterWithdraw = await daiInstance.balanceOf(accounts[0].address);
     assert(inboundTokenBalanceAfterWithdraw.gt(inboundTokenBalanceBeforeWithdraw));
-    assert(rewardTokenBalanceAfterWithdraw.gt(rewardTokenBalanceBeforeWithdraw));
+    assert(rewardTokenBalanceAfterWithdraw.gte(rewardTokenBalanceBeforeWithdraw));
   });
 });

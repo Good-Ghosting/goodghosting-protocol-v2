@@ -168,7 +168,7 @@ describe("Aave Pool Fork Tests with the deposit token same as reward token", () 
     const rewardtokenDiffForPlayer2 = smallDepositUserRewardTokenBalanceBeforeWithdraw.sub(
       smallDepositUserRewardTokenBalanceWithdrawWithdraw,
     );
-    assert(rewardtokenDiffForPlayer2.lt(rewardtokenDiffPlayer1));
+    assert(rewardtokenDiffForPlayer2.lte(rewardtokenDiffPlayer1));
   });
 
   it("admin is able to withdraw from the pool", async () => {
