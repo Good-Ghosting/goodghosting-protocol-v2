@@ -216,7 +216,7 @@ contract("Pool with Moola Strategy", accounts => {
 
         inboundTokenBalanceBeforeWithdraw = web3.utils.toBN(await token.methods.balanceOf(admin).call({ from: admin }));
 
-        const expectedAmount = web3.utils.toBN(await goodGhosting.adminFeeAmount.call({ from: admin }));
+        const expectedAmount = web3.utils.toBN(await goodGhosting.adminFeeAmount(0));
 
         const result = await goodGhosting.adminFeeWithdraw({
           from: admin,
