@@ -15,10 +15,7 @@ import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 //*********************************************************************//
 error INVALID_AMOUNT();
 error INVALID_DATA_PROVIDER();
-error INVALID_INCENTIVE_CONTROLLER();
 error INVALID_LENDING_POOL_ADDRESS_PROVIDER();
-error INVALID_REWARD_TOKEN();
-error INVALID_WETH_GATEWAY();
 error TRANSACTIONAL_TOKEN_TRANSFER_FAILURE();
 
 /**
@@ -103,20 +100,9 @@ contract AaveStrategy is Ownable, IStrategy {
         if (address(_lendingPoolAddressProvider) == address(0)) {
             revert INVALID_LENDING_POOL_ADDRESS_PROVIDER();
         }
-        if (address(_wethGateway) == address(0)) {
-            revert INVALID_WETH_GATEWAY();
-        }
           
         if (address(_dataProvider) == address(0)) {
             revert INVALID_DATA_PROVIDER();
-        }
-
-        if (address(_incentiveController) == address(0)) {
-            revert INVALID_INCENTIVE_CONTROLLER();
-        }
-
-        if (address(_rewardToken) == address(0)) {
-            revert INVALID_REWARD_TOKEN();
         }
 
         lendingPoolAddressProvider = _lendingPoolAddressProvider;
