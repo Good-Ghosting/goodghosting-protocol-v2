@@ -115,6 +115,12 @@ contract Pool is Ownable, Pausable {
     /// @notice Controls if tokens were redeemed or not from the pool.
     bool public redeemed;
 
+    /// @notice Controls if reward tokens are to be claimed at the time of redeem.
+    bool public disableRewardTokenClaim = false;
+
+    /// @notice Controls if strategy governance tokens are to be claimed at the time of redeem.
+    bool public disableStrategyGovernanceTokenClaim = false;
+
     /// @notice Flag which determines whether the segment payment is fixed or not.
     bool public immutable flexibleSegmentPayment;
 
@@ -347,10 +353,6 @@ contract Pool is Ownable, Pausable {
         maxFlexibleSegmentPaymentAmount = _maxFlexibleSegmentPaymentAmount;
     }
 
-    function setIncentiveToken(IERC20 _incentiveToken) external onlyOwner whenGameIsNotCompleted {
-        incentiveToken = _incentiveToken;
-    }
-
     //*********************************************************************//
     // ------------------------- internal methods -------------------------- //
     //*********************************************************************//
@@ -471,12 +473,12 @@ contract Pool is Ownable, Pausable {
 
         // the reward calaculation is the sum of the current reward amount the remaining rewards being accumalated in the strategy protocols.
         if (address(rewardToken) != address(0) && inboundToken != address(rewardToken)) {
-            grossRewardTokenAmount = rewardTokenAmount.add(strategy.getAccumalatedRewardTokenAmount(inboundToken));
+            grossRewardTokenAmount = rewardTokenAmount.add(strategy.getAccumalatedRewardTokenAmount(inboundToken, disableRewardTokenClaim));
         }
 
         if (address(strategyGovernanceToken) != address(0) && inboundToken != address(strategyGovernanceToken)) {
             grossStrategyGovernanceTokenAmount = strategyGovernanceTokenAmount.add(
-                strategy.getAccumalatedGovernanceTokenAmount(inboundToken)
+                strategy.getAccumalatedGovernanceTokenAmount(inboundToken, disableStrategyGovernanceTokenClaim)
             );
         }
 
@@ -533,6 +535,28 @@ contract Pool is Ownable, Pausable {
         );
     }
 
+    /**
+    @dev Set's the incentive token address.
+    @param _incentiveToken Incentive token address
+    */
+    function setIncentiveToken(IERC20 _incentiveToken) external onlyOwner whenGameIsNotCompleted {
+        incentiveToken = _incentiveToken;
+    }
+
+    /**
+    @dev Disable claiming reward tokens.
+    */
+    function disableClaimingRewardTokens() external onlyOwner whenGameIsNotCompleted {
+        disableRewardTokenClaim = true;
+    }
+
+    /**
+    @dev Disable claiming strategy governance reward tokens.
+    */
+    function disableClaimingStrategyGovernanceRewardTokens() external onlyOwner whenGameIsNotCompleted {
+        disableStrategyGovernanceTokenClaim = true;
+    }
+
     /// @dev pauses the game. This function can be called only by the contract's admin.
     function pause() external onlyOwner whenNotPaused {
         _pause();
@@ -587,7 +611,7 @@ contract Pool is Ownable, Pausable {
         uint256 adminGovernanceTokenAmount = 0;
 
         if (adminFeeAmount[0] > 0 || adminFeeAmount[1] > 0 || adminFeeAmount[2] > 0) {
-            strategy.redeem(inboundToken, adminFeeAmount[0], flexibleSegmentPayment, 0);
+            strategy.redeem(inboundToken, adminFeeAmount[0], flexibleSegmentPayment, 0, disableRewardTokenClaim, disableStrategyGovernanceTokenClaim);
             if (isTransactionalToken) {
                 if (adminFeeAmount[0] > address(this).balance) {
                     adminFeeAmount[0] = address(this).balance;
@@ -774,7 +798,8 @@ contract Pool is Ownable, Pausable {
             } else {
                 totalGamePrincipal = totalGamePrincipal.sub(player.amountPaid);
             }
-            strategy.redeem(inboundToken, payout, flexibleSegmentPayment, _minAmount);
+
+            strategy.redeem(inboundToken, payout, flexibleSegmentPayment, _minAmount, disableRewardTokenClaim, disableStrategyGovernanceTokenClaim);
         }
 
         // sending the inbound token amount i.e principal + interest to the winners and just the principal in case of players
@@ -869,7 +894,8 @@ contract Pool is Ownable, Pausable {
         redeemed = true;
         uint256 totalBalance = 0;
         // Withdraws funds (principal + interest + rewards) from external pool
-        strategy.redeem(inboundToken, 0, flexibleSegmentPayment, _minAmount);
+        
+        strategy.redeem(inboundToken, 0, flexibleSegmentPayment, _minAmount, disableRewardTokenClaim,  disableStrategyGovernanceTokenClaim);
 
         if (isTransactionalToken) {
             totalBalance = address(this).balance;

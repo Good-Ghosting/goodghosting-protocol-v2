@@ -186,11 +186,19 @@ contract MobiusStrategy is Ownable, IStrategy {
         address _inboundCurrency,
         uint256 _amount,
         bool variableDeposits,
-        uint256 _minAmount
+        uint256 _minAmount,
+        bool disableRewardTokenClaim,
+        bool disableStrategyGovernanceTokenClaim
     ) external override onlyOwner {
+        bool claimRewards = true;
+        if (disableRewardTokenClaim) {
+            claimRewards = false;
+        }
         uint256 gaugeBalance = gauge.balanceOf(address(this));
         if (gaugeBalance > 0) {
-            minter.mint(address(gauge));
+            if (!disableStrategyGovernanceTokenClaim) {
+                minter.mint(address(gauge));
+            }
             if (variableDeposits) {
                 uint256[] memory amounts = new uint256[](2);
                 amounts[0] = _amount;
@@ -200,12 +208,12 @@ contract MobiusStrategy is Ownable, IStrategy {
                     poolWithdrawAmount = gaugeBalance;
                 }
 
-                gauge.withdraw(poolWithdrawAmount, true);
+                gauge.withdraw(poolWithdrawAmount, claimRewards);
                 lpToken.approve(address(pool), poolWithdrawAmount);
 
                 pool.removeLiquidityOneToken(poolWithdrawAmount, 0, _minAmount, block.timestamp + 1000);
             } else {
-                gauge.withdraw(gaugeBalance, true);
+                gauge.withdraw(gaugeBalance, claimRewards);
                 
                 lpToken.approve(address(pool), lpToken.balanceOf(address(this)));
                 pool.removeLiquidityOneToken(lpToken.balanceOf(address(this)), 0, _minAmount, block.timestamp + 1000);
@@ -227,8 +235,10 @@ contract MobiusStrategy is Ownable, IStrategy {
     Returns total accumalated reward token amount.
     @param _inboundCurrency Address of the inbound token.
     */
-    function getAccumalatedRewardTokenAmount(address _inboundCurrency) external override returns (uint256) {
+    function getAccumalatedRewardTokenAmount(address _inboundCurrency, bool disableRewardTokenClaim) external override returns (uint256) {
+        if (!disableRewardTokenClaim) {
         return gauge.claimable_reward(address(this), address(celo));
+        } else { return 0; }
     }
 
     /**
@@ -236,7 +246,9 @@ contract MobiusStrategy is Ownable, IStrategy {
     Returns total accumalated governance token amount.
     @param _inboundCurrency Address of the inbound token.
     */
-    function getAccumalatedGovernanceTokenAmount(address _inboundCurrency) external override returns (uint256) {
+    function getAccumalatedGovernanceTokenAmount(address _inboundCurrency, bool disableStrategyGovernanceTokenClaim) external override returns (uint256) {
+        if (!disableStrategyGovernanceTokenClaim) {
         return gauge.claimable_tokens(address(this));
+        } else { return 0; }
     }
 }

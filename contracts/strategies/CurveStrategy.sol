@@ -246,8 +246,14 @@ contract CurveStrategy is Ownable, IStrategy {
         address _inboundCurrency,
         uint256 _amount,
         bool variableDeposits,
-        uint256 _minAmount
+        uint256 _minAmount,
+        bool disableRewardTokenClaim,
+        bool disableStrategyGovernanceTokenClaim
     ) external override onlyOwner {
+        bool claimRewards = true;
+        if (disableRewardTokenClaim || disableStrategyGovernanceTokenClaim) {
+            claimRewards = false;
+        }
         uint256 gaugeBalance = gauge.balanceOf(address(this));
         if (gaugeBalance > 0) {
             if (variableDeposits) {
@@ -261,7 +267,7 @@ contract CurveStrategy is Ownable, IStrategy {
                     }
 
                     // passes false not to claim rewards
-                    gauge.withdraw(poolWithdrawAmount, true);
+                    gauge.withdraw(poolWithdrawAmount, claimRewards);
 
                     pool.remove_liquidity_one_coin(
                         poolWithdrawAmount,
@@ -279,7 +285,7 @@ contract CurveStrategy is Ownable, IStrategy {
                     }
 
                     // passes false not to claim rewards
-                    gauge.withdraw(poolWithdrawAmount, true);
+                    gauge.withdraw(poolWithdrawAmount, claimRewards);
                     /*
                     Code of curve's aave and curve's atricrypto pools are completely different.
                     Curve's Aave Pool (pool type 0): in this contract, all funds "sit" in the pool's smart contract.
@@ -292,7 +298,7 @@ contract CurveStrategy is Ownable, IStrategy {
                 }
             } else {
                 // passes true to also claim rewards
-                gauge.withdraw(gaugeBalance, true);
+                gauge.withdraw(gaugeBalance, claimRewards);
 
                 uint256 lpTokenBalance = lpToken.balanceOf(address(this));
                 if (lpTokenBalance > 0) {
@@ -332,8 +338,10 @@ contract CurveStrategy is Ownable, IStrategy {
     Returns total accumalated reward token amount.
     @param _inboundCurrency Address of the inbound token.
     */
-    function getAccumalatedRewardTokenAmount(address _inboundCurrency) external override returns (uint256) {
+    function getAccumalatedRewardTokenAmount(address _inboundCurrency, bool disableRewardTokenClaim) external override returns (uint256) {
+        if (!disableRewardTokenClaim) {
         return gauge.claimable_reward_write(address(this), address(rewardToken));
+        } else { return 0; }
     }
 
     /**
@@ -341,7 +349,9 @@ contract CurveStrategy is Ownable, IStrategy {
     Returns total accumalated governance token amount.
     @param _inboundCurrency Address of the inbound token.
     */
-    function getAccumalatedGovernanceTokenAmount(address _inboundCurrency) external override returns (uint256) {
+    function getAccumalatedGovernanceTokenAmount(address _inboundCurrency, bool disableStrategyGovernanceTokenClaim) external override returns (uint256) {
+        if (!disableStrategyGovernanceTokenClaim) {
         return gauge.claimable_reward_write(address(this), address(curve));
+        } else { return 0; }
     }
 }

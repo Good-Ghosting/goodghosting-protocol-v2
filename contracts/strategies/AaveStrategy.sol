@@ -83,7 +83,7 @@ contract AaveStrategy is Ownable, IStrategy {
     // -------------------------- constructor ---------------------------- //
     //*********************************************************************//
 
-  /** 
+    /** 
     @param _lendingPoolAddressProvider A contract which is used as a registry on aave.
     @param _wethGateway A contract which is used to make deposits/withdrawals on transaction token pool on aave.
     @param _dataProvider A contract which mints ERC-721's that represent project ownership and transfers.
@@ -100,7 +100,7 @@ contract AaveStrategy is Ownable, IStrategy {
         if (address(_lendingPoolAddressProvider) == address(0)) {
             revert INVALID_LENDING_POOL_ADDRESS_PROVIDER();
         }
-          
+
         if (address(_dataProvider) == address(0)) {
             revert INVALID_DATA_PROVIDER();
         }
@@ -132,7 +132,12 @@ contract AaveStrategy is Ownable, IStrategy {
             wethGateway.depositETH{ value: address(this).balance }(address(lendingPool), address(this), 155);
         } else {
             IERC20(_inboundCurrency).approve(address(lendingPool), IERC20(_inboundCurrency).balanceOf(address(this)));
-            lendingPool.deposit(_inboundCurrency, IERC20(_inboundCurrency).balanceOf(address(this)), address(this), 155);
+            lendingPool.deposit(
+                _inboundCurrency,
+                IERC20(_inboundCurrency).balanceOf(address(this)),
+                address(this),
+                155
+            );
         }
     }
 
@@ -149,7 +154,7 @@ contract AaveStrategy is Ownable, IStrategy {
         uint256 _minAmount
     ) external override onlyOwner {
         if (_amount == 0) {
-           revert INVALID_AMOUNT();
+            revert INVALID_AMOUNT();
         }
         // atoken address in v2 is fetched from data provider contract
         address adaiTokenAddress;
@@ -194,7 +199,9 @@ contract AaveStrategy is Ownable, IStrategy {
         address _inboundCurrency,
         uint256 _amount,
         bool variableDeposits,
-        uint256 _minAmount
+        uint256 _minAmount,
+        bool disableRewardTokenClaim,
+        bool disableStrategyGovernanceTokenClaim
     ) external override onlyOwner {
         uint256 redeemAmount = variableDeposits ? _amount : type(uint256).max;
         // atoken address in v2 is fetched from data provider contract
@@ -219,19 +226,21 @@ contract AaveStrategy is Ownable, IStrategy {
                 lendingPool.withdraw(_inboundCurrency, redeemAmount, address(this));
             }
         }
-        // Claims the rewards from the external pool
-        address[] memory assets = new address[](1);
-        assets[0] = address(adaiToken);
+        if (!disableRewardTokenClaim) {
+            // Claims the rewards from the external pool
+            address[] memory assets = new address[](1);
+            assets[0] = address(adaiToken);
 
-        if (address(rewardToken) != address(0)) {
-            uint256 claimableRewards = incentiveController.getRewardsBalance(assets, address(this));
-            // moola the celo version of aave does not have the incentive controller logic
-            if (claimableRewards > 0) {
-                incentiveController.claimRewards(assets, claimableRewards, address(this));
-            }
-            // moola the celo version of aave does not have the incentive controller logic
-            if (rewardToken.balanceOf(address(this)) > 0) {
-                rewardToken.transfer(msg.sender, rewardToken.balanceOf(address(this)));
+            if (address(rewardToken) != address(0)) {
+                uint256 claimableRewards = incentiveController.getRewardsBalance(assets, address(this));
+                // moola the celo version of aave does not have the incentive controller logic
+                if (claimableRewards > 0) {
+                    incentiveController.claimRewards(assets, claimableRewards, address(this));
+                }
+                // moola the celo version of aave does not have the incentive controller logic
+                if (rewardToken.balanceOf(address(this)) > 0) {
+                    rewardToken.transfer(msg.sender, rewardToken.balanceOf(address(this)));
+                }
             }
         }
 
@@ -250,7 +259,8 @@ contract AaveStrategy is Ownable, IStrategy {
     Returns total accumalated reward token amount.
     @param _inboundCurrency Address of the inbound token.
     */
-    function getAccumalatedRewardTokenAmount(address _inboundCurrency) external override returns (uint256) {
+    function getAccumalatedRewardTokenAmount(address _inboundCurrency, bool disableRewardTokenClaim) external override returns (uint256) {
+        if (!disableRewardTokenClaim) {
         // atoken address in v2 is fetched from data provider contract
         address adaiTokenAddress;
         if (_inboundCurrency == address(0)) {
@@ -263,6 +273,10 @@ contract AaveStrategy is Ownable, IStrategy {
         address[] memory assets = new address[](1);
         assets[0] = address(adaiToken);
         return incentiveController.getRewardsBalance(assets, address(this));
+        } else {
+            return 0;
+        }
+
     }
 
     /**
@@ -270,7 +284,7 @@ contract AaveStrategy is Ownable, IStrategy {
     Returns total accumalated governance token amount.
     @param _inboundCurrency Address of the inbound token.
     */
-    function getAccumalatedGovernanceTokenAmount(address _inboundCurrency) external override returns (uint256) {
+    function getAccumalatedGovernanceTokenAmount(address _inboundCurrency, bool disableStrategyGovernanceTokenClaim) external override returns (uint256) {
         return 0;
     }
 
