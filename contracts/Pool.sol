@@ -52,6 +52,9 @@ contract Pool is Ownable, Pausable {
     /// @notice Multiplier used for calculating playerIndex to avoid precision issues.
     uint256 public constant MULTIPLIER = 10**8;
 
+    /// @notice Maximum Flexible Deposit Amount in case of flexible pools.
+    uint256 public immutable maxFlexibleSegmentPaymentAmount;
+
     /// @notice The number of segments in the game (segment count).
     uint256 public immutable lastSegment;
 
@@ -131,7 +134,7 @@ contract Pool is Ownable, Pausable {
     address public immutable inboundToken;
 
     /// @notice Defines an optional token address used to provide additional incentives to users. Accepts "0x0" adresses when no incentive token exists.
-    IERC20 public immutable incentiveToken;
+    IERC20 public incentiveToken;
 
     /// @notice address of additional reward token accured from investing via different strategies like wmatic.
     IERC20 public rewardToken;
@@ -262,6 +265,7 @@ contract Pool is Ownable, Pausable {
     /**
         Creates a new instance of GoodGhosting game
         @param _inboundCurrency Smart contract address of inbound currency used for the game.
+        @param _maxFlexibleSegmentPaymentAmount Maximum Flexible Deposit Amount in case of flexible pools.
         @param _depositCount Number of segments in the game.
         @param _segmentLength Lenght of each segment, in seconds (i.e., 180 (sec) => 3 minutes).
         @param _waitingRoundSegmentLength Lenght of waiting round segment, in seconds (i.e., 180 (sec) => 3 minutes).
@@ -269,12 +273,12 @@ contract Pool is Ownable, Pausable {
         @param _earlyWithdrawalFee Fee paid by users on early withdrawals (before the game completes). Used as an integer percentage (i.e., 10 represents 10%).
         @param _customFee performance fee charged by admin. Used as an integer percentage (i.e., 10 represents 10%). Does not accept "decimal" fees like "0.5".
         @param _maxPlayersCount max quantity of players allowed to join the game
-        @param _incentiveToken optional token address used to provide additional incentives to users. Accepts "0x0" adresses when no incentive token exists.
         @param _strategy investment strategy contract address.
         @param _isTransactionalToken isTransactionalToken flag.
      */
     constructor(
         address _inboundCurrency,
+        uint256 _maxFlexibleSegmentPaymentAmount,
         uint256 _depositCount,
         uint256 _segmentLength,
         uint256 _waitingRoundSegmentLength,
@@ -283,7 +287,6 @@ contract Pool is Ownable, Pausable {
         uint128 _customFee,
         uint256 _maxPlayersCount,
         bool _flexibleSegmentPayment,
-        IERC20 _incentiveToken,
         IStrategy _strategy,
         bool _isTransactionalToken
     ) {
@@ -341,6 +344,10 @@ contract Pool is Ownable, Pausable {
         inboundToken = _inboundCurrency;
         strategy = _strategy;
         maxPlayersCount = _maxPlayersCount;
+        maxFlexibleSegmentPaymentAmount = _maxFlexibleSegmentPaymentAmount;
+    }
+
+    function setIncentiveToken(IERC20 _incentiveToken) external onlyOwner whenGameIsNotCompleted {
         incentiveToken = _incentiveToken;
     }
 
@@ -367,6 +374,11 @@ contract Pool is Ownable, Pausable {
         }
 
         bool canRejoin = players[msg.sender].canRejoin;
+        if (flexibleSegmentPayment) {
+            if (_depositAmount > maxFlexibleSegmentPaymentAmount) {
+                revert INVALID_FLEXIBLE_AMOUNT();
+            }
+        }
         uint256 amount = flexibleSegmentPayment ? _depositAmount : segmentPayment;
         if (isTransactionalToken) {
             if (msg.value != amount) {
@@ -381,7 +393,7 @@ contract Pool is Ownable, Pausable {
             withdrawn: false,
             canRejoin: false,
             isWinner: false,
-            depositAmount: flexibleSegmentPayment ? _depositAmount : segmentPayment
+            depositAmount: amount
         });
         players[msg.sender] = newPlayer;
         if (!canRejoin) {
