@@ -73,6 +73,7 @@ describe("Aave Variable Deposit Pool Fork Tests with the deposit token as transs
     pool = await ethers.getContractFactory("Pool", accounts[0]);
     pool = await pool.deploy(
       ZERO_ADDRESS,
+      ethers.utils.parseEther((1000).toString()),
       deployConfigs.depositCount.toString(),
       deployConfigs.segmentLength.toString(),
       deployConfigs.waitingRoundSegmentLength.toString(),
@@ -81,7 +82,6 @@ describe("Aave Variable Deposit Pool Fork Tests with the deposit token as transs
       deployConfigs.adminFee.toString(),
       deployConfigs.maxPlayersCount.toString(),
       true,
-      providers["aave"]["polygon"].incentiveToken,
       strategy.address,
       true,
     );

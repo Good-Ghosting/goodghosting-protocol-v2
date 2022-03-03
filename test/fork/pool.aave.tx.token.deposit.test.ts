@@ -73,6 +73,7 @@ describe("Aave Pool Fork Tests with the deposit token as transsactional token", 
     pool = await ethers.getContractFactory("Pool", accounts[0]);
     pool = await pool.deploy(
       ZERO_ADDRESS,
+      0,
       deployConfigs.depositCount.toString(),
       deployConfigs.segmentLength.toString(),
       deployConfigs.waitingRoundSegmentLength.toString(),
@@ -81,7 +82,6 @@ describe("Aave Pool Fork Tests with the deposit token as transsactional token", 
       deployConfigs.adminFee.toString(),
       deployConfigs.maxPlayersCount.toString(),
       deployConfigs.flexibleSegmentPayment,
-      providers["aave"]["polygon"].incentiveToken,
       strategy.address,
       true,
     );

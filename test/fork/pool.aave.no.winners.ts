@@ -80,6 +80,7 @@ describe("Aave Pool Fork Tests where no player wins", () => {
     pool = await ethers.getContractFactory("Pool", accounts[0]);
     pool = await pool.deploy(
       daiInstance.address,
+      0,
       deployConfigs.depositCount.toString(),
       deployConfigs.segmentLength.toString(),
       deployConfigs.waitingRoundSegmentLength.toString(),
@@ -88,7 +89,6 @@ describe("Aave Pool Fork Tests where no player wins", () => {
       deployConfigs.adminFee.toString(),
       deployConfigs.maxPlayersCount.toString(),
       deployConfigs.flexibleSegmentPayment,
-      providers["aave"]["polygon"].incentiveToken,
       strategy.address,
       false,
     );

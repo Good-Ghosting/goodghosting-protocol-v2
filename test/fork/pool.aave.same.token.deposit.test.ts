@@ -72,6 +72,7 @@ describe("Aave Pool Fork Tests with the deposit token same as reward token", () 
     pool = await ethers.getContractFactory("Pool", accounts[0]);
     pool = await pool.deploy(
       wmaticInstance.address,
+      0,
       deployConfigs.depositCount.toString(),
       deployConfigs.segmentLength.toString(),
       deployConfigs.waitingRoundSegmentLength.toString(),
@@ -80,7 +81,6 @@ describe("Aave Pool Fork Tests with the deposit token same as reward token", () 
       deployConfigs.adminFee.toString(),
       deployConfigs.maxPlayersCount.toString(),
       deployConfigs.flexibleSegmentPayment,
-      providers["aave"]["polygon"].incentiveToken,
       strategy.address,
       false,
     );
