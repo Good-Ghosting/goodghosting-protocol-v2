@@ -12,6 +12,7 @@ function printSummary(
   {
     inboundCurrencyAddress,
     depositCount,
+    maxFlexibleSegmentPaymentAmount,
     segmentLength,
     waitingRoundSegmentLength,
     segmentPaymentWei,
@@ -19,7 +20,6 @@ function printSummary(
     adminFee,
     maxPlayersCount,
     flexibleDepositSegment,
-    incentiveToken,
     strategy,
     mobiusPool,
     mobiusGauge,
@@ -41,9 +41,9 @@ function printSummary(
   // additional logging info
   { networkName, selectedProvider, inboundCurrencySymbol, segmentPayment, owner },
 ) {
-  console.log(networkName);
   var poolParameterTypes = [
-    "address", // inboundCurrencyAddress
+    "address", // inboundCurrencyAddress,
+    "uint256", // maxFlexibleSegmentPaymentAmount
     "uint256", // depositCount
     "uint256", // segmentLength
     "uint256", // waitingRoundSegmentLength
@@ -52,12 +52,12 @@ function printSummary(
     "uint256", // adminFee
     "uint256", // maxPlayersCount
     "bool", // flexibleDepositSegment
-    "address", // incentiveToken
     "address", // strategy
     "bool", // isTransactionalToken
   ];
   var poolParameterValues = [
     inboundCurrencyAddress,
+    maxFlexibleSegmentPaymentAmount,
     depositCount,
     segmentLength,
     waitingRoundSegmentLength,
@@ -66,7 +66,6 @@ function printSummary(
     adminFee,
     maxPlayersCount,
     flexibleDepositSegment,
-    incentiveToken,
     strategy,
     config.deployConfigs.isTransactionalToken,
   ];
@@ -114,6 +113,8 @@ function printSummary(
   console.log(`Contract's Owner: ${owner}`);
 
   console.log(`Inbound Currency: ${inboundCurrencySymbol} at ${inboundCurrencyAddress}`);
+  console.log(`Maximum Flexible Segment Payment Amount: ${maxFlexibleSegmentPaymentAmount}`);
+
   console.log(`Segment Count: ${depositCount}`);
   console.log(`Segment Length: ${segmentLength} seconds`);
   console.log(`Waiting Segment Length: ${waitingRoundSegmentLength} seconds`);
@@ -124,7 +125,6 @@ function printSummary(
   console.log(`Flexible Deposit Pool: ${flexibleDepositSegment}`);
   console.log(`Transactional Token Depsoit Pool: ${config.deployConfigs.isTransactionalToken}`);
 
-  console.log(`Incentive Token: ${incentiveToken}`);
   console.log(`Strategy: ${strategy}`);
   if (
     networkName === "local-celo-mobius" ||
@@ -170,6 +170,18 @@ module.exports = function (deployer, network, accounts) {
   if (["test", "soliditycoverage"].includes(network)) return;
 
   deployer.then(async () => {
+    let maxFlexibleSegmentPaymentAmount, flexibleSegmentPayment;
+    if (
+      network === "local-variable-celo-mobius" ||
+      network === "local-variable-celo-moola" ||
+      network === "local-variable-polygon-curve"
+    ) {
+      flexibleSegmentPayment = true;
+      maxFlexibleSegmentPaymentAmount = "1000000000000000000000";
+    } else {
+      flexibleSegmentPayment = false;
+      maxFlexibleSegmentPaymentAmount = "0";
+    }
     const mobiusPoolConfigs = config.providers["celo"]["mobius"];
     const moolaPoolConfigs = config.providers["celo"]["moola"];
     const curvePoolConfigs = config.providers["aave"]["polygon-curve"];
@@ -196,7 +208,6 @@ module.exports = function (deployer, network, accounts) {
     const celo = mobiusPoolConfigs.celo;
     const minter = mobiusPoolConfigs.minter;
     const maxPlayersCount = config.deployConfigs.maxPlayersCount;
-    const incentiveToken = mobiusPoolConfigs.incentiveToken;
     const goodGhostingContract = GoodGhostingContract; // defaults to Ethereum version
     let strategyArgs;
     if (network === "local-celo-mobius" || network === "celo-mobius" || network === "local-variable-celo-mobius") {
@@ -234,6 +245,7 @@ module.exports = function (deployer, network, accounts) {
     let deploymentArgs = [
       goodGhostingContract,
       inboundCurrencyAddress,
+      maxFlexibleSegmentPaymentAmount,
       config.deployConfigs.depositCount,
       config.deployConfigs.segmentLength,
       config.deployConfigs.waitingRoundSegmentLength,
@@ -241,34 +253,10 @@ module.exports = function (deployer, network, accounts) {
       config.deployConfigs.earlyWithdrawFee,
       config.deployConfigs.adminFee,
       maxPlayersCount,
-      config.deployConfigs.flexibleSegmentPayment,
-      incentiveToken,
+      flexibleSegmentPayment,
       strategyInstance.address,
       config.deployConfigs.isTransactionalToken,
     ];
-
-    if (
-      network === "local-variable-celo-moola" ||
-      network === "local-variable-celo-mobius" ||
-      network === "local-variable-polygon-curve"
-    ) {
-      deploymentArgs = [
-        goodGhostingContract,
-        inboundCurrencyAddress,
-        config.deployConfigs.depositCount,
-        config.deployConfigs.segmentLength,
-        config.deployConfigs.waitingRoundSegmentLength,
-        segmentPaymentWei,
-        config.deployConfigs.earlyWithdrawFee,
-        config.deployConfigs.adminFee,
-        maxPlayersCount,
-        true,
-        incentiveToken,
-        strategyInstance.address,
-        config.deployConfigs.isTransactionalToken,
-      ];
-      config.deployConfigs.flexibleSegmentPayment = true;
-    }
 
     // Deploys the Pool Contract
     await deployer.deploy(SafeMathLib);
@@ -284,14 +272,14 @@ module.exports = function (deployer, network, accounts) {
       {
         inboundCurrencyAddress,
         depositCount: config.deployConfigs.depositCount,
+        maxFlexibleSegmentPaymentAmount,
         segmentLength: config.deployConfigs.segmentLength,
         waitingRoundSegmentLength: config.deployConfigs.waitingRoundSegmentLength,
         segmentPaymentWei,
         earlyWithdrawFee: config.deployConfigs.earlyWithdrawFee,
         adminFee: config.deployConfigs.adminFee,
         maxPlayersCount,
-        flexibleDepositSegment: config.deployConfigs.flexibleSegmentPayment,
-        incentiveToken,
+        flexibleDepositSegment: flexibleSegmentPayment,
         strategy: strategyInstance.address,
         mobiusPool,
         mobiusGauge,

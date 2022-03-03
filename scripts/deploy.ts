@@ -26,6 +26,7 @@ async function main() {
   const Pool = await ethers.getContractFactory("Pool");
   const pool = await Pool.deploy(
     providers["aave"]["polygon"]["dai"].address,
+    0,
     deployConfigs.depositCount.toString(),
     segmentPaymentWei.toString(),
     deployConfigs.waitingRoundSegmentLength.toString(),
@@ -34,7 +35,6 @@ async function main() {
     deployConfigs.adminFee.toString(),
     deployConfigs.maxPlayersCount.toString(),
     deployConfigs.flexibleSegmentPayment,
-    providers["aave"]["polygon"].incentiveToken,
     strategy.address,
     deployConfigs.isTransactionalToken,
   );
@@ -45,6 +45,7 @@ async function main() {
 
   var poolParameterTypes = [
     "address", // inboundCurrencyAddress
+    "uint256", // maxFlexibleSegmentPaymentAmount
     "uint256", // depositCount
     "uint256", // segmentLength
     "uint256", // waitingRoundSegmentLength
@@ -53,13 +54,13 @@ async function main() {
     "uint256", // adminFee
     "uint256", // maxPlayersCount
     "bool", // flexibleDepositSegment
-    "address", // incentiveToken
     "address", // strategy
     "bool", // isTransactionalToken
   ];
   // Generating Deployment Logs
   var poolParameterValues = [
     providers["aave"]["polygon"]["dai"].address,
+    0,
     deployConfigs.depositCount.toString(),
     deployConfigs.segmentLength.toString(),
     deployConfigs.waitingRoundSegmentLength.toString(),
@@ -68,7 +69,6 @@ async function main() {
     deployConfigs.adminFee.toString(),
     deployConfigs.maxPlayersCount.toString(),
     deployConfigs.flexibleSegmentPayment,
-    providers["aave"]["polygon"].incentiveToken,
     strategy.address,
     deployConfigs.isTransactionalToken,
   ];
@@ -101,6 +101,8 @@ async function main() {
   console.log(
     `Inbound Currency: ${deployConfigs.inboundCurrencySymbol} at ${providers["aave"]["polygon"]["dai"].address}`,
   );
+  console.log(`Maximum Flexible Segment Payment Amount: ${0}`);
+
   console.log(`Segment Count: ${deployConfigs.depositCount}`);
   console.log(`Segment Length: ${deployConfigs.segmentLength} seconds`);
   console.log(`Waiting Segment Length: ${deployConfigs.waitingRoundSegmentLength} seconds`);
@@ -112,7 +114,6 @@ async function main() {
   console.log(`Max Quantity of Players: ${deployConfigs.maxPlayersCount}`);
   console.log(`Flexible Deposit Pool: ${deployConfigs.flexibleSegmentPayment}`);
   console.log(`Transactional Token Depsoit Pool: ${deployConfigs.isTransactionalToken}`);
-  console.log(`Incentive Token: ${providers["aave"]["polygon"].incentiveToken}`);
   console.log(`Strategy: ${strategy.address}`);
   console.log(`Lending Pool Provider: ${providers["aave"]["polygon"].lendingPoolAddressProvider}`);
   console.log(`WETHGateway: ${providers["aave"]["polygon"].wethGateway}`);
