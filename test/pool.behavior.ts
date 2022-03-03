@@ -1335,6 +1335,34 @@ export const shouldBehaveLikeRedeemingFromGGPool = async (strategyType: string) 
     assert(expectedBalance.eq(contractsDaiBalance));
   });
 
+  it("make sure no rewards are claimed if admin enables the reward disable flag", async () => {
+    const accounts = await ethers.getSigners();
+    let governanceTokenRewards = 0;
+    const player1 = accounts[2];
+    await contracts.goodGhosting.disableClaimingRewardTokens();
+    await contracts.goodGhosting.disableClaimingStrategyGovernanceRewardTokens();
+
+    await joinGamePaySegmentsAndComplete(
+      contracts.inboundToken,
+      player1,
+      segmentPayment,
+      depositCount,
+      segmentLength,
+      contracts.goodGhosting,
+      segmentPayment,
+    );
+    await contracts.goodGhosting.redeemFromExternalPoolForFixedDepositPool("90");
+    if (strategyType === "curve") {
+      governanceTokenRewards = await contracts.curve.balanceOf(contracts.goodGhosting.address);
+    } else if (strategyType === "mobius") {
+      contracts.rewardToken = contracts.minter;
+      governanceTokenRewards = await contracts.mobi.balanceOf(contracts.goodGhosting.address);
+    }
+    assert(ethers.BigNumber.from(governanceTokenRewards).eq(ethers.BigNumber.from(0)));
+    const rewardTokenBalance = await contracts.rewardToken.balanceOf(contracts.goodGhosting.address);
+    assert(ethers.BigNumber.from(rewardTokenBalance).eq(ethers.BigNumber.from(0)));
+  });
+
   it("emits event FundsRedeemedFromExternalPool when redeem is successful", async () => {
     const accounts = await ethers.getSigners();
     const deployer = accounts[0];
@@ -2825,6 +2853,71 @@ export const shouldBehaveLikeVariableDepositPool = async (strategyType: string) 
       strategyType,
       1000,
     );
+  });
+
+  it("make sure no rewards are claimed if admin enables the reward disable flag", async () => {
+    let governanceTokenRewards = 0;
+    await contracts.goodGhosting.disableClaimingRewardTokens();
+    await contracts.goodGhosting.disableClaimingStrategyGovernanceRewardTokens();
+
+    const accounts = await ethers.getSigners();
+    const player1 = accounts[2];
+    const player2 = accounts[3];
+
+    await joinGame(
+      contracts.goodGhosting,
+      contracts.inboundToken,
+      player2,
+      segmentPayment,
+      ethers.BigNumber.from(segmentPayment).mul(ethers.BigNumber.from("2")).toString(),
+    );
+    await joinGame(
+      contracts.goodGhosting,
+      contracts.inboundToken,
+      player1,
+      segmentPayment,
+      ethers.BigNumber.from(segmentPayment).div(ethers.BigNumber.from("2")).toString(),
+    );
+
+    for (let index = 1; index < depositCount; index++) {
+      await ethers.provider.send("evm_increaseTime", [segmentLength]);
+      await ethers.provider.send("evm_mine", []);
+      await makeDeposit(
+        contracts.goodGhosting,
+        contracts.inboundToken,
+        player2,
+        segmentPayment,
+        ethers.BigNumber.from(segmentPayment).mul(ethers.BigNumber.from("2")).toString(),
+      );
+      await makeDeposit(
+        contracts.goodGhosting,
+        contracts.inboundToken,
+        player1,
+        segmentPayment,
+        ethers.BigNumber.from(segmentPayment).div(ethers.BigNumber.from("2")).toString(),
+      );
+    }
+    // above, it accounted for 1st deposit window, and then the loop runs till depositCount - 1.
+    // now, we move 2 more segments (depositCount-1 and depositCount) to complete the game.
+    await ethers.provider.send("evm_increaseTime", [segmentLength]);
+    await ethers.provider.send("evm_mine", []);
+
+    const waitingRoundLength = await contracts.goodGhosting.waitingRoundSegmentLength();
+    await ethers.provider.send("evm_increaseTime", [parseInt(waitingRoundLength.toString())]);
+    await ethers.provider.send("evm_mine", []);
+
+    await contracts.goodGhosting.connect(player1).withdraw("9000");
+    await contracts.goodGhosting.connect(player2).withdraw("800000000000000000");
+
+    if (strategyType === "curve") {
+      governanceTokenRewards = await contracts.curve.balanceOf(player1.address);
+    } else if (strategyType === "mobius") {
+      contracts.rewardToken = contracts.minter;
+      governanceTokenRewards = await contracts.mobi.balanceOf(player1.address);
+    }
+    assert(ethers.BigNumber.from(governanceTokenRewards).eq(ethers.BigNumber.from(0)));
+    const rewardTokenBalance = await contracts.rewardToken.balanceOf(player1.address);
+    assert(ethers.BigNumber.from(rewardTokenBalance).eq(ethers.BigNumber.from(0)));
   });
 
   it("reverts if the flexible deposit amount is more than the max. flexible deposit amount set", async () => {
