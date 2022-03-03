@@ -53,6 +53,7 @@ describe("Pool using Mobius Strategy", () => {
       false,
       0,
       "mobius",
+      0,
     );
   });
 

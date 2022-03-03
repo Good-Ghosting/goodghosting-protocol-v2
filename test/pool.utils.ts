@@ -40,6 +40,7 @@ export const deployPool = async (
   isSameAsRewardToken: boolean,
   curvePoolType: number,
   strategyType: string,
+  maxFlexibleSegmentAmount: number,
 ) => {
   const [deployer, , player1, player2] = await ethers.getSigners();
   const lendingPoolAddressProvider = new LendingPoolAddressesProviderMock__factory(deployer);
@@ -150,6 +151,7 @@ export const deployPool = async (
   await expect(
     goodGhostingV2Deployer.deploy(
       isInboundToken ? inboundToken.address : inboundToken,
+      ethers.utils.parseEther(maxFlexibleSegmentAmount.toString()),
       depositCount,
       segmentLength,
       segmentLength / 2,
@@ -158,7 +160,6 @@ export const deployPool = async (
       adminFee,
       playerCount,
       isVariableAmount,
-      isIncentiveToken ? incentiveToken.address : incentiveToken,
       isInvestmentStrategy ? strategy.address : strategy,
       isTransactionalToken,
     ),
@@ -169,6 +170,7 @@ export const deployPool = async (
   }
   const goodGhosting = await goodGhostingV2Deployer.deploy(
     isInboundToken ? inboundToken.address : inboundToken,
+    ethers.utils.parseEther(maxFlexibleSegmentAmount.toString()),
     depositCount,
     segmentLength,
     segmentLength * 2,
@@ -177,7 +179,6 @@ export const deployPool = async (
     adminFee,
     playerCount,
     isVariableAmount,
-    isIncentiveToken ? incentiveToken.address : incentiveToken,
     isInvestmentStrategy ? strategy.address : strategy,
     isTransactionalToken,
   );
@@ -186,6 +187,7 @@ export const deployPool = async (
     await strategy.transferOwnership(goodGhosting.address);
   }
   if (isIncentiveToken) {
+    await goodGhosting.setIncentiveToken(incentiveToken.address);
     await mintTokens(incentiveToken, goodGhosting.address);
   }
 

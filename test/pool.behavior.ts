@@ -44,6 +44,7 @@ export const shouldBehaveLikeGGPool = async (strategyType: string) => {
       false,
       0,
       strategyType,
+      0,
     );
   });
 
@@ -116,6 +117,7 @@ export const shouldBehaveLikeGGPool = async (strategyType: string) => {
         false,
         0,
         strategyType,
+        0,
       ),
     ).to.be.revertedWith("INVALID_EARLY_WITHDRAW_FEE()");
   });
@@ -137,6 +139,7 @@ export const shouldBehaveLikeGGPool = async (strategyType: string) => {
         false,
         0,
         strategyType,
+        0,
       ),
     ).to.be.revertedWith("INVALID_INBOUND_TOKEN()");
   });
@@ -158,6 +161,7 @@ export const shouldBehaveLikeGGPool = async (strategyType: string) => {
         false,
         0,
         strategyType,
+        0,
       ),
     ).to.be.revertedWith("INVALID_STRATEGY()");
   });
@@ -179,6 +183,7 @@ export const shouldBehaveLikeGGPool = async (strategyType: string) => {
         false,
         0,
         strategyType,
+        0,
       ),
     ).to.be.revertedWith("INVALID_DEPOSIT_COUNT()");
   });
@@ -200,6 +205,7 @@ export const shouldBehaveLikeGGPool = async (strategyType: string) => {
         false,
         0,
         strategyType,
+        0,
       ),
     ).to.be.revertedWith("INVALID_SEGMENT_LENGTH()");
   });
@@ -221,6 +227,7 @@ export const shouldBehaveLikeGGPool = async (strategyType: string) => {
         false,
         0,
         strategyType,
+        0,
       ),
     ).to.be.revertedWith("INVALID_SEGMENT_PAYMENT()");
   });
@@ -242,6 +249,7 @@ export const shouldBehaveLikeGGPool = async (strategyType: string) => {
         false,
         0,
         strategyType,
+        0,
       ),
     ).to.be.revertedWith("INVALID_CUSTOM_FEE()");
   });
@@ -263,6 +271,7 @@ export const shouldBehaveLikeGGPool = async (strategyType: string) => {
         false,
         0,
         strategyType,
+        0,
       ),
     ).to.be.revertedWith("INVALID_MAX_PLAYER_COUNT()");
   });
@@ -283,6 +292,7 @@ export const shouldBehaveLikeGGPool = async (strategyType: string) => {
       false,
       0,
       strategyType,
+      0,
     );
     const expectedValue = ethers.BigNumber.from(2).pow(ethers.BigNumber.from(256)).sub(ethers.BigNumber.from(1));
 
@@ -447,6 +457,7 @@ export const shouldBehaveLikeJoiningGGPool = async (strategyType: string) => {
       false,
       0,
       strategyType,
+      0,
     );
   });
   it("reverts if the contract is paused", async () => {
@@ -506,6 +517,7 @@ export const shouldBehaveLikeJoiningGGPool = async (strategyType: string) => {
       false,
       0,
       strategyType,
+      0,
     );
 
     await joinGame(contracts.goodGhosting, contracts.inboundToken, player1, segmentPayment, segmentPayment);
@@ -552,6 +564,7 @@ export const shouldBehaveLikeJoiningGGPool = async (strategyType: string) => {
       false,
       0,
       strategyType,
+      0,
     );
 
     await joinGame(contracts.goodGhosting, contracts.inboundToken, player1, segmentPayment, segmentPayment);
@@ -585,6 +598,7 @@ export const shouldBehaveLikeJoiningGGPool = async (strategyType: string) => {
       false,
       0,
       strategyType,
+      0,
     );
 
     await joinGame(contracts.goodGhosting, contracts.inboundToken, player1, segmentPayment, segmentPayment);
@@ -688,6 +702,7 @@ export const shouldBehaveLikeReJoiningGGPool = async (strategyType: string) => {
       false,
       0,
       strategyType,
+      0,
     );
   });
   it("reverts if a user tries to rejoin the game in segment 0 without doing an early withdraw", async () => {
@@ -761,6 +776,7 @@ export const shouldBehaveLikeDepositingGGPool = async (strategyType: string) => 
       false,
       0,
       strategyType,
+      0,
     );
   });
   it("reverts if the contract is paused", async () => {
@@ -952,6 +968,7 @@ export const shouldBehaveLikeEarlyWithdrawingGGPool = async (strategyType: strin
       false,
       0,
       strategyType,
+      0,
     );
   });
   it("reverts if the contract is paused", async () => {
@@ -1130,10 +1147,7 @@ export const shouldBehaveLikeEarlyWithdrawingGGPool = async (strategyType: strin
       const player1Info = await contracts.goodGhosting.players(player1.address);
 
       const feeAmount = player1Info.amountPaid.mul(ethers.BigNumber.from(1)).div(ethers.BigNumber.from(100));
-      const impermanentLossShareFromContract = await contracts.goodGhosting.impermanentLossShare();
-      const player1BeforeWithdrawBalance = await contracts.inboundToken.balanceOf(player1.address);
 
-      const player2BeforeWithdrawBalance = await contracts.inboundToken.balanceOf(player2.address);
       const player2Info = await contracts.goodGhosting.players(player2.address);
       await expect(contracts.goodGhosting.connect(player1).earlyWithdraw("900000000000000000"))
         .to.emit(contracts.goodGhosting, "EarlyWithdrawal")
@@ -1264,6 +1278,7 @@ export const shouldBehaveLikeRedeemingFromGGPool = async (strategyType: string) 
       false,
       0,
       strategyType,
+      0,
     );
   });
   it("reverts if game is not completed", async () => {
@@ -1474,6 +1489,7 @@ export const shouldBehaveLikeRedeemingFromGGPool = async (strategyType: string) 
       false,
       0,
       strategyType,
+      0,
     );
     await joinGamePaySegmentsAndComplete(
       contracts.inboundToken,
@@ -1618,6 +1634,7 @@ export const shouldBehaveLikeRedeemingFromGGPool = async (strategyType: string) 
         false,
         0,
         strategyType,
+        0,
       );
     });
 
@@ -1685,6 +1702,7 @@ export const shouldBehaveLikeGGPoolWithNoWinners = async (strategyType: string) 
       false,
       0,
       strategyType,
+      0,
     );
   });
   it("assign the complete interest to admin", async () => {
@@ -1767,6 +1785,7 @@ export const shouldBehaveLikePlayersWithdrawingFromGGPool = async (strategyType:
       false,
       0,
       strategyType,
+      0,
     );
   });
 
@@ -2140,6 +2159,7 @@ export const shouldBehaveLikePlayersWithdrawingFromGGPool = async (strategyType:
         false,
         0,
         strategyType,
+        0,
       );
     });
 
@@ -2198,6 +2218,7 @@ export const shouldBehaveLikeAdminWithdrawingFeesFromGGPoolWithFeePercentMoreTha
       false,
       0,
       strategyType,
+      0,
     );
   });
 
@@ -2736,6 +2757,7 @@ export const shouldBehaveLikeAdminWithdrawingFeesFromGGPoolWithFeePercentis0 = a
       false,
       0,
       strategyType,
+      0,
     );
   });
 
@@ -2801,7 +2823,16 @@ export const shouldBehaveLikeVariableDepositPool = async (strategyType: string) 
       false,
       0,
       strategyType,
+      1000,
     );
+  });
+
+  it("reverts if the flexible deposit amount is more than the max. flexible deposit amount set", async () => {
+    const accounts = await ethers.getSigners();
+    const player1 = accounts[2];
+    await expect(
+      contracts.goodGhosting.connect(player1).joinGame(0, ethers.utils.parseEther("20000")),
+    ).to.be.revertedWith("INVALID_FLEXIBLE_AMOUNT()");
   });
 
   it("player join variable pool where there is only incentive amount generated", async () => {
@@ -2820,10 +2851,10 @@ export const shouldBehaveLikeVariableDepositPool = async (strategyType: string) 
       false,
       0,
       strategyType,
+      1000,
     );
 
     const accounts = await ethers.getSigners();
-    const deployer = accounts[0];
     const player1 = accounts[2];
     const player2 = accounts[3];
 
@@ -2918,6 +2949,7 @@ export const shouldBehaveLikeVariableDepositPool = async (strategyType: string) 
         false,
         1,
         strategyType,
+        1000,
       );
     });
 
@@ -3308,6 +3340,7 @@ export const shouldBehaveLikeVariableDepositPool = async (strategyType: string) 
         false,
         1,
         strategyType,
+        1000,
       );
 
       await joinGame(
@@ -3430,6 +3463,7 @@ export const shouldBehaveLikeVariableDepositPool = async (strategyType: string) 
         false,
         1,
         strategyType,
+        1000,
       );
 
       await joinGame(
@@ -3830,6 +3864,7 @@ export const shouldBehaveLikeVariableDepositPool = async (strategyType: string) 
       false,
       0,
       strategyType,
+      1000,
     );
 
     await joinGame(
@@ -3976,6 +4011,7 @@ export const shouldBehaveLikeVariableDepositPool = async (strategyType: string) 
       false,
       0,
       strategyType,
+      1000,
     );
 
     await joinGame(
@@ -4090,6 +4126,7 @@ export const shouldBehaveLikeVariableDepositPool = async (strategyType: string) 
         false,
         0,
         strategyType,
+        1000,
       );
       const accounts = await ethers.getSigners();
       const deployer = accounts[0];
@@ -4242,6 +4279,7 @@ export const shouldBehaveLikeVariableDepositPool = async (strategyType: string) 
         false,
         0,
         strategyType,
+        1000,
       );
       const accounts = await ethers.getSigners();
       const deployer = accounts[0];
@@ -4387,6 +4425,7 @@ export const shouldBehaveLikeVariableDepositPool = async (strategyType: string) 
         true,
         0,
         strategyType,
+        1000,
       );
       const accounts = await ethers.getSigners();
       const player1 = accounts[2];
@@ -4580,6 +4619,7 @@ export const shouldBehaveLikeGGPoolWithTransactionalToken = async (strategyType:
       false,
       0,
       strategyType,
+      0,
     );
   });
 
@@ -4600,6 +4640,7 @@ export const shouldBehaveLikeGGPoolWithTransactionalToken = async (strategyType:
         false,
         0,
         strategyType,
+        0,
       ),
     ).to.be.revertedWith("INVALID_INBOUND_TOKEN()");
   });
@@ -4765,6 +4806,7 @@ export const shouldBehaveLikeGGPoolWithSameTokenAddresses = async (strategyType:
       true,
       0,
       strategyType,
+      0,
     );
     const accounts = await ethers.getSigners();
     const player1 = accounts[2];
@@ -4869,6 +4911,7 @@ export const shouldBehaveLikeGGPoolGeneratingYieldFromAtricryptoPool = async (st
       false,
       1,
       strategyType,
+      0,
     );
   });
   it("players are able to join, redeem and withdraw funds", async () => {

@@ -54,6 +54,7 @@ describe("Pool using Curve Strategy", () => {
       false,
       0,
       "curve",
+      0,
     );
   });
 
