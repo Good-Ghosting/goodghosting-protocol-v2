@@ -112,6 +112,8 @@ contract Pool is Ownable, Pausable {
     /// @notice total rewardTokenAmount balance.
     uint256 public rewardTokenAmount = 0;
 
+    bool public emergencyWithdraw = false;
+
     /// @notice Controls if tokens were redeemed or not from the pool.
     bool public redeemed;
 
@@ -239,7 +241,7 @@ contract Pool is Ownable, Pausable {
     /// @return "true" if completeted; otherwise, "false".
     function isGameCompleted() public view returns (bool) {
         // Game is completed when the current segment is greater than "lastSegment" of the game.
-        return getCurrentSegment() > lastSegment;
+        return getCurrentSegment() > lastSegment || emergencyWithdraw;
     }
 
     /// @dev gets the number of players in the game.
@@ -535,6 +537,18 @@ contract Pool is Ownable, Pausable {
         );
     }
 
+    //*********************************************************************//
+    // ------------------------- external/public methods -------------------------- //
+    //*********************************************************************//
+
+    /**
+    @dev Enable early game completion in case of a emergency like the strategy contract becomes inactive in the midddle of the game etc.
+    // Once enabled players can withdraw their funds along with interest for winners.
+    */
+    function enableEmergencyWithdraw() external onlyOwner whenGameIsNotCompleted {
+       emergencyWithdraw = true;
+    }
+
     /**
     @dev Set's the incentive token address.
     @param _incentiveToken Incentive token address
@@ -745,13 +759,13 @@ contract Pool is Ownable, Pausable {
         uint256 playerGovernanceTokenReward = 0;
         uint256 playerSharePercentage = 0;
 
-        if (player.isWinner) {
+
+        if (player.isWinner || (players[msg.sender].mostRecentSegmentPaid == getCurrentSegment() && emergencyWithdraw)) {
             // Calculate Cummalative index for each player
             uint256 cumulativePlayerIndex = 0;
             for (uint256 i = 0; i <= players[msg.sender].mostRecentSegmentPaid; i++) {
                 cumulativePlayerIndex = cumulativePlayerIndex.add(playerIndex[msg.sender][i]);
             }
-
             if (impermanentLossShare > 0 && totalGameInterest == 0) {
                 // new payput in case of impermanent loss
                 payout = player.amountPaid.mul(impermanentLossShare).div(uint256(100));
@@ -852,14 +866,14 @@ contract Pool is Ownable, Pausable {
             }
         }
         uint256 currentSegment = getCurrentSegment();
-        // User can only deposit between segment 1 and segment n-1 (where n is the number of segments for the game).
+        // User can only deposit between segment 1 and segment n-1 (where n is the number of segments for the game) or if the emergencyWithdraw flag has not been enabled.
         // Details:
         // Segment 0 is paid when user joins the game (the first deposit window).
         // Last segment doesn't accept payments, because the payment window for the last
         // segment happens on segment n-1 (penultimate segment).
         // Any segment greater than the last segment means the game is completed, and cannot
         // receive payments
-        if (currentSegment == 0 || currentSegment >= lastSegment) {
+        if (currentSegment == 0 || currentSegment >= lastSegment || emergencyWithdraw) {
             revert DEPOSIT_NOT_ALLOWED();
         }
 
