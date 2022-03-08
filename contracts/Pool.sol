@@ -608,15 +608,18 @@ contract Pool is Ownable, Pausable {
     /// @dev Allows the admin to withdraw the performance fee, if applicable. This function can be called only by the contract's admin.
     /// Cannot be called before the game ends.
     function adminFeeWithdraw() external virtual onlyOwner whenGameIsCompleted {
-        if (!flexibleSegmentPayment) {
-            if (!redeemed) {
-                revert FUNDS_NOT_REDEEMED_FROM_EXTERNAL_POOL();
-            }
-        }
         if (adminWithdraw) {
             revert ADMIN_FEE_WITHDRAWN();
         }
         adminWithdraw = true;
+
+        if (!flexibleSegmentPayment) {
+            if (!redeemed) {
+                revert FUNDS_NOT_REDEEMED_FROM_EXTERNAL_POOL();
+            }
+        } else {
+            setGlobalPoolParamsForFlexibleDepositPool();
+        }
 
         // when there are no winners, admin will be able to withdraw the
         // additional incentives sent to the pool, avoiding locking the funds.
@@ -777,10 +780,10 @@ contract Pool is Ownable, Pausable {
                 playerSharePercentage = cumulativePlayerIndex.mul(100).div(cummalativePlayerIndexSum);
                 uint256 playerShare = totalGameInterest.mul(playerSharePercentage).div(uint256(100));
                 payout = payout.add(playerShare);
-                if (flexibleSegmentPayment) {
-                    // Updating the totalGameInterest after each player withdraws
-                    totalGameInterest = totalGameInterest.sub(playerShare);
-                }
+                // if (flexibleSegmentPayment) {
+                //     // Updating the totalGameInterest after each player withdraws
+                //     totalGameInterest = totalGameInterest.sub(playerShare);
+                // }
             }
 
             // Calculates winner's share of the additional rewards & incentives
