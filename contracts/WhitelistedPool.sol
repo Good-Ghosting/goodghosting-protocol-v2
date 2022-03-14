@@ -5,6 +5,7 @@ import "./Pool.sol";
 import "./MerkleDistributor.sol";
 
 contract WhitelistedPool is Pool, MerkleDistributor {
+
     /**
         Creates a new instance of GoodGhosting game
         @param _inboundCurrency Smart contract address of inbound currency used for the game.
@@ -17,7 +18,7 @@ contract WhitelistedPool is Pool, MerkleDistributor {
         @param _customFee performance fee charged by admin. Used as an integer percentage (i.e., 10 represents 10%). Does not accept "decimal" fees like "0.5".
         @param _maxPlayersCount max quantity of players allowed to join the game
         @param _strategy investment strategy contract address.
-        @param _merkleRoot merkle root to verify players on chain to allow only whitelisted users join.
+        @param _isTransactionalToken isTransactionalToken flag.
      */
     constructor(
         address _inboundCurrency,
@@ -31,7 +32,7 @@ contract WhitelistedPool is Pool, MerkleDistributor {
         uint256 _maxPlayersCount,
         bool _flexibleSegmentPayment,
         IStrategy _strategy,
-        bytes32 _merkleRoot
+        bool _isTransactionalToken
     )
         Pool(
             _inboundCurrency,
@@ -45,16 +46,27 @@ contract WhitelistedPool is Pool, MerkleDistributor {
             _maxPlayersCount,
             _flexibleSegmentPayment,
             _strategy,
-            false
-        )
-        MerkleDistributor(_merkleRoot)
+            _isTransactionalToken
+         )
     {}
+
+    function initialize(bytes32 _merkleRoot) external onlyOwner whenNotPaused {
+       setMerkleRoot(_merkleRoot);
+       firstSegmentStart = block.timestamp; //gets current time
+       waitingRoundSegmentStart = block.timestamp + (segmentLength * lastSegment);
+    }
 
     /// @notice Does not allow users to join. Must use "joinWhitelistedGame instead.
     /// @dev Must override function from parent contract (GoodGhosting.sol) and revert to enforce whitelisting.
     /// @param _minAmount Slippage based amount to cover for impermanent loss scenario.
     /// @param _depositAmount Variable Deposit Amount in case of a variable deposit pool.
-    function joinGame(uint256 _minAmount, uint256 _depositAmount) external payable override whenNotPaused {
+    function joinGame(uint256 _minAmount, uint256 _depositAmount)
+        external
+        override
+        payable
+        whenGameIsInitialized
+        whenNotPaused
+    {
         revert("Whitelisting enabled - use joinWhitelistedGame(uint256, bytes32[]) instead");
     }
 
@@ -64,13 +76,13 @@ contract WhitelistedPool is Pool, MerkleDistributor {
     /// @param _minAmount Slippage based amount to cover for impermanent loss scenario.
     /// @param _depositAmount Variable Deposit Amount in case of a variable deposit pool.
     /// @dev Cannot be called when the game is paused. Different function name to avoid confusion (instead of overloading "joinGame")
-    function joinWhitelistedGame(
-        uint256 index,
-        bytes32[] calldata merkleProof,
-        uint256 _minAmount,
-        uint256 _depositAmount
-    ) external payable whenNotPaused {
-        claim(index, msg.sender, true, merkleProof);
-        _joinGame(_minAmount, _depositAmount);
+    function joinWhitelistedGame(uint256 index, bytes32[] calldata merkleProof, uint256 _minAmount, uint256 _depositAmount)
+        external
+        payable
+        whenNotPaused
+    {
+      claim(index, msg.sender, true, merkleProof);
+      _joinGame(_minAmount, _depositAmount);
     }
+
 }

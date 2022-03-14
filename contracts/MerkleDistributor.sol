@@ -8,10 +8,10 @@ import "./merkle/IMerkleDistributor.sol";
 /// @title Contract responsible for player's merkle proof validation
 /// @author Francis Odisi & Viraz Malhotra
 contract MerkleDistributor is IMerkleDistributor {
-    bytes32 public immutable override merkleRoot;
+    bytes32 public override merkleRoot;
 
     /// @param _merkleRoot Merkle root for the game
-    constructor(bytes32 _merkleRoot) public {
+    function setMerkleRoot(bytes32 _merkleRoot) internal {
         merkleRoot = _merkleRoot;
     }
 

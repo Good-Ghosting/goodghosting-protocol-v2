@@ -41,6 +41,7 @@ error PLAYER_DID_NOT_PAID_PREVIOUS_SEGMENT();
 error FUNDS_REDEEMED_FROM_EXTERNAL_POOL();
 error INSUFFICIENT_ALLOWANCE();
 error EARLY_EXIT_NOT_POSSIBLE();
+error GAME_NOT_INITIALIZED();
 
 /**
 @title GoodGhosting V2 Contract
@@ -56,15 +57,6 @@ contract Pool is Ownable, Pausable {
     /// @notice Maximum Flexible Deposit Amount in case of flexible pools.
     uint256 public immutable maxFlexibleSegmentPaymentAmount;
 
-    /// @notice The number of segments in the game (segment count).
-    uint256 public lastSegment;
-
-    /// @notice When the game started (deployed timestamp).
-    uint256 public immutable firstSegmentStart;
-
-    /// @notice Timestamp when the waiting segment starts.
-    uint256 public immutable waitingRoundSegmentStart;
-
     /// @notice The time duration (in seconds) of each segment.
     uint256 public immutable segmentLength;
 
@@ -76,6 +68,27 @@ contract Pool is Ownable, Pausable {
 
     /// @notice Defines the max quantity of players allowed in the game.
     uint256 public immutable maxPlayersCount;
+
+    /// @notice Address of the token used for depositing into the game by players.
+    address public immutable inboundToken;
+
+    /// @notice Flag which determines whether the segment payment is fixed or not.
+    bool public immutable flexibleSegmentPayment;
+
+    /// @notice Strategy Contract Address
+    IStrategy public immutable strategy;
+
+    /// @notice Flag which determines whether the deposit token is a transactional token like eth or matic.
+    bool public immutable isTransactionalToken;
+
+    /// @notice When the game started (deployed timestamp).
+    uint256 public firstSegmentStart;
+
+    /// @notice Timestamp when the waiting segment starts.
+    uint256 public waitingRoundSegmentStart;
+
+    /// @notice The number of segments in the game (segment count).
+    uint256 public lastSegment;
 
     /// @notice The early withdrawal fee (percentage).
     uint128 public earlyWithdrawalFee;
@@ -122,23 +135,11 @@ contract Pool is Ownable, Pausable {
     /// @notice Controls if strategy governance tokens are to be claimed at the time of redeem.
     bool public disableStrategyGovernanceTokenClaim = false;
 
-    /// @notice Flag which determines whether the segment payment is fixed or not.
-    bool public immutable flexibleSegmentPayment;
-
-    /// @notice Flag which determines whether the deposit token is a transactional token like eth or matic.
-    bool public isTransactionalToken;
-
     /// @notice controls if admin withdrew or not the performance fee.
     bool public adminWithdraw;
 
     /// @notice Ownership Control flag.
     bool public allowRenouncingOwnership = false;
-
-    /// @notice Strategy Contract Address
-    IStrategy public immutable strategy;
-
-    /// @notice Address of the token used for depositing into the game by players.
-    address public immutable inboundToken;
 
     /// @notice Defines an optional token address used to provide additional incentives to users. Accepts "0x0" adresses when no incentive token exists.
     IERC20 public incentiveToken;
@@ -238,6 +239,13 @@ contract Pool is Ownable, Pausable {
         _;
     }
 
+    modifier whenGameIsInitialized() {
+        if (firstSegmentStart == 0) {
+            revert GAME_NOT_INITIALIZED();
+        }
+        _;
+    }
+
     //*********************************************************************//
     // ------------------------- external views -------------------------- //
     //*********************************************************************//
@@ -315,15 +323,9 @@ contract Pool is Ownable, Pausable {
             revert INVALID_MAX_PLAYER_COUNT();
         }
 
-        if (isTransactionalToken) {
-            if (address(_inboundCurrency) != address(0)) {
+        if (address(_inboundCurrency) == address(0)) {
                 revert INVALID_INBOUND_TOKEN();
             }
-        } else {
-            if (address(_inboundCurrency) == address(0)) {
-                revert INVALID_INBOUND_TOKEN();
-            }
-        }
         if (address(_strategy) == address(0)) {
             revert INVALID_STRATEGY();
         }
@@ -346,8 +348,6 @@ contract Pool is Ownable, Pausable {
         }
 
         // Initializes default variables
-        firstSegmentStart = block.timestamp; //gets current time
-        waitingRoundSegmentStart = block.timestamp + (_segmentLength * _depositCount);
         lastSegment = _depositCount;
         segmentLength = _segmentLength;
         waitingRoundSegmentLength = _waitingRoundSegmentLength;
@@ -358,6 +358,11 @@ contract Pool is Ownable, Pausable {
         strategy = _strategy;
         maxPlayersCount = _maxPlayersCount;
         maxFlexibleSegmentPaymentAmount = _maxFlexibleSegmentPaymentAmount;
+    }
+
+    function initialize() external onlyOwner whenNotPaused {
+       firstSegmentStart = block.timestamp; //gets current time
+       waitingRoundSegmentStart = block.timestamp + (segmentLength * lastSegment);
     }
 
     //*********************************************************************//
@@ -704,7 +709,7 @@ contract Pool is Ownable, Pausable {
     @param _minAmount Slippage based amount to cover for impermanent loss scenario.
     @param _depositAmount Variable Deposit Amount in case of a variable deposit pool.
     */
-    function joinGame(uint256 _minAmount, uint256 _depositAmount) external payable virtual whenNotPaused {
+    function joinGame(uint256 _minAmount, uint256 _depositAmount) external payable virtual whenGameIsInitialized whenNotPaused {
         _joinGame(_minAmount, _depositAmount);
     }
 
