@@ -1,3 +1,5 @@
+import { ContractVersion } from "@celo/contractkit/lib/versions";
+
 const Pool = artifacts.require("Pool");
 const CurveStrategy = artifacts.require("CurveStrategy");
 const timeMachine = require("ganache-time-traveler");
@@ -9,7 +11,7 @@ const aavepoolABI = require("../../abi-external/curve-aave-pool-abi.json");
 const atricryptopoolABI = require("../../abi-external/curve-atricrypto-pool-abi.json");
 const configs = require("../../deploy.config");
 
-contract("Pool with Curve Strategy", accounts => {
+contract("Pool with Curve Strategy when admin enables early game completion", accounts => {
   // Only executes this test file for local network fork
   if (!["local-polygon-curve"].includes(process.env.NETWORK ? process.env.NETWORK : "")) return;
 
@@ -107,47 +109,6 @@ contract("Pool with Curve Strategy", accounts => {
             : userProvidedMinAmount.sub(userProvidedMinAmount.mul(web3.utils.toBN("10")).div(web3.utils.toBN("10000")));
 
         result = await goodGhosting.joinGame(minAmountWithFees.toString(), 0, { from: player });
-        // player 1 early withdraws in segment 0 and joins again
-        if (i == 1) {
-          const withdrawAmount = segmentPayment.sub(
-            segmentPayment.mul(web3.utils.toBN(earlyWithdrawFee)).div(web3.utils.toBN(100)),
-          );
-          let lpTokenAmount;
-
-          if (providersConfigs.poolType == 0) {
-            lpTokenAmount = await pool.methods.calc_token_amount([withdrawAmount.toString(), 0, 0], true).call();
-          } else {
-            lpTokenAmount = await pool.methods.calc_token_amount([withdrawAmount.toString(), 0, 0, 0, 0], true).call();
-          }
-
-          const gaugeTokenBalance = await gaugeToken.methods.balanceOf(curveStrategy.address).call();
-
-          if (parseInt(gaugeTokenBalance.toString()) < parseInt(lpTokenAmount.toString())) {
-            lpTokenAmount = gaugeTokenBalance;
-          }
-
-          let minAmount = await pool.methods
-            .calc_withdraw_one_coin(lpTokenAmount.toString(), providersConfigs.tokenIndex)
-            .call();
-
-          minAmount = web3.utils.toBN(minAmount).sub(web3.utils.toBN(minAmount).div(web3.utils.toBN("1000")));
-
-          const userProvidedMinAmount = web3.utils
-            .toBN(lpTokenAmount)
-            .sub(web3.utils.toBN(lpTokenAmount).mul(web3.utils.toBN("6")).div(web3.utils.toBN(1000)));
-
-          if (parseInt(userProvidedMinAmount.toString()) < parseInt(minAmount.toString())) {
-            minAmount = userProvidedMinAmount;
-          }
-
-          await goodGhosting.earlyWithdraw(minAmount.toString(), { from: player });
-
-          await token.methods
-            .approve(goodGhosting.address, segmentPayment.mul(web3.utils.toBN(depositCount)).toString())
-            .send({ from: player });
-
-          await goodGhosting.joinGame(minAmountWithFees.toString(), 0, { from: player });
-        }
         // got logs not defined error when keep the event assertion check outside of the if-else
         truffleAssert.eventEmitted(
           result,
@@ -166,134 +127,12 @@ contract("Pool with Curve Strategy", accounts => {
       }
     });
 
-    it("runs the game - 'player1' early withdraws and other players complete game successfully", async () => {
-      const userSlippageOptions = [3, 5, 1, 4, 2];
-      let depositResult, earlyWithdrawResult;
-
+    it("admin enables emergency withdraw before game completeion and redeems the funds", async () => {
+      await goodGhosting.enableEmergencyWithdraw({ from: admin });
       // The payment for the first segment was done upon joining, so we start counting from segment 2 (index 1)
       for (let segmentIndex = 1; segmentIndex < depositCount; segmentIndex++) {
         await timeMachine.advanceTime(segmentLength);
-        // j must start at 1 - Player1 (index 0) early withdraws after everyone else deposits, so won't continue making deposits
-        for (let j = 1; j < players.length - 1; j++) {
-          const player = players[j];
-          let slippageFromContract;
-          const userProvidedMinAmount = segmentPayment.sub(
-            segmentPayment.mul(web3.utils.toBN(userSlippageOptions[j].toString())).div(web3.utils.toBN(100)),
-          );
-
-          if (providersConfigs.poolType == 0) {
-            slippageFromContract = await pool.methods.calc_token_amount([segmentPayment.toString(), 0, 0], true).call();
-          } else {
-            slippageFromContract = await pool.methods
-              .calc_token_amount([segmentPayment.toString(), 0, 0, 0, 0], true)
-              .call();
-          }
-
-          const minAmountWithFees =
-            parseInt(userProvidedMinAmount.toString()) > parseInt(slippageFromContract.toString())
-              ? web3.utils
-                  .toBN(slippageFromContract)
-                  .sub(web3.utils.toBN(slippageFromContract).mul(web3.utils.toBN("10")).div(web3.utils.toBN("1000")))
-              : userProvidedMinAmount.sub(
-                  userProvidedMinAmount.mul(web3.utils.toBN("10")).div(web3.utils.toBN("1000")),
-                );
-          console.log(j);
-          depositResult = await goodGhosting.makeDeposit(minAmountWithFees.toString(), 0, { from: player });
-
-          truffleAssert.eventEmitted(
-            depositResult,
-            "Deposit",
-            (ev: any) => ev.player === player && ev.segment.toNumber() === segmentIndex,
-            `player ${j} unable to deposit for segment ${segmentIndex}`,
-          );
-        }
-
-        // Player 1 (index 0 - loser), performs an early withdraw on first segment.
-        if (segmentIndex === 1) {
-          const playerInfo = await goodGhosting.players(loser);
-
-          // const playerInfo = await goodGhosting.methods.players(loser).call()
-          const withdrawAmount = playerInfo.amountPaid.sub(
-            playerInfo.amountPaid.mul(web3.utils.toBN(earlyWithdrawFee)).div(web3.utils.toBN(100)),
-          );
-          let lpTokenAmount;
-
-          if (providersConfigs.poolType == 0) {
-            lpTokenAmount = await pool.methods.calc_token_amount([withdrawAmount.toString(), 0, 0], true).call();
-          } else {
-            lpTokenAmount = await pool.methods.calc_token_amount([withdrawAmount.toString(), 0, 0, 0, 0], true).call();
-          }
-
-          const gaugeTokenBalance = await gaugeToken.methods.balanceOf(curveStrategy.address).call();
-          if (parseInt(gaugeTokenBalance.toString()) < parseInt(lpTokenAmount.toString())) {
-            lpTokenAmount = gaugeTokenBalance;
-          }
-          let minAmount = await pool.methods
-            .calc_withdraw_one_coin(lpTokenAmount.toString(), providersConfigs.tokenIndex)
-            .call();
-
-          minAmount = web3.utils.toBN(minAmount).sub(web3.utils.toBN(minAmount).div(web3.utils.toBN("1000")));
-
-          const userProvidedMinAmount = web3.utils
-            .toBN(lpTokenAmount)
-            .sub(web3.utils.toBN(lpTokenAmount).mul(web3.utils.toBN("2")).div(web3.utils.toBN(1000)));
-          if (parseInt(userProvidedMinAmount.toString()) < parseInt(minAmount.toString())) {
-            minAmount = userProvidedMinAmount;
-          }
-
-          earlyWithdrawResult = await goodGhosting.earlyWithdraw(minAmount.toString(), { from: loser });
-
-          truffleAssert.eventEmitted(
-            earlyWithdrawResult,
-            "EarlyWithdrawal",
-            (ev: any) => ev.player === loser,
-            "loser unable to early withdraw from game",
-          );
-        }
       }
-      // above, it accounted for 1st deposit window, and then the loop runs till depositCount - 1.
-      // now, we move 2 more segments (depositCount-1 and depositCount) to complete the game.
-      const winnerCountBeforeEarlyWithdraw = await goodGhosting.winnerCount();
-      const playerInfo = await goodGhosting.players(userWithdrawingAfterLastSegment);
-      const withdrawAmount = playerInfo.amountPaid.sub(
-        playerInfo.amountPaid.mul(web3.utils.toBN(earlyWithdrawFee)).div(web3.utils.toBN(100)),
-      );
-      let lpTokenAmount;
-      if (providersConfigs.poolType == 0) {
-        lpTokenAmount = await pool.methods.calc_token_amount([withdrawAmount.toString(), 0, 0], true).call();
-      } else {
-        lpTokenAmount = await pool.methods.calc_token_amount([withdrawAmount.toString(), 0, 0, 0, 0], true).call();
-      }
-
-      const gaugeTokenBalance = await gaugeToken.methods.balanceOf(curveStrategy.address).call();
-      if (parseInt(gaugeTokenBalance.toString()) < parseInt(lpTokenAmount.toString())) {
-        lpTokenAmount = gaugeTokenBalance;
-      }
-      let minAmount = await pool.methods
-        .calc_withdraw_one_coin(lpTokenAmount.toString(), providersConfigs.tokenIndex)
-        .call();
-
-      minAmount = web3.utils.toBN(minAmount).sub(web3.utils.toBN(minAmount).div(web3.utils.toBN("1000")));
-
-      const userProvidedMinAmount = web3.utils
-        .toBN(lpTokenAmount)
-        .sub(web3.utils.toBN(lpTokenAmount).mul(web3.utils.toBN("15")).div(web3.utils.toBN(1000)));
-      if (parseInt(userProvidedMinAmount.toString()) < parseInt(minAmount.toString())) {
-        minAmount = userProvidedMinAmount;
-      }
-
-      await goodGhosting.earlyWithdraw(minAmount.toString(), { from: userWithdrawingAfterLastSegment });
-
-      const winnerCountAfterEarlyWithdraw = await goodGhosting.winnerCount();
-
-      assert(winnerCountBeforeEarlyWithdraw.eq(web3.utils.toBN(3)));
-      assert(winnerCountAfterEarlyWithdraw.eq(web3.utils.toBN(2)));
-      await timeMachine.advanceTime(segmentLength);
-      const waitingRoundLength = await goodGhosting.waitingRoundSegmentLength();
-      await timeMachine.advanceTime(parseInt(waitingRoundLength.toString()));
-    });
-
-    it("redeems funds from external pool", async () => {
       const userSlippage = 1;
       let minAmount;
       let curveBalanceBeforeRedeem, curveBalanceAfterRedeem, wmaticBalanceBeforeRedeem, wmaticBalanceAfterRedeem;
@@ -313,9 +152,11 @@ contract("Pool with Curve Strategy", accounts => {
         minAmount = userProvidedMinAmount;
       }
 
-      let eventAmount = web3.utils.toBN(0);
-      let result;
-      result = await goodGhosting.redeemFromExternalPoolForFixedDepositPool(minAmount.toString(), {
+      await timeMachine.advanceTime(segmentLength);
+      const waitingRoundLength = await goodGhosting.waitingRoundSegmentLength();
+      await timeMachine.advanceTime(parseInt(waitingRoundLength.toString()));
+
+      await goodGhosting.redeemFromExternalPoolForFixedDepositPool(minAmount.toString(), {
         from: admin,
       });
 
@@ -325,35 +166,6 @@ contract("Pool with Curve Strategy", accounts => {
       assert(web3.utils.toBN(curveBalanceBeforeRedeem).lt(web3.utils.toBN(curveBalanceAfterRedeem)));
       // for some reason forking mainnet we don't get back wmatic rewards so the before and after balance is equal
       assert(web3.utils.toBN(wmaticBalanceBeforeRedeem).lte(web3.utils.toBN(wmaticBalanceAfterRedeem)));
-
-      const contractsDaiBalance = web3.utils.toBN(
-        await token.methods.balanceOf(goodGhosting.address).call({ from: admin }),
-      );
-      console.log("contractsDaiBalance", contractsDaiBalance.toString());
-      truffleAssert.eventEmitted(
-        result,
-        "FundsRedeemedFromExternalPool",
-        (ev: any) => {
-          console.log("totalContractAmount", ev.totalAmount.toString());
-          console.log("totalGamePrincipal", ev.totalGamePrincipal.toString());
-          console.log("totalGameInterest", ev.totalGameInterest.toString());
-          console.log("interestPerPlayer", ev.totalGameInterest.div(web3.utils.toBN(players.length - 1)).toString());
-          console.log("REWARDD", ev.totalGovernanceRewardAmount.toString());
-          const adminFee = web3.utils
-            .toBN(configs.deployConfigs.adminFee)
-            .mul(ev.totalGameInterest)
-            .div(web3.utils.toBN("100"));
-          eventAmount = web3.utils.toBN(ev.totalAmount.toString());
-
-          return (
-            web3.utils
-              .toBN(ev.totalGameInterest)
-              .eq(web3.utils.toBN(ev.totalAmount).sub(web3.utils.toBN(ev.totalGamePrincipal))),
-            eventAmount.eq(contractsDaiBalance) && adminFee.lt(ev.totalGameInterest)
-          );
-        },
-        `FundsRedeemedFromExternalPool error - event amount: ${eventAmount.toString()}; expectAmount: ${contractsDaiBalance.toString()}`,
-      );
     });
 
     it("players withdraw from contract", async () => {

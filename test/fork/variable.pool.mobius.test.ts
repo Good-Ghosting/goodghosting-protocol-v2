@@ -357,7 +357,10 @@ contract("Variable Deposit Pool with Mobius Strategy", accounts => {
         let mobiRewardBalanceAfter = web3.utils.toBN(0);
         let celoRewardBalanceBefore = web3.utils.toBN(0);
         let celoRewardBalanceAfter = web3.utils.toBN(0);
+        let inboundTokenBalanceBefore = web3.utils.toBN(0);
+        let inboundTokenBalanceAfter = web3.utils.toBN(0);
 
+        inboundTokenBalanceBefore = web3.utils.toBN(await token.methods.balanceOf(admin).call({ from: admin }));
         mobiRewardBalanceBefore = web3.utils.toBN(await mobi.methods.balanceOf(admin).call({ from: admin }));
         celoRewardBalanceBefore = web3.utils.toBN(await celo.methods.balanceOf(admin).call({ from: admin }));
 
@@ -365,8 +368,11 @@ contract("Variable Deposit Pool with Mobius Strategy", accounts => {
           from: admin,
         });
 
+        inboundTokenBalanceAfter = web3.utils.toBN(await token.methods.balanceOf(admin).call({ from: admin }));
         mobiRewardBalanceAfter = web3.utils.toBN(await mobi.methods.balanceOf(admin).call({ from: admin }));
         celoRewardBalanceAfter = web3.utils.toBN(await celo.methods.balanceOf(admin).call({ from: admin }));
+
+        assert(inboundTokenBalanceAfter.gt(inboundTokenBalanceBefore));
 
         assert(
           mobiRewardBalanceAfter.gt(mobiRewardBalanceBefore),

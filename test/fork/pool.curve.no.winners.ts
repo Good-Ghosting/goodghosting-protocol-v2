@@ -265,9 +265,12 @@ contract("Pool with Curve Strategy with no winners", accounts => {
             .div(web3.utils.toBN("100"));
           eventAmount = web3.utils.toBN(ev.totalAmount.toString());
 
-          return web3.utils
-            .toBN(ev.totalGameInterest)
-            .eq(web3.utils.toBN(ev.totalAmount).sub(web3.utils.toBN(ev.totalGamePrincipal)));
+          return (
+            web3.utils
+              .toBN(ev.totalGameInterest)
+              .eq(web3.utils.toBN(ev.totalAmount).sub(web3.utils.toBN(ev.totalGamePrincipal))),
+            eventAmount.eq(contractsDaiBalance) && adminFee.lt(ev.totalGameInterest)
+          );
         },
         `FundsRedeemedFromExternalPool error - event amount: ${eventAmount.toString()}; expectAmount: ${contractsDaiBalance.toString()}`,
       );

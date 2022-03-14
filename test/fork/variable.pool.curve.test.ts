@@ -441,7 +441,10 @@ contract("Variale Deposit Pool with Curve Strategy", accounts => {
         let curveRewardBalanceAfter = web3.utils.toBN(0);
         let wmaticRewardBalanceBefore = web3.utils.toBN(0);
         let wmaticRewardBalanceAfter = web3.utils.toBN(0);
+        let inboundTokenBalanceBefore = web3.utils.toBN(0);
+        let inboundTokenBalanceAfter = web3.utils.toBN(0);
 
+        inboundTokenBalanceBefore = web3.utils.toBN(await token.methods.balanceOf(admin).call({ from: admin }));
         curveRewardBalanceBefore = web3.utils.toBN(await curve.methods.balanceOf(admin).call({ from: admin }));
         wmaticRewardBalanceBefore = web3.utils.toBN(await wmatic.methods.balanceOf(admin).call({ from: admin }));
 
@@ -461,6 +464,7 @@ contract("Variale Deposit Pool with Curve Strategy", accounts => {
           await wmatic.methods.balanceOf(goodGhosting.address).call({ from: admin }),
         );
 
+        inboundTokenBalanceAfter = web3.utils.toBN(await token.methods.balanceOf(admin).call({ from: admin }));
         curveRewardBalanceAfter = web3.utils.toBN(await curve.methods.balanceOf(admin).call({ from: admin }));
         wmaticRewardBalanceAfter = web3.utils.toBN(await wmatic.methods.balanceOf(admin).call({ from: admin }));
 
@@ -477,6 +481,8 @@ contract("Variale Deposit Pool with Curve Strategy", accounts => {
           },
           "admin fee withdrawal event failure",
         );
+
+        assert(inboundTokenBalanceAfter.gt(inboundTokenBalanceBefore));
 
         assert(
           curveRewardBalanceAfter.gt(curveRewardBalanceBefore),
