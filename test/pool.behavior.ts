@@ -881,6 +881,25 @@ export const shouldBehaveLikeDepositingGGPool = async (strategyType: string) => 
     );
   });
 
+  it("makes sure the segment counter get's updated correctly", async () => {
+    const accounts = await ethers.getSigners();
+    const player1 = accounts[2];
+    const player2 = accounts[3];
+
+    await joinGame(contracts.goodGhosting, contracts.inboundToken, player1, segmentPayment, segmentPayment);
+    await joinGame(contracts.goodGhosting, contracts.inboundToken, player2, segmentPayment, segmentPayment);
+    let segmentCounter = await contracts.goodGhosting.segmentCounter(0);
+    assert(segmentCounter.eq(2));
+    await ethers.provider.send("evm_increaseTime", [segmentLength]);
+    await ethers.provider.send("evm_mine", []);
+    await makeDeposit(contracts.goodGhosting, contracts.inboundToken, player2, segmentPayment, segmentPayment);
+    await makeDeposit(contracts.goodGhosting, contracts.inboundToken, player1, segmentPayment, segmentPayment);
+    segmentCounter = await contracts.goodGhosting.segmentCounter(1);
+    assert(segmentCounter.eq(2));
+    segmentCounter = await contracts.goodGhosting.segmentCounter(0);
+    assert(segmentCounter.eq(0));
+  });
+
   it("user can deposit successfully if all requirements are met", async () => {
     const accounts = await ethers.getSigners();
     const player1 = accounts[2];
@@ -994,6 +1013,25 @@ export const shouldBehaveLikeEarlyWithdrawingGGPool = async (strategyType: strin
     await expect(contracts.goodGhosting.connect(player2).earlyWithdraw(0)).to.be.revertedWith(
       "PLAYER_DOES_NOT_EXIST()",
     );
+  });
+
+  it("makes sure the segment counter get's updated correctly when user earlywithdraws", async () => {
+    const accounts = await ethers.getSigners();
+    const player1 = accounts[2];
+    const player2 = accounts[3];
+
+    await joinGame(contracts.goodGhosting, contracts.inboundToken, player1, segmentPayment, segmentPayment);
+    await joinGame(contracts.goodGhosting, contracts.inboundToken, player2, segmentPayment, segmentPayment);
+    await contracts.goodGhosting.connect(player1).earlyWithdraw(0);
+    let segmentCounter = await contracts.goodGhosting.segmentCounter(0);
+    assert(segmentCounter.eq(1));
+    await ethers.provider.send("evm_increaseTime", [segmentLength]);
+    await ethers.provider.send("evm_mine", []);
+    await makeDeposit(contracts.goodGhosting, contracts.inboundToken, player2, segmentPayment, segmentPayment);
+    segmentCounter = await contracts.goodGhosting.segmentCounter(1);
+    assert(segmentCounter.eq(1));
+    segmentCounter = await contracts.goodGhosting.segmentCounter(0);
+    assert(segmentCounter.eq(0));
   });
 
   it("sets withdrawn flag to true after user withdraws before end of game", async () => {
@@ -1229,7 +1267,10 @@ export const shouldBehaveLikeEarlyWithdrawingGGPool = async (strategyType: strin
     // now, we move 2 more segments (depositCount-1 and depositCount) to complete the game.
     await ethers.provider.send("evm_increaseTime", [segmentLength]);
     await ethers.provider.send("evm_mine", []);
-    const cumalativePlayerIndexBeforeWithdraw = await contracts.goodGhosting.cummalativePlayerIndexSum();
+    const currentSegment = await contracts.goodGhosting.getCurrentSegment();
+    const cumalativePlayerIndexBeforeWithdraw = await contracts.goodGhosting.cummalativePlayerIndexSum(
+      currentSegment - 1,
+    );
     const player1Info = await contracts.goodGhosting.players(player1.address);
     const player2Info = await contracts.goodGhosting.players(player2.address);
     let cummalativePlayer1IndexBeforeWithdraw = ethers.BigNumber.from(0),
@@ -1256,7 +1297,9 @@ export const shouldBehaveLikeEarlyWithdrawingGGPool = async (strategyType: strin
       ),
     );
     await contracts.goodGhosting.connect(player1).earlyWithdraw(0);
-    const cumalativePlayerIndexAfterWithdraw = await contracts.goodGhosting.cummalativePlayerIndexSum();
+    const cumalativePlayerIndexAfterWithdraw = await contracts.goodGhosting.cummalativePlayerIndexSum(
+      currentSegment - 1,
+    );
     assert(cumalativePlayerIndexAfterWithdraw.eq(cummalativePlayer2IndexBeforeWithdraw));
   });
 };
@@ -1639,7 +1682,8 @@ export const shouldBehaveLikeRedeemingFromGGPool = async (strategyType: string) 
         ethers.BigNumber.from(index1.toString()),
       );
     }
-    const cummalativePlayerIndexSum = await contracts.goodGhosting.cummalativePlayerIndexSum();
+    const lastSegment = await contracts.goodGhosting.lastSegment();
+    const cummalativePlayerIndexSum = await contracts.goodGhosting.cummalativePlayerIndexSum(lastSegment - 1);
     assert(cummalativePlayerIndexSum.eq(cummalativePlayer1IndexBeforeWithdraw));
   });
 
@@ -1850,6 +1894,160 @@ export const shouldBehaveLikePlayersWithdrawingFromGGPool = async (strategyType:
     await expect(contracts.goodGhosting.connect(player1).withdraw(0)).to.be.revertedWith("GAME_NOT_COMPLETED()");
   });
 
+  it("allows players to withdraw early after admin enables early game completion when there are ghosts", async () => {
+    const accounts = await ethers.getSigners();
+    let governanceTokenPlayer1BalanceAfterWithdraw = 0,
+      governanceTokenPlayer2BalanceAfterWithdraw = 0,
+      rewardTokenPlayer1BalanceAfterWithdraw = 0,
+      rewardTokenPlayer2BalanceAfterWithdraw = 0,
+      governanceTokenPlayer1BalanceBeforeWithdraw = 0,
+      governanceTokenPlayer2BalanceBeforeWithdraw = 0,
+      rewardTokenPlayer1BalanceBeforeWithdraw = 0,
+      rewardTokenPlayer2BalanceBeforeWithdraw = 0;
+
+    const player1 = accounts[2];
+    const player2 = accounts[3];
+
+    await joinGame(contracts.goodGhosting, contracts.inboundToken, player2, segmentPayment, segmentPayment);
+    await joinGame(contracts.goodGhosting, contracts.inboundToken, player1, segmentPayment, segmentPayment);
+    for (let index = 1; index < depositCount; index++) {
+      await ethers.provider.send("evm_increaseTime", [segmentLength]);
+      await ethers.provider.send("evm_mine", []);
+      await makeDeposit(contracts.goodGhosting, contracts.inboundToken, player1, segmentPayment, segmentPayment);
+    }
+    await contracts.goodGhosting.enableEmergencyWithdraw();
+    if (strategyType === "curve") {
+      governanceTokenPlayer1BalanceBeforeWithdraw = await contracts.curve.balanceOf(player1.address);
+      governanceTokenPlayer2BalanceBeforeWithdraw = await contracts.curve.balanceOf(player2.address);
+    } else if (strategyType === "mobius") {
+      contracts.rewardToken = contracts.minter;
+      governanceTokenPlayer1BalanceBeforeWithdraw = await contracts.mobi.balanceOf(player1.address);
+      governanceTokenPlayer2BalanceBeforeWithdraw = await contracts.mobi.balanceOf(player2.address);
+    }
+
+    rewardTokenPlayer1BalanceBeforeWithdraw = await contracts.rewardToken.balanceOf(player1.address);
+    rewardTokenPlayer2BalanceBeforeWithdraw = await contracts.rewardToken.balanceOf(player2.address);
+
+    await contracts.goodGhosting.redeemFromExternalPoolForFixedDepositPool(0);
+
+    await contracts.goodGhosting.connect(player1).withdraw(0);
+    await contracts.goodGhosting.connect(player2).withdraw(0);
+
+    if (strategyType === "curve") {
+      governanceTokenPlayer1BalanceAfterWithdraw = await contracts.curve.balanceOf(player1.address);
+      governanceTokenPlayer2BalanceAfterWithdraw = await contracts.curve.balanceOf(player2.address);
+    } else if (strategyType === "mobius") {
+      contracts.rewardToken = contracts.minter;
+      governanceTokenPlayer1BalanceAfterWithdraw = await contracts.mobi.balanceOf(player1.address);
+      governanceTokenPlayer2BalanceAfterWithdraw = await contracts.mobi.balanceOf(player2.address);
+    }
+    rewardTokenPlayer1BalanceAfterWithdraw = await contracts.rewardToken.balanceOf(player1.address);
+    rewardTokenPlayer2BalanceAfterWithdraw = await contracts.rewardToken.balanceOf(player2.address);
+
+    assert(
+      ethers.BigNumber.from(rewardTokenPlayer1BalanceAfterWithdraw).gt(
+        ethers.BigNumber.from(rewardTokenPlayer1BalanceBeforeWithdraw),
+      ),
+    );
+    assert(
+      ethers.BigNumber.from(rewardTokenPlayer2BalanceAfterWithdraw).eq(
+        ethers.BigNumber.from(rewardTokenPlayer2BalanceBeforeWithdraw),
+      ),
+    );
+    if (strategyType === "curve" || strategyType === "mobius") {
+      assert(
+        ethers.BigNumber.from(governanceTokenPlayer1BalanceAfterWithdraw).gt(
+          ethers.BigNumber.from(governanceTokenPlayer1BalanceBeforeWithdraw),
+        ),
+      );
+      assert(
+        ethers.BigNumber.from(governanceTokenPlayer2BalanceAfterWithdraw).eq(
+          ethers.BigNumber.from(governanceTokenPlayer2BalanceBeforeWithdraw),
+        ),
+      );
+    }
+  });
+
+  it("allows players to withdraw early after admin enables early game completion when admin enables the withdraw ", async () => {
+    const accounts = await ethers.getSigners();
+    let governanceTokenPlayer1BalanceAfterWithdraw = 0,
+      governanceTokenPlayer2BalanceAfterWithdraw = 0,
+      rewardTokenPlayer1BalanceAfterWithdraw = 0,
+      rewardTokenPlayer2BalanceAfterWithdraw = 0,
+      governanceTokenPlayer1BalanceBeforeWithdraw = 0,
+      governanceTokenPlayer2BalanceBeforeWithdraw = 0,
+      rewardTokenPlayer1BalanceBeforeWithdraw = 0,
+      rewardTokenPlayer2BalanceBeforeWithdraw = 0;
+
+    const player1 = accounts[2];
+    const player2 = accounts[3];
+
+    await joinGame(contracts.goodGhosting, contracts.inboundToken, player2, segmentPayment, segmentPayment);
+    await joinGame(contracts.goodGhosting, contracts.inboundToken, player1, segmentPayment, segmentPayment);
+
+    for (let index = 1; index < depositCount; index++) {
+      if (index < depositCount - 1) {
+        await ethers.provider.send("evm_increaseTime", [segmentLength]);
+        await ethers.provider.send("evm_mine", []);
+        await makeDeposit(contracts.goodGhosting, contracts.inboundToken, player2, segmentPayment, segmentPayment);
+        await makeDeposit(contracts.goodGhosting, contracts.inboundToken, player1, segmentPayment, segmentPayment);
+      } else {
+        await contracts.goodGhosting.enableEmergencyWithdraw();
+      }
+    }
+
+    if (strategyType === "curve") {
+      governanceTokenPlayer1BalanceBeforeWithdraw = await contracts.curve.balanceOf(player1.address);
+      governanceTokenPlayer2BalanceBeforeWithdraw = await contracts.curve.balanceOf(player2.address);
+    } else if (strategyType === "mobius") {
+      contracts.rewardToken = contracts.minter;
+      governanceTokenPlayer1BalanceBeforeWithdraw = await contracts.mobi.balanceOf(player1.address);
+      governanceTokenPlayer2BalanceBeforeWithdraw = await contracts.mobi.balanceOf(player2.address);
+    }
+
+    rewardTokenPlayer1BalanceBeforeWithdraw = await contracts.rewardToken.balanceOf(player1.address);
+    rewardTokenPlayer2BalanceBeforeWithdraw = await contracts.rewardToken.balanceOf(player2.address);
+
+    await contracts.goodGhosting.redeemFromExternalPoolForFixedDepositPool(0);
+
+    await contracts.goodGhosting.connect(player1).withdraw(0);
+    await contracts.goodGhosting.connect(player2).withdraw(0);
+
+    if (strategyType === "curve") {
+      governanceTokenPlayer1BalanceAfterWithdraw = await contracts.curve.balanceOf(player1.address);
+      governanceTokenPlayer2BalanceAfterWithdraw = await contracts.curve.balanceOf(player2.address);
+    } else if (strategyType === "mobius") {
+      contracts.rewardToken = contracts.minter;
+      governanceTokenPlayer1BalanceAfterWithdraw = await contracts.mobi.balanceOf(player1.address);
+      governanceTokenPlayer2BalanceAfterWithdraw = await contracts.mobi.balanceOf(player2.address);
+    }
+    rewardTokenPlayer1BalanceAfterWithdraw = await contracts.rewardToken.balanceOf(player1.address);
+    rewardTokenPlayer2BalanceAfterWithdraw = await contracts.rewardToken.balanceOf(player2.address);
+
+    assert(
+      ethers.BigNumber.from(rewardTokenPlayer1BalanceAfterWithdraw).gt(
+        ethers.BigNumber.from(rewardTokenPlayer1BalanceBeforeWithdraw),
+      ),
+    );
+    assert(
+      ethers.BigNumber.from(rewardTokenPlayer2BalanceAfterWithdraw).gt(
+        ethers.BigNumber.from(rewardTokenPlayer2BalanceBeforeWithdraw),
+      ),
+    );
+    if (strategyType === "curve" || strategyType === "mobius") {
+      assert(
+        ethers.BigNumber.from(governanceTokenPlayer1BalanceAfterWithdraw).gt(
+          ethers.BigNumber.from(governanceTokenPlayer1BalanceBeforeWithdraw),
+        ),
+      );
+      assert(
+        ethers.BigNumber.from(governanceTokenPlayer2BalanceAfterWithdraw).gt(
+          ethers.BigNumber.from(governanceTokenPlayer2BalanceBeforeWithdraw),
+        ),
+      );
+    }
+  });
+
   it("allows players to withdraw early after admin enables early game completion", async () => {
     const accounts = await ethers.getSigners();
     let governanceTokenPlayer1BalanceAfterWithdraw = 0,
@@ -1885,6 +2083,8 @@ export const shouldBehaveLikePlayersWithdrawingFromGGPool = async (strategyType:
 
     rewardTokenPlayer1BalanceBeforeWithdraw = await contracts.rewardToken.balanceOf(player1.address);
     rewardTokenPlayer2BalanceBeforeWithdraw = await contracts.rewardToken.balanceOf(player2.address);
+
+    await contracts.goodGhosting.redeemFromExternalPoolForFixedDepositPool(0);
 
     await contracts.goodGhosting.connect(player1).withdraw(0);
     await contracts.goodGhosting.connect(player2).withdraw(0);
@@ -2177,7 +2377,9 @@ export const shouldBehaveLikePlayersWithdrawingFromGGPool = async (strategyType:
     await contracts.goodGhosting.redeemFromExternalPoolForFixedDepositPool("90");
     const gameInterest = await contracts.goodGhosting.totalGameInterest();
     const playerInfo = await contracts.goodGhosting.players(player1.address);
-    const cummalativePlayerIndexSum = await contracts.goodGhosting.cummalativePlayerIndexSum();
+    const lastSegment = await contracts.goodGhosting.lastSegment();
+
+    const cummalativePlayerIndexSum = await contracts.goodGhosting.cummalativePlayerIndexSum(lastSegment - 1);
 
     let cummalativePlayer1IndexBeforeWithdraw = ethers.BigNumber.from(0);
 
@@ -3631,9 +3833,9 @@ export const shouldBehaveLikeVariableDepositPool = async (strategyType: string) 
       const adminBalanceBeforeWithdraw = await contracts.inboundToken.balanceOf(deployer.address);
       await contracts.goodGhosting.connect(deployer).adminFeeWithdraw();
       const adminBalanceAfterWithdraw = await contracts.inboundToken.balanceOf(deployer.address);
-      assert(adminBalanceAfterWithdraw.gt(adminBalanceBeforeWithdraw));
+      assert(adminBalanceAfterWithdraw.gte(adminBalanceBeforeWithdraw));
       const adminBalanceDiff = adminBalanceAfterWithdraw.sub(adminBalanceBeforeWithdraw).toString();
-      assert(ethers.BigNumber.from(adminBalanceDiff).eq(adminCalculatedFee));
+      assert(ethers.BigNumber.from(adminBalanceDiff).lte(adminCalculatedFee));
       // since player1 deposited high amount it get's more interest
       assert(
         player1BalanceAfterWithdraw
@@ -4179,9 +4381,9 @@ export const shouldBehaveLikeVariableDepositPool = async (strategyType: string) 
     const adminBalanceBeforeWithdraw = await contracts.inboundToken.balanceOf(deployer.address);
     await contracts.goodGhosting.connect(deployer).adminFeeWithdraw();
     const adminBalanceAfterWithdraw = await contracts.inboundToken.balanceOf(deployer.address);
-    assert(adminBalanceAfterWithdraw.gt(adminBalanceBeforeWithdraw));
+    assert(adminBalanceAfterWithdraw.gte(adminBalanceBeforeWithdraw));
     const adminBalanceDiff = adminBalanceAfterWithdraw.sub(adminBalanceBeforeWithdraw).toString();
-    assert(ethers.BigNumber.from(adminBalanceDiff).eq(adminCalculatedFee));
+    assert(ethers.BigNumber.from(adminBalanceDiff).lte(adminCalculatedFee));
     // since player1 deposited high amount it get's more interest
     assert(
       player1BalanceAfterWithdraw
