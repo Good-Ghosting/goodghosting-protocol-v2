@@ -323,9 +323,9 @@ contract Pool is Ownable, Pausable {
             revert INVALID_MAX_PLAYER_COUNT();
         }
 
-        if (address(_inboundCurrency) == address(0)) {
-                revert INVALID_INBOUND_TOKEN();
-            }
+        if (address(_inboundCurrency) == address(0) && !_isTransactionalToken) {
+            revert INVALID_INBOUND_TOKEN();
+        }
         if (address(_strategy) == address(0)) {
             revert INVALID_STRATEGY();
         }
