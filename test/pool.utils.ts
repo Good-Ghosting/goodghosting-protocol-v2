@@ -186,6 +186,8 @@ export const deployPool = async (
   if (isInvestmentStrategy) {
     await strategy.transferOwnership(goodGhosting.address);
   }
+  await goodGhosting.initialize();
+
   if (isIncentiveToken) {
     await goodGhosting.setIncentiveToken(incentiveToken.address);
     await mintTokens(incentiveToken, goodGhosting.address);

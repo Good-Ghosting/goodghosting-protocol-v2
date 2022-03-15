@@ -462,7 +462,9 @@ export const shouldBehaveLikeJoiningGGPool = async (strategyType: string) => {
   });
   it("reverts if the contract is paused", async () => {
     const accounts = await ethers.getSigners();
+
     const player1 = accounts[2];
+    console.log(player1.address);
     await contracts.goodGhosting.pause();
     await unableToJoinGame(
       contracts.goodGhosting,
@@ -5023,28 +5025,6 @@ export const shouldBehaveLikeGGPoolWithTransactionalToken = async (strategyType:
       strategyType,
       0,
     );
-  });
-
-  it("deployment reverts when inbound token address is passed", async () => {
-    await expect(
-      deployPool(
-        depositCount,
-        segmentLength,
-        segmentPayment,
-        1,
-        0,
-        maxPlayersCount,
-        true,
-        false,
-        true,
-        false,
-        true,
-        false,
-        0,
-        strategyType,
-        0,
-      ),
-    ).to.be.revertedWith("INVALID_INBOUND_TOKEN()");
   });
 
   it("players join the game and are able to redeem back the funds", async () => {
