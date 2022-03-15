@@ -266,7 +266,7 @@ module.exports = function (deployer, network, accounts) {
     const ggInstance = await goodGhostingContract.deployed();
 
     await strategyInstance.transferOwnership(ggInstance.address);
-
+    await ggInstance.initialize();
     // Prints deployment summary
     printSummary(
       {

@@ -42,6 +42,7 @@ async function main() {
   console.log("Pool Address:", pool.address);
   await strategy.transferOwnership(pool.address);
   console.log("Ownership Transferred");
+  await pool.initialize();
 
   var poolParameterTypes = [
     "address", // inboundCurrencyAddress
