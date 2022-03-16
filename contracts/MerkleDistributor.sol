@@ -8,6 +8,8 @@ import "./merkle/IMerkleDistributor.sol";
 /// @title Contract responsible for player's merkle proof validation
 /// @author Francis Odisi & Viraz Malhotra
 contract MerkleDistributor is IMerkleDistributor {
+    error INVALID_PROOF();
+
     bytes32 public override merkleRoot;
 
     /// @param _merkleRoot Merkle root for the game
@@ -28,9 +30,8 @@ contract MerkleDistributor is IMerkleDistributor {
     ) public view override {
         // Verify the merkle proof.
         bytes32 node = keccak256(abi.encodePacked(index, account, isValid));
-        require(
-            MerkleProof.verify(merkleProof, merkleRoot, node),
-            "MerkleDistributor: Invalid proof"
-        );
+        if (!MerkleProof.verify(merkleProof, merkleRoot, node)) {
+            revert INVALID_PROOF();
+        }
     }
 }

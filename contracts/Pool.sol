@@ -360,6 +360,10 @@ contract Pool is Ownable, Pausable {
         maxFlexibleSegmentPaymentAmount = _maxFlexibleSegmentPaymentAmount;
     }
 
+
+    /**
+    @dev Initializes the pool
+    */
     function initialize() external onlyOwner whenNotPaused {
        firstSegmentStart = block.timestamp; //gets current time
        waitingRoundSegmentStart = block.timestamp + (segmentLength * lastSegment);
@@ -370,7 +374,7 @@ contract Pool is Ownable, Pausable {
     //*********************************************************************//
 
     /**
-    @dev Initializes the player stats when they join..
+    @dev Initializes the player stats when they join.
     @param _minAmount Slippage based amount to cover for impermanent loss scenario.
     @param _depositAmount Variable Deposit Amount in case of a variable deposit pool.
     */
