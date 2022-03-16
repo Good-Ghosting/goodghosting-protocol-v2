@@ -23,7 +23,9 @@ async function main() {
 
   console.log("Strategy Address:", strategy.address);
 
-  const Pool = await ethers.getContractFactory("Pool");
+  const Pool: any = deployConfigs.isWhitelisted
+    ? await ethers.getContractFactory("WhitelistedPool")
+    : await ethers.getContractFactory("Pool");
   const pool = await Pool.deploy(
     providers["aave"]["polygon"]["dai"].address,
     0,
@@ -42,7 +44,7 @@ async function main() {
   console.log("Pool Address:", pool.address);
   await strategy.transferOwnership(pool.address);
   console.log("Ownership Transferred");
-  await pool.initialize();
+  deployConfigs.isWhitelisted ? await pool.initializePool(deployConfigs.merkleroot) : await pool.initialize();
 
   var poolParameterTypes = [
     "address", // inboundCurrencyAddress

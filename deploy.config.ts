@@ -36,16 +36,16 @@ exports.providers = {
       /*** START OF Pool-Dependent Configs***/
 
       /* AAVE Pool Configs */
-      pool: "0x445FE580eF8d70FF569aB36e80c647af338db351",
-      gauge: "0x19793B454D3AfC7b454F206Ffe95aDE26cA6912c",
-      poolType: 0, // Aave Pool
-      tokenIndex: 0, // 0: DAI; 1: USDC; 2: USDT
+      // pool: "0x445FE580eF8d70FF569aB36e80c647af338db351",
+      // gauge: "0x19793B454D3AfC7b454F206Ffe95aDE26cA6912c",
+      // poolType: 0, // Aave Pool
+      // tokenIndex: 0, // 0: DAI; 1: USDC; 2: USDT
 
       /* ATRI CRYPTO Pool Configs */
-      // pool: "0x1d8b86e3d88cdb2d34688e87e72f388cb541b7c8",
-      // gauge: "0x3b6b158a76fd8ccc297538f454ce7b4787778c7c",
-      // poolType: 1, // AtriCrypto Pool
-      // tokenIndex: 0, // 0: DAI; 1: USDC; 2: USDT; 3: WBTC; 4: WETH
+      pool: "0x1d8b86e3d88cdb2d34688e87e72f388cb541b7c8",
+      gauge: "0x3b6b158a76fd8ccc297538f454ce7b4787778c7c",
+      poolType: 1, // AtriCrypto Pool
+      tokenIndex: 0, // 0: DAI; 1: USDC; 2: USDT; 3: WBTC; 4: WETH
 
       /*** END OF Pool-Dependent Configs ***/
 
@@ -123,13 +123,14 @@ exports.deployConfigs = {
   selectedProvider: "aave", // name of the selected provider. Must be defined in the object {providers} above.
   inboundCurrencySymbol: "dai", // name of the inbound currency symbol. Must be defined in the object {providers.network} above.
   depositCount: 3, // integer number of segments
-  segmentLength: 3600, // in seconds
-  waitingRoundSegmentLength: 3600, // in seconds
+  segmentLength: 604800, // in seconds
+  waitingRoundSegmentLength: 604800, // in seconds
   flexibleSegmentPayment: false,
   isTransactionalToken: false,
-  segmentPayment: 1, // amount of tokens - i.e. 10 equals to 10 TOKENS (DAI, ETH, etc.);
+  segmentPayment: 3, // amount of tokens - i.e. 10 equals to 10 TOKENS (DAI, ETH, etc.);
   earlyWithdrawFee: 1, // i.e. 10 equals to 10%
   adminFee: 1, // i.e. 5 equals to 5%
   maxPlayersCount: "115792089237316195423570985008687907853269984665640564039457584007913129639935", // max quantity of players allowed.
   merkleroot: "0xd566243e283f1357e5e97dd0c9ab0d78177583074b440cb07815e05f615178bf", // merkle root for 1st 4 player addresses in the fork tests
+  isWhitelisted: true,
 };

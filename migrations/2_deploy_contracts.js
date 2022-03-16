@@ -1,5 +1,6 @@
 const abi = require("ethereumjs-abi");
 const GoodGhostingContract = artifacts.require("Pool");
+const WhitelistedContract = artifacts.require("WhitelistedPool");
 const MobiusStrategyArtifact = artifacts.require("MobiusStrategy");
 const MoolaStrategyArtifact = artifacts.require("AaveStrategy");
 const CurveStrategyArtifact = artifacts.require("CurveStrategy");
@@ -208,7 +209,7 @@ module.exports = function (deployer, network, accounts) {
     const celo = mobiusPoolConfigs.celo;
     const minter = mobiusPoolConfigs.minter;
     const maxPlayersCount = config.deployConfigs.maxPlayersCount;
-    const goodGhostingContract = GoodGhostingContract; // defaults to Ethereum version
+    const goodGhostingContract = config.deployConfigs.isWhitelisted ? WhitelistedContract : GoodGhostingContract; // defaults to Ethereum version
     let strategyArgs;
     if (network === "local-celo-mobius" || network === "celo-mobius" || network === "local-variable-celo-mobius") {
       strategyArgs = [MobiusStrategyArtifact, mobiusPool, mobiusGauge, minter, mobi, celo];
@@ -266,7 +267,9 @@ module.exports = function (deployer, network, accounts) {
     const ggInstance = await goodGhostingContract.deployed();
 
     await strategyInstance.transferOwnership(ggInstance.address);
-    await ggInstance.initialize();
+    config.deployConfigs.isWhitelisted
+      ? await ggInstance.initializePool(config.deployConfigs.merkleroot)
+      : await ggInstance.initialize();
     // Prints deployment summary
     printSummary(
       {
