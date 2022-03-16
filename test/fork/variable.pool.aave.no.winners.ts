@@ -94,6 +94,8 @@ describe("Aave Variable Deposit Pool Fork Tests with no winners", () => {
     );
 
     await strategy.connect(accounts[0]).transferOwnership(pool.address);
+    await pool.initialize();
+
     const impersonateAccountBalance = await daiInstance.balanceOf(impersonatedSigner.address);
     console.log(`Impersonate Account  Balance`, impersonateAccountBalance.toString());
 

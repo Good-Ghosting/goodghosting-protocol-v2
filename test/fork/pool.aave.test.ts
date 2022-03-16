@@ -94,12 +94,14 @@ describe("Aave Pool Fork Tests", () => {
     );
 
     await strategy.connect(accounts[0]).transferOwnership(pool.address);
+    await pool.initialize();
+
     const impersonateAccountBalance = await daiInstance.balanceOf(impersonatedSigner.address);
     console.log(`Impersonate Account  Balance`, impersonateAccountBalance.toString());
 
     // send out tokens to the players
     for (let i = 0; i < 5; i++) {
-      await daiInstance.connect(impersonatedSigner).transfer(accounts[i].address, ethers.utils.parseEther("3"));
+      await daiInstance.connect(impersonatedSigner).transfer(accounts[i].address, ethers.utils.parseEther("100"));
     }
   });
 

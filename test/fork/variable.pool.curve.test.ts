@@ -347,6 +347,7 @@ contract("Variale Deposit Pool with Curve Strategy", accounts => {
         const playerInfo = await goodGhosting.players(player);
 
         let result;
+        console.log(i);
         result = await goodGhosting.withdraw(playerInfo.amountPaid.toString(), { from: player });
 
         curveRewardBalanceAfter = web3.utils.toBN(await curve.methods.balanceOf(player).call({ from: admin }));
@@ -472,7 +473,6 @@ contract("Variale Deposit Pool with Curve Strategy", accounts => {
           result,
           "AdminWithdrawal",
           async (ev: any) => {
-            console.log("event logss");
             console.log(ev.adminFeeAmount.toString());
             console.log(ev.adminRewardAAmount.toString());
             console.log(ev.adminGovernanceRewardAmount.toString());

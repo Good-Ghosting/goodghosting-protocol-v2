@@ -87,6 +87,7 @@ describe("Aave Variable Deposit Pool Fork Tests with the deposit token as transs
     );
 
     await strategy.connect(accounts[0]).transferOwnership(pool.address);
+    await pool.initialize();
   });
 
   it("players are able to approve inbound token and join the pool", async () => {

@@ -86,10 +86,11 @@ describe("Aave Pool Fork Tests with the deposit token same as reward token", () 
     );
 
     await strategy.connect(accounts[0]).transferOwnership(pool.address);
+    await pool.initialize();
 
     // send out tokens to the players
     for (let i = 0; i < 5; i++) {
-      await wmaticInstance.connect(accounts[i]).deposit({ value: ethers.utils.parseEther("3") });
+      await wmaticInstance.connect(accounts[i]).deposit({ value: ethers.utils.parseEther("15") });
     }
   });
 

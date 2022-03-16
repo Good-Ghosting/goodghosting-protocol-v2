@@ -22,7 +22,7 @@ const { depositCount, segmentLength, segmentPayment: segmentPaymentInt, earlyWit
 const daiDecimals = ethers.BigNumber.from("1000000000000000000");
 const segmentPayment = daiDecimals.mul(ethers.BigNumber.from(segmentPaymentInt)); // equivalent to 10 Inbound Token
 
-describe("Aave Pool Fork Tests with the deposit token same as reward token", () => {
+describe("Aave Variable Deposit Pool Fork Tests with the deposit token same as reward token", () => {
   if (
     process.env.NETWORK === "local-celo-mobius" ||
     process.env.NETWORK === "local-celo-moola" ||
@@ -86,6 +86,7 @@ describe("Aave Pool Fork Tests with the deposit token same as reward token", () 
     );
 
     await strategy.connect(accounts[0]).transferOwnership(pool.address);
+    await pool.initialize();
 
     // send out tokens to the players
     for (let i = 0; i < 5; i++) {
