@@ -40,7 +40,7 @@ describe("Aave Variable Deposit Pool Fork Tests with no winners", () => {
     accounts = await ethers.getSigners();
     let lendingPoolAddressProviderInstance: any, dataProviderInstance: any, incentiveControllerInstance: any;
 
-    const impersonateAddress = process.env.DAI_ACCOUNT_HOLDER_FORKED_NETWORK;
+    const impersonateAddress = process.env.WHALE_ADDRESS_FORKED_NETWORK;
     // Impersonate as another address
     await network.provider.request({
       method: "hardhat_impersonateAccount",

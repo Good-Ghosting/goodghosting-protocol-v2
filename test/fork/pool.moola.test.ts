@@ -8,7 +8,7 @@ contract("Pool with Moola Strategy", accounts => {
   // Only executes this test file for local network fork
   if (!["local-celo-moola"].includes(process.env.NETWORK ? process.env.NETWORK : "")) return;
 
-  const unlockedDaiAccount = process.env.DAI_ACCOUNT_HOLDER_FORKED_NETWORK;
+  const unlockedDaiAccount = process.env.WHALE_ADDRESS_FORKED_NETWORK;
   let providersConfigs: any;
   let GoodGhostingArtifact: any;
   if (process.env.NETWORK === "local-celo-moola") {
