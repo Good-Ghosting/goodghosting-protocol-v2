@@ -5,6 +5,7 @@ import { solidity } from "ethereum-waffle";
 import {
   LendingPoolAddressesProviderMock__factory,
   Pool__factory,
+  WhitelistedPool__factory,
   AaveStrategy__factory,
   MintableERC20__factory,
   MockWMatic__factory,
@@ -24,6 +25,7 @@ chai.use(solidity);
 const { expect } = chai;
 
 const ZERO_ADDRESS = "0x0000000000000000000000000000000000000000";
+const merkleRoot: any = "0x2dac1451902c8c1cb264301adfc0e0a2527a01cb92a344d68a16521d7bca56d8";
 
 export const deployPool = async (
   depositCount: number,
@@ -41,6 +43,7 @@ export const deployPool = async (
   curvePoolType: number,
   strategyType: string,
   maxFlexibleSegmentAmount: number,
+  isWhitelisted: boolean,
 ) => {
   const [deployer, , player1, player2] = await ethers.getSigners();
   const lendingPoolAddressProvider = new LendingPoolAddressesProviderMock__factory(deployer);
@@ -145,16 +148,36 @@ export const deployPool = async (
       );
     }
   }
+  let goodGhosting: any;
+  if (!isWhitelisted) {
+    const goodGhostingV2Deployer = new Pool__factory(deployer);
+    await expect(
+      goodGhostingV2Deployer.deploy(
+        isInboundToken ? inboundToken.address : inboundToken,
+        ethers.utils.parseEther(maxFlexibleSegmentAmount.toString()),
+        depositCount,
+        segmentLength,
+        segmentLength / 2,
+        segmentPayment,
+        earlyWithdrawFee,
+        adminFee,
+        playerCount,
+        isVariableAmount,
+        isInvestmentStrategy ? strategy.address : strategy,
+        isTransactionalToken,
+      ),
+    ).to.be.revertedWith("INVALID_WAITING_ROUND_SEGMENT_LENGTH()");
 
-  const goodGhostingV2Deployer = new Pool__factory(deployer);
+    if (isSameAsRewardToken) {
+      inboundToken = rewardToken;
+    }
 
-  await expect(
-    goodGhostingV2Deployer.deploy(
+    goodGhosting = await goodGhostingV2Deployer.deploy(
       isInboundToken ? inboundToken.address : inboundToken,
       ethers.utils.parseEther(maxFlexibleSegmentAmount.toString()),
       depositCount,
       segmentLength,
-      segmentLength / 2,
+      segmentLength * 2,
       segmentPayment,
       earlyWithdrawFee,
       adminFee,
@@ -162,35 +185,64 @@ export const deployPool = async (
       isVariableAmount,
       isInvestmentStrategy ? strategy.address : strategy,
       isTransactionalToken,
-    ),
-  ).to.be.revertedWith("INVALID_WAITING_ROUND_SEGMENT_LENGTH()");
+    );
+    if (isInvestmentStrategy) {
+      await strategy.transferOwnership(goodGhosting.address);
+    }
 
-  if (isSameAsRewardToken) {
-    inboundToken = rewardToken;
-  }
-  const goodGhosting = await goodGhostingV2Deployer.deploy(
-    isInboundToken ? inboundToken.address : inboundToken,
-    ethers.utils.parseEther(maxFlexibleSegmentAmount.toString()),
-    depositCount,
-    segmentLength,
-    segmentLength * 2,
-    segmentPayment,
-    earlyWithdrawFee,
-    adminFee,
-    playerCount,
-    isVariableAmount,
-    isInvestmentStrategy ? strategy.address : strategy,
-    isTransactionalToken,
-  );
+    await goodGhosting.initialize();
 
-  if (isInvestmentStrategy) {
-    await strategy.transferOwnership(goodGhosting.address);
-  }
-  await goodGhosting.initialize();
+    if (isIncentiveToken) {
+      await goodGhosting.setIncentiveToken(incentiveToken.address);
+      await mintTokens(incentiveToken, goodGhosting.address);
+    }
+  } else {
+    console.log;
+    const goodGhostingV2Deployer = new WhitelistedPool__factory(deployer);
 
-  if (isIncentiveToken) {
-    await goodGhosting.setIncentiveToken(incentiveToken.address);
-    await mintTokens(incentiveToken, goodGhosting.address);
+    await expect(
+      goodGhostingV2Deployer.deploy(
+        isInboundToken ? inboundToken.address : inboundToken,
+        ethers.utils.parseEther(maxFlexibleSegmentAmount.toString()),
+        depositCount,
+        segmentLength,
+        segmentLength / 2,
+        segmentPayment,
+        earlyWithdrawFee,
+        adminFee,
+        playerCount,
+        isVariableAmount,
+        isInvestmentStrategy ? strategy.address : strategy,
+        isTransactionalToken,
+      ),
+    ).to.be.revertedWith("INVALID_WAITING_ROUND_SEGMENT_LENGTH()");
+
+    if (isSameAsRewardToken) {
+      inboundToken = rewardToken;
+    }
+    goodGhosting = await goodGhostingV2Deployer.deploy(
+      isInboundToken ? inboundToken.address : inboundToken,
+      ethers.utils.parseEther(maxFlexibleSegmentAmount.toString()),
+      depositCount,
+      segmentLength,
+      segmentLength * 2,
+      segmentPayment,
+      earlyWithdrawFee,
+      adminFee,
+      playerCount,
+      isVariableAmount,
+      isInvestmentStrategy ? strategy.address : strategy,
+      isTransactionalToken,
+    );
+    if (isInvestmentStrategy) {
+      await strategy.transferOwnership(goodGhosting.address);
+    }
+    await goodGhosting.initializePool(merkleRoot);
+
+    if (isIncentiveToken) {
+      await goodGhosting.setIncentiveToken(incentiveToken.address);
+      await mintTokens(incentiveToken, goodGhosting.address);
+    }
   }
 
   return {

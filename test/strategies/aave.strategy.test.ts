@@ -59,6 +59,7 @@ describe("Pool using Aave strategy", () => {
       0,
       "aave",
       0,
+      false,
     );
   });
 
@@ -87,6 +88,7 @@ describe("Pool using Aave strategy", () => {
         0,
         "aave",
         0,
+        false,
       );
       await ethers.provider.send("evm_increaseTime", [segmentLength]);
       await ethers.provider.send("evm_mine", []);
@@ -124,6 +126,7 @@ describe("Pool using Aave strategy", () => {
         0,
         "aave",
         0,
+        false,
       );
       const accounts = await ethers.getSigners();
       const player1 = accounts[2];
@@ -162,6 +165,7 @@ describe("Pool using Aave strategy", () => {
         0,
         "aave",
         0,
+        false,
       );
       const accounts = await ethers.getSigners();
       const player1 = accounts[2];
@@ -199,6 +203,7 @@ describe("Pool using Aave strategy", () => {
         0,
         "aave",
         0,
+        false,
       );
       const accounts = await ethers.getSigners();
       const player1 = accounts[2];
