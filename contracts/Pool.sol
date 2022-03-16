@@ -803,6 +803,7 @@ contract Pool is Ownable, Pausable {
         uint256 payout = player.amountPaid;
         uint256 playerIncentive = 0;
         uint256 playerReward = 0;
+        uint256 playerInterestShare = 0;
         uint256 playerGovernanceTokenReward = 0;
         uint256 playerSharePercentage = 0;
 
@@ -833,8 +834,8 @@ contract Pool is Ownable, Pausable {
                 // the player share of interest is calculated from player index
                 // player share % = playerIndex / cummalativePlayerIndexSum of player indexes of all winners * 100
                 // so, interest share = player share % * total game interest
-                uint256 playerShare = totalGameInterest.mul(playerSharePercentage).div(uint256(100));
-                payout = payout.add(playerShare);
+                playerInterestShare = totalGameInterest.mul(playerSharePercentage).div(uint256(100));
+                payout = payout.add(playerInterestShare);
             }
 
             // Calculates winner's share of the additional rewards & incentives
@@ -852,6 +853,7 @@ contract Pool is Ownable, Pausable {
             }
 
             if (flexibleSegmentPayment) {
+                totalGameInterest = totalGameInterest.sub(playerInterestShare);
                 cummalativePlayerIndexSum[lastSegment.sub(1)] = cummalativePlayerIndexSum[lastSegment.sub(1)].sub(
                     cumulativePlayerIndex
                 );
