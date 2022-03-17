@@ -113,7 +113,7 @@ function printSummary(
   console.log(`Network Name: ${networkName}`);
   console.log(`Contract's Owner: ${owner}`);
 
-  console.log(`Inbound Currency: ${inboundCurrencySymbol} at ${inboundCurrencyAddress}`);
+  console.log(`Inbound Currency: ${inboundCurrencyAddress}`);
   console.log(`Maximum Flexible Segment Payment Amount: ${maxFlexibleSegmentPaymentAmount}`);
 
   console.log(`Segment Count: ${depositCount}`);
