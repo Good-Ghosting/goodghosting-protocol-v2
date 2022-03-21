@@ -1,114 +1,316 @@
-# Solidity Template
+# GoodGhosting Hodl Pool
 
-My favorite setup for writing Solidity smart contracts.
+GoodGhosting is a DeFi Protocol currently live on Polygon & Celo, which is revolutionizing the savings domain by gamifying it and rewarding regular savers.
 
-- [Hardhat](https://github.com/nomiclabs/hardhat): compile and run the smart contracts on a local development network
-- [TypeChain](https://github.com/ethereum-ts/TypeChain): generate TypeScript types for smart contracts
-- [Ethers](https://github.com/ethers-io/ethers.js/): renowned Ethereum library and wallet implementation
-- [Waffle](https://github.com/EthWorks/Waffle): tooling for writing comprehensive smart contract tests
-- [Solhint](https://github.com/protofire/solhint): linter
-- [Solcover](https://github.com/sc-forks/solidity-coverage): code coverage
-- [Prettier Plugin Solidity](https://github.com/prettier-solidity/prettier-plugin-solidity): code formatter
+You can read more about the [V0 Version](https://github.com/Good-Ghosting/goodghosting-protocol-v0#readme) to get a better understanding of the protocol.
 
-This is a GitHub template, which means you can reuse it as many times as you want. You can do that by clicking the "Use this
-template" button at the top of the page.
+With the GoodGhosting Hodl Pool, we aim to improve on the protocol and make it more fair, rewarding and more yield generating opportunities for regular savers in addition to the hodl feature.
 
-## Usage
+## Notable Features in Hodl Pool
 
-### Pre Requisites
+- **Different segment and waiting round length** as the word "hodl" the hodl pool aims to reduce the player's interaction with smart contract so the hodl pools can have just 1 deposit segment and 3/6 month waiting period.
 
-Before running any command, you need to create a `.env` file and set a BIP-39 compatible mnemonic as an environment
-variable. Follow the example in `.env.example`. If you don't already have a mnemonic, use this [website](https://iancoleman.io/bip39/) to generate one.
+- **Flexible Amount Deposit Pools** yes you heard it correct, this option will enabled while deployment of pool contract, there will be a max. amount limit but players can choose any valid amount but once you choose the amount you have to deposit the same amount in each segment.
 
-Then, proceed with installing dependencies:
+- **Accounting of the interest and rewards distributed to winners** To introduce fairness unlike v0, the share of interest and rewards for winners will be decided by how much you deposit (in case of a flexible deposit pool) and how early you deposit in each segment.
 
-```sh
+- **Multiple Yield Strategies** the new hodl pool smart contract architecture allows to have multiple sources for yield strategies other than aave and moola like curve, mobius etc and many more in the future.
+
+## Types of Pools
+- **Fixed Deposit Pool with same waiting segment duration** Native Pool where the deposit amount is fixed for each player and the waiting round duration is fixed too.
+
+- **Fixed Deposit Pool with waiting round duration more than payment segment duration** Fixed Deposit Hodl Pool basically which will have less player interaction in terms of sending transactions i.e a pool with 1 deposit segment of 1 week and 3 months of waiting round.
+
+- **Flexible Deposit Pool with same waiting segment duration** Flexible Deposit Amount Pool where the deposit amount is decided by the player while joining and the waiting round duration is fixed too.
+
+- **Flexible Deposit Pool with waiting round duration more than payment segment duration** Flexible Deposit Amount Hodl Pool basically which will have less player interaction in terms of sending transactions i.e a pool with 1 deposit segment of 1 week and 3 months of waiting round.
+
+- **Transactional Token Pool** Fixed or Flexible Deposit pool with transactional token as deposit for example a pool with matic as deposit token.
+
+- **Deposit Token same as reward Token** Fixed or Flexible Deposit pool with deposit token and reward token same for example a pool with wmatic as deposit token.
+
+## Pool Interest Accounting Math
+As mentioned above with this new version of the GoodGhosting Protocol we aim to introduce fairness in terms of interest and reward generation for winners, and we are doing this by computing player share % which is computed based on the deposit amount made by each player and how early does a player pay in each segment, so below is an explanation of the math behind this feature.
+
+In the new version of the [Pool Smart Contract](https://github.com/Good-Ghosting/goodghosting-protocol-v1/blob/master/contracts/Pool.sol) we have a couple of mappings defined ```playerIndex[player_address][segment_number] & cummalativePlayerIndexSum[segment_number]```
+
+```
+Now as each player starts making deposits the mappings are updated as follows:
+playerIndex = deposit_amount * (MULTIPLIER_CONSTANT) / block.timestamp
+
+for (each segment paid by the player) {
+cummalativePlayerIndexSum[current_segment] += playerIndex
+}
+
+cummalativePlayerIndexSum as you see is **updated for every new deposit for each segment (reason for updating it in each segment is explained in the next section)**
+
+here MULTIPLIER_CONSTANT is used since solidity cannot handle decimal values it is a very large constant 10**8
+
+so the playerIndex updates for each player during each deposit.
+```
+
+So once the game get's over when the players withdraw the interest & reward share is calculated as:
+
+```
+uint playerIndexSum = 0;
+for (each segment paid by the player) {
+playerIndexSum += playerIndex
+}
+
+playerSharePercentage = playerIndexSum * 100 / cummalativePlayerIndexSum[last_segment]
+
+playerSharePercentage is the % of funds the winners get from the total game interest and total rewards generated by the game.
+```
+
+## Emergency Scenario
+With Hodl Pools especially there comes a risk of funds being locked in the external protocol in case something happens or if an external protocol utilized by one of the goodghosting pools migrates to a new contract in the middle of a game. So to handle these scenario's we have a introduced a new function in the smart contract (enableEmergencyWithdraw)[https://github.com/Good-Ghosting/goodghosting-protocol-v1/blob/master/contracts/Pool.sol#L572] which can only be called by the contract deployer aka the admin.
+
+Once this function is called, it updates the last segment value to current segment & makes the emergency flag true in the smart contract, players then who have deposited in the prev. segment i.e current segment - 1 are all considered as winners and they can withdraw their funds immeditately once the emergency flag is enabled.
+
+
+
+# Smart Contract Overview
+
+<img width="1368" alt="Screenshot 2022-03-10 at 9 34 58 AM" src="https://user-images.githubusercontent.com/26670962/157606809-2df36e2f-9c71-4bed-b291-d37377095ef2.png">
+
+> As you can see in order to make our contracts modular we have divided the contracts into two types, the pool contract which holds all the core game/pool logic and the yield strategy contracts so in a way the pool contract is the parent contract and players cannot directly interact with the strategy contracts, only the pool contract can, so while deploying the pool we set the address of the strategy we want to use for that pool, below is an in depth explanation of each contract.
+
+<br/>
+
+* **[Pool](https://github.com/Good-Ghosting/goodghosting-protocol-v1/blob/master/contracts/Pool.sol)** is the core contract with only the game logic in it, it's the parent contract through which players are able to make deposits into various yield strategy contracts and withdraw funds.
+
+* **[IStrategy](https://github.com/Good-Ghosting/goodghosting-protocol-v1/blob/master/contracts/strategies/IStrategy.sol)** is the interface that all strategy contracts inherit so that it becomes straightforward to plug and play any strategy in the pool contract.
+
+* **[AaveStrategy](https://github.com/Good-Ghosting/goodghosting-protocol-v1/blob/master/contracts/strategies/AaveStrategy.sol)** is responsible for depositing funds that it gets from the pool contract to aave/moola and withdraw the funds from aave/moola and send back to the pool contract.
+
+* **[CurveStrategy](https://github.com/Good-Ghosting/goodghosting-protocol-v1/blob/master/contracts/strategies/CurveStrategy.sol)** is responsible for depositing funds that it gets from the pool contract to curve stable/volatile pools and withdraw the funds from curve stable/volatile pools and send back to the pool contract.
+
+* **[MobiusStrategy](https://github.com/Good-Ghosting/goodghosting-protocol-v1/blob/master/contracts/strategies/MobiusStrategy.sol)**: is responsible for depositing funds that it gets from the pool contract to any mobius liquidity pool and withdraw the funds from that mobius liquidity pool and send back to the pool contract.
+
+# Development
+The repository uses both hardhat and truffle, hardhat is used for aave strategy based pool deployments and unit tests and for other strategy fork tests and deployments truffle is used.
+
+## Setup
+
+Install Truffle.
+```bash
+yarn add global truffle
+```
+
+Install Ganache for having a local dev Ethereum network.
+```bash
+yarn add global ganache ganache-cli
+```
+
+Create a local `.env` file by copying the sample `.env.sample` file available in the root folder (`cp .env.sample .env`). After your `.env` file is created, edit it with appropriate values for the variables.
+
+Install Project dependencies
+```bash
 yarn install
 ```
 
-### Compile
+## Common Development Commands
 
-Compile the smart contracts with Hardhat:
-
-```sh
-$ yarn compile
+Compile contracts
+```bash
+yarn compile
 ```
 
-### TypeChain
 
-Compile the smart contracts and generate TypeChain artifacts:
+# Tests
 
-```sh
-$ yarn typechain
+## Unit Tests
+
+
+**Requirement:** Make sure the `FORKING` var is set false before running the unit test suite.
+
+To run the unit tests use either
+`yarn test`
+
+To run test coverage: `yarn coverage`
+
+## Integration Tests Using Forked Networks
+### Setup
+To run the integrated test scenarios forking from Mainnet (Polygon or Celo) you'll have to:
+- Configure `WHALE_ADDRESS_FORKED_NETWORK` in your `.env` file, as you see the .env.example file the whale address is `0x075e72a5edf65f0a5f44699c7654c1a76941ddc8` for polygon & `0x5776b4893faca32A9224F18950406c9599f3B013` for celo.
+
+- Review the deployment configs ([deploy-config.js file](./deploy-config.js)) prior to executing the test on the forked network.
+
+### Steps
+#### Polygon
+- **Aave Strategy Based Pool** As mentioned above we use hardhat for this, after doing the setup mentioned above, the next step is to set the `FORKING` var in your .env file as `true`, next in your [config](https://github.com/Good-Ghosting/goodghosting-protocol-v1/blob/master/hardhat.config.ts#L62) you set your desired rpc url, currently a public rpc is set. Then you just run `yarn test`.
+
+- **Curve Strategy Based Pool** As mentioned above we use truffle for this, so open a new terminal window and run  `ganache-cli -f <Your Polygon RPC> -m "clutchaptain shoe salt awake harvest setup primary inmate ugly among become" -i 999 --unlock {WHALE_ADDRESS_FORKED_NETWORK}` and in the second window run `yarn test:fork:polygon:curve` for fixed deposit pool & `yarn test:fork:variable:polygon:curve` for variable deposit pool.
+
+#### Celo
+Since hardhat currently does not support celo, so we use truffle for celo fork tests. To start open another terminal window and run
+`ganache-cli -f https://forno.celo.org/ -m "clutchaptain shoe salt awake harvest setup primary inmate ugly among become" -i 999 --unlock {WHALE_ADDRESS_FORKED_NETWORK}` and in the second window run 
+`yarn test:fork:celo:mobius` for fixed deposit mobius strategy pool, `yarn test:fork:celo:moola` for fixed deposit moola strategy pool, `yarn test:fork:variable:celo:mobius` for variable deposit mobius strategy pool & `yarn test:fork:variable:celo:moola` for variable deposit moola strategy pool.
+
+# Security Tools
+There's a few automated security tools that could be integrated with the development process. Currently, we use [Slither](https://github.com/crytic/slither) to help identify well-known issues via static analysis. Other tools may be added in the near future as part of the continuous improvement process.
+
+## Slither
+Make sure you install Slither by following the instructions available on [Slither's](https://github.com/crytic/slither) github page. Note: it requires Python, so you may need to install it before you're able to use Slither.
+
+Slither can be executed with the following command:
+
+```bash
+slither .
 ```
 
-### Lint Solidity
 
-Lint the Solidity code:
+# Contract Deployment
+## Polygon
+- **Aave Strategy Based Pool** Start of by setting the `MNEMONIC` var (which is the 12 word seed phrase in your wallet) & the `RPC` var in the .env file & make sure you have your rpc url defined in [hardhat config file](https://github.com/Good-Ghosting/goodghosting-protocol-v1/blob/master/hardhat.config.ts#L62), then make sure you have the [right deployment configs set](https://github.com/Good-Ghosting/goodghosting-protocol-v1/blob/master/deploy.config.ts)(if a **whitelisted pool** needs to be deployed make sure the merkle root is set and the [isWhitelisted var](https://github.com/Good-Ghosting/goodghosting-protocol-v1/blob/master/deploy.config.ts#L135) is true) and run `yarn deploy`.
 
-```sh
-$ yarn lint:sol
+You will see something like this:
+
+
+- **Curve Strategy Based Pool** Start by setting the `MNEMONIC` var (which is the 12 word seed phrase in your wallet) & the `RPC` var in the .env file & then make sure you have the [right deployment configs set](https://github.com/Good-Ghosting/goodghosting-protocol-v1/blob/master/deploy.config.ts)(if a **whitelisted pool** needs to be deployed make sure the merkle root is set and the [isWhitelisted var](https://github.com/Good-Ghosting/goodghosting-protocol-v1/blob/master/deploy.config.ts#L135) is true), then just run `yarn deploy:polygon-curve`.
+
+You will see something like this:
+
+
+## Celo
+Start by setting the `MNEMONIC` var (which is the 12 word seed phrase in your wallet) in the .env file, also set the `CELO_PRIVATE_KEY` var which is the private key of your celo wallet & then make sure you have the [right deployment configs set](https://github.com/Good-Ghosting/goodghosting-protocol-v1/blob/master/deploy.config.ts)(if a **whitelisted pool** needs to be deployed make sure the merkle root is set and the [isWhitelisted var](https://github.com/Good-Ghosting/goodghosting-protocol-v1/blob/master/deploy.config.ts#L135) is true). Open two terminal windows, in one of them run
+`ganache-cli -f https://forno.celo.org/ -m "clutchaptain shoe salt awake harvest setup primary inmate ugly among become" -i 999 --unlock {WHALE_ADDRESS_FORKED_NETWORK}` in the 2nd window run `yarn deploy:celo-mobius` for mobius strategy based pool or `yarn deploy:celo-moola` for moola strategy based pool.
+
+You will see something like this:
+
+```
+Starting migrations...
+======================
+> Network name:    'celo-mobius'
+> Network id:      42220
+> Block gas limit: 0 (0x0)
+
+
+2_deploy_contracts.js
+=====================
+
+Replacing 'MobiusStrategy'
+--------------------------
+> transaction hash:    0x258fd6b7586f385c8c9b0506a0a38b31411a88a9d5377375addb171399215093
+> Blocks: 1            Seconds: 4
+> contract address:    0x422Bf01090c47E0A5222A740433Eb6D7AEA4c328
+> block number:        11985352
+> block timestamp:     1647505428
+> account:             0xf88b0247e611eE5af8Cf98f5303769Cba8e7177C
+> balance:             2.110748391676738485
+> gas used:            1856790 (0x1c5516)
+> gas price:           0.5 gwei
+> value sent:          0 ETH
+> total cost:          0.000928395 ETH
+
+
+Replacing 'SafeMath'
+--------------------
+> transaction hash:    0xdc5acfd4e69d3b5de2b6012af3cfa6fa057576b13d8bc83541c649ac97391198
+> Blocks: 0            Seconds: 0
+> contract address:    0xb2C98f7f573bbf653972F030766e36138C82F4A2
+> block number:        11985353
+> block timestamp:     1647505433
+> account:             0xf88b0247e611eE5af8Cf98f5303769Cba8e7177C
+> balance:             2.110712283176738485
+> gas used:            72217 (0x11a19)
+> gas price:           0.5 gwei
+> value sent:          0 ETH
+> total cost:          0.0000361085 ETH
+
+
+Replacing 'Pool'
+----------------
+> transaction hash:    0x16194fe3dda5f6fe40f98a36a4bbca24656c38853e7210fb57c2551e1e26df7f
+> Blocks: 0            Seconds: 0
+> contract address:    0x99E91F09991966aBe0DC59555a5C1e25a78E08B7
+> block number:        11985354
+> block timestamp:     1647505438
+> account:             0xf88b0247e611eE5af8Cf98f5303769Cba8e7177C
+> balance:             2.108424171176738485
+> gas used:            4576224 (0x45d3e0)
+> gas price:           0.5 gwei
+> value sent:          0 ETH
+> total cost:          0.002288112 ETH
+
+
+
+
+----------------------------------------------------
+GoogGhosting Holding Pool deployed with the following arguments:
+----------------------------------------------------
+
+Network Name: celo-mobius
+Contract's Owner: 0xf88b0247e611eE5af8Cf98f5303769Cba8e7177C
+Inbound Currency: 0x765DE816845861e75A25fCA122bb6898B8B1282a
+Maximum Flexible Segment Payment Amount: 0
+Segment Count: 3
+Segment Length: 604800 seconds
+Waiting Segment Length: 604800 seconds
+Segment Payment: 3 dai (3000000000000000000 wei)
+Early Withdrawal Fee: 1%
+Custom Pool Fee: 1%
+Max Quantity of Players: 115792089237316195423570985008687907853269984665640564039457584007913129639935
+Flexible Deposit Pool: false
+Transactional Token Depsoit Pool: false
+Strategy: 0x422Bf01090c47E0A5222A740433Eb6D7AEA4c328
+Mobius Pool: 0x9906589Ea8fd27504974b7e8201DF5bBdE986b03
+Mobius Gauge: 0xc96AeeaFF32129da934149F6134Aa7bf291a754E
+Mobius Minter: 0x5F0200CA03196D5b817E2044a0Bb0D837e0A7823
+Mobi Token: 0x73a210637f6F6B7005512677Ba6B3C96bb4AA44B
+Celo Token: 0x471EcE3750Da237f93B8E339c536989b8978a438
+Mobius Strategy Encoded Params:  0000000000000000000000009906589ea8fd27504974b7e8201df5bbde986b03000000000000000000000000c96aeeaff32129da934149f6134aa7bf291a754e0000000000000000000000005f0200ca03196d5b817e2044a0bb0d837e0a782300000000000000000000000073a210637f6f6b7005512677ba6b3c96bb4aa44b000000000000000000000000471ece3750da237f93b8e339c536989b8978a438
+
+
+Constructor Arguments ABI-Encoded:
+000000000000000000000000765de816845861e75a25fca122bb6898b8b1282a000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000030000000000000000000000000000000000000000000000000000000000093a800000000000000000000000000000000000000000000000000000000000093a8000000000000000000000000000000000000000000000000029a2241af62c000000000000000000000000000000000000000000000000000000000000000000010000000000000000000000000000000000000000000000000000000000000001ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000422bf01090c47e0a5222a740433eb6d7aea4c3280000000000000000000000000000000000000000000000000000000000000000
+
+
+
+
+
+> Saving artifacts
+-------------------------------------
+> Total cost:        0.0032526155 ETH
+
+
+Summary
+=======
+> Total deployments:   3
+> Final cost:          0.0032526155 ETH
 ```
 
-### Lint TypeScript
 
-Lint the TypeScript code:
 
-```sh
-$ yarn lint:ts
-```
 
-### Test
 
-Run the Mocha tests:
+### Merkle Root Generation for Whitelisted Contracts
+To deploy the `WhitelistedPool` contract, a merkle root is required, introduced for the purpose of whitelisting users. The merkle root can be created by using the repo below:
 
-```sh
-$ yarn test
-```
+Clone this [repository](https://github.com/Good-Ghosting/Whitelisting)
 
-### Coverage
+Install Dependencies: `yarn install`
 
-Generate the code coverage report:
+Edit this [file](https://github.com/Good-Ghosting/goodghosting-whitelisting/blob/master/scripts/input.csv) with the addresses you want to whitelist, keeping the JSON format same.
 
-```sh
-$ yarn coverage
-```
+Run: `yarn generate-merkle-root`
 
-### Report Gas
+You should see an output similar to this:
 
-See the gas usage per unit test and average gas per method call:
+`{
+  "merkleRoot": "0xc65049d2040e43b130c923276515ed14d241ac88d28f0c03384d5b5f7197be82",
+  "claims": {
+    "0xBE73748446811eBC2a4DDdDcd55867d013D6136e": {
+      "index": 0,
+      "exists": "true",
+      "proof": ["0x1f122d8c45929e68268031d8ce59ea362ab716d6b93f3b226c4cdcf459c766b3"]
+    },
+    "0xb9a28ce32dcA69AD25E17212bC6D3D753E795aAe": {
+      "index": 1,
+      "exists": "true",
+      "proof": ["0xdbab8c7f829217c06dc0a73baaefdbfd9e15c463a255e1b3947b27f7792462de"]
+    }
+  }
+}`
 
-```sh
-$ REPORT_GAS=true yarn test
-```
-
-### Clean
-
-Delete the smart contract artifacts, the coverage reports and the Hardhat cache:
-
-```sh
-$ yarn clean
-```
-
-### Deploy
-
-Deploy the contracts to Hardhat Network:
-
-```sh
-$ yarn deploy --greeting "Bonjour, le monde!"
-```
-
-## Syntax Highlighting
-
-If you use VSCode, you can enjoy syntax highlighting for your Solidity code via the
-[vscode-solidity](https://github.com/juanfranblanco/vscode-solidity) extension. The recommended approach to set the
-compiler version is to add the following fields to your VSCode user settings:
-
-```json
-{
-  "solidity.compileUsingRemoteVersion": "v0.8.4+commit.c7e474f2",
-  "solidity.defaultCompiler": "remote"
-}
-```
-
-Where of course `v0.8.4+commit.c7e474f2` can be replaced with any other version.
+Copy the value of the `merkleRoot` field, and replace the merkle root parameter in the [deploy.config.js](https://github.com/Good-Ghosting/goodghosting-protocol-v1/blob/master/deploy.config.ts) file. Once this step is done, the contract can be deployed using the deployment instructions provided above.
