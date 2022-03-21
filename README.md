@@ -177,10 +177,233 @@ slither .
 
 You will see something like this:
 
+```
+Starting migrations...
+======================
+> Network name:    'polygon-aave'
+> Network id:      137
+> Block gas limit: 30000000 (0x1c9c380)
+
+
+2_deploy_contracts.js
+=====================
+
+   Deploying 'AaveStrategy'
+   ------------------------
+   > transaction hash:    0x3d0445201814629cf0eea2e68f0c034a288708ec62e5c50ef558f3fdff30b873
+   > Blocks: 2            Seconds: 9
+   > contract address:    0x7f8bA69d2D7bD4490AB0aa35B92e29B845aaB7fA
+   > block number:        26186433
+   > block timestamp:     1647862592
+   > account:             0xf88b0247e611eE5af8Cf98f5303769Cba8e7177C
+   > balance:             12.653319168891911123
+   > gas used:            2004678 (0x1e96c6)
+   > gas price:           32 gwei
+   > value sent:          0 ETH
+   > total cost:          0.064149696 ETH
+
+   Pausing for 2 confirmations...
+   ------------------------------
+   > confirmation number: 3 (block: 26186439)
+
+   Replacing 'SafeMath'
+   --------------------
+   > transaction hash:    0x651ba018aa6709ef01644b45b353111814630922d4ae03d976a7de4e8e37adc3
+   > Blocks: 3            Seconds: 5
+   > contract address:    0xAE130829ffeD8249BE3323289f15E4Bfd0770203
+   > block number:        26186444
+   > block timestamp:     1647862614
+   > account:             0xf88b0247e611eE5af8Cf98f5303769Cba8e7177C
+   > balance:             12.651008224891911123
+   > gas used:            72217 (0x11a19)
+   > gas price:           32 gwei
+   > value sent:          0 ETH
+   > total cost:          0.002310944 ETH
+
+   Pausing for 2 confirmations...
+   ------------------------------
+   > confirmation number: 2 (block: 26186449)
+
+   Replacing 'Pool'
+   ----------------
+   > transaction hash:    0xb16d515ed33d945d1c38be20c384d314ab0e129a602fc08eb44b4963f6bfcca1
+   > Blocks: 5            Seconds: 10
+   > contract address:    0x43a84D3BC0Fb6CFC93c7F9D08d8Be46a500bd9f3
+   > block number:        26186454
+   > block timestamp:     1647862634
+   > account:             0xf88b0247e611eE5af8Cf98f5303769Cba8e7177C
+   > balance:             12.504153056891911123
+   > gas used:            4589224 (0x4606a8)
+   > gas price:           32 gwei
+   > value sent:          0 ETH
+   > total cost:          0.146855168 ETH
+
+   Pausing for 2 confirmations...
+   ------------------------------
+   > confirmation number: 2 (block: 26186461)
+
+
+
+----------------------------------------------------
+GoodGhosting Holding Pool deployed with the following arguments:
+----------------------------------------------------
+
+Network Name: polygon-aave
+Contract's Owner: 0xf88b0247e611eE5af8Cf98f5303769Cba8e7177C
+Inbound Currency: 0x8f3Cf7ad23Cd3CaDbD9735AFf958023239c6A063
+Maximum Flexible Segment Payment Amount: 0
+Segment Count: 3
+Segment Length: 604800 seconds
+Waiting Segment Length: 604800 seconds
+Segment Payment: 3 dai (3000000000000000000 wei)
+Early Withdrawal Fee: 1%
+Custom Pool Fee: 1%
+Max Quantity of Players: 115792089237316195423570985008687907853269984665640564039457584007913129639935
+Flexible Deposit Pool: false
+Transactional Token Depsoit Pool: false
+Strategy: 0x7f8bA69d2D7bD4490AB0aa35B92e29B845aaB7fA
+Lending Pool Provider: 0xd05e3E715d945B59290df0ae8eF85c1BdB684744
+WETHGateway: 0xbEadf48d62aCC944a06EEaE0A9054A90E5A7dc97
+Data Provider: 0x7551b5D2763519d4e37e8B81929D336De671d46d
+IncentiveController: 0x357D51124f59836DeD84c8a1730D72B749d8BC23
+Reward Token: 0x0000000000000000000000000000000000000000
+Moola Strategy Encoded Params:  000000000000000000000000d05e3e715d945b59290df0ae8ef85c1bdb684744000000000000000000000000beadf48d62acc944a06eeae0a9054a90e5a7dc970000000000000000000000007551b5d2763519d4e37e8b81929d336de671d46d000000000000000000000000357d51124f59836ded84c8a1730d72b749d8bc230000000000000000000000000000000000000000000000000000000000000000
+
+
+Constructor Arguments ABI-Encoded:
+0000000000000000000000008f3cf7ad23cd3cadbd9735aff958023239c6a063000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000030000000000000000000000000000000000000000000000000000000000093a800000000000000000000000000000000000000000000000000000000000093a8000000000000000000000000000000000000000000000000029a2241af62c000000000000000000000000000000000000000000000000000000000000000000010000000000000000000000000000000000000000000000000000000000000001ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff00000000000000000000000000000000000000000000000000000000000000000000000000000000000000007f8ba69d2d7bd4490ab0aa35b92e29b845aab7fa0000000000000000000000000000000000000000000000000000000000000000
+
+
+
+
+
+   > Saving artifacts
+   -------------------------------------
+   > Total cost:         0.213315808 ETH
+```
+
+
+Summary
+=======
+> Total deployments:   3
+> Final cost:          0.213315808 ETH
+
 
 - **Curve Strategy Based Pool** Start by setting the `MNEMONIC` var (which is the 12 word seed phrase in your wallet) & the `RPC` var in the .env file & then make sure you have the [right deployment configs set](https://github.com/Good-Ghosting/goodghosting-protocol-v1/blob/master/deploy.config.ts)(if a **whitelisted pool** needs to be deployed make sure the merkle root is set and the [isWhitelisted var](https://github.com/Good-Ghosting/goodghosting-protocol-v1/blob/master/deploy.config.ts#L135) is true), then just run `yarn deploy:polygon-curve`.
 
 You will see something like this:
+
+```
+Starting migrations...
+======================
+> Network name:    'polygon-curve'
+> Network id:      137
+> Block gas limit: 30000000 (0x1c9c380)
+
+
+2_deploy_contracts.js
+=====================
+
+   Deploying 'CurveStrategy'
+   -------------------------
+   > transaction hash:    0xd74b8a02319bc7b83a212e31307865b87cca3370d97103308836fb2c81a9585b
+   > Blocks: 5            Seconds: 9
+   > contract address:    0x96083906aAD9dC0860e5B05a919f190213701Fae
+   > block number:        26184454
+   > block timestamp:     1647858510
+   > account:             0xf88b0247e611eE5af8Cf98f5303769Cba8e7177C
+   > balance:             3.060655209613386811
+   > gas used:            2354830 (0x23ee8e)
+   > gas price:           32 gwei
+   > value sent:          0 ETH
+   > total cost:          0.07535456 ETH
+
+   Pausing for 2 confirmations...
+   ------------------------------
+   > confirmation number: 2 (block: 26184460)
+
+   Deploying 'SafeMath'
+   --------------------
+   > transaction hash:    0xa0cb670b6e7cca13a7b1fb4a240144eecee6fdf78e3dfe5142980f09f1bc287d
+   > Blocks: 5            Seconds: 9
+   > contract address:    0x0a440F7B5414dFa7f5Ea94a01a21b8fC36f23276
+   > block number:        26184468
+   > block timestamp:     1647858538
+   > account:             0xf88b0247e611eE5af8Cf98f5303769Cba8e7177C
+   > balance:             3.058344265613386811
+   > gas used:            72217 (0x11a19)
+   > gas price:           32 gwei
+   > value sent:          0 ETH
+   > total cost:          0.002310944 ETH
+
+   Pausing for 2 confirmations...
+   ------------------------------
+   > confirmation number: 2 (block: 26184474)
+
+   Deploying 'Pool'
+   ----------------
+   > transaction hash:    0x76a240fc028f3b05d6a84fe160f3560dc991392a635257d7a102dcf8debc08d5
+   > Blocks: 5            Seconds: 9
+   > contract address:    0x032A14626522c502389EC5Eec1F3827697e1a0d1
+   > block number:        26184482
+   > block timestamp:     1647858566
+   > account:             0xf88b0247e611eE5af8Cf98f5303769Cba8e7177C
+   > balance:             2.911489097613386811
+   > gas used:            4589224 (0x4606a8)
+   > gas price:           32 gwei
+   > value sent:          0 ETH
+   > total cost:          0.146855168 ETH
+
+   Pausing for 2 confirmations...
+   ------------------------------
+   > confirmation number: 3 (block: 26184488)
+
+
+
+----------------------------------------------------
+GoodGhosting Holding Pool deployed with the following arguments:
+----------------------------------------------------
+
+Network Name: polygon-curve
+Contract's Owner: 0xf88b0247e611eE5af8Cf98f5303769Cba8e7177C
+Inbound Currency: 0x8f3Cf7ad23Cd3CaDbD9735AFf958023239c6A063
+Maximum Flexible Segment Payment Amount: 0
+Segment Count: 3
+Segment Length: 604800 seconds
+Waiting Segment Length: 604800 seconds
+Segment Payment: 3 dai (3000000000000000000 wei)
+Early Withdrawal Fee: 1%
+Custom Pool Fee: 1%
+Max Quantity of Players: 115792089237316195423570985008687907853269984665640564039457584007913129639935
+Flexible Deposit Pool: false
+Transactional Token Depsoit Pool: false
+Strategy: 0x96083906aAD9dC0860e5B05a919f190213701Fae
+Curve Pool: 0x1d8b86e3d88cdb2d34688e87e72f388cb541b7c8
+Curve Gauge: 0x3b6b158a76fd8ccc297538f454ce7b4787778c7c
+Token index: 0
+Pool Type: 1
+Reward Token: 0x0d500B1d8E8eF31E21C99d1Db9A6444d3ADf1270
+Curve Token: 0x172370d5cd63279efa6d502dab29171933a610af
+Curve Strategy Encoded Params:  0000000000000000000000001d8b86e3d88cdb2d34688e87e72f388cb541b7c8000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000010000000000000000000000003b6b158a76fd8ccc297538f454ce7b4787778c7c0000000000000000000000000d500b1d8e8ef31e21c99d1db9a6444d3adf1270000000000000000000000000172370d5cd63279efa6d502dab29171933a610af
+
+
+Constructor Arguments ABI-Encoded:
+0000000000000000000000008f3cf7ad23cd3cadbd9735aff958023239c6a063000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000030000000000000000000000000000000000000000000000000000000000093a800000000000000000000000000000000000000000000000000000000000093a8000000000000000000000000000000000000000000000000029a2241af62c000000000000000000000000000000000000000000000000000000000000000000010000000000000000000000000000000000000000000000000000000000000001ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff000000000000000000000000000000000000000000000000000000000000000000000000000000000000000096083906aad9dc0860e5b05a919f190213701fae0000000000000000000000000000000000000000000000000000000000000000
+
+
+
+
+
+   > Saving artifacts
+   -------------------------------------
+   > Total cost:         0.224520672 ETH
+
+
+Summary
+=======
+> Total deployments:   3
+> Final cost:          0.224520672 ETH
+```
 
 
 ## Celo
@@ -248,7 +471,7 @@ Replacing 'Pool'
 
 
 ----------------------------------------------------
-GoogGhosting Holding Pool deployed with the following arguments:
+GoodGhosting Holding Pool deployed with the following arguments:
 ----------------------------------------------------
 
 Network Name: celo-mobius
