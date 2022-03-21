@@ -38,6 +38,11 @@ function printSummary(
     poolType,
     curve,
     wmatic,
+    lendingPoolAddressProviderAave,
+    wethGatewayAave,
+    dataProviderAave,
+    incentiveControllerAave,
+    incentiveTokenAave,
   },
   // additional logging info
   { networkName, selectedProvider, inboundCurrencySymbol, segmentPayment, owner },
@@ -90,6 +95,13 @@ function printSummary(
   ];
 
   var moolaStrategyValues = [lendingPoolProvider, wethGateway, dataProvider, incentiveController, rewardToken];
+  var aaveStrategyValues = [
+    lendingPoolAddressProviderAave,
+    wethGatewayAave,
+    dataProviderAave,
+    incentiveControllerAave,
+    incentiveTokenAave,
+  ];
 
   var curveStrategyParameterTypes = [
     "address", // curvePool
@@ -106,9 +118,10 @@ function printSummary(
   var mobiusStrategylEncodedParameters = abi.rawEncode(mobiusStrategyParameterTypes, mobiusStrategyValues);
   var moolsStrategylEncodedParameters = abi.rawEncode(moolaStrategyParameterTypes, moolaStrategyValues);
   var curveStrategylEncodedParameters = abi.rawEncode(curveStrategyParameterTypes, curveStrategyValues);
+  var aaveStrategylEncodedParameters = abi.rawEncode(moolaStrategyParameterTypes, aaveStrategyValues);
 
   console.log("\n\n\n----------------------------------------------------");
-  console.log("GoogGhosting Holding Pool deployed with the following arguments:");
+  console.log("GoodGhosting Holding Pool deployed with the following arguments:");
   console.log("----------------------------------------------------\n");
   console.log(`Network Name: ${networkName}`);
   console.log(`Contract's Owner: ${owner}`);
@@ -149,6 +162,13 @@ function printSummary(
     console.log(`IncentiveController: ${incentiveController}`);
     console.log(`Reward Token: ${rewardToken}`);
     console.log("Moola Strategy Encoded Params: ", moolsStrategylEncodedParameters.toString("hex"));
+  } else if (networkName == "polygon-aave") {
+    console.log(`Lending Pool Provider: ${lendingPoolAddressProviderAave}`);
+    console.log(`WETHGateway: ${wethGatewayAave}`);
+    console.log(`Data Provider: ${dataProviderAave}`);
+    console.log(`IncentiveController: ${incentiveControllerAave}`);
+    console.log(`Reward Token: ${incentiveTokenAave}`);
+    console.log("Moola Strategy Encoded Params: ", aaveStrategylEncodedParameters.toString("hex"));
   } else {
     console.log(`Curve Pool: ${curvePool}`);
     console.log(`Curve Gauge: ${curveGauge}`);
@@ -180,12 +200,13 @@ module.exports = function (deployer, network, accounts) {
       flexibleSegmentPayment = true;
       maxFlexibleSegmentPaymentAmount = "1000000000000000000000";
     } else {
-      flexibleSegmentPayment = false;
-      maxFlexibleSegmentPaymentAmount = "0";
+      flexibleSegmentPayment = config.deployConfigs.flexibleSegmentPayment;
+      maxFlexibleSegmentPaymentAmount = config.deployConfigs.maxFlexibleSegmentPaymentAmount;
     }
     const mobiusPoolConfigs = config.providers["celo"]["mobius"];
     const moolaPoolConfigs = config.providers["celo"]["moola"];
     const curvePoolConfigs = config.providers["aave"]["polygon-curve"];
+    const aavePoolConfigs = config.providers["aave"]["polygon"];
     const curvePool = curvePoolConfigs.pool;
     const curveGauge = curvePoolConfigs.gauge;
     const wmatic = curvePoolConfigs.wmatic;
@@ -201,6 +222,8 @@ module.exports = function (deployer, network, accounts) {
       network === "local-variable-celo-moola" ||
       network === "celo-moola"
         ? mobiusPoolConfigs["cusd"].address
+        : network === "polygon-aave"
+        ? aavePoolConfigs["dai"].address
         : curvePoolConfigs["dai"].address;
     const inboundCurrencyDecimals = mobiusPoolConfigs["cusd"].decimals;
     const segmentPaymentWei = (config.deployConfigs.segmentPayment * 10 ** inboundCurrencyDecimals).toString();
@@ -222,6 +245,15 @@ module.exports = function (deployer, network, accounts) {
         moolaPoolConfigs.incentiveController,
         moolaPoolConfigs.incentiveToken,
       ];
+    } else if (network === "polygon-aave") {
+      strategyArgs = [
+        MoolaStrategyArtifact,
+        aavePoolConfigs.lendingPoolAddressProvider,
+        aavePoolConfigs.wethGateway,
+        aavePoolConfigs.dataProvider,
+        aavePoolConfigs.incentiveController,
+        aavePoolConfigs.incentiveToken,
+      ];
     } else {
       strategyArgs = [
         CurveStrategyArtifact,
@@ -238,7 +270,12 @@ module.exports = function (deployer, network, accounts) {
     let strategyInstance;
     if (network === "local-celo-mobius" || network === "celo-mobius" || network === "local-variable-celo-mobius")
       strategyInstance = await MobiusStrategyArtifact.deployed();
-    else if (network === "local-celo-moola" || network === "local-variable-celo-moola" || network === "celo-moola")
+    else if (
+      network === "local-celo-moola" ||
+      network === "local-variable-celo-moola" ||
+      network === "celo-moola" ||
+      network === "polygon-aave"
+    )
       strategyInstance = await MoolaStrategyArtifact.deployed();
     else strategyInstance = await CurveStrategyArtifact.deployed();
 
@@ -300,6 +337,11 @@ module.exports = function (deployer, network, accounts) {
         poolType: config.providers["aave"]["polygon-curve"].poolType,
         curve,
         wmatic,
+        lendingPoolAddressProviderAave: aavePoolConfigs.lendingPoolAddressProvider,
+        wethGatewayAave: aavePoolConfigs.wethGateway,
+        dataProviderAave: aavePoolConfigs.dataProvider,
+        incentiveControllerAave: aavePoolConfigs.incentiveController,
+        incentiveTokenAave: aavePoolConfigs.incentiveToken,
       },
       {
         networkName: process.env.NETWORK,
