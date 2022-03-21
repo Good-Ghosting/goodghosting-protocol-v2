@@ -42,7 +42,7 @@ for (each segment paid by the player) {
 cummalativePlayerIndexSum[current_segment] += playerIndex
 }
 
-cummalativePlayerIndexSum as you see is **updated for every new deposit for each segment (reason for updating it in each segment is explained in the next section)**
+cummalativePlayerIndexSum as you see is updated for every new deposit for each segment (reason for updating it in each segment is explained in the next section)
 
 here MULTIPLIER_CONSTANT is used since solidity cannot handle decimal values it is a very large constant 10**8
 
@@ -65,7 +65,10 @@ playerSharePercentage is the % of funds the winners get from the total game inte
 ## Emergency Scenario
 With Hodl Pools especially there comes a risk of funds being locked in the external protocol in case something happens or if an external protocol utilized by one of the goodghosting pools migrates to a new contract in the middle of a game. So to handle these scenario's we have a introduced a new function in the smart contract (enableEmergencyWithdraw)[https://github.com/Good-Ghosting/goodghosting-protocol-v1/blob/master/contracts/Pool.sol#L572] which can only be called by the contract deployer aka the admin.
 
+
 Once this function is called, it updates the last segment value to current segment & makes the emergency flag true in the smart contract, players then who have deposited in the prev. segment i.e current segment - 1 are all considered as winners and they can withdraw their funds immeditately once the emergency flag is enabled.
+
+**NOTE** - Handling this emergency early exit is the reason `cummalativePlayerIndexSum` is a mapping.
 
 
 
@@ -83,9 +86,9 @@ Once this function is called, it updates the last segment value to current segme
 
 * **[AaveStrategy](https://github.com/Good-Ghosting/goodghosting-protocol-v1/blob/master/contracts/strategies/AaveStrategy.sol)** is responsible for depositing funds that it gets from the pool contract to aave/moola and withdraw the funds from aave/moola and send back to the pool contract.
 
-* **[CurveStrategy](https://github.com/Good-Ghosting/goodghosting-protocol-v1/blob/master/contracts/strategies/CurveStrategy.sol)** is responsible for depositing funds that it gets from the pool contract to curve stable/volatile pools and withdraw the funds from curve stable/volatile pools and send back to the pool contract.
+* **[CurveStrategy](https://github.com/Good-Ghosting/goodghosting-protocol-v1/blob/master/contracts/strategies/CurveStrategy.sol)** is responsible for depositing funds that it gets from the pool contract to curve stable/volatile pools and withdraw the funds from curve stable/volatile pools and send back to the pool contract, current pools supported are AAVE Stable Pool `0x445FE580eF8d70FF569aB36e80c647af338db351` & Atricrypto Volatile Pool `0x1d8b86e3d88cdb2d34688e87e72f388cb541b7c8`.
 
-* **[MobiusStrategy](https://github.com/Good-Ghosting/goodghosting-protocol-v1/blob/master/contracts/strategies/MobiusStrategy.sol)**: is responsible for depositing funds that it gets from the pool contract to any mobius liquidity pool and withdraw the funds from that mobius liquidity pool and send back to the pool contract.
+* **[MobiusStrategy](https://github.com/Good-Ghosting/goodghosting-protocol-v1/blob/master/contracts/strategies/MobiusStrategy.sol)**: is responsible for depositing funds that it gets from the pool contract to any mobius liquidity pool and withdraw the funds from that mobius liquidity pool and send back to the pool contract, current pools that were tested with are cUSD / DAI Pool `0xF3f65dFe0c8c8f2986da0FEc159ABE6fd4E700B4` & cUSD / USDC Pool `0x9906589Ea8fd27504974b7e8201DF5bBdE986b03`
 
 # Development
 The repository uses both hardhat and truffle, hardhat is used for aave strategy based pool deployments and unit tests and for other strategy fork tests and deployments truffle is used.
