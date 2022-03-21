@@ -820,14 +820,14 @@ contract Pool is Ownable, Pausable {
             ) && emergencyWithdraw)
         ) {
             // Calculate Cummalative index for each player
-            uint256 cumulativePlayerIndex = 0;
+            uint256 playerIndexSum = 0;
             uint256 segmentPaid = emergencyWithdraw
                 ? lastSegment == 0 ? 0 : lastSegment.sub(1)
                 : players[msg.sender].mostRecentSegmentPaid;
             for (uint256 i = 0; i <= segmentPaid; i++) {
-                cumulativePlayerIndex = cumulativePlayerIndex.add(playerIndex[msg.sender][i]);
+                playerIndexSum = playerIndexSum.add(playerIndex[msg.sender][i]);
             }
-            playerSharePercentage = cumulativePlayerIndex.mul(100).div(
+            playerSharePercentage = playerIndexSum.mul(100).div(
                 cummalativePlayerIndexSum[lastSegment == 0 ? 0 : lastSegment.sub(1)]
             );
             if (impermanentLossShare > 0 && totalGameInterest == 0) {
@@ -859,7 +859,7 @@ contract Pool is Ownable, Pausable {
             if (flexibleSegmentPayment) {
                 totalGameInterest = totalGameInterest.sub(playerInterestShare);
                 cummalativePlayerIndexSum[lastSegment.sub(1)] = cummalativePlayerIndexSum[lastSegment.sub(1)].sub(
-                    cumulativePlayerIndex
+                    playerIndexSum
                 );
                 rewardTokenAmount = rewardTokenAmount.sub(playerReward);
                 strategyGovernanceTokenAmount = strategyGovernanceTokenAmount.sub(playerGovernanceTokenReward);
