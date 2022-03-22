@@ -10,6 +10,7 @@ import "./merkle/IMerkleDistributor.sol";
 contract MerkleDistributor is IMerkleDistributor {
     error INVALID_PROOF();
 
+    /// @notice Merkle Root.
     bytes32 public override merkleRoot;
 
     /// @param _merkleRoot Merkle root for the game
