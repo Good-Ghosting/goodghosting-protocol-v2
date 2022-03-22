@@ -191,6 +191,7 @@ contract CurveStrategy is Ownable, IStrategy {
                 amounts[uint256(uint128(inboundTokenIndex))] = _amount;
                 uint256 poolWithdrawAmount = pool.calc_token_amount(amounts, true);
 
+                // safety check
                 if (gaugeBalance < poolWithdrawAmount) {
                     poolWithdrawAmount = gaugeBalance;
                 }
@@ -209,6 +210,7 @@ contract CurveStrategy is Ownable, IStrategy {
                 amounts[uint256(uint128(inboundTokenIndex))] = _amount;
                 uint256 poolWithdrawAmount = pool.calc_token_amount(amounts, true);
 
+                // safety check
                 if (gaugeBalance < poolWithdrawAmount) {
                     poolWithdrawAmount = gaugeBalance;
                 }
@@ -262,6 +264,7 @@ contract CurveStrategy is Ownable, IStrategy {
                     amounts[uint256(uint128(inboundTokenIndex))] = _amount;
                     uint256 poolWithdrawAmount = pool.calc_token_amount(amounts, true);
 
+                    // safety check
                     if (gaugeBalance < poolWithdrawAmount) {
                         poolWithdrawAmount = gaugeBalance;
                     }
@@ -280,6 +283,7 @@ contract CurveStrategy is Ownable, IStrategy {
                     amounts[uint256(uint128(inboundTokenIndex))] = _amount;
                     uint256 poolWithdrawAmount = pool.calc_token_amount(amounts, true);
 
+                    // safety check
                     if (gaugeBalance < poolWithdrawAmount) {
                         poolWithdrawAmount = gaugeBalance;
                     }

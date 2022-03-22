@@ -112,7 +112,6 @@ contract AaveStrategy is Ownable, IStrategy {
         // lending pool needs to be approved in v2 since it is the core contract in v2 and not lending pool core
         lendingPool = ILendingPool(_lendingPoolAddressProvider.getLendingPool());
         wethGateway = _wethGateway;
-        // wmatic in case of polygon and address(0) for non-polygon deployment
         rewardToken = _rewardToken;
     }
 
@@ -131,10 +130,11 @@ contract AaveStrategy is Ownable, IStrategy {
             // Deposits MATIC into the pool
             wethGateway.depositETH{ value: address(this).balance }(address(lendingPool), address(this), 155);
         } else {
-            IERC20(_inboundCurrency).approve(address(lendingPool), IERC20(_inboundCurrency).balanceOf(address(this)));
+            uint balance = IERC20(_inboundCurrency).balanceOf(address(this));
+            IERC20(_inboundCurrency).approve(address(lendingPool), balance);
             lendingPool.deposit(
                 _inboundCurrency,
-                IERC20(_inboundCurrency).balanceOf(address(this)),
+                balance,
                 address(this),
                 155
             );

@@ -156,6 +156,7 @@ contract MobiusStrategy is Ownable, IStrategy {
         if (gaugeBalance > 0) {
             uint256 poolWithdrawAmount = pool.calculateTokenAmount(address(this), amounts, true);
 
+            // safety check
             if (gaugeBalance < poolWithdrawAmount) {
                 poolWithdrawAmount = gaugeBalance;
             }
@@ -204,6 +205,7 @@ contract MobiusStrategy is Ownable, IStrategy {
                 amounts[0] = _amount;
                 uint256 poolWithdrawAmount = pool.calculateTokenAmount(address(this), amounts, true);
 
+                // safety check
                 if (gaugeBalance < poolWithdrawAmount) {
                     poolWithdrawAmount = gaugeBalance;
                 }
