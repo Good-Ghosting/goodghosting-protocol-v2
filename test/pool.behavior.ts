@@ -489,7 +489,7 @@ export const shouldBehaveLikeJoiningGGPool = async (strategyType: string) => {
     const accounts = await ethers.getSigners();
     const player1 = accounts[2];
     await expect(contracts.goodGhosting.connect(player1).joinGame(0, segmentPayment)).to.be.revertedWith(
-      "INSUFFICIENT_ALLOWANCE()",
+      "ERC20: insufficient allowance",
     );
   });
 
@@ -3139,7 +3139,7 @@ export const shouldBehaveLikeAdminWithdrawingFeesFromGGPoolWithFeePercentis0 = a
     );
 
     await contracts.goodGhosting.redeemFromExternalPoolForFixedDepositPool(0);
-
+    const incentiveAmount = await contracts.goodGhosting.totalIncentiveAmount();
     // reward token balance
     await expect(contracts.goodGhosting.adminFeeWithdraw())
       .to.emit(contracts.goodGhosting, "AdminWithdrawal")
@@ -3147,7 +3147,7 @@ export const shouldBehaveLikeAdminWithdrawingFeesFromGGPoolWithFeePercentis0 = a
         deployer.address,
         ethers.BigNumber.from(0),
         ethers.BigNumber.from(0),
-        ethers.BigNumber.from(0),
+        ethers.BigNumber.from(incentiveAmount),
         ethers.BigNumber.from(0),
         ethers.BigNumber.from(0),
       );
