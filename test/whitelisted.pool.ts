@@ -84,6 +84,15 @@ describe("Whitelisted Pool Tests", () => {
       ).to.be.revertedWith("INVALID_PROOF()");
     });
 
+    it("reverts when players call joinGame instead of joinWhitelistedGame", async () => {
+      const accounts = await ethers.getSigners();
+
+      const player1 = accounts[2];
+      await expect(contracts.goodGhosting.connect(player1).joinGame(0, 0)).to.be.revertedWith(
+        "Whitelisting enabled - use joinWhitelistedGame(uint256, bytes32[]) instead",
+      );
+    });
+
     it("players are able to join a whitelisted pool and are able to withdraw their funds", async () => {
       let governanceTokenPlayer1BalanceAfterWithdraw = 0,
         governanceTokenPlayer2BalanceAfterWithdraw = 0,
