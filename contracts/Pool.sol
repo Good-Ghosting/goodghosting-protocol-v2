@@ -362,7 +362,7 @@ contract Pool is Ownable, Pausable {
     /**
     @dev Initializes the pool
     */
-    function initialize() external onlyOwner whenNotPaused {
+    function initialize() public virtual onlyOwner whenNotPaused {
         firstSegmentStart = block.timestamp; //gets current time
         waitingRoundSegmentStart = block.timestamp + (segmentLength * lastSegment);
     }

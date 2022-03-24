@@ -190,6 +190,10 @@ export const deployPool = async (
       await strategy.transferOwnership(goodGhosting.address);
     }
 
+    await expect(goodGhosting.connect(deployer).joinGame(0, "1000000000000000000")).to.be.revertedWith(
+      "GAME_NOT_INITIALIZED()",
+    );
+
     await goodGhosting.initialize();
 
     if (isIncentiveToken) {
@@ -197,7 +201,6 @@ export const deployPool = async (
       await mintTokens(incentiveToken, goodGhosting.address);
     }
   } else {
-    console.log;
     const goodGhostingV2Deployer = new WhitelistedPool__factory(deployer);
 
     await expect(
@@ -234,9 +237,16 @@ export const deployPool = async (
       isInvestmentStrategy ? strategy.address : strategy,
       isTransactionalToken,
     );
+    await expect(goodGhosting.connect(deployer).joinGame(0, "1000000000000000000")).to.be.revertedWith(
+      "GAME_NOT_INITIALIZED()",
+    );
+
     if (isInvestmentStrategy) {
       await strategy.transferOwnership(goodGhosting.address);
     }
+    await expect(goodGhosting.initialize()).to.be.revertedWith(
+      "Whitelisting enabled - use initializePool(bytes32) instead",
+    );
     await goodGhosting.initializePool(merkleRoot);
 
     if (isIncentiveToken) {

@@ -55,8 +55,14 @@ contract WhitelistedPool is Pool, MerkleDistributor {
     */
     function initializePool(bytes32 _merkleRoot) external onlyOwner whenNotPaused {
         setMerkleRoot(_merkleRoot);
-        firstSegmentStart = block.timestamp; //gets current time
-        waitingRoundSegmentStart = block.timestamp + (segmentLength * lastSegment);
+        super.initialize();
+    }
+
+    /**
+    @dev does not allow to initialize the pool
+    */
+    function initialize() public override onlyOwner whenNotPaused {
+        revert("Whitelisting enabled - use initializePool(bytes32) instead");
     }
 
     /// @notice Does not allow users to join. Must use "joinWhitelistedGame instead.
