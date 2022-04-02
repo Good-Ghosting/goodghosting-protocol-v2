@@ -26,9 +26,9 @@ if (!mnemonic) {
   throw new Error("Please set your MNEMONIC in a .env file");
 }
 
-const infuraApiKey: string | undefined = process.env.INFURA_API_KEY;
+const infuraApiKey: string | undefined = process.env.RPC;
 if (!infuraApiKey) {
-  throw new Error("Please set your INFURA_API_KEY in a .env file");
+  throw new Error("Please set your RPC in a .env file");
 }
 
 function getChainConfig(network: keyof typeof chainIds): NetworkUserConfig {
@@ -41,6 +41,7 @@ function getChainConfig(network: keyof typeof chainIds): NetworkUserConfig {
     },
     chainId: chainIds[network],
     url,
+    gas: 32000000000,
   };
 }
 
@@ -85,7 +86,7 @@ const config: HardhatUserConfig = {
         settings: {
           optimizer: {
             enabled: true,
-            runs: 200,
+            runs: 1500,
           },
         },
       },
@@ -94,7 +95,7 @@ const config: HardhatUserConfig = {
         settings: {
           optimizer: {
             enabled: true,
-            runs: 200,
+            runs: 1500,
           },
         },
       },
