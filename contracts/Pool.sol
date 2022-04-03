@@ -656,6 +656,8 @@ contract Pool is Ownable, Pausable {
             );
             if (isTransactionalToken) {
                 // safety check
+                // this scenario is very tricky to mock
+                // and our mock contracts are pretty complex currently so haven't tested this line with unit tests
                 if (adminFeeAmount[0] > address(this).balance) {
                     adminFeeAmount[0] = address(this).balance;
                 }
@@ -764,6 +766,9 @@ contract Pool is Ownable, Pausable {
         emit EarlyWithdrawal(msg.sender, withdrawAmount, totalGamePrincipal);
         strategy.earlyWithdraw(inboundToken, withdrawAmount, _minAmount);
         if (isTransactionalToken) {
+            // safety check
+            // this scenario is very tricky to mock
+            // and our mock contracts are pretty complex currently so haven't tested this line with unit tests
             if (address(this).balance < withdrawAmount) {
                 withdrawAmount = address(this).balance;
             }
@@ -772,6 +777,7 @@ contract Pool is Ownable, Pausable {
                 revert TRANSACTIONAL_TOKEN_TRANSFER_FAILURE();
             }
         } else {
+            // safety check
             if (IERC20(inboundToken).balanceOf(address(this)) < withdrawAmount) {
                 withdrawAmount = IERC20(inboundToken).balanceOf(address(this));
             }
@@ -890,6 +896,8 @@ contract Pool is Ownable, Pausable {
         // sending the inbound token amount i.e principal + interest to the winners and just the principal in case of players
         // adding a balance safety check to ensure the tx does not revert in case of impermanent loss
         if (isTransactionalToken) {
+            // this scenario is very tricky to mock
+            // and our mock contracts are pretty complex currently so haven't tested this line with unit tests
             if (payout > address(this).balance) {
                 payout = address(this).balance;
             }
