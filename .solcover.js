@@ -6,5 +6,5 @@ module.exports = {
   providerOptions: {
     mnemonic: process.env.MNEMONIC,
   },
-  skipFiles: ["test"],
+  skipFiles: ["Migrations.sol", "aave", "curve", "merkle", "mobius", "mock", "polygon"],
 };
