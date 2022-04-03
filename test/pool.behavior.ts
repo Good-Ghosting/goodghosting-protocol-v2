@@ -1354,7 +1354,7 @@ export const shouldBehaveLikeRedeemingFromGGPool = async (strategyType: string) 
     ).to.be.revertedWith("GAME_NOT_COMPLETED()");
   });
 
-  it("reverts if funds were already redeemed", async () => {
+  it("reverts if funds are already redeemed", async () => {
     const accounts = await ethers.getSigners();
     const player1 = accounts[2];
     await redeem(
@@ -1365,6 +1365,9 @@ export const shouldBehaveLikeRedeemingFromGGPool = async (strategyType: string) 
       depositCount,
       segmentLength,
       segmentPayment,
+    );
+    await expect(contracts.goodGhosting.redeemFromExternalPoolForFixedDepositPool(0)).to.be.revertedWith(
+      "FUNDS_REDEEMED_FROM_EXTERNAL_POOL()",
     );
   });
 
