@@ -62,7 +62,7 @@ contract AaveStrategyV3 is Ownable, IStrategy {
         // atoken address in v2 is fetched from data provider contract
         address adaiTokenAddress;
         if (_inboundCurrency == address(0)) {
-            (adaiTokenAddress, , ) = dataProvider.getReserveTokensAddresses(address(rewardToken));
+            (adaiTokenAddress, , ) = dataProvider.getReserveTokensAddresses(address(wmatic));
         } else {
             (adaiTokenAddress, , ) = dataProvider.getReserveTokensAddresses(_inboundCurrency);
         }

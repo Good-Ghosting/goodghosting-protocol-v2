@@ -16,6 +16,22 @@ exports.providers = {
       },
       incentiveToken: "0x0000000000000000000000000000000000000000",
     },
+    polygonv3: {
+      lendingPoolAddressProvider: "0xa97684ead0e402dC232d5A977953DF7ECBaB3CDb",
+      dataProvider: "0x69FA688f1Dc47d4B5d8029D5a35FB7a548310654",
+      incentiveController: "0x929EC64c34a17401F460460D4B9390518E5B473e",
+      wmatic: "0x0d500B1d8E8eF31E21C99d1Db9A6444d3ADf1270",
+      wethGateway: "0x9BdB5fcc80A49640c7872ac089Cc0e00A98451B6",
+      dai: {
+        address: "0x8f3Cf7ad23Cd3CaDbD9735AFf958023239c6A063",
+        decimals: 18,
+      },
+      weth: {
+        address: "0x7ceB23fD6bC0adD59E62ac25578270cFf1b9f619",
+        decimals: 18,
+      },
+      incentiveToken: "0x0000000000000000000000000000000000000000",
+    },
     polygon: {
       lendingPoolAddressProvider: "0xd05e3E715d945B59290df0ae8eF85c1BdB684744",
       dataProvider: "0x7551b5D2763519d4e37e8B81929D336De671d46d",
