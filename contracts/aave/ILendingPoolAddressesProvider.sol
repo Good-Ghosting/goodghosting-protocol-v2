@@ -2,11 +2,6 @@
 
 pragma solidity ^0.8.7;
 
-/**
-@title ILendingPoolAddressesProvider interface
-@notice provides the interface to fetch the LendingPoolCore address
- */
-
 abstract contract ILendingPoolAddressesProvider {
     function getLendingPool() public view virtual returns (address);
 
