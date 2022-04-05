@@ -20,6 +20,7 @@ import {
   CurveStrategy__factory,
   Pool,
 } from "../src/types";
+import * as wmatic from "../artifacts/contracts/mock/MintableERC20.sol/MintableERC20.json";
 
 chai.use(solidity);
 const { expect } = chai;
@@ -91,6 +92,7 @@ export const deployPool = async (
         lendingPool.address,
         incentiveController.address,
         rewardToken.address,
+        isInboundToken ? inboundToken.address : inboundToken,
       );
       await rewardToken.deposit({ value: ethers.utils.parseEther("25") });
       await rewardToken.transfer(incentiveController.address, ethers.utils.parseEther("25"));
@@ -271,6 +273,11 @@ export const deployPool = async (
     mobi,
     curvePoolType,
   };
+};
+
+export const getRewardTokenInstance = async (strategy: any, player: any) => {
+  const rewardToken = await strategy.getRewardTokens();
+  return new ethers.Contract(rewardToken[0], wmatic.abi, player);
 };
 
 export const mintTokens = async (inboundToken: MintableERC20, player: string) => {
