@@ -60,10 +60,9 @@ contract CurveStrategy is Ownable, IStrategy {
     /** 
     @notice
     Returns the total accumalated amount i.e principal + interest stored in aave, only used in case of variable deposit pools.
-    @param _inboundCurrency Address of the inbound token.
     @return Total accumalated amount.
     */
-    function getTotalAmount(address _inboundCurrency) external view override returns (uint256) {
+    function getTotalAmount() external view override returns (uint256) {
         uint256 gaugeBalance = gauge.balanceOf(address(this));
         uint256 totalAccumalatedAmount = 0;
         if (poolType == AAVE_POOL) {
@@ -76,18 +75,13 @@ contract CurveStrategy is Ownable, IStrategy {
 
     /** 
     @notice
-    Returns the instance of the reward token
+    Returns the instance of the reward tokens
     */
-    function getRewardToken() external view override returns (IERC20) {
-        return rewardToken;
-    }
-
-    /** 
-    @notice
-    Returns the instance of the governance token
-    */
-    function getGovernanceToken() external view override returns (IERC20) {
-        return curve;
+    function getRewardTokens() external view override returns (IERC20[] memory) {
+        IERC20[] memory tokens = new IERC20[](2);
+        tokens[0] = rewardToken;
+        tokens[1] = curve;
+        return tokens;
     }
 
     //*********************************************************************//
@@ -249,11 +243,10 @@ contract CurveStrategy is Ownable, IStrategy {
         uint256 _amount,
         bool variableDeposits,
         uint256 _minAmount,
-        bool disableRewardTokenClaim,
-        bool disableStrategyGovernanceTokenClaim
+        bool disableRewardTokenClaim
     ) external override onlyOwner {
         bool claimRewards = true;
-        if (disableRewardTokenClaim || disableStrategyGovernanceTokenClaim) {
+        if (disableRewardTokenClaim) {
             claimRewards = false;
         }
         uint256 gaugeBalance = gauge.balanceOf(address(this));
@@ -340,22 +333,18 @@ contract CurveStrategy is Ownable, IStrategy {
     /**
     @notice
     Returns total accumalated reward token amount.
-    @param _inboundCurrency Address of the inbound token.
+    @param disableRewardTokenClaim Reward claim flag.
     */
-    function getAccumalatedRewardTokenAmount(address _inboundCurrency, bool disableRewardTokenClaim) external override returns (uint256) {
+    function getAccumalatedRewardTokenAmounts(bool disableRewardTokenClaim) external override returns (uint256[] memory) {
+        uint amount = 0;
+        uint additionalAmount = 0;
         if (!disableRewardTokenClaim) {
-        return gauge.claimable_reward_write(address(this), address(rewardToken));
-        } else { return 0; }
-    }
-
-    /**
-    @notice
-    Returns total accumalated governance token amount.
-    @param _inboundCurrency Address of the inbound token.
-    */
-    function getAccumalatedGovernanceTokenAmount(address _inboundCurrency, bool disableStrategyGovernanceTokenClaim) external override returns (uint256) {
-        if (!disableStrategyGovernanceTokenClaim) {
-        return gauge.claimable_reward_write(address(this), address(curve));
-        } else { return 0; }
+        amount = gauge.claimable_reward_write(address(this), address(rewardToken));
+        additionalAmount = gauge.claimable_reward_write(address(this), address(curve));
+        }
+        uint[] memory amounts = new uint[](2);
+        amounts[0] = amount;
+        amounts[0] = additionalAmount;
+        return amounts;
     }
 }

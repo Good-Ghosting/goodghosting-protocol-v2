@@ -35,11 +35,13 @@ contract AaveStrategy is Ownable, IStrategy {
     /// @notice Lending pool address
     ILendingPool public immutable lendingPool;
 
+    AToken public immutable adaiToken;
+
     /// @notice AaveProtocolDataProvider address
-    AaveProtocolDataProvider public immutable dataProvider;
+    AaveProtocolDataProvider public dataProvider;
 
     /// @notice reward token address for eg wmatic in case of polygon deployment
-    IERC20 public immutable rewardToken;
+    IERC20 public rewardToken;
 
     //*********************************************************************//
     // ------------------------- external views -------------------------- //
@@ -48,35 +50,20 @@ contract AaveStrategy is Ownable, IStrategy {
     /** 
     @notice
     Returns the total accumalated amount i.e principal + interest stored in aave, only used in case of variable deposit pools.
-    @param _inboundCurrency Address of the inbound token.
     @return Total accumalated amount.
     */
-    function getTotalAmount(address _inboundCurrency) external view override returns (uint256) {
-        // atoken address in v2 is fetched from data provider contract
-        address adaiTokenAddress;
-        if (_inboundCurrency == address(0)) {
-            (adaiTokenAddress, , ) = dataProvider.getReserveTokensAddresses(address(rewardToken));
-        } else {
-            (adaiTokenAddress, , ) = dataProvider.getReserveTokensAddresses(_inboundCurrency);
-        }
-        AToken adaiToken = AToken(adaiTokenAddress);
+    function getTotalAmount() external view override returns (uint256) {
         return adaiToken.balanceOf(address(this));
     }
 
     /** 
     @notice
-    Returns the instance of the reward token
+    Returns the instances of the reward tokens
     */
-    function getRewardToken() external view override returns (IERC20) {
-        return rewardToken;
-    }
-
-    /** 
-    @notice
-    Returns the instance of the governance token
-    */
-    function getGovernanceToken() external view override returns (IERC20) {
-        return IERC20(address(0));
+    function getRewardTokens() external view override returns (IERC20[] memory) {
+        IERC20[] memory tokens = new IERC20[](1);
+        tokens[0] = rewardToken;
+        return tokens;
     }
 
     //*********************************************************************//
@@ -95,7 +82,8 @@ contract AaveStrategy is Ownable, IStrategy {
         IWETHGateway _wethGateway,
         address _dataProvider,
         address _incentiveController,
-        IERC20 _rewardToken
+        IERC20 _rewardToken,
+        address _inboundCurrency
     ) {
         if (address(_lendingPoolAddressProvider) == address(0)) {
             revert INVALID_LENDING_POOL_ADDRESS_PROVIDER();
@@ -113,6 +101,13 @@ contract AaveStrategy is Ownable, IStrategy {
         lendingPool = ILendingPool(_lendingPoolAddressProvider.getLendingPool());
         wethGateway = _wethGateway;
         rewardToken = _rewardToken;
+        address adaiTokenAddress;
+        if (_inboundCurrency == address(0)) {
+            (adaiTokenAddress, , ) = dataProvider.getReserveTokensAddresses(address(rewardToken));
+        } else {
+            (adaiTokenAddress, , ) = dataProvider.getReserveTokensAddresses(_inboundCurrency);
+        }
+        adaiToken = AToken(adaiTokenAddress);
     }
 
     /**
@@ -156,14 +151,6 @@ contract AaveStrategy is Ownable, IStrategy {
         if (_amount == 0) {
             revert INVALID_AMOUNT();
         }
-        // atoken address in v2 is fetched from data provider contract
-        address adaiTokenAddress;
-        if (_inboundCurrency == address(0)) {
-            (adaiTokenAddress, , ) = dataProvider.getReserveTokensAddresses(address(rewardToken));
-        } else {
-            (adaiTokenAddress, , ) = dataProvider.getReserveTokensAddresses(_inboundCurrency);
-        }
-        AToken adaiToken = AToken(adaiTokenAddress);
         if (adaiToken.balanceOf(address(this)) > 0) {
             if (_inboundCurrency == address(0) || _inboundCurrency == address(rewardToken)) {
                 adaiToken.approve(address(wethGateway), _amount);
@@ -200,18 +187,9 @@ contract AaveStrategy is Ownable, IStrategy {
         uint256 _amount,
         bool variableDeposits,
         uint256 _minAmount,
-        bool disableRewardTokenClaim,
-        bool disableStrategyGovernanceTokenClaim
+        bool disableRewardTokenClaim
     ) external override onlyOwner {
         uint256 redeemAmount = variableDeposits ? _amount : type(uint256).max;
-        // atoken address in v2 is fetched from data provider contract
-        address adaiTokenAddress;
-        if (_inboundCurrency == address(0)) {
-            (adaiTokenAddress, , ) = dataProvider.getReserveTokensAddresses(address(rewardToken));
-        } else {
-            (adaiTokenAddress, , ) = dataProvider.getReserveTokensAddresses(_inboundCurrency);
-        }
-        AToken adaiToken = AToken(adaiTokenAddress);
         // Withdraws funds (principal + interest + rewards) from external pool
         if (adaiToken.balanceOf(address(this)) > 0) {
             if (_inboundCurrency == address(0) || _inboundCurrency == address(rewardToken)) {
@@ -257,35 +235,20 @@ contract AaveStrategy is Ownable, IStrategy {
     /**
     @notice
     Returns total accumalated reward token amount.
-    @param _inboundCurrency Address of the inbound token.
+    @param disableRewardTokenClaim Reward claim flag.
     */
-    function getAccumalatedRewardTokenAmount(address _inboundCurrency, bool disableRewardTokenClaim) external override returns (uint256) {
+    function getAccumalatedRewardTokenAmounts(bool disableRewardTokenClaim) external override returns (uint256[] memory) {
+        uint amount = 0;
         if (!disableRewardTokenClaim) {
         // atoken address in v2 is fetched from data provider contract
-        address adaiTokenAddress;
-        if (_inboundCurrency == address(0)) {
-            (adaiTokenAddress, , ) = dataProvider.getReserveTokensAddresses(address(rewardToken));
-        } else {
-            (adaiTokenAddress, , ) = dataProvider.getReserveTokensAddresses(_inboundCurrency);
-        }
-        AToken adaiToken = AToken(adaiTokenAddress);
         // Claims the rewards from the external pool
         address[] memory assets = new address[](1);
         assets[0] = address(adaiToken);
-        return incentiveController.getRewardsBalance(assets, address(this));
-        } else {
-            return 0;
+        amount = incentiveController.getRewardsBalance(assets, address(this));
         }
-
-    }
-
-    /**
-    @notice
-    Returns total accumalated governance token amount.
-    @param _inboundCurrency Address of the inbound token.
-    */
-    function getAccumalatedGovernanceTokenAmount(address _inboundCurrency, bool disableStrategyGovernanceTokenClaim) external override returns (uint256) {
-        return 0;
+        uint[] memory amounts = new uint[](1);
+        amounts[0] = amount;
+        return amounts;
     }
 
     // Fallback Functions for calldata and reciever for handling only ether transfer

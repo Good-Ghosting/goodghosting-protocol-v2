@@ -16,17 +16,12 @@ interface IStrategy {
         uint256 _amount,
         bool variableDeposits,
         uint256 _minAmount,
-        bool disableRewardTokenClaim,
-        bool disableStrategyGovernanceTokenClaim
+        bool disableRewardTokenClaim
     ) external;
 
-    function getTotalAmount(address _inboundCurrency) external view returns (uint256);
+    function getTotalAmount() external view returns (uint256);
 
-    function getAccumalatedRewardTokenAmount(address _inboundCurrency,  bool disableRewardTokenClaim) external returns (uint256);
+    function getAccumalatedRewardTokenAmounts(bool disableRewardTokenClaim) external returns (uint256[] memory);
 
-    function getAccumalatedGovernanceTokenAmount(address _inboundCurrency, bool disableStrategyGovernanceTokenClaim) external returns (uint256);
-
-    function getRewardToken() external view returns (IERC20);
-
-    function getGovernanceToken() external view returns (IERC20);
+    function getRewardTokens() external view returns (IERC20[] memory);
 }

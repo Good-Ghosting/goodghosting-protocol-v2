@@ -78,7 +78,7 @@ contract Pool is Ownable, Pausable {
     bool public immutable flexibleSegmentPayment;
 
     /// @notice Strategy Contract Address
-    IStrategy public immutable strategy;
+    IStrategy public strategy;
 
     /// @notice Flag which determines whether the deposit token is a transactional token like eth or matic.
     bool public immutable isTransactionalToken;
@@ -102,7 +102,7 @@ contract Pool is Ownable, Pausable {
     uint256 public totalGamePrincipal;
 
     /// @notice performance fee amount allocated to the admin.
-    uint256[3] public adminFeeAmount;
+    uint256[] public adminFeeAmount;
 
     /// @notice total amount of incentive tokens to be distributed among winners.
     uint256 public totalIncentiveAmount = 0;
@@ -116,11 +116,8 @@ contract Pool is Ownable, Pausable {
     /// @notice share % from impermanent loss.
     uint256 public impermanentLossShare;
 
-    /// @notice totalGovernancetoken balance.
-    uint256 public strategyGovernanceTokenAmount = 0;
-
-    /// @notice total rewardTokenAmount balance.
-    uint256 public rewardTokenAmount = 0;
+    /// @notice total rewardTokenAmounts.
+    uint256[] public rewardTokenAmounts;
 
     /// @notice emaergency withdraw flag.
     bool public emergencyWithdraw = false;
@@ -130,9 +127,6 @@ contract Pool is Ownable, Pausable {
 
     /// @notice Controls if reward tokens are to be claimed at the time of redeem.
     bool public disableRewardTokenClaim = false;
-
-    /// @notice Controls if strategy governance tokens are to be claimed at the time of redeem.
-    bool public disableStrategyGovernanceTokenClaim = false;
 
     /// @notice controls if admin withdrew or not the performance fee.
     bool public adminWithdraw;
@@ -144,10 +138,7 @@ contract Pool is Ownable, Pausable {
     IERC20 public incentiveToken;
 
     /// @notice address of additional reward token accured from investing via different strategies like wmatic.
-    IERC20 public rewardToken;
-
-    /// @notice address of strategyGovernanceToken accured from investing via different strategies like curve.
-    IERC20 public strategyGovernanceToken;
+    IERC20[] public rewardTokens;
 
     /// @notice struct for storing all player stats.
     struct Player {
@@ -183,21 +174,14 @@ contract Pool is Ownable, Pausable {
 
     event Deposit(address indexed player, uint256 indexed segment, uint256 amount);
 
-    event Withdrawal(
-        address indexed player,
-        uint256 amount,
-        uint256 playerIncentive,
-        uint256 playerRewardAAmount,
-        uint256 playerGovernanceRewardAmount
-    );
+    event Withdrawal(address indexed player, uint256 amount, uint256 playerIncentive, uint256[] playerRewardAmounts);
 
     event FundsRedeemedFromExternalPool(
         uint256 totalAmount,
         uint256 totalGamePrincipal,
         uint256 totalGameInterest,
         uint256 totalIncentiveAmount,
-        uint256 totalRewardAAmount,
-        uint256 totalGovernanceRewardAmount
+        uint256[] totalRewardAmounts
     );
 
     event VariablePoolParamsSet(
@@ -205,8 +189,7 @@ contract Pool is Ownable, Pausable {
         uint256 totalGamePrincipal,
         uint256 totalGameInterest,
         uint256 totalIncentiveAmount,
-        uint256 totalRewardAAmount,
-        uint256 totalGovernanceRewardAmount
+        uint256[] totalRewardAmounts
     );
 
     event EarlyWithdrawal(address indexed player, uint256 amount, uint256 totalGamePrincipal);
@@ -214,10 +197,8 @@ contract Pool is Ownable, Pausable {
     event AdminWithdrawal(
         address indexed admin,
         uint256 totalGameInterest,
-        uint256 adminFeeAmount,
         uint256 adminIncentiveAmount,
-        uint256 adminRewardAAmount,
-        uint256 adminGovernanceRewardAmount
+        uint256[] adminFeeAmounts
     );
 
     //*********************************************************************//
@@ -357,6 +338,9 @@ contract Pool is Ownable, Pausable {
         strategy = _strategy;
         maxPlayersCount = _maxPlayersCount;
         maxFlexibleSegmentPaymentAmount = _maxFlexibleSegmentPaymentAmount;
+        rewardTokens = strategy.getRewardTokens();
+        rewardTokenAmounts = new uint256[](rewardTokens.length);
+        adminFeeAmount = new uint256[](rewardTokens.length + 1);
     }
 
     /**
@@ -470,13 +454,12 @@ contract Pool is Ownable, Pausable {
         // Since this is only called in the case of variable deposit & it is called everytime a player decides to withdraw,
         // so totalBalance keeps a track of the ucrrent balance & the accumalated principal + interest stored in the strategy protocol.
         uint256 totalBalance = isTransactionalToken
-            ? address(this).balance.add(strategy.getTotalAmount(inboundToken))
-            : IERC20(inboundToken).balanceOf(address(this)).add(strategy.getTotalAmount(inboundToken));
+            ? address(this).balance.add(strategy.getTotalAmount())
+            : IERC20(inboundToken).balanceOf(address(this)).add(strategy.getTotalAmount());
 
         // calculates gross interest
         uint256 grossInterest = 0;
-        uint256 grossRewardTokenAmount = 0;
-        uint256 grossStrategyGovernanceTokenAmount = 0;
+
         // impermanent loss checks
         if (totalBalance >= totalGamePrincipal) {
             grossInterest = totalBalance.sub(totalGamePrincipal);
@@ -486,21 +469,17 @@ contract Pool is Ownable, Pausable {
             totalGamePrincipal = totalBalance;
         }
 
-        rewardToken = strategy.getRewardToken();
-        strategyGovernanceToken = strategy.getGovernanceToken();
+        uint256[] memory grossRewardTokenAmount = new uint256[](rewardTokens.length);
+        uint256[] memory _adminFeeAmount = new uint256[](rewardTokens.length + 1);
 
-        // the reward calaculation is the sum of the current reward amount the remaining rewards being accumalated in the strategy protocols.
-        // the reason being like totalBalance for every player this is updated and prev. value is used to add any left over value
-        if (address(rewardToken) != address(0) && inboundToken != address(rewardToken)) {
-            grossRewardTokenAmount = rewardTokenAmount.add(
-                strategy.getAccumalatedRewardTokenAmount(inboundToken, disableRewardTokenClaim)
-            );
-        }
-        // same as above
-        if (address(strategyGovernanceToken) != address(0) && inboundToken != address(strategyGovernanceToken)) {
-            grossStrategyGovernanceTokenAmount = strategyGovernanceTokenAmount.add(
-                strategy.getAccumalatedGovernanceTokenAmount(inboundToken, disableStrategyGovernanceTokenClaim)
-            );
+        for (uint256 i = 0; i < rewardTokens.length; i++) {
+            // the reward calaculation is the sum of the current reward amount the remaining rewards being accumalated in the strategy protocols.
+            // the reason being like totalBalance for every player this is updated and prev. value is used to add any left over value
+            if (address(rewardTokens[i]) != address(0) && inboundToken != address(rewardTokens[i])) {
+                grossRewardTokenAmount[i] = rewardTokenAmounts[i].add(
+                    strategy.getAccumalatedRewardTokenAmounts(disableRewardTokenClaim)[i]
+                );
+            }
         }
 
         // calculates the performance/admin fee (takes a cut - the admin percentage fee - from the pool's interest, strategy rewards).
@@ -508,43 +487,46 @@ contract Pool is Ownable, Pausable {
         // calculates the rewardTokenAmount that will be split among winners in the game
         // calculates the strategyGovernanceTokenAmount that will be split among winners in the game
         // the admin fee will only be caluclated the first time once hence the nested if to ensure that although this method is called multiple times but the admin fee only get's set once
-        uint256[3] memory _adminFeeAmount;
         if (adminFee > 0) {
             // since this method is called when each player withdraws in a variable deposit game/pool so we need to make sure that if the admin fee % is more than 0 then the fee is only calculated once.
             if (adminFeeAmount[0] == 0) {
                 _adminFeeAmount[0] = (grossInterest.mul(adminFee)).div(uint256(100));
-                _adminFeeAmount[1] = (grossRewardTokenAmount.mul(adminFee)).div(uint256(100));
-                _adminFeeAmount[2] = (grossStrategyGovernanceTokenAmount.mul(adminFee)).div(uint256(100));
+                for (uint256 i = 0; i < rewardTokens.length; i++) {
+                    _adminFeeAmount[i + 1] = (grossRewardTokenAmount[i].mul(adminFee)).div(uint256(100));
+                    rewardTokenAmounts[i] = grossRewardTokenAmount[i].sub(_adminFeeAmount[i + 1]);
+                }
 
                 totalGameInterest = grossInterest.sub(_adminFeeAmount[0]);
-                rewardTokenAmount = grossRewardTokenAmount.sub(_adminFeeAmount[1]);
-                strategyGovernanceTokenAmount = grossStrategyGovernanceTokenAmount.sub(_adminFeeAmount[2]);
             }
         } else {
             totalGameInterest = grossInterest;
-            rewardTokenAmount = grossRewardTokenAmount;
-            strategyGovernanceTokenAmount = grossStrategyGovernanceTokenAmount;
+            for (uint256 i = 0; i < rewardTokens.length; i++) {
+                rewardTokenAmounts[i] = grossRewardTokenAmount[i];
+            }
         }
 
         // when there's no winners, admin takes all the interest + rewards
         if (winnerCount == 0 && !emergencyWithdraw) {
             adminFeeAmount[0] = grossInterest;
-            adminFeeAmount[1] = grossRewardTokenAmount;
-            adminFeeAmount[2] = grossStrategyGovernanceTokenAmount;
+            for (uint256 i = 0; i < rewardTokens.length; i++) {
+                adminFeeAmount[i + 1] = grossRewardTokenAmount[i];
+            }
         } else if (adminFeeAmount[0] == 0) {
             adminFeeAmount[0] = _adminFeeAmount[0];
-            adminFeeAmount[1] = _adminFeeAmount[1];
-            adminFeeAmount[2] = _adminFeeAmount[2];
+            for (uint256 i = 0; i < rewardTokens.length; i++) {
+                adminFeeAmount[i + 1] = _adminFeeAmount[i + 1];
+            }
         }
 
-        // If there's an incentive token address defined, sets the total incentive amount to be distributed among winners.
-        if (
-            address(incentiveToken) != address(0) &&
-            address(rewardToken) != address(incentiveToken) &&
-            address(strategyGovernanceToken) != address(incentiveToken) &&
-            inboundToken != address(incentiveToken)
-        ) {
-            totalIncentiveAmount = IERC20(incentiveToken).balanceOf(address(this));
+        for (uint256 i = 0; i < rewardTokens.length; i++) {
+            // If there's an incentive token address defined, sets the total incentive amount to be distributed among winners.
+            if (
+                address(incentiveToken) != address(0) &&
+                address(rewardTokens[i]) != address(incentiveToken) &&
+                inboundToken != address(incentiveToken)
+            ) {
+                totalIncentiveAmount = IERC20(incentiveToken).balanceOf(address(this));
+            }
         }
 
         emit VariablePoolParamsSet(
@@ -552,8 +534,7 @@ contract Pool is Ownable, Pausable {
             totalGamePrincipal,
             totalGameInterest,
             totalIncentiveAmount,
-            rewardTokenAmount,
-            strategyGovernanceTokenAmount
+            rewardTokenAmounts
         );
     }
 
@@ -586,13 +567,6 @@ contract Pool is Ownable, Pausable {
     */
     function disableClaimingRewardTokens() external onlyOwner whenGameIsNotCompleted {
         disableRewardTokenClaim = true;
-    }
-
-    /**
-    @dev Disable claiming strategy governance reward tokens.
-    */
-    function disableClaimingStrategyGovernanceRewardTokens() external onlyOwner whenGameIsNotCompleted {
-        disableStrategyGovernanceTokenClaim = true;
     }
 
     /// @dev pauses the game. This function can be called only by the contract's admin.
@@ -645,15 +619,8 @@ contract Pool is Ownable, Pausable {
             setGlobalPoolParamsForFlexibleDepositPool();
         }
 
-        if (adminFeeAmount[0] > 0 || adminFeeAmount[1] > 0 || adminFeeAmount[2] > 0) {
-            strategy.redeem(
-                inboundToken,
-                adminFeeAmount[0],
-                flexibleSegmentPayment,
-                0,
-                disableRewardTokenClaim,
-                disableStrategyGovernanceTokenClaim
-            );
+        if (adminFeeAmount[0] > 0 || adminFeeAmount[1] > 0) {
+            strategy.redeem(inboundToken, adminFeeAmount[0], flexibleSegmentPayment, 0, disableRewardTokenClaim);
             if (isTransactionalToken) {
                 // safety check
                 // this scenario is very tricky to mock
@@ -672,12 +639,11 @@ contract Pool is Ownable, Pausable {
                 }
                 IERC20(inboundToken).transfer(owner(), adminFeeAmount[0]);
             }
-            if (address(rewardToken) != address(0)) {
-                rewardToken.transfer(owner(), adminFeeAmount[1]);
-            }
 
-            if (address(strategyGovernanceToken) != address(0)) {
-                strategyGovernanceToken.transfer(owner(), adminFeeAmount[2]);
+            for (uint256 i = 0; i < rewardTokens.length; i++) {
+                if (address(rewardTokens[i]) != address(0)) {
+                    rewardTokens[i].transfer(owner(), adminFeeAmount[i + 1]);
+                }
             }
         }
 
@@ -688,14 +654,7 @@ contract Pool is Ownable, Pausable {
         }
 
         // emitting it here since to avoid duplication made the if block common for incentive and reward tokens
-        emit AdminWithdrawal(
-            owner(),
-            totalGameInterest,
-            adminFeeAmount[0],
-            totalIncentiveAmount,
-            adminFeeAmount[1],
-            adminFeeAmount[2]
-        );
+        emit AdminWithdrawal(owner(), totalGameInterest, totalIncentiveAmount, adminFeeAmount);
     }
 
     /**
@@ -739,8 +698,8 @@ contract Pool is Ownable, Pausable {
             player.canRejoin = true;
             playerIndex[msg.sender][currentSegment] = 0;
         }
-       // since there is complexity of 2 vars here with if else logic so not using a memory var here 
-       for (uint256 i = 0; i <= players[msg.sender].mostRecentSegmentPaid; i++) {
+        // since there is complexity of 2 vars here with if else logic so not using a memory var here
+        for (uint256 i = 0; i <= players[msg.sender].mostRecentSegmentPaid; i++) {
             if (cummalativePlayerIndexSum[currentSegment] > 0) {
                 cummalativePlayerIndexSum[currentSegment] = cummalativePlayerIndexSum[currentSegment].sub(
                     playerIndex[msg.sender][i]
@@ -809,10 +768,9 @@ contract Pool is Ownable, Pausable {
         }
         uint256 payout = player.amountPaid;
         uint256 playerIncentive = 0;
-        uint256 playerReward = 0;
         uint256 playerInterestShare = 0;
-        uint256 playerGovernanceTokenReward = 0;
         uint256 playerSharePercentage = 0;
+        uint256[] memory playerReward = new uint256[](rewardTokens.length);
 
         if (
             player.isWinner ||
@@ -854,26 +812,26 @@ contract Pool is Ownable, Pausable {
             if (totalIncentiveAmount > 0) {
                 playerIncentive = totalIncentiveAmount.mul(playerSharePercentage).div(uint256(100));
             }
-            if (address(rewardToken) != address(0) && rewardTokenAmount > 0) {
-                playerReward = rewardTokenAmount.mul(playerSharePercentage).div(uint256(100));
+            for (uint256 i = 0; i < rewardTokens.length; i++) {
+                if (address(rewardTokens[i]) != address(0) && rewardTokenAmounts[i] > 0) {
+                    playerReward[i] = rewardTokenAmounts[i].mul(playerSharePercentage).div(uint256(100));
+                }
             }
-            if (address(strategyGovernanceToken) != address(0) && strategyGovernanceTokenAmount > 0) {
-                playerGovernanceTokenReward = strategyGovernanceTokenAmount.mul(playerSharePercentage).div(
-                    uint256(100)
-                );
-            }
+
             // subtract global params to make sure they are updated in case of flexible segment payment
             if (flexibleSegmentPayment) {
                 totalGameInterest = totalGameInterest.sub(playerInterestShare);
                 cummalativePlayerIndexSum[lastSegment.sub(1)] = cummalativePlayerIndexSum[lastSegment.sub(1)].sub(
                     playerIndexSum
                 );
-                rewardTokenAmount = rewardTokenAmount.sub(playerReward);
-                strategyGovernanceTokenAmount = strategyGovernanceTokenAmount.sub(playerGovernanceTokenReward);
+                for (uint256 i = 0; i < rewardTokens.length; i++) {
+                    rewardTokenAmounts[i] = rewardTokenAmounts[i].sub(playerReward[i]);
+                }
+
                 totalIncentiveAmount = totalIncentiveAmount.sub(playerIncentive);
             }
         }
-        emit Withdrawal(msg.sender, payout, playerIncentive, playerReward, playerGovernanceTokenReward);
+        emit Withdrawal(msg.sender, payout, playerIncentive, playerReward);
         // Updating total principal as well after each player withdraws this is separate since we have to do this for non-players
         if (flexibleSegmentPayment) {
             if (totalGamePrincipal < player.amountPaid) {
@@ -883,14 +841,7 @@ contract Pool is Ownable, Pausable {
             }
 
             // Withdraws funds (principal + interest + rewards) from external pool
-            strategy.redeem(
-                inboundToken,
-                payout,
-                flexibleSegmentPayment,
-                _minAmount,
-                disableRewardTokenClaim,
-                disableStrategyGovernanceTokenClaim
-            );
+            strategy.redeem(inboundToken, payout, flexibleSegmentPayment, _minAmount, disableRewardTokenClaim);
         }
 
         // sending the inbound token amount i.e principal + interest to the winners and just the principal in case of players
@@ -917,12 +868,10 @@ contract Pool is Ownable, Pausable {
             IERC20(incentiveToken).transfer(msg.sender, playerIncentive);
         }
 
-        if (playerReward > 0) {
-            IERC20(rewardToken).transfer(msg.sender, playerReward);
-        }
-
-        if (playerGovernanceTokenReward > 0) {
-            IERC20(strategyGovernanceToken).transfer(msg.sender, playerGovernanceTokenReward);
+        for (uint256 i = 0; i < playerReward.length; i++) {
+            if (playerReward[i] > 0) {
+                IERC20(rewardTokens[i]).transfer(msg.sender, playerReward[i]);
+            }
         }
     }
 
@@ -988,14 +937,7 @@ contract Pool is Ownable, Pausable {
         uint256 totalBalance = 0;
 
         // Withdraws funds (principal + interest + rewards) from external pool
-        strategy.redeem(
-            inboundToken,
-            0,
-            flexibleSegmentPayment,
-            _minAmount,
-            disableRewardTokenClaim,
-            disableStrategyGovernanceTokenClaim
-        );
+        strategy.redeem(inboundToken, 0, flexibleSegmentPayment, _minAmount, disableRewardTokenClaim);
 
         if (isTransactionalToken) {
             totalBalance = address(this).balance;
@@ -1005,8 +947,7 @@ contract Pool is Ownable, Pausable {
 
         // calculates gross interest
         uint256 grossInterest = 0;
-        uint256 grossRewardTokenAmount = 0;
-        uint256 grossStrategyGovernanceTokenAmount = 0;
+        // uint256[] memory grossRewardTokenAmount;
         // Sanity check to avoid reverting due to overflow in the "subtraction" below.
         // This could only happen in case Aave changes the 1:1 ratio between
         // aToken vs. Token in the future
@@ -1018,55 +959,61 @@ contract Pool is Ownable, Pausable {
             totalGamePrincipal = totalBalance;
         }
 
-        rewardToken = strategy.getRewardToken();
-        strategyGovernanceToken = strategy.getGovernanceToken();
+        rewardTokens = strategy.getRewardTokens();
+        uint256[] memory grossRewardTokenAmount = new uint256[](rewardTokens.length);
+        uint256[] memory _adminFeeAmount = new uint256[](rewardTokens.length + 1);
 
-        if (address(rewardToken) != address(0) && inboundToken != address(rewardToken)) {
-            grossRewardTokenAmount = rewardToken.balanceOf(address(this));
-        }
-
-        if (address(strategyGovernanceToken) != address(0) && inboundToken != address(strategyGovernanceToken)) {
-            grossStrategyGovernanceTokenAmount = strategyGovernanceToken.balanceOf(address(this));
+        for (uint256 i = 0; i < rewardTokens.length; i++) {
+            // the reward calaculation is the sum of the current reward amount the remaining rewards being accumalated in the strategy protocols.
+            // the reason being like totalBalance for every player this is updated and prev. value is used to add any left over value
+            if (address(rewardTokens[i]) != address(0) && inboundToken != address(rewardTokens[i])) {
+                grossRewardTokenAmount[i] = rewardTokens[i].balanceOf(address(this));
+            }
         }
 
         // calculates the performance/admin fee (takes a cut - the admin percentage fee - from the pool's interest, strategy rewards).
         // calculates the "gameInterest" (net interest) that will be split among winners in the game
         // calculates the rewardTokenAmount that will be split among winners in the game
         // calculates the strategyGovernanceTokenAmount that will be split among winners in the game
-        uint256[3] memory _adminFeeAmount;
+
         if (adminFee > 0) {
             _adminFeeAmount[0] = (grossInterest.mul(adminFee)).div(uint256(100));
-            _adminFeeAmount[1] = (grossRewardTokenAmount.mul(adminFee)).div(uint256(100));
-            _adminFeeAmount[2] = (grossStrategyGovernanceTokenAmount.mul(adminFee)).div(uint256(100));
-
             totalGameInterest = grossInterest.sub(_adminFeeAmount[0]);
-            rewardTokenAmount = grossRewardTokenAmount.sub(_adminFeeAmount[1]);
-            strategyGovernanceTokenAmount = grossStrategyGovernanceTokenAmount.sub(_adminFeeAmount[2]);
+
+            for (uint256 i = 0; i < rewardTokens.length; i++) {
+                _adminFeeAmount[i + 1] = (grossRewardTokenAmount[i].mul(adminFee)).div(uint256(100));
+                rewardTokenAmounts[i] = grossRewardTokenAmount[i].sub(_adminFeeAmount[i + 1]);
+            }
         } else {
             totalGameInterest = grossInterest;
-            rewardTokenAmount = grossRewardTokenAmount;
-            strategyGovernanceTokenAmount = grossStrategyGovernanceTokenAmount;
+            for (uint256 i = 0; i < rewardTokens.length; i++) {
+                rewardTokenAmounts[i] = grossRewardTokenAmount[i];
+            }
         }
 
         // when there's no winners, admin takes all the interest + rewards
         if (winnerCount == 0 && !emergencyWithdraw) {
-            adminFeeAmount[1] = grossRewardTokenAmount;
-            adminFeeAmount[2] = grossStrategyGovernanceTokenAmount;
             adminFeeAmount[0] = grossInterest;
-        } else {
+            for (uint256 i = 0; i < rewardTokens.length; i++) {
+                adminFeeAmount[i + 1] = grossRewardTokenAmount[i];
+            }
+        } else if (adminFeeAmount[0] == 0) {
             adminFeeAmount[0] = _adminFeeAmount[0];
-            adminFeeAmount[1] = _adminFeeAmount[1];
-            adminFeeAmount[2] = _adminFeeAmount[2];
+            for (uint256 i = 0; i < rewardTokens.length; i++) {
+                adminFeeAmount[i + 1] = _adminFeeAmount[i + 1];
+            }
         }
 
         // If there's an incentive token address defined, sets the total incentive amount to be distributed among winners.
-        if (
-            address(incentiveToken) != address(0) &&
-            address(rewardToken) != address(incentiveToken) &&
-            address(strategyGovernanceToken) != address(incentiveToken) &&
-            inboundToken != address(incentiveToken)
-        ) {
-            totalIncentiveAmount = IERC20(incentiveToken).balanceOf(address(this));
+        for (uint256 i = 0; i < rewardTokens.length; i++) {
+            // If there's an incentive token address defined, sets the total incentive amount to be distributed among winners.
+            if (
+                address(incentiveToken) != address(0) &&
+                address(rewardTokens[i]) != address(incentiveToken) &&
+                inboundToken != address(incentiveToken)
+            ) {
+                totalIncentiveAmount = IERC20(incentiveToken).balanceOf(address(this));
+            }
         }
 
         emit FundsRedeemedFromExternalPool(
@@ -1074,8 +1021,7 @@ contract Pool is Ownable, Pausable {
             totalGamePrincipal,
             totalGameInterest,
             totalIncentiveAmount,
-            rewardTokenAmount,
-            strategyGovernanceTokenAmount
+            rewardTokenAmounts
         );
     }
 
