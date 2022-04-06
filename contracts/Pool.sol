@@ -619,7 +619,7 @@ contract Pool is Ownable, Pausable {
             setGlobalPoolParamsForFlexibleDepositPool();
         }
 
-        if (adminFeeAmount[0] > 0 || adminFeeAmount[1] > 0) {
+        if (adminFeeAmount[0] > 0 || adminFeeAmount[1] > 0 || (adminFeeAmount.length > 2 && adminFeeAmount[2] > 0 )) {
             strategy.redeem(inboundToken, adminFeeAmount[0], flexibleSegmentPayment, 0, disableRewardTokenClaim);
             if (isTransactionalToken) {
                 // safety check

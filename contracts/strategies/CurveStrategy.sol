@@ -344,7 +344,7 @@ contract CurveStrategy is Ownable, IStrategy {
         }
         uint[] memory amounts = new uint[](2);
         amounts[0] = amount;
-        amounts[0] = additionalAmount;
+        amounts[1] = additionalAmount;
         return amounts;
     }
 }
