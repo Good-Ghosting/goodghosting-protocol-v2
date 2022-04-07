@@ -55,6 +55,12 @@ contract MobiusStrategy is Ownable, IStrategy {
         return totalAccumalatedAmount;
     }
 
+
+    function getunderlyingAsset () external view override returns (address) {
+        return address(0);
+    }
+
+
     /** 
     @notice
     Returns the instance of the reward token

@@ -56,6 +56,10 @@ contract AaveStrategy is Ownable, IStrategy {
         return adaiToken.balanceOf(address(this));
     }
 
+    function getunderlyingAsset () external view override returns (address) {
+        return adaiToken.UNDERLYING_ASSET_ADDRESS();
+    }
+
     /** 
     @notice
     Returns the instances of the reward tokens

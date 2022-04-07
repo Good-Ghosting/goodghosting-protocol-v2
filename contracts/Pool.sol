@@ -327,6 +327,13 @@ contract Pool is Ownable, Pausable {
             revert INVALID_WAITING_ROUND_SEGMENT_LENGTH();
         }
 
+        address _underlyingAsset = strategy.getunderlyingAsset();
+        if (_underlyingAsset != address(0)) {
+            if (_underlyingAsset != _inboundCurrency) {
+                revert INVALID_INBOUND_TOKEN();
+            }
+        }
+
         // Initializes default variables
         lastSegment = _depositCount;
         segmentLength = _segmentLength;
