@@ -176,6 +176,12 @@ export const deployPool = async (
       );
     }
   }
+  if (isSameAsRewardToken) {
+    inboundToken = rewardToken;
+    if (strategyType == "aave" || strategyType == "aaveV3") {
+      await lendingPool.setUnderlyingAssetAddress(rewardToken.address);
+    }
+  }
   let goodGhosting: any;
   if (!isWhitelisted) {
     const goodGhostingV2Deployer = new Pool__factory(deployer);
@@ -195,10 +201,6 @@ export const deployPool = async (
         isTransactionalToken,
       ),
     ).to.be.revertedWith("INVALID_WAITING_ROUND_SEGMENT_LENGTH()");
-
-    if (isSameAsRewardToken) {
-      inboundToken = rewardToken;
-    }
 
     goodGhosting = await goodGhostingV2Deployer.deploy(
       isInboundToken ? inboundToken.address : inboundToken,
@@ -248,9 +250,23 @@ export const deployPool = async (
       ),
     ).to.be.revertedWith("INVALID_WAITING_ROUND_SEGMENT_LENGTH()");
 
-    if (isSameAsRewardToken) {
-      inboundToken = rewardToken;
-    }
+    await expect(
+      goodGhostingV2Deployer.deploy(
+        "0x0000000000000000000000000000000000000001",
+        ethers.utils.parseEther(maxFlexibleSegmentAmount.toString()),
+        depositCount,
+        segmentLength,
+        segmentLength / 2,
+        segmentPayment,
+        earlyWithdrawFee,
+        adminFee,
+        playerCount,
+        isVariableAmount,
+        isInvestmentStrategy ? strategy.address : strategy,
+        isTransactionalToken,
+      ),
+    ).to.be.revertedWith("INVALID_INBOUND_TOKEN()");
+
     goodGhosting = await goodGhostingV2Deployer.deploy(
       isInboundToken ? inboundToken.address : inboundToken,
       ethers.utils.parseEther(maxFlexibleSegmentAmount.toString()),
