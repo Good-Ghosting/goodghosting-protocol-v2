@@ -5,9 +5,6 @@ pragma solidity ^0.8.7;
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "../aave/IncentiveController.sol";
 import "./MintableERC20.sol";
-
-import { ILendingPoolAddressesProvider } from "../aave/ILendingPoolAddressesProvider.sol";
-import { ILendingPool } from "../aave/ILendingPool.sol";
 import "../mock/MockWMatic.sol";
 
 contract IncentiveControllerMock is IncentiveController {

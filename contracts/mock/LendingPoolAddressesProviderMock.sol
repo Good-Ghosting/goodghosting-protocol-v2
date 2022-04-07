@@ -5,10 +5,13 @@ pragma solidity ^0.8.7;
 import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import { ILendingPoolAddressesProvider } from "../aave/ILendingPoolAddressesProvider.sol";
+import { IPoolAddressesProvider } from "../aaveV3/IPoolAddressesProvider.sol";
 import { ILendingPool } from "../aave/ILendingPool.sol";
+import { ILendingPoolV3 } from "../aaveV3/ILendingPoolV3.sol";
+
 import "../aave/IWETHGateway.sol";
 
-contract LendingPoolAddressesProviderMock is ILendingPoolAddressesProvider, ILendingPool, IWETHGateway, ERC20 {
+contract LendingPoolAddressesProviderMock is ILendingPoolAddressesProvider, IPoolAddressesProvider, ILendingPool, ILendingPoolV3, IWETHGateway, ERC20 {
     address public underlyingAssetAddress;
 
     constructor(string memory name, string memory symbol) ERC20(name, symbol) {}
@@ -19,6 +22,10 @@ contract LendingPoolAddressesProviderMock is ILendingPoolAddressesProvider, ILen
     }
 
     function getLendingPool() public view override returns (address) {
+        return address(this);
+    }
+
+    function getPool() external view override returns (address) {
         return address(this);
     }
 
@@ -90,11 +97,22 @@ contract LendingPoolAddressesProviderMock is ILendingPoolAddressesProvider, ILen
         _mint(msg.sender, _amount);
     }
 
+    function supply(
+        address _reserve,
+        uint256 _amount,
+        address onBehalfOf,
+        uint16 _referralCode
+    ) public override {
+        IERC20 reserve = IERC20(_reserve);
+        reserve.transferFrom(msg.sender, address(this), _amount);
+        _mint(msg.sender, _amount);
+    }
+
     function withdraw(
         address asset,
         uint256 amount,
         address to
-    ) public override {
+    ) public override(ILendingPool, ILendingPoolV3) {
         if (amount > IERC20(address(this)).balanceOf(msg.sender)) {
             amount = IERC20(address(this)).balanceOf(msg.sender);
         }
