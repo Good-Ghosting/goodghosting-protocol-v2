@@ -7,11 +7,13 @@ import {
   Pool__factory,
   WhitelistedPool__factory,
   AaveStrategy__factory,
+  AaveStrategyV3__factory,
   MintableERC20__factory,
   MockWMatic__factory,
   MintableERC20,
   MockMobiusMinter__factory,
   IncentiveControllerMock__factory,
+  RewardsControllerMock__factory,
   MockCurvePool__factory,
   MockMobiusPool__factory,
   MockMobiusGauge__factory,
@@ -64,6 +66,7 @@ export const deployPool = async (
   }
   let lendingPool: any = ZERO_ADDRESS;
   let incentiveController: any = ZERO_ADDRESS;
+  let rewardController: any = ZERO_ADDRESS;
   let rewardToken: any = ZERO_ADDRESS;
   let strategy: any = ZERO_ADDRESS;
   let curve: any = ZERO_ADDRESS;
@@ -96,6 +99,29 @@ export const deployPool = async (
       );
       await rewardToken.deposit({ value: ethers.utils.parseEther("25") });
       await rewardToken.transfer(incentiveController.address, ethers.utils.parseEther("25"));
+    }
+  } else if (strategyType === "aaveV3") {
+    lendingPool = await lendingPoolAddressProvider.deploy("TOKEN_NAME", "TOKEN_SYMBOL");
+    await lendingPool.setUnderlyingAssetAddress(isInboundToken ? inboundToken.address : inboundToken);
+
+    const rewardTokenDeployer = new MockWMatic__factory(deployer);
+    rewardToken = await rewardTokenDeployer.deploy();
+
+    const rewardControllerDeployer = new RewardsControllerMock__factory(deployer);
+    rewardController = await rewardControllerDeployer.deploy(rewardToken.address);
+
+    if (isInvestmentStrategy) {
+      const aaveStrategyDeployer = new AaveStrategyV3__factory(deployer);
+      strategy = await aaveStrategyDeployer.deploy(
+        lendingPool.address,
+        lendingPool.address,
+        lendingPool.address,
+        rewardController.address,
+        rewardToken.address,
+        isInboundToken ? inboundToken.address : inboundToken,
+      );
+      await rewardToken.deposit({ value: ethers.utils.parseEther("25") });
+      await rewardToken.transfer(rewardController.address, ethers.utils.parseEther("25"));
     }
   } else if (strategyType === "curve") {
     const mockCurveTokenDeployer = new MintableERC20__factory(deployer);

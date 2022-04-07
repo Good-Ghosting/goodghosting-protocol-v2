@@ -58,7 +58,7 @@ export const shouldBehaveLikeGGPool = async (strategyType: string) => {
   it("check if inbound and interest token have distinct addresses", async () => {
     const inBoundTokenAddress = contracts.inboundToken.address;
     let interestTokenAddress;
-    if (strategyType === "aave") {
+    if (strategyType === "aave" || strategyType === "aaveV3") {
       interestTokenAddress = contracts.lendingPool.address;
     } else if (strategyType === "curve") {
       interestTokenAddress = contracts.curvePool.address;
@@ -74,7 +74,7 @@ export const shouldBehaveLikeGGPool = async (strategyType: string) => {
   it("checks that the strategy contract has no token balance before the pool is deployed", async () => {
     const inBoundBalance = await contracts.inboundToken.balanceOf(contracts.strategy.address);
     let interestBalance;
-    if (strategyType === "aave") {
+    if (strategyType === "aave" || strategyType === "aaveV3") {
       interestBalance = await contracts.lendingPool.balanceOf(contracts.strategy.address);
     } else if (strategyType === "curve") {
       interestBalance = await contracts.curvePool.balanceOf(contracts.strategy.address);
@@ -680,7 +680,7 @@ export const shouldBehaveLikeJoiningGGPool = async (strategyType: string) => {
     // Player1 joins the game
     await joinGame(contracts.goodGhosting, contracts.inboundToken, player1, segmentPayment, segmentPayment);
     let contractsDaiBalance;
-    if (strategyType === "aave") {
+    if (strategyType === "aave" || strategyType === "aaveV3") {
       contractsDaiBalance = await contracts.lendingPool.balanceOf(contracts.strategy.address);
     } else if (strategyType === "curve") {
       contractsDaiBalance = await contracts.curveGauge.balanceOf(contracts.strategy.address);
@@ -943,7 +943,7 @@ export const shouldBehaveLikeDepositingGGPool = async (strategyType: string) => 
     await ethers.provider.send("evm_mine", []);
     await makeDeposit(contracts.goodGhosting, contracts.inboundToken, player1, segmentPayment, segmentPayment);
     let contractsDaiBalance;
-    if (strategyType === "aave") {
+    if (strategyType === "aave" || strategyType === "aaveV3") {
       contractsDaiBalance = await contracts.lendingPool.balanceOf(contracts.strategy.address);
     } else if (strategyType === "curve") {
       contractsDaiBalance = await contracts.curveGauge.balanceOf(contracts.strategy.address);
@@ -1448,7 +1448,7 @@ export const shouldBehaveLikeRedeemingFromGGPool = async (strategyType: string) 
     );
     await mintTokens(contracts.inboundToken, deployer.address);
 
-    if (strategyType === "aave") {
+    if (strategyType === "aave" || strategyType === "aaveV3") {
       await contracts.inboundToken
         .connect(deployer)
         .approve(contracts.lendingPool.address, ethers.utils.parseEther("100000"));
@@ -1498,6 +1498,16 @@ export const shouldBehaveLikeRedeemingFromGGPool = async (strategyType: string) 
     const adminRewardFeeAmount = ethers.BigNumber.from(rewardTokenBalance)
       .mul(ethers.BigNumber.from(1))
       .div(ethers.BigNumber.from(100));
+
+    const rewardAmounts: any = [];
+    rewardAmounts[0] = ethers.BigNumber.from(rewardTokenBalance)
+      .sub(ethers.BigNumber.from(adminRewardFeeAmount))
+      .toString();
+    if (strategyType !== "aave" && strategyType !== "aaveV3") {
+      rewardAmounts[1] = ethers.BigNumber.from(governanceTokenRewards)
+        .sub(ethers.BigNumber.from(adminGovernanceTokenFee))
+        .toString();
+    }
     await expect(result)
       .to.emit(contracts.goodGhosting, "FundsRedeemedFromExternalPool")
       .withArgs(
@@ -1505,8 +1515,7 @@ export const shouldBehaveLikeRedeemingFromGGPool = async (strategyType: string) 
         totalPrincipal,
         expectedInterestValue,
         ethers.BigNumber.from(0),
-        ethers.BigNumber.from(rewardTokenBalance).sub(ethers.BigNumber.from(adminRewardFeeAmount)),
-        ethers.BigNumber.from(governanceTokenRewards).sub(ethers.BigNumber.from(adminGovernanceTokenFee)),
+        rewardAmounts,
       );
   });
 
@@ -1526,7 +1535,7 @@ export const shouldBehaveLikeRedeemingFromGGPool = async (strategyType: string) 
     );
     await mintTokens(contracts.inboundToken, deployer.address);
 
-    if (strategyType === "aave") {
+    if (strategyType === "aave" || strategyType === "aaveV3") {
       await contracts.inboundToken
         .connect(deployer)
         .approve(contracts.lendingPool.address, ethers.utils.parseEther("100000"));
@@ -1598,7 +1607,7 @@ export const shouldBehaveLikeRedeemingFromGGPool = async (strategyType: string) 
       segmentPayment,
     );
     await mintTokens(contracts.inboundToken, deployer.address);
-    if (strategyType === "aave") {
+    if (strategyType === "aave" || strategyType === "aaveV3") {
       await contracts.inboundToken
         .connect(deployer)
         .approve(contracts.lendingPool.address, ethers.utils.parseEther("100000"));
@@ -1646,7 +1655,7 @@ export const shouldBehaveLikeRedeemingFromGGPool = async (strategyType: string) 
       segmentPayment,
     );
     await mintTokens(contracts.inboundToken, deployer.address);
-    if (strategyType === "aave") {
+    if (strategyType === "aave" || strategyType === "aaveV3") {
       await contracts.inboundToken
         .connect(deployer)
         .approve(contracts.lendingPool.address, ethers.utils.parseEther("100000"));
@@ -1755,7 +1764,7 @@ export const shouldBehaveLikeRedeemingFromGGPool = async (strategyType: string) 
         `totalIncentiveAmount should be ${incentiveAmount.toString()}; received ${result.toString()}`,
       );
     });
-    if (strategyType !== "aave") {
+    if (strategyType !== "aave" && strategyType !== "aaveV3") {
       it("we are able to redeem if there is impermanent loss", async () => {
         const accounts = await ethers.getSigners();
         const player1 = accounts[2];
@@ -1839,16 +1848,20 @@ export const shouldBehaveLikeGGPoolWithNoWinners = async (strategyType: string) 
     const adminRewardTokenFee = ethers.BigNumber.from(rewardTokenBalance)
       .mul(ethers.BigNumber.from(1))
       .div(ethers.BigNumber.from(100));
+
+    const rewardAmounts: any = [];
+    rewardAmounts[0] = ethers.BigNumber.from(rewardTokenBalance)
+      .sub(ethers.BigNumber.from(adminRewardTokenFee))
+      .toString();
+    if (strategyType !== "aave" && strategyType !== "aaveV3") {
+      rewardAmounts[1] = ethers.BigNumber.from(governanceTokenRewards)
+        .sub(ethers.BigNumber.from(adminGovernanceTokenFee))
+        .toString();
+    }
+
     await expect(result)
       .to.emit(contracts.goodGhosting, "FundsRedeemedFromExternalPool")
-      .withArgs(
-        totalBalance,
-        principalAmount,
-        adminBalance,
-        ethers.BigNumber.from(0),
-        ethers.BigNumber.from(rewardTokenBalance).sub(ethers.BigNumber.from(adminRewardTokenFee)),
-        ethers.BigNumber.from(governanceTokenRewards).sub(ethers.BigNumber.from(adminGovernanceTokenFee)),
-      );
+      .withArgs(totalBalance, principalAmount, adminBalance, ethers.BigNumber.from(0), rewardAmounts);
   });
 
   it("user is able to withdraw in case no one wins", async () => {
@@ -2179,7 +2192,7 @@ export const shouldBehaveLikePlayersWithdrawingFromGGPool = async (strategyType:
     // Simulate some interest by giving the contract more aDAI
     await mintTokens(contracts.inboundToken, deployer.address);
 
-    if (strategyType === "aave") {
+    if (strategyType === "aave" || strategyType === "aaveV3") {
       await contracts.inboundToken
         .connect(deployer)
         .approve(contracts.lendingPool.address, ethers.utils.parseEther("100000"));
@@ -2326,7 +2339,7 @@ export const shouldBehaveLikePlayersWithdrawingFromGGPool = async (strategyType:
     await ethers.provider.send("evm_mine", []);
 
     await mintTokens(contracts.inboundToken, deployer.address);
-    if (strategyType === "aave") {
+    if (strategyType === "aave" || strategyType === "aaveV3") {
       await contracts.inboundToken
         .connect(deployer)
         .approve(contracts.lendingPool.address, ethers.utils.parseEther("100000"));
@@ -2383,7 +2396,7 @@ export const shouldBehaveLikePlayersWithdrawingFromGGPool = async (strategyType:
       segmentPayment,
     );
     await mintTokens(contracts.inboundToken, deployer.address);
-    if (strategyType === "aave") {
+    if (strategyType === "aave" || strategyType === "aaveV3") {
       await contracts.inboundToken
         .connect(deployer)
         .approve(contracts.lendingPool.address, ethers.utils.parseEther("100000"));
@@ -2444,12 +2457,18 @@ export const shouldBehaveLikePlayersWithdrawingFromGGPool = async (strategyType:
     const adminRewardTokenFee = ethers.BigNumber.from(rewardTokenBalance)
       .mul(ethers.BigNumber.from(1))
       .div(ethers.BigNumber.from(100));
+    const playerRewardAmounts: any = [];
+    playerRewardAmounts[0] = ethers.BigNumber.from(rewardTokenBalance)
+      .sub(ethers.BigNumber.from(adminRewardTokenFee))
+      .toString();
+    if (strategyType !== "aave" && strategyType !== "aaveV3") {
+      playerRewardAmounts[1] = ethers.BigNumber.from(governanceTokenBalance)
+        .sub(ethers.BigNumber.from(adminGovernanceTokenFee))
+        .toString();
+    }
     await expect(contracts.goodGhosting.connect(player1).withdraw(0))
       .to.emit(contracts.goodGhosting, "Withdrawal")
-      .withArgs(player1.address, userDeposit.add(playerShare), ethers.BigNumber.from(0), [
-        ethers.BigNumber.from(rewardTokenBalance).sub(ethers.BigNumber.from(adminRewardTokenFee)),
-        ethers.BigNumber.from(governanceTokenBalance).sub(ethers.BigNumber.from(adminGovernanceTokenFee)),
-      ]);
+      .withArgs(player1.address, userDeposit.add(playerShare), ethers.BigNumber.from(0), playerRewardAmounts);
   });
   if (strategyType === "curve" || strategyType === "mobius") {
     it("player is able to withdraw if there is impermanent loss", async () => {
@@ -2626,7 +2645,7 @@ export const shouldBehaveLikeAdminWithdrawingFeesFromGGPoolWithFeePercentMoreTha
     );
     //generating mock interest
     await mintTokens(contracts.inboundToken, deployer.address);
-    if (strategyType === "aave") {
+    if (strategyType === "aave" || strategyType === "aaveV3") {
       await contracts.inboundToken
         .connect(deployer)
         .approve(contracts.lendingPool.address, ethers.utils.parseEther("100000"));
@@ -2741,7 +2760,7 @@ export const shouldBehaveLikeAdminWithdrawingFeesFromGGPoolWithFeePercentMoreTha
       // mocks interest generation
       await mintTokens(contracts.inboundToken, deployer.address);
 
-      if (strategyType === "aave") {
+      if (strategyType === "aave" || strategyType === "aaveV3") {
         await contracts.inboundToken
           .connect(deployer)
           .approve(contracts.lendingPool.address, ethers.utils.parseEther("100000"));
@@ -2809,7 +2828,7 @@ export const shouldBehaveLikeAdminWithdrawingFeesFromGGPoolWithFeePercentMoreTha
       // mocks interest generation
       await mintTokens(contracts.inboundToken, deployer.address);
 
-      if (strategyType === "aave") {
+      if (strategyType === "aave" || strategyType === "aaveV3") {
         await contracts.inboundToken
           .connect(deployer)
           .approve(contracts.lendingPool.address, ethers.utils.parseEther("100000"));
@@ -2970,7 +2989,7 @@ export const shouldBehaveLikeAdminWithdrawingFeesFromGGPoolWithFeePercentMoreTha
       // mocks interest generation
       await mintTokens(contracts.inboundToken, deployer.address);
 
-      if (strategyType === "aave") {
+      if (strategyType === "aave" || strategyType === "aaveV3") {
         await contracts.inboundToken
           .connect(deployer)
           .approve(contracts.lendingPool.address, ethers.utils.parseEther("100000"));
@@ -3044,7 +3063,7 @@ export const shouldBehaveLikeAdminWithdrawingFeesFromGGPoolWithFeePercentMoreTha
       // mocks interest generation
       await mintTokens(contracts.inboundToken, deployer.address);
 
-      if (strategyType === "aave") {
+      if (strategyType === "aave" || strategyType === "aaveV3") {
         await contracts.inboundToken
           .connect(deployer)
           .approve(contracts.lendingPool.address, ethers.utils.parseEther("100000"));
@@ -3795,14 +3814,16 @@ export const shouldBehaveLikeVariableDepositPool = async (strategyType: string) 
 
       const player1Deposit = ethers.BigNumber.from(player1Info.amountPaid);
 
+      const playerRewardAmounts: any = [];
+      playerRewardAmounts[0] = rewardDifferenceForPlayer1.toString();
+      playerRewardAmounts[1] = governanceTokenBalanceDifferenceForPlayer1.toString();
       await expect(result)
         .to.emit(contracts.goodGhosting, "Withdrawal")
         .withArgs(
           player1.address,
           player1Deposit.add(interestEarnedByPlayer1),
           ethers.BigNumber.from(0),
-          rewardDifferenceForPlayer1,
-          governanceTokenBalanceDifferenceForPlayer1,
+          playerRewardAmounts,
         );
 
       const player2Deposit = ethers.BigNumber.from(player2Info.amountPaid);
@@ -3829,14 +3850,16 @@ export const shouldBehaveLikeVariableDepositPool = async (strategyType: string) 
       assert(interestEarnedByPlayer2.gt(interestEarnedByPlayer1));
       assert(rewardDifferenceForPlayer2.gt(rewardDifferenceForPlayer1));
 
+      const rewardAmounts: any = [];
+      rewardAmounts[0] = rewardDifferenceForPlayer2.toString();
+      rewardAmounts[1] = governanceTokenBalanceDifferenceForPlayer2.toString();
       await expect(result)
         .to.emit(contracts.goodGhosting, "Withdrawal")
         .withArgs(
           player2.address,
           player2Deposit.add(interestEarnedByPlayer2),
           ethers.BigNumber.from(0),
-          rewardDifferenceForPlayer2,
-          governanceTokenBalanceDifferenceForPlayer2,
+          rewardAmounts,
         );
     });
 
@@ -4104,7 +4127,7 @@ export const shouldBehaveLikeVariableDepositPool = async (strategyType: string) 
     // mocks interest generation
     await mintTokens(contracts.inboundToken, deployer.address);
 
-    if (strategyType === "aave") {
+    if (strategyType === "aave" || strategyType === "aaveV3") {
       await contracts.inboundToken
         .connect(deployer)
         .approve(contracts.lendingPool.address, ethers.utils.parseEther("100000"));
@@ -4231,7 +4254,7 @@ export const shouldBehaveLikeVariableDepositPool = async (strategyType: string) 
     // mocks interest generation
     await mintTokens(contracts.inboundToken, deployer.address);
 
-    if (strategyType === "aave") {
+    if (strategyType === "aave" || strategyType === "aaveV3") {
       await contracts.inboundToken
         .connect(deployer)
         .approve(contracts.lendingPool.address, ethers.utils.parseEther("100000"));
@@ -4314,16 +4337,15 @@ export const shouldBehaveLikeVariableDepositPool = async (strategyType: string) 
     const interestEarnedByPlayer1 = differenceForPlayer1.sub(ethers.BigNumber.from(player1Info.amountPaid));
 
     const player1Deposit = ethers.BigNumber.from(player1Info.amountPaid);
+    const rewardAmounts: any = [];
+    rewardAmounts[0] = rewardDifferenceForPlayer1.toString();
+    if (strategyType !== "aave" && strategyType !== "aaveV3") {
+      rewardAmounts[1] = governanceTokenBalanceDifferenceForPlayer1.toString();
+    }
 
     await expect(result)
       .to.emit(contracts.goodGhosting, "Withdrawal")
-      .withArgs(
-        player1.address,
-        player1Deposit.add(interestEarnedByPlayer1),
-        ethers.BigNumber.from(0),
-        rewardDifferenceForPlayer1,
-        governanceTokenBalanceDifferenceForPlayer1,
-      );
+      .withArgs(player1.address, player1Deposit.add(interestEarnedByPlayer1), ethers.BigNumber.from(0), rewardAmounts);
 
     const player2Deposit = ethers.BigNumber.from(player2Info.amountPaid);
 
@@ -4355,14 +4377,18 @@ export const shouldBehaveLikeVariableDepositPool = async (strategyType: string) 
     assert(interestEarnedByPlayer2.gt(interestEarnedByPlayer1));
     assert(rewardDifferenceForPlayer2.gt(rewardDifferenceForPlayer1));
 
+    const playerRewardAmounts: any = [];
+    playerRewardAmounts[0] = rewardDifferenceForPlayer2.toString();
+    if (strategyType !== "aave" && strategyType !== "aaveV3") {
+      playerRewardAmounts[1] = governanceTokenBalanceDifferenceForPlayer2.toString();
+    }
     await expect(result)
       .to.emit(contracts.goodGhosting, "Withdrawal")
       .withArgs(
         player2.address,
         player2Deposit.add(interestEarnedByPlayer2),
         ethers.BigNumber.from(0),
-        rewardDifferenceForPlayer2,
-        governanceTokenBalanceDifferenceForPlayer2,
+        playerRewardAmounts,
       );
   });
 
@@ -4437,7 +4463,7 @@ export const shouldBehaveLikeVariableDepositPool = async (strategyType: string) 
     // mocks interest generation
     await mintTokens(contracts.inboundToken, deployer.address);
 
-    if (strategyType === "aave") {
+    if (strategyType === "aave" || strategyType === "aaveV3") {
       await contracts.inboundToken
         .connect(deployer)
         .approve(contracts.lendingPool.address, ethers.utils.parseEther("100000"));
@@ -4570,7 +4596,7 @@ export const shouldBehaveLikeVariableDepositPool = async (strategyType: string) 
     // mocks interest generation
     await mintTokens(contracts.inboundToken, deployer.address);
 
-    if (strategyType === "aave") {
+    if (strategyType === "aave" || strategyType === "aaveV3") {
       await contracts.inboundToken
         .connect(deployer)
         .approve(contracts.lendingPool.address, ethers.utils.parseEther("100000"));
@@ -4634,7 +4660,7 @@ export const shouldBehaveLikeVariableDepositPool = async (strategyType: string) 
     assert(adminRewardBalanceAfterWithdraw.gt(adminRewardBalanceBeforeWithdraw));
   });
 
-  if (strategyType == "aave") {
+  if (strategyType !== "aave" && strategyType !== "aaveV3") {
     it("2 players join a game with transactional token and deposit different amounts at different times throughout and get interest accordingly on withdraw", async () => {
       contracts = await deployPool(
         depositCount,
@@ -4751,14 +4777,18 @@ export const shouldBehaveLikeVariableDepositPool = async (strategyType: string) 
       const interestEarnedByPlayer1 = differenceForPlayer1.sub(ethers.BigNumber.from(player1Info.amountPaid));
 
       const player1Deposit = ethers.BigNumber.from(player1Info.amountPaid);
+
+      const playerRewardAmounts: any = [];
+      playerRewardAmounts[0] = rewardDifferenceForPlayer1.toString();
+      playerRewardAmounts[1] = "0";
+
       await expect(result)
         .to.emit(contracts.goodGhosting, "Withdrawal")
         .withArgs(
           player1.address,
           player1Deposit.add(interestEarnedByPlayer1),
           ethers.BigNumber.from(0),
-          rewardDifferenceForPlayer1,
-          0,
+          playerRewardAmounts,
         );
 
       const player2Deposit = ethers.BigNumber.from(player2Info.amountPaid);
@@ -4778,14 +4808,17 @@ export const shouldBehaveLikeVariableDepositPool = async (strategyType: string) 
       assert(interestEarnedByPlayer2.gt(interestEarnedByPlayer1));
       assert(rewardDifferenceForPlayer2.gt(rewardDifferenceForPlayer1));
 
+      const rewardAmounts: any = [];
+      rewardAmounts[0] = rewardDifferenceForPlayer2.toString();
+      rewardAmounts[1] = "0";
+
       await expect(result)
         .to.emit(contracts.goodGhosting, "Withdrawal")
         .withArgs(
           player2.address,
           player2Deposit.add(interestEarnedByPlayer2),
           ethers.BigNumber.from(0),
-          rewardDifferenceForPlayer2,
-          0,
+          rewardAmounts,
         );
     });
 
@@ -4899,14 +4932,17 @@ export const shouldBehaveLikeVariableDepositPool = async (strategyType: string) 
       const interestEarnedByPlayer1 = differenceForPlayer1.sub(ethers.BigNumber.from(player1Info.amountPaid));
 
       const player1Deposit = ethers.BigNumber.from(player1Info.amountPaid);
+
+      const rewardAmounts: any = [];
+      rewardAmounts[0] = rewardDifferenceForPlayer1.toString();
+      rewardAmounts[1] = "0";
       await expect(result)
         .to.emit(contracts.goodGhosting, "Withdrawal")
         .withArgs(
           player1.address,
           player1Deposit.add(interestEarnedByPlayer1),
           ethers.BigNumber.from(0),
-          rewardDifferenceForPlayer1,
-          0,
+          rewardAmounts,
         );
 
       const player2Deposit = ethers.BigNumber.from(player2Info.amountPaid);
@@ -4925,14 +4961,16 @@ export const shouldBehaveLikeVariableDepositPool = async (strategyType: string) 
       assert(interestEarnedByPlayer2.gt(interestEarnedByPlayer1));
       assert(rewardDifferenceForPlayer2.gt(rewardDifferenceForPlayer1));
 
+      const playerRewardAmounts: any = [];
+      rewardAmounts[0] = rewardDifferenceForPlayer1.toString();
+      rewardAmounts[1] = "0";
       await expect(result)
         .to.emit(contracts.goodGhosting, "Withdrawal")
         .withArgs(
           player2.address,
           player2Deposit.add(interestEarnedByPlayer2),
           ethers.BigNumber.from(0),
-          rewardDifferenceForPlayer2,
-          0,
+          playerRewardAmounts,
         );
     });
 
@@ -5215,6 +5253,13 @@ export const shouldBehaveLikeGGPoolWithTransactionalToken = async (strategyType:
     assert(transactionalTokenBalanceAfterWithdraw.gt(transactionalTokenBalanceBeforeWithdraw));
     assert(rewardTokenBalanceAfterRedeem.gt(rewardTokenBalanceBeforeRedeem));
 
+    const rewardAmounts: any = [];
+    rewardAmounts[0] = ethers.BigNumber.from(rewardTokenBalanceAfterRedeem)
+      .sub(ethers.BigNumber.from(adminRewardTokenFee))
+      .toString();
+    if (strategyType !== "aave" && strategyType !== "aaveV3") {
+      rewardAmounts[1] = ethers.BigNumber.from("0").toString();
+    }
     expect(result)
       .to.emit(contracts.goodGhosting, "FundsRedeemedFromExternalPool")
       .withArgs(
@@ -5222,8 +5267,7 @@ export const shouldBehaveLikeGGPoolWithTransactionalToken = async (strategyType:
         totalPrincipal,
         expectedInterestValue,
         ethers.BigNumber.from(0),
-        ethers.BigNumber.from(rewardTokenBalanceAfterRedeem).sub(ethers.BigNumber.from(adminRewardTokenFee)),
-        ethers.BigNumber.from("0"),
+        rewardAmounts,
       );
   });
 
@@ -5369,7 +5413,7 @@ export const shouldBehaveLikeGGPoolWithSameTokenAddresses = async (strategyType:
     await ethers.provider.send("evm_mine", []);
 
     await contracts.goodGhosting.redeemFromExternalPoolForFixedDepositPool(0);
-    const rewardTokenAmount = await contracts.goodGhosting.rewardTokenAmount();
+    const rewardTokenAmount = await contracts.goodGhosting.rewardTokenAmounts(0);
     assert(rewardTokenAmount.eq(ethers.BigNumber.from("0")));
     const rewardTokenPlayer1BalanceBeforeWithdraw = await contracts.inboundToken.balanceOf(player1.address);
     const rewardTokenPlayer2BalanceBeforeWithdraw = await contracts.inboundToken.balanceOf(player2.address);
