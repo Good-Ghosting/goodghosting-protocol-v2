@@ -106,7 +106,9 @@ Once this function is called, it updates the last segment value to current segme
 
 * **[IStrategy](https://github.com/Good-Ghosting/goodghosting-protocol-v1/blob/master/contracts/strategies/IStrategy.sol)** is the interface that all strategy contracts inherit so that it becomes straightforward to plug and play any strategy in the pool contract.
 
-* **[AaveStrategy](https://github.com/Good-Ghosting/goodghosting-protocol-v1/blob/master/contracts/strategies/AaveStrategy.sol)** is responsible for depositing funds that it gets from the pool contract to aave/moola and withdraw the funds from aave/moola and send back to the pool contract.
+* **[AaveStrategyV3](https://github.com/Good-Ghosting/goodghosting-protocol-v1/blob/master/contracts/strategies/AaveStrategyV3.sol)** is responsible for depositing funds that it gets from the pool contract to aave v3 and withdraw the funds from there and send back to the pool contract.
+
+* **[AaveStrategy](https://github.com/Good-Ghosting/goodghosting-protocol-v1/blob/master/contracts/strategies/AaveStrategy.sol)** is responsible for depositing funds that it gets from the pool contract to aave v2/moola and withdraw the funds from aave/moola and send back to the pool contract.
 
 * **[CurveStrategy](https://github.com/Good-Ghosting/goodghosting-protocol-v1/blob/master/contracts/strategies/CurveStrategy.sol)** is responsible for depositing funds that it gets from the pool contract to curve stable/volatile pools and withdraw the funds from curve stable/volatile pools and send back to the pool contract, current pools supported are AAVE Stable Pool `0x445FE580eF8d70FF569aB36e80c647af338db351` & Atricrypto Volatile Pool `0x1d8b86e3d88cdb2d34688e87e72f388cb541b7c8`.
 
