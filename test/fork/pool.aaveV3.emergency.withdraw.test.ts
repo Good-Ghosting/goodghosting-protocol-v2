@@ -75,6 +75,7 @@ describe("Aave V3 Pool Fork Tests when admin enables early game completion", () 
       dataProviderInstance.address,
       incentiveControllerInstance.address,
       wmaticInstance.address,
+      daiInstance.address,
     );
 
     pool = await ethers.getContractFactory("Pool", accounts[0]);

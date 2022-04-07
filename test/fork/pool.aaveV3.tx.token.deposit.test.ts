@@ -68,6 +68,7 @@ describe("Aave V3 Pool Fork Tests with the deposit token as transsactional token
       dataProviderInstance.address,
       incentiveControllerInstance.address,
       wmaticInstance.address,
+      ZERO_ADDRESS,
     );
 
     pool = await ethers.getContractFactory("Pool", accounts[0]);
