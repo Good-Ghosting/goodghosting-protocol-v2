@@ -29,6 +29,7 @@ contract LendingPoolAddressesProviderMock is ILendingPoolAddressesProvider, IPoo
         return address(this);
     }
 
+
     function setLendingPoolImpl(address _pool) public override {}
 
     function getLendingPoolCore() public view override returns (address payable) {
@@ -45,6 +46,10 @@ contract LendingPoolAddressesProviderMock is ILendingPoolAddressesProvider, IPoo
         )
     {
         return (address(this), address(this), address(this));
+    }
+
+    function UNDERLYING_ASSET_ADDRESS() external view returns (address) {
+        return underlyingAssetAddress;
     }
 
     function setLendingPoolCoreImpl(address _lendingPoolCore) public override {}
