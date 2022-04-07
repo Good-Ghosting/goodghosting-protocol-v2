@@ -347,7 +347,6 @@ contract("Variale Deposit Pool with Curve Strategy", accounts => {
         const playerInfo = await goodGhosting.players(player);
 
         let result;
-        console.log(i);
         result = await goodGhosting.withdraw(playerInfo.amountPaid.toString(), { from: player });
 
         curveRewardBalanceAfter = web3.utils.toBN(await curve.methods.balanceOf(player).call({ from: admin }));
@@ -436,8 +435,6 @@ contract("Variale Deposit Pool with Curve Strategy", accounts => {
 
     it("admin withdraws admin fee from contract", async () => {
       if (adminFee > 0) {
-        const expectedAmount = web3.utils.toBN(await goodGhosting.adminFeeAmount(0));
-
         let curveRewardBalanceBefore = web3.utils.toBN(0);
         let curveRewardBalanceAfter = web3.utils.toBN(0);
         let wmaticRewardBalanceBefore = web3.utils.toBN(0);
@@ -449,7 +446,7 @@ contract("Variale Deposit Pool with Curve Strategy", accounts => {
         curveRewardBalanceBefore = web3.utils.toBN(await curve.methods.balanceOf(admin).call({ from: admin }));
         wmaticRewardBalanceBefore = web3.utils.toBN(await wmatic.methods.balanceOf(admin).call({ from: admin }));
 
-        const result = await goodGhosting.adminFeeWithdraw({
+        await goodGhosting.adminFeeWithdraw({
           from: admin,
         });
 
@@ -468,19 +465,6 @@ contract("Variale Deposit Pool with Curve Strategy", accounts => {
         inboundTokenBalanceAfter = web3.utils.toBN(await token.methods.balanceOf(admin).call({ from: admin }));
         curveRewardBalanceAfter = web3.utils.toBN(await curve.methods.balanceOf(admin).call({ from: admin }));
         wmaticRewardBalanceAfter = web3.utils.toBN(await wmatic.methods.balanceOf(admin).call({ from: admin }));
-
-        truffleAssert.eventEmitted(
-          result,
-          "AdminWithdrawal",
-          async (ev: any) => {
-            console.log(ev.adminFeeAmount.toString());
-            console.log(ev.adminRewardAAmount.toString());
-            console.log(ev.adminGovernanceRewardAmount.toString());
-
-            return expectedAmount.gte(ev.adminFeeAmount);
-          },
-          "admin fee withdrawal event failure",
-        );
 
         assert(inboundTokenBalanceAfter.gt(inboundTokenBalanceBefore));
 

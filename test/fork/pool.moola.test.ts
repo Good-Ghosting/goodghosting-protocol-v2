@@ -216,20 +216,11 @@ contract("Pool with Moola Strategy", accounts => {
 
         inboundTokenBalanceBeforeWithdraw = web3.utils.toBN(await token.methods.balanceOf(admin).call({ from: admin }));
 
-        const expectedAmount = web3.utils.toBN(await goodGhosting.adminFeeAmount(0));
-
-        const result = await goodGhosting.adminFeeWithdraw({
+        await goodGhosting.adminFeeWithdraw({
           from: admin,
         });
         inboundTokenBalanceAfterWithdraw = web3.utils.toBN(await token.methods.balanceOf(admin).call({ from: admin }));
         assert(inboundTokenBalanceAfterWithdraw.gt(inboundTokenBalanceBeforeWithdraw));
-
-        truffleAssert.eventEmitted(
-          result,
-          "AdminWithdrawal",
-          (ev: any) => expectedAmount.eq(ev.adminFeeAmount),
-          "admin fee withdrawal event failure",
-        );
       }
     });
   });

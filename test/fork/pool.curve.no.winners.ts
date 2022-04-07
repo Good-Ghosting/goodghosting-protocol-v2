@@ -310,8 +310,6 @@ contract("Pool with Curve Strategy with no winners", accounts => {
 
     it("admin withdraws admin fee from contract", async () => {
       if (adminFee > 0) {
-        const expectedAmount = web3.utils.toBN(await goodGhosting.adminFeeAmount(0));
-
         let curveRewardBalanceBefore = web3.utils.toBN(0);
         let curveRewardBalanceAfter = web3.utils.toBN(0);
         let wmaticRewardBalanceBefore = web3.utils.toBN(0);
@@ -320,7 +318,7 @@ contract("Pool with Curve Strategy with no winners", accounts => {
         curveRewardBalanceBefore = web3.utils.toBN(await curve.methods.balanceOf(admin).call({ from: admin }));
         wmaticRewardBalanceBefore = web3.utils.toBN(await wmatic.methods.balanceOf(admin).call({ from: admin }));
 
-        const result = await goodGhosting.adminFeeWithdraw({
+        await goodGhosting.adminFeeWithdraw({
           from: admin,
         });
 
@@ -334,13 +332,6 @@ contract("Pool with Curve Strategy with no winners", accounts => {
         assert(
           wmaticRewardBalanceAfter.gte(wmaticRewardBalanceBefore),
           "expected wmatic balance after withdrawal to be equal to before withdrawal",
-        );
-
-        truffleAssert.eventEmitted(
-          result,
-          "AdminWithdrawal",
-          (ev: any) => expectedAmount.eq(ev.adminFeeAmount),
-          "admin fee withdrawal event failure",
         );
       }
     });

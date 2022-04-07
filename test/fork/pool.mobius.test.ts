@@ -383,8 +383,6 @@ contract("Pool with Mobius Strategy", accounts => {
 
     it("admin withdraws admin fee from contract", async () => {
       if (adminFee > 0) {
-        const expectedAmount = web3.utils.toBN(await goodGhosting.adminFeeAmount(0));
-
         let mobiRewardBalanceBefore = web3.utils.toBN(0);
         let mobiRewardBalanceAfter = web3.utils.toBN(0);
         let celoRewardBalanceBefore = web3.utils.toBN(0);
@@ -396,7 +394,7 @@ contract("Pool with Mobius Strategy", accounts => {
         mobiRewardBalanceBefore = web3.utils.toBN(await mobi.methods.balanceOf(admin).call({ from: admin }));
         celoRewardBalanceBefore = web3.utils.toBN(await celo.methods.balanceOf(admin).call({ from: admin }));
 
-        const result = await goodGhosting.adminFeeWithdraw({
+        await goodGhosting.adminFeeWithdraw({
           from: admin,
         });
 
@@ -414,13 +412,6 @@ contract("Pool with Mobius Strategy", accounts => {
         assert(
           celoRewardBalanceAfter.gte(celoRewardBalanceBefore),
           "expected celo balance after withdrawal to be equal to before withdrawal",
-        );
-
-        truffleAssert.eventEmitted(
-          result,
-          "AdminWithdrawal",
-          (ev: any) => expectedAmount.eq(ev.adminFeeAmount),
-          "admin fee withdrawal event failure",
         );
       }
     });

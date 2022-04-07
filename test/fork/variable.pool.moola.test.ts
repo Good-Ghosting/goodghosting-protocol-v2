@@ -202,21 +202,13 @@ contract("Variable Deposit Pool with Moola Strategy", accounts => {
 
     it("admin withdraws admin fee from contract", async () => {
       if (adminFee > 0) {
-        const expectedAmount = web3.utils.toBN(await goodGhosting.adminFeeAmount(0));
         const inboundBalanceBeforeWithdraw = await token.methods.balanceOf(admin).call({ from: admin });
 
-        const result = await goodGhosting.adminFeeWithdraw({
+        await goodGhosting.adminFeeWithdraw({
           from: admin,
         });
         const inboundBalanceAfterWithdraw = await token.methods.balanceOf(admin).call({ from: admin });
         assert(web3.utils.toBN(inboundBalanceAfterWithdraw).gt(web3.utils.toBN(inboundBalanceBeforeWithdraw)));
-
-        truffleAssert.eventEmitted(
-          result,
-          "AdminWithdrawal",
-          (ev: any) => expectedAmount.eq(ev.adminFeeAmount),
-          "admin fee withdrawal event failure",
-        );
       }
     });
   });

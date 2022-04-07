@@ -68,6 +68,7 @@ describe("Aave Variable Deposit Pool Fork Tests with the deposit token as transs
       dataProviderInstance.address,
       incentiveControllerInstance.address,
       wmaticInstance.address,
+      ZERO_ADDRESS,
     );
 
     pool = await ethers.getContractFactory("Pool", accounts[0]);

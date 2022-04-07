@@ -197,7 +197,6 @@ contract("Pool with Curve Strategy", accounts => {
               : userProvidedMinAmount.sub(
                   userProvidedMinAmount.mul(web3.utils.toBN("10")).div(web3.utils.toBN("1000")),
                 );
-          console.log(j);
           depositResult = await goodGhosting.makeDeposit(minAmountWithFees.toString(), 0, { from: player });
 
           truffleAssert.eventEmitted(
@@ -338,7 +337,6 @@ contract("Pool with Curve Strategy", accounts => {
           console.log("totalGamePrincipal", ev.totalGamePrincipal.toString());
           console.log("totalGameInterest", ev.totalGameInterest.toString());
           console.log("interestPerPlayer", ev.totalGameInterest.div(web3.utils.toBN(players.length - 1)).toString());
-          console.log("REWARDD", ev.totalGovernanceRewardAmount.toString());
           const adminFee = web3.utils
             .toBN(configs.deployConfigs.adminFee)
             .mul(ev.totalGameInterest)
@@ -401,8 +399,6 @@ contract("Pool with Curve Strategy", accounts => {
 
     it("admin withdraws admin fee from contract", async () => {
       if (adminFee > 0) {
-        const expectedAmount = web3.utils.toBN(await goodGhosting.adminFeeAmount(0));
-
         let curveRewardBalanceBefore = web3.utils.toBN(0);
         let curveRewardBalanceAfter = web3.utils.toBN(0);
         let wmaticRewardBalanceBefore = web3.utils.toBN(0);
@@ -411,7 +407,7 @@ contract("Pool with Curve Strategy", accounts => {
         curveRewardBalanceBefore = web3.utils.toBN(await curve.methods.balanceOf(admin).call({ from: admin }));
         wmaticRewardBalanceBefore = web3.utils.toBN(await wmatic.methods.balanceOf(admin).call({ from: admin }));
 
-        const result = await goodGhosting.adminFeeWithdraw({
+        await goodGhosting.adminFeeWithdraw({
           from: admin,
         });
         curveRewardBalanceAfter = web3.utils.toBN(await curve.methods.balanceOf(admin).call({ from: admin }));
@@ -424,13 +420,6 @@ contract("Pool with Curve Strategy", accounts => {
         assert(
           wmaticRewardBalanceAfter.gte(wmaticRewardBalanceBefore),
           "expected wmatic balance after withdrawal to be equal to before withdrawal",
-        );
-
-        truffleAssert.eventEmitted(
-          result,
-          "AdminWithdrawal",
-          (ev: any) => expectedAmount.eq(ev.adminFeeAmount),
-          "admin fee withdrawal event failure",
         );
       }
     });

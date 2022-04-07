@@ -3,6 +3,7 @@ const GoodGhostingContract = artifacts.require("Pool");
 const WhitelistedContract = artifacts.require("WhitelistedPool");
 const MobiusStrategyArtifact = artifacts.require("MobiusStrategy");
 const MoolaStrategyArtifact = artifacts.require("AaveStrategy");
+const AaveV3StrategyArtifact = artifacts.require("AaveStrategyV3");
 const CurveStrategyArtifact = artifacts.require("CurveStrategy");
 const SafeMathLib = artifacts.require("SafeMath");
 
@@ -162,13 +163,13 @@ function printSummary(
     console.log(`IncentiveController: ${incentiveController}`);
     console.log(`Reward Token: ${rewardToken}`);
     console.log("Moola Strategy Encoded Params: ", moolsStrategylEncodedParameters.toString("hex"));
-  } else if (networkName == "polygon-aave") {
+  } else if (networkName == "polygon-aave" || networkName == "polygon-aaveV3") {
     console.log(`Lending Pool Provider: ${lendingPoolAddressProviderAave}`);
     console.log(`WETHGateway: ${wethGatewayAave}`);
     console.log(`Data Provider: ${dataProviderAave}`);
     console.log(`IncentiveController: ${incentiveControllerAave}`);
     console.log(`Reward Token: ${incentiveTokenAave}`);
-    console.log("Moola Strategy Encoded Params: ", aaveStrategylEncodedParameters.toString("hex"));
+    console.log("Aave Strategy Encoded Params: ", aaveStrategylEncodedParameters.toString("hex"));
   } else {
     console.log(`Curve Pool: ${curvePool}`);
     console.log(`Curve Gauge: ${curveGauge}`);
@@ -206,7 +207,8 @@ module.exports = function (deployer, network, accounts) {
     const mobiusPoolConfigs = config.providers["celo"]["mobius"];
     const moolaPoolConfigs = config.providers["celo"]["moola"];
     const curvePoolConfigs = config.providers["aave"]["polygon-curve"];
-    const aavePoolConfigs = config.providers["aave"]["polygon"];
+    const aavePoolConfigs =
+      network == "polygon-aave" ? config.providers["aave"]["polygon"] : config.providers["aave"]["polygonv3"];
     const curvePool = curvePoolConfigs.pool;
     const curveGauge = curvePoolConfigs.gauge;
     const wmatic = curvePoolConfigs.wmatic;
@@ -222,7 +224,7 @@ module.exports = function (deployer, network, accounts) {
       network === "local-variable-celo-moola" ||
       network === "celo-moola"
         ? mobiusPoolConfigs["cusd"].address
-        : network === "polygon-aave"
+        : network === "polygon-aave" || network === "polygon-aaveV3"
         ? aavePoolConfigs["dai"].address
         : curvePoolConfigs["dai"].address;
     const inboundCurrencyDecimals = mobiusPoolConfigs["cusd"].decimals;
@@ -243,16 +245,19 @@ module.exports = function (deployer, network, accounts) {
         moolaPoolConfigs.wethGateway,
         dataProvider,
         moolaPoolConfigs.incentiveController,
+        // wmatic address in case of aave deployments
         moolaPoolConfigs.incentiveToken,
+        inboundCurrencyAddress,
       ];
-    } else if (network === "polygon-aave") {
+    } else if (network === "polygon-aave" || network === "polygon-aaveV3") {
       strategyArgs = [
-        MoolaStrategyArtifact,
+        network === "polygon-aave" ? MoolaStrategyArtifact : AaveV3StrategyArtifact,
         aavePoolConfigs.lendingPoolAddressProvider,
         aavePoolConfigs.wethGateway,
         aavePoolConfigs.dataProvider,
         aavePoolConfigs.incentiveController,
         aavePoolConfigs.incentiveToken,
+        inboundCurrencyAddress,
       ];
     } else {
       strategyArgs = [
@@ -274,9 +279,11 @@ module.exports = function (deployer, network, accounts) {
       network === "local-celo-moola" ||
       network === "local-variable-celo-moola" ||
       network === "celo-moola" ||
-      network === "polygon-aave"
+      network === "polygon-aave" ||
+      network === "polygon-aaveV3"
     )
-      strategyInstance = await MoolaStrategyArtifact.deployed();
+      strategyInstance =
+        network === "polygon-aaveV3" ? await AaveV3StrategyArtifact.deployed() : await MoolaStrategyArtifact.deployed();
     else strategyInstance = await CurveStrategyArtifact.deployed();
 
     // Prepares deployment arguments
