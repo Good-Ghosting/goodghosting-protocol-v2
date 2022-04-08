@@ -256,7 +256,7 @@ module.exports = function (deployer, network, accounts) {
         aavePoolConfigs.wethGateway,
         aavePoolConfigs.dataProvider,
         aavePoolConfigs.incentiveController,
-        aavePoolConfigs.incentiveToken,
+        aavePoolConfigs.wmatic,
         inboundCurrencyAddress,
       ];
     } else {
@@ -348,7 +348,7 @@ module.exports = function (deployer, network, accounts) {
         wethGatewayAave: aavePoolConfigs.wethGateway,
         dataProviderAave: aavePoolConfigs.dataProvider,
         incentiveControllerAave: aavePoolConfigs.incentiveController,
-        incentiveTokenAave: aavePoolConfigs.incentiveToken,
+        incentiveTokenAave: aavePoolConfigs.wmatic,
       },
       {
         networkName: process.env.NETWORK,

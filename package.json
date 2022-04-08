@@ -81,6 +81,7 @@
     "deploy:celo-mobius": "truffle deploy -f 2 --network celo-mobius --reset",
     "deploy:polygon-curve": "truffle deploy -f 2 --network polygon-curve --reset",
     "deploy:polygon-aave": "truffle deploy -f 2 --network polygon-aave --reset",
+    "deploy:polygon-aaveV3": "truffle deploy -f 2 --network polygon-aaveV3 --reset",
     "lint": "yarn lint:sol && yarn lint:ts && yarn prettier:check",
     "lint:sol": "solhint --config ./.solhint.json --max-warnings 0 \"contracts/**/*.sol\"",
     "lint:ts": "eslint --config ./.eslintrc.yaml --ignore-path ./.eslintignore --ext .js,.ts .",
