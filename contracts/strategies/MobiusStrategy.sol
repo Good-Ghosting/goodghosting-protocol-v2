@@ -55,11 +55,14 @@ contract MobiusStrategy is Ownable, IStrategy {
         return totalAccumalatedAmount;
     }
 
-
+    /** 
+    @notice
+    Returns the underlying token address.
+    @return Underlying token address.
+    */
     function getunderlyingAsset () external view override returns (address) {
         return address(0);
     }
-
 
     /** 
     @notice

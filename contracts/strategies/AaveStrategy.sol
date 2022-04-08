@@ -35,6 +35,7 @@ contract AaveStrategy is Ownable, IStrategy {
     /// @notice Lending pool address
     ILendingPool public immutable lendingPool;
 
+    /// @notice Atoken address
     AToken public immutable adaiToken;
 
     /// @notice AaveProtocolDataProvider address
@@ -56,6 +57,11 @@ contract AaveStrategy is Ownable, IStrategy {
         return adaiToken.balanceOf(address(this));
     }
 
+    /** 
+    @notice
+    Returns the underlying token address.
+    @return Underlying token address.
+    */
     function getunderlyingAsset () external view override returns (address) {
         return adaiToken.UNDERLYING_ASSET_ADDRESS();
     }

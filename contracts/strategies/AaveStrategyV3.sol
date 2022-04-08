@@ -37,6 +37,7 @@ contract AaveStrategyV3 is Ownable, IStrategy {
     /// @notice wrapped token address like wamtic or weth
     IERC20 public immutable wrappedTxToken;
 
+    /// @notice Atoken address
     AToken public immutable adaiToken;
 
     /// @notice AaveProtocolDataProvider address
@@ -61,6 +62,11 @@ contract AaveStrategyV3 is Ownable, IStrategy {
         return adaiToken.balanceOf(address(this));
     }
 
+    /** 
+    @notice
+    Returns the underlying token address.
+    @return Underlying token address.
+    */
     function getunderlyingAsset () external view override returns (address) {
         return adaiToken.UNDERLYING_ASSET_ADDRESS();
     }
