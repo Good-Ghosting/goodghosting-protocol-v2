@@ -189,7 +189,7 @@ To run the integrated test scenarios forking from Mainnet (Polygon or Celo) you'
 
 ### Steps
 #### Polygon
-- **Aave Strategy Based Pool** As mentioned above we use hardhat for this, after doing the setup mentioned above, the next step is to set the `FORKING` var in your .env file as `true`, next in your [config](https://github.com/Good-Ghosting/goodghosting-protocol-v1/blob/master/hardhat.config.ts#L62) you set your desired rpc url, currently a public rpc is set. Then you just run `yarn test`.
+- **Aave V2/V3 Strategy Based Pool** As mentioned above we use hardhat for this, after doing the setup mentioned above, the next step is to set the `FORKING` var in your .env file as `true`, next in your [config](https://github.com/Good-Ghosting/goodghosting-protocol-v1/blob/master/hardhat.config.ts#L62) you set your desired rpc url, currently a public rpc is set. Then you just run `yarn test`.
 
 - **Curve Strategy Based Pool** As mentioned above we use truffle for this, so open a new terminal window and run  `ganache-cli -f <Your Polygon RPC> -m "clutchaptain shoe salt awake harvest setup primary inmate ugly among become" -i 999 --unlock {WHALE_ADDRESS_FORKED_NETWORK}` and in the second window run `yarn test:fork:polygon:curve` for fixed deposit pool & `yarn test:fork:variable:polygon:curve` for variable deposit pool.
 
@@ -213,7 +213,123 @@ slither .
 
 # Contract Deployment
 ## Polygon
-- **Aave Strategy Based Pool** Start by setting the `MNEMONIC` var (which is the 12 word seed phrase in your wallet) & the `RPC` var in the .env file & then make sure you have the [right deployment configs set](https://github.com/Good-Ghosting/goodghosting-protocol-v1/blob/master/deploy.config.ts)(if a **whitelisted pool** needs to be deployed make sure the merkle root is set and the [isWhitelisted var](https://github.com/Good-Ghosting/goodghosting-protocol-v1/blob/master/deploy.config.ts#L135) is true), then just run `yarn deploy:polygon-aave`.
+- **Aave V3 Strategy Based Pool** Start by setting the `MNEMONIC` var (which is the 12 word seed phrase in your wallet) & the `RPC` var in the .env file & then make sure you have the [right deployment configs set](https://github.com/Good-Ghosting/goodghosting-protocol-v1/blob/master/deploy.config.ts)(if a **whitelisted pool** needs to be deployed make sure the merkle root is set and the [isWhitelisted var](https://github.com/Good-Ghosting/goodghosting-protocol-v1/blob/master/deploy.config.ts#L135) is true), then just run `yarn deploy:polygon-aaveV3`.
+
+You will see something like this:
+
+```
+Starting migrations...
+======================
+> Network name:    'polygon-aaveV3'
+> Network id:      137
+> Block gas limit: 30000000 (0x1c9c380)
+
+
+2_deploy_contracts.js
+=====================
+
+   Deploying 'AaveStrategyV3'
+   ------------------------
+   > transaction hash:    0x3d0445201814629cf0eea2e68f0c034a288708ec62e5c50ef558f3fdff30b873
+   > Blocks: 2            Seconds: 9
+   > contract address:    0x7f8bA69d2D7bD4490AB0aa35B92e29B845aaB7fA
+   > block number:        26186433
+   > block timestamp:     1647862592
+   > account:             0xf88b0247e611eE5af8Cf98f5303769Cba8e7177C
+   > balance:             12.653319168891911123
+   > gas used:            2004678 (0x1e96c6)
+   > gas price:           32 gwei
+   > value sent:          0 ETH
+   > total cost:          0.064149696 ETH
+
+   Pausing for 2 confirmations...
+   ------------------------------
+   > confirmation number: 3 (block: 26186439)
+
+   Replacing 'SafeMath'
+   --------------------
+   > transaction hash:    0x651ba018aa6709ef01644b45b353111814630922d4ae03d976a7de4e8e37adc3
+   > Blocks: 3            Seconds: 5
+   > contract address:    0xAE130829ffeD8249BE3323289f15E4Bfd0770203
+   > block number:        26186444
+   > block timestamp:     1647862614
+   > account:             0xf88b0247e611eE5af8Cf98f5303769Cba8e7177C
+   > balance:             12.651008224891911123
+   > gas used:            72217 (0x11a19)
+   > gas price:           32 gwei
+   > value sent:          0 ETH
+   > total cost:          0.002310944 ETH
+
+   Pausing for 2 confirmations...
+   ------------------------------
+   > confirmation number: 2 (block: 26186449)
+
+   Replacing 'Pool'
+   ----------------
+   > transaction hash:    0xb16d515ed33d945d1c38be20c384d314ab0e129a602fc08eb44b4963f6bfcca1
+   > Blocks: 5            Seconds: 10
+   > contract address:    0x43a84D3BC0Fb6CFC93c7F9D08d8Be46a500bd9f3
+   > block number:        26186454
+   > block timestamp:     1647862634
+   > account:             0xf88b0247e611eE5af8Cf98f5303769Cba8e7177C
+   > balance:             12.504153056891911123
+   > gas used:            4589224 (0x4606a8)
+   > gas price:           32 gwei
+   > value sent:          0 ETH
+   > total cost:          0.146855168 ETH
+
+   Pausing for 2 confirmations...
+   ------------------------------
+   > confirmation number: 2 (block: 26186461)
+
+
+
+----------------------------------------------------
+GoodGhosting Holding Pool deployed with the following arguments:
+----------------------------------------------------
+
+Network Name: polygon-aaveV3
+Contract's Owner: 0xf88b0247e611eE5af8Cf98f5303769Cba8e7177C
+Inbound Currency: 0x8f3Cf7ad23Cd3CaDbD9735AFf958023239c6A063
+Maximum Flexible Segment Payment Amount: 0
+Segment Count: 3
+Segment Length: 604800 seconds
+Waiting Segment Length: 604800 seconds
+Segment Payment: 3 dai (3000000000000000000 wei)
+Early Withdrawal Fee: 1%
+Custom Pool Fee: 1%
+Max Quantity of Players: 115792089237316195423570985008687907853269984665640564039457584007913129639935
+Flexible Deposit Pool: false
+Transactional Token Depsoit Pool: false
+Strategy: 0x7f8bA69d2D7bD4490AB0aa35B92e29B845aaB7fA
+Lending Pool Provider: 0xa97684ead0e402dC232d5A977953DF7ECBaB3CDb
+WETHGateway: 0x9BdB5fcc80A49640c7872ac089Cc0e00A98451B6
+Data Provider: 0x69FA688f1Dc47d4B5d8029D5a35FB7a548310654
+IncentiveController: 0x929EC64c34a17401F460460D4B9390518E5B473e
+Reward Token: 0x0000000000000000000000000000000000000000
+Moola Strategy Encoded Params:  000000000000000000000000d05e3e715d945b59290df0ae8ef85c1bdb684744000000000000000000000000beadf48d62acc944a06eeae0a9054a90e5a7dc970000000000000000000000007551b5d2763519d4e37e8b81929d336de671d46d000000000000000000000000357d51124f59836ded84c8a1730d72b749d8bc230000000000000000000000000000000000000000000000000000000000000000
+
+
+Constructor Arguments ABI-Encoded:
+0000000000000000000000008f3cf7ad23cd3cadbd9735aff958023239c6a063000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000030000000000000000000000000000000000000000000000000000000000093a800000000000000000000000000000000000000000000000000000000000093a8000000000000000000000000000000000000000000000000029a2241af62c000000000000000000000000000000000000000000000000000000000000000000010000000000000000000000000000000000000000000000000000000000000001ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff00000000000000000000000000000000000000000000000000000000000000000000000000000000000000007f8ba69d2d7bd4490ab0aa35b92e29b845aab7fa0000000000000000000000000000000000000000000000000000000000000000
+
+
+
+
+
+   > Saving artifacts
+   -------------------------------------
+   > Total cost:         0.213315808 ETH
+```
+
+
+Summary
+=======
+> Total deployments:   3
+> Final cost:          0.213315808 ETH
+
+
+- **Aave V2 Strategy Based Pool** Start by setting the `MNEMONIC` var (which is the 12 word seed phrase in your wallet) & the `RPC` var in the .env file & then make sure you have the [right deployment configs set](https://github.com/Good-Ghosting/goodghosting-protocol-v1/blob/master/deploy.config.ts)(if a **whitelisted pool** needs to be deployed make sure the merkle root is set and the [isWhitelisted var](https://github.com/Good-Ghosting/goodghosting-protocol-v1/blob/master/deploy.config.ts#L135) is true), then just run `yarn deploy:polygon-aave`.
 
 You will see something like this:
 
