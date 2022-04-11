@@ -533,6 +533,7 @@ contract Pool is Ownable, Pausable {
                 inboundToken != address(incentiveToken)
             ) {
                 totalIncentiveAmount = IERC20(incentiveToken).balanceOf(address(this));
+                break;
             }
         }
 
@@ -705,10 +706,11 @@ contract Pool is Ownable, Pausable {
             player.canRejoin = true;
             playerIndex[msg.sender][currentSegment] = 0;
         }
-        // since there is complexity of 2 vars here with if else logic so not using a memory var here
+        // since there is complexity of 2 vars here with if else logic so not using 2 memory vars here only 1.
+        uint cummalativePlayerIndexSumForCurrentSegment = cummalativePlayerIndexSum[currentSegment];
         for (uint256 i = 0; i <= players[msg.sender].mostRecentSegmentPaid; i++) {
-            if (cummalativePlayerIndexSum[currentSegment] > 0) {
-                cummalativePlayerIndexSum[currentSegment] = cummalativePlayerIndexSum[currentSegment].sub(
+            if (cummalativePlayerIndexSumForCurrentSegment > 0) {
+                cummalativePlayerIndexSumForCurrentSegment = cummalativePlayerIndexSumForCurrentSegment.sub(
                     playerIndex[msg.sender][i]
                 );
             } else {
@@ -717,6 +719,7 @@ contract Pool is Ownable, Pausable {
                 );
             }
         }
+        cummalativePlayerIndexSum[currentSegment] = cummalativePlayerIndexSumForCurrentSegment;
 
         // update winner count
         if (winnerCount > 0 && player.isWinner) {
@@ -1020,6 +1023,7 @@ contract Pool is Ownable, Pausable {
                 inboundToken != address(incentiveToken)
             ) {
                 totalIncentiveAmount = IERC20(incentiveToken).balanceOf(address(this));
+                break;
             }
         }
 
