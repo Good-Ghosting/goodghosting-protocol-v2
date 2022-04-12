@@ -1,6 +1,7 @@
 pragma solidity ^0.8.7;
 
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import '@openzeppelin/contracts/security/ReentrancyGuard.sol';
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "../mobius/IMobiPool.sol";
 import "../mobius/IMobiGauge.sol";
@@ -10,7 +11,6 @@ import "./IStrategy.sol";
 //*********************************************************************//
 // --------------------------- custom errors ------------------------- //
 //*********************************************************************//
-error INVALID_AMOUNT();
 error INVALID_CELO_TOKEN();
 error INVALID_GAUGE();
 error INVALID_MINTER();
@@ -21,7 +21,7 @@ error INVALID_POOL();
   @notice
   Interacts with mobius protocol to generate interest & additional rewards for the goodghosting pool it is used in, so it's responsible for deposits, staking lp tokens, withdrawals and getting rewards and sending these back to the pool.
 */
-contract MobiusStrategy is Ownable, IStrategy {
+contract MobiusStrategy is Ownable, ReentrancyGuard, IStrategy {
     /// @notice pool address
     IMobiPool public pool;
 
@@ -60,7 +60,7 @@ contract MobiusStrategy is Ownable, IStrategy {
     Returns the underlying token address.
     @return Underlying token address.
     */
-    function getunderlyingAsset () external view override returns (address) {
+    function getunderlyingAsset() external view override returns (address) {
         return address(0);
     }
 
@@ -123,7 +123,7 @@ contract MobiusStrategy is Ownable, IStrategy {
     @param _inboundCurrency Address of the inbound token.
     @param _minAmount Slippage based amount to cover for impermanent loss scenario.
     */
-    function invest(address _inboundCurrency, uint256 _minAmount) external payable override onlyOwner {
+    function invest(address _inboundCurrency, uint256 _minAmount) external payable override nonReentrant onlyOwner {
         uint256 contractBalance = IERC20(_inboundCurrency).balanceOf(address(this));
         IERC20(_inboundCurrency).approve(address(pool), contractBalance);
 
@@ -132,7 +132,6 @@ contract MobiusStrategy is Ownable, IStrategy {
 
         pool.addLiquidity(amounts, _minAmount, block.timestamp + 1000);
 
-        
         lpToken.approve(address(gauge), lpToken.balanceOf(address(this)));
         gauge.deposit(lpToken.balanceOf(address(this)));
     }
@@ -148,10 +147,7 @@ contract MobiusStrategy is Ownable, IStrategy {
         address _inboundCurrency,
         uint256 _amount,
         uint256 _minAmount
-    ) external override onlyOwner {
-        if (_amount == 0) {
-           revert INVALID_AMOUNT();
-        }
+    ) external override nonReentrant onlyOwner {
         uint256[] memory amounts = new uint256[](2);
         amounts[0] = _amount;
 
@@ -192,7 +188,7 @@ contract MobiusStrategy is Ownable, IStrategy {
         bool variableDeposits,
         uint256 _minAmount,
         bool disableRewardTokenClaim
-    ) external override onlyOwner {
+    ) external override nonReentrant onlyOwner {
         bool claimRewards = true;
         if (disableRewardTokenClaim) {
             claimRewards = false;
@@ -218,19 +214,16 @@ contract MobiusStrategy is Ownable, IStrategy {
                 pool.removeLiquidityOneToken(poolWithdrawAmount, 0, _minAmount, block.timestamp + 1000);
             } else {
                 gauge.withdraw(gaugeBalance, claimRewards);
-                
+
                 lpToken.approve(address(pool), lpToken.balanceOf(address(this)));
                 pool.removeLiquidityOneToken(lpToken.balanceOf(address(this)), 0, _minAmount, block.timestamp + 1000);
             }
         }
 
-        if (address(mobi) != address(0)) {
-            mobi.transfer(msg.sender, mobi.balanceOf(address(this)));
-        }
-        if (address(celo) != address(0)) {
-            celo.transfer(msg.sender, celo.balanceOf(address(this)));
-        }
-        
+        mobi.transfer(msg.sender, mobi.balanceOf(address(this)));
+
+        celo.transfer(msg.sender, celo.balanceOf(address(this)));
+
         IERC20(_inboundCurrency).transfer(msg.sender, IERC20(_inboundCurrency).balanceOf(address(this)));
     }
 
@@ -239,14 +232,18 @@ contract MobiusStrategy is Ownable, IStrategy {
     Returns total accumalated reward token amount.
     @param disableRewardTokenClaim Reward claim flag.
     */
-    function getAccumalatedRewardTokenAmounts(bool disableRewardTokenClaim) external override returns (uint256[] memory) {
-        uint amount = 0;
-        uint additionalAmount = 0;
+    function getAccumalatedRewardTokenAmounts(bool disableRewardTokenClaim)
+        external
+        override
+        returns (uint256[] memory)
+    {
+        uint256 amount = 0;
+        uint256 additionalAmount = 0;
         if (!disableRewardTokenClaim) {
-        amount = gauge.claimable_reward(address(this), address(celo));
-        additionalAmount = gauge.claimable_tokens(address(this));
+            amount = gauge.claimable_reward(address(this), address(celo));
+            additionalAmount = gauge.claimable_tokens(address(this));
         }
-        uint[] memory amounts = new uint[](2);
+        uint256[] memory amounts = new uint256[](2);
         amounts[0] = amount;
         amounts[1] = additionalAmount;
         return amounts;
