@@ -3,6 +3,7 @@ pragma solidity ^0.8.7;
 
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/security/Pausable.sol";
+import '@openzeppelin/contracts/security/ReentrancyGuard.sol';
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/utils/math/SafeMath.sol";
 import "./strategies/IStrategy.sol";
@@ -46,7 +47,7 @@ error GAME_NOT_INITIALIZED();
 @title GoodGhosting V2 Contract
 @notice Allows users to join a pool with a yield bearing strategy, the winners get interest and rewards, losers get their principal back.
 */
-contract Pool is Ownable, Pausable {
+contract Pool is Ownable, Pausable, ReentrancyGuard {
     /// using for better readability.
     using SafeMath for uint256;
 
@@ -417,7 +418,7 @@ contract Pool is Ownable, Pausable {
         @param _minAmount Slippage based amount to cover for impermanent loss scenario.
         @param _depositAmount Variable Deposit Amount in case of a variable deposit pool.
      */
-    function _transferInboundTokenToContract(uint256 _minAmount, uint256 _depositAmount) internal virtual {
+    function _transferInboundTokenToContract(uint256 _minAmount, uint256 _depositAmount) internal virtual nonReentrant {
         uint256 currentSegment = getCurrentSegment();
         players[msg.sender].mostRecentSegmentPaid = currentSegment;
 
@@ -457,7 +458,7 @@ contract Pool is Ownable, Pausable {
 
     /// @dev Sets the game stats without redeeming the funds from the strategy.
     /// Can only be called after the game is completed when each player withdraws.
-    function setGlobalPoolParamsForFlexibleDepositPool() internal virtual whenGameIsCompleted {
+    function setGlobalPoolParamsForFlexibleDepositPool() internal virtual nonReentrant whenGameIsCompleted {
         // Since this is only called in the case of variable deposit & it is called everytime a player decides to withdraw,
         // so totalBalance keeps a track of the ucrrent balance & the accumalated principal + interest stored in the strategy protocol.
         uint256 totalBalance = isTransactionalToken
@@ -802,9 +803,8 @@ contract Pool is Ownable, Pausable {
             }
 
             // calculate playerSharePercentage for each player
-            playerSharePercentage = playerIndexSum.mul(100).div(
-                cummalativePlayerIndexSum[lastSegment == 0 ? 0 : lastSegment.sub(1)]
-            );
+            uint segment = lastSegment == 0 ? 0 : lastSegment.sub(1);
+            playerSharePercentage = playerIndexSum.mul(100).div(cummalativePlayerIndexSum[segment]);
 
             if (impermanentLossShare > 0 && totalGameInterest == 0) {
                 // new payput in case of impermanent loss
