@@ -1,6 +1,7 @@
 pragma solidity ^0.8.7;
 
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import '@openzeppelin/contracts/security/ReentrancyGuard.sol';
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "../curve/ICurvePool.sol";
 import "../curve/ICurveGauge.sol";
@@ -9,7 +10,6 @@ import "./IStrategy.sol";
 //*********************************************************************//
 // --------------------------- custom errors ------------------------- //
 //*********************************************************************//
-error INVALID_AMOUNT();
 error INVALID_CURVE_TOKEN();
 error INVALID_GAUGE();
 error INVALID_POOL();
@@ -19,7 +19,7 @@ error INVALID_REWARD_TOKEN();
   @notice
   Interacts with curve protocol to generate interest & additional rewards for the goodghosting pool it is used in, so it's responsible for deposits, staking lp tokens, withdrawals and getting rewards and sending these back to the pool.
 */
-contract CurveStrategy is Ownable, IStrategy {
+contract CurveStrategy is Ownable, ReentrancyGuard, IStrategy {
     /// @notice pool address
     ICurvePool public pool;
 
@@ -78,7 +78,7 @@ contract CurveStrategy is Ownable, IStrategy {
     Returns the underlying token address.
     @return Underlying token address.
     */
-    function getunderlyingAsset () external view override returns (address) {
+    function getunderlyingAsset() external view override returns (address) {
         return address(0);
     }
 
@@ -133,9 +133,9 @@ contract CurveStrategy is Ownable, IStrategy {
         inboundTokenIndex = _inboundTokenIndex;
         // wmatic in case of polygon and address(0) for non-polygon deployment
         rewardToken = _rewardToken;
-        if (_poolType == 0) {
+        if (_poolType == AAVE_POOL) {
             lpToken = IERC20(pool.lp_token());
-        } else if (_poolType == 1) {
+        } else {
             lpToken = IERC20(pool.token());
         }
     }
@@ -146,7 +146,7 @@ contract CurveStrategy is Ownable, IStrategy {
     @param _inboundCurrency Address of the inbound token.
     @param _minAmount Slippage based amount to cover for impermanent loss scenario.
     */
-    function invest(address _inboundCurrency, uint256 _minAmount) external payable override onlyOwner {
+    function invest(address _inboundCurrency, uint256 _minAmount) external payable override nonReentrant onlyOwner {
         uint256 contractBalance = IERC20(_inboundCurrency).balanceOf(address(this));
         IERC20(_inboundCurrency).approve(address(pool), contractBalance);
         /*
@@ -161,13 +161,12 @@ contract CurveStrategy is Ownable, IStrategy {
             uint256[NUM_AAVE_TOKENS] memory amounts; // fixed-sized array is initialized w/ [0, 0, 0]
             amounts[uint256(uint128(inboundTokenIndex))] = contractBalance;
             pool.add_liquidity(amounts, _minAmount, true);
-        } else if (poolType == ATRI_CRYPTO_POOL) {
+        } else {
             uint256[NUM_ATRI_CRYPTO_TOKENS] memory amounts; // fixed-sized array is initialized w/ [0, 0, 0, 0, 0]
             amounts[uint256(uint128(inboundTokenIndex))] = contractBalance;
             pool.add_liquidity(amounts, _minAmount);
         }
 
-        
         lpToken.approve(address(gauge), lpToken.balanceOf(address(this)));
         gauge.deposit(lpToken.balanceOf(address(this)));
     }
@@ -183,10 +182,7 @@ contract CurveStrategy is Ownable, IStrategy {
         address _inboundCurrency,
         uint256 _amount,
         uint256 _minAmount
-    ) external override onlyOwner {
-        if (_amount == 0) {
-           revert INVALID_AMOUNT();
-        }
+    ) external override nonReentrant onlyOwner {
         uint256 gaugeBalance = gauge.balanceOf(address(this));
         if (gaugeBalance > 0) {
             if (poolType == AAVE_POOL) {
@@ -208,7 +204,7 @@ contract CurveStrategy is Ownable, IStrategy {
                     _minAmount,
                     true // redeems underlying coin (dai, usdc, usdt), instead of aTokens
                 );
-            } else if (poolType == ATRI_CRYPTO_POOL) {
+            } else {
                 uint256[NUM_ATRI_CRYPTO_TOKENS] memory amounts; // fixed-sized array is initialized w/ [0, 0, 0, 0, 0]
                 amounts[uint256(uint128(inboundTokenIndex))] = _amount;
                 uint256 poolWithdrawAmount = pool.calc_token_amount(amounts, true);
@@ -253,7 +249,7 @@ contract CurveStrategy is Ownable, IStrategy {
         bool variableDeposits,
         uint256 _minAmount,
         bool disableRewardTokenClaim
-    ) external override onlyOwner {
+    ) external override nonReentrant onlyOwner {
         bool claimRewards = true;
         if (disableRewardTokenClaim) {
             claimRewards = false;
@@ -280,7 +276,7 @@ contract CurveStrategy is Ownable, IStrategy {
                         _minAmount,
                         true // redeems underlying coin (dai, usdc, usdt), instead of aTokens
                     );
-                } else if (poolType == ATRI_CRYPTO_POOL) {
+                } else {
                     uint256[NUM_ATRI_CRYPTO_TOKENS] memory amounts; // fixed-sized array is initialized w/ [0, 0, 0, 0, 0]
                     amounts[uint256(uint128(inboundTokenIndex))] = _amount;
                     uint256 poolWithdrawAmount = pool.calc_token_amount(amounts, true);
@@ -315,7 +311,7 @@ contract CurveStrategy is Ownable, IStrategy {
                             _minAmount,
                             true // redeems underlying coin (dai, usdc, usdt), instead of aTokens
                         );
-                    } else if (poolType == ATRI_CRYPTO_POOL) {
+                    } else {
                         /*
                         Code of curve's aave and curve's atricrypto pools are completely different.
                         Curve's Aave Pool (pool type 0): in this contract, all funds "sit" in the pool's smart contract.
@@ -330,13 +326,11 @@ contract CurveStrategy is Ownable, IStrategy {
             }
         }
 
-        if (address(rewardToken) != address(0)) {
-           rewardToken.transfer(msg.sender, rewardToken.balanceOf(address(this)));
-        }
-        if (address(curve) != address(0)) {
-           curve.transfer(msg.sender, curve.balanceOf(address(this)));
-        }
-           IERC20(_inboundCurrency).transfer(msg.sender, IERC20(_inboundCurrency).balanceOf(address(this)));
+        rewardToken.transfer(msg.sender, rewardToken.balanceOf(address(this)));
+
+        curve.transfer(msg.sender, curve.balanceOf(address(this)));
+
+        IERC20(_inboundCurrency).transfer(msg.sender, IERC20(_inboundCurrency).balanceOf(address(this)));
     }
 
     /**
@@ -344,14 +338,18 @@ contract CurveStrategy is Ownable, IStrategy {
     Returns total accumalated reward token amount.
     @param disableRewardTokenClaim Reward claim flag.
     */
-    function getAccumalatedRewardTokenAmounts(bool disableRewardTokenClaim) external override returns (uint256[] memory) {
-        uint amount = 0;
-        uint additionalAmount = 0;
+    function getAccumalatedRewardTokenAmounts(bool disableRewardTokenClaim)
+        external
+        override
+        returns (uint256[] memory)
+    {
+        uint256 amount = 0;
+        uint256 additionalAmount = 0;
         if (!disableRewardTokenClaim) {
-        amount = gauge.claimable_reward_write(address(this), address(rewardToken));
-        additionalAmount = gauge.claimable_reward_write(address(this), address(curve));
+            amount = gauge.claimable_reward_write(address(this), address(rewardToken));
+            additionalAmount = gauge.claimable_reward_write(address(this), address(curve));
         }
-        uint[] memory amounts = new uint[](2);
+        uint256[] memory amounts = new uint256[](2);
         amounts[0] = amount;
         amounts[1] = additionalAmount;
         return amounts;
