@@ -469,7 +469,7 @@ export const shouldBehaveLikeJoiningGGPool = async (strategyType: string) => {
       false,
       false,
       false,
-      0,
+      1,
       strategyType,
       0,
       false,
@@ -1006,7 +1006,7 @@ export const shouldBehaveLikeEarlyWithdrawingGGPool = async (strategyType: strin
       false,
       false,
       false,
-      0,
+      1,
       strategyType,
       0,
       false,
@@ -1341,7 +1341,7 @@ export const shouldBehaveLikeRedeemingFromGGPool = async (strategyType: string) 
       false,
       false,
       false,
-      0,
+      1,
       strategyType,
       0,
       false,
@@ -1808,7 +1808,7 @@ export const shouldBehaveLikeGGPoolWithNoWinners = async (strategyType: string) 
       false,
       false,
       false,
-      0,
+      1,
       strategyType,
       0,
       false,
@@ -1896,7 +1896,7 @@ export const shouldBehaveLikePlayersWithdrawingFromGGPool = async (strategyType:
       false,
       false,
       false,
-      0,
+      1,
       strategyType,
       0,
       false,
@@ -2604,7 +2604,7 @@ export const shouldBehaveLikeAdminWithdrawingFeesFromGGPoolWithFeePercentMoreTha
       false,
       false,
       false,
-      0,
+      1,
       strategyType,
       0,
       false,
@@ -3192,7 +3192,7 @@ export const shouldBehaveLikeAdminWithdrawingFeesFromGGPoolWithFeePercentis0 = a
       false,
       false,
       false,
-      0,
+      1,
       strategyType,
       0,
       false,
@@ -4814,7 +4814,7 @@ export const shouldBehaveLikeVariableDepositPool = async (strategyType: string) 
     assert(adminRewardBalanceAfterWithdraw.gt(adminRewardBalanceBeforeWithdraw));
   });
 
-  if (strategyType !== "aave" && strategyType !== "aaveV3") {
+  if (strategyType === "aave" || strategyType === "aaveV3") {
     it("2 players join a game with transactional token and deposit different amounts at different times throughout and get interest accordingly on withdraw", async () => {
       contracts = await deployPool(
         depositCount,

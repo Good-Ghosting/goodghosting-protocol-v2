@@ -89,6 +89,28 @@ export const deployPool = async (
 
     if (isInvestmentStrategy) {
       const aaveStrategyDeployer = new AaveStrategy__factory(deployer);
+      await expect(
+        aaveStrategyDeployer.deploy(
+          ZERO_ADDRESS,
+          lendingPool.address,
+          lendingPool.address,
+          incentiveController.address,
+          rewardToken.address,
+          isInboundToken ? inboundToken.address : inboundToken,
+        ),
+      ).to.be.revertedWith("INVALID_LENDING_POOL_ADDRESS_PROVIDER()");
+
+      await expect(
+        aaveStrategyDeployer.deploy(
+          lendingPool.address,
+          lendingPool.address,
+          ZERO_ADDRESS,
+          incentiveController.address,
+          rewardToken.address,
+          isInboundToken ? inboundToken.address : inboundToken,
+        ),
+      ).to.be.revertedWith("INVALID_DATA_PROVIDER()");
+
       strategy = await aaveStrategyDeployer.deploy(
         lendingPool.address,
         lendingPool.address,
@@ -112,6 +134,29 @@ export const deployPool = async (
 
     if (isInvestmentStrategy) {
       const aaveStrategyDeployer = new AaveStrategyV3__factory(deployer);
+
+      await expect(
+        aaveStrategyDeployer.deploy(
+          ZERO_ADDRESS,
+          lendingPool.address,
+          lendingPool.address,
+          rewardController.address,
+          rewardToken.address,
+          isInboundToken ? inboundToken.address : inboundToken,
+        ),
+      ).to.be.revertedWith("INVALID_LENDING_POOL_ADDRESS_PROVIDER()");
+
+      await expect(
+        aaveStrategyDeployer.deploy(
+          lendingPool.address,
+          lendingPool.address,
+          ZERO_ADDRESS,
+          rewardController.address,
+          rewardToken.address,
+          isInboundToken ? inboundToken.address : inboundToken,
+        ),
+      ).to.be.revertedWith("INVALID_DATA_PROVIDER()");
+
       strategy = await aaveStrategyDeployer.deploy(
         lendingPool.address,
         lendingPool.address,
@@ -145,6 +190,50 @@ export const deployPool = async (
 
     if (isInvestmentStrategy) {
       const curveStrategyDeployer = new CurveStrategy__factory(deployer);
+      await expect(
+        curveStrategyDeployer.deploy(
+          ZERO_ADDRESS,
+          0,
+          curvePoolType,
+          curveGauge.address,
+          rewardToken.address,
+          curve.address,
+        ),
+      ).to.be.revertedWith("INVALID_POOL()");
+
+      await expect(
+        curveStrategyDeployer.deploy(
+          curvePool.address,
+          0,
+          curvePoolType,
+          ZERO_ADDRESS,
+          rewardToken.address,
+          curve.address,
+        ),
+      ).to.be.revertedWith("INVALID_GAUGE()");
+
+      await expect(
+        curveStrategyDeployer.deploy(
+          curvePool.address,
+          0,
+          curvePoolType,
+          curveGauge.address,
+          ZERO_ADDRESS,
+          curve.address,
+        ),
+      ).to.be.revertedWith("INVALID_REWARD_TOKEN()");
+
+      await expect(
+        curveStrategyDeployer.deploy(
+          curvePool.address,
+          0,
+          curvePoolType,
+          curveGauge.address,
+          rewardToken.address,
+          ZERO_ADDRESS,
+        ),
+      ).to.be.revertedWith("INVALID_CURVE_TOKEN()");
+
       strategy = await curveStrategyDeployer.deploy(
         curvePool.address,
         0,
@@ -167,6 +256,26 @@ export const deployPool = async (
     await mobiPool.setGauge(mobiGauge.address);
     if (isInvestmentStrategy) {
       const mobiStrategyDeployer = new MobiusStrategy__factory(deployer);
+      await expect(
+        mobiStrategyDeployer.deploy(ZERO_ADDRESS, mobiGauge.address, minter.address, mobi.address, minter.address),
+      ).to.be.revertedWith("INVALID_POOL()");
+
+      await expect(
+        mobiStrategyDeployer.deploy(mobiPool.address, ZERO_ADDRESS, minter.address, mobi.address, minter.address),
+      ).to.be.revertedWith("INVALID_GAUGE()");
+
+      await expect(
+        mobiStrategyDeployer.deploy(mobiPool.address, mobiGauge.address, ZERO_ADDRESS, mobi.address, minter.address),
+      ).to.be.revertedWith("INVALID_MINTER()");
+
+      await expect(
+        mobiStrategyDeployer.deploy(mobiPool.address, mobiGauge.address, minter.address, ZERO_ADDRESS, minter.address),
+      ).to.be.revertedWith("INVALID_MOBI_TOKEN()");
+
+      await expect(
+        mobiStrategyDeployer.deploy(mobiPool.address, mobiGauge.address, minter.address, mobi.address, ZERO_ADDRESS),
+      ).to.be.revertedWith("INVALID_CELO_TOKEN()");
+
       strategy = await mobiStrategyDeployer.deploy(
         mobiPool.address,
         mobiGauge.address,
@@ -249,23 +358,6 @@ export const deployPool = async (
         isTransactionalToken,
       ),
     ).to.be.revertedWith("INVALID_WAITING_ROUND_SEGMENT_LENGTH()");
-
-    await expect(
-      goodGhostingV2Deployer.deploy(
-        "0x0000000000000000000000000000000000000001",
-        ethers.utils.parseEther(maxFlexibleSegmentAmount.toString()),
-        depositCount,
-        segmentLength,
-        segmentLength / 2,
-        segmentPayment,
-        earlyWithdrawFee,
-        adminFee,
-        playerCount,
-        isVariableAmount,
-        isInvestmentStrategy ? strategy.address : strategy,
-        isTransactionalToken,
-      ),
-    ).to.be.revertedWith("INVALID_INBOUND_TOKEN()");
 
     goodGhosting = await goodGhostingV2Deployer.deploy(
       isInboundToken ? inboundToken.address : inboundToken,
