@@ -8,7 +8,7 @@ import "../aave/IWETHGateway.sol";
 import "../aave/IncentiveController.sol";
 import "../polygon/WMatic.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
-import '@openzeppelin/contracts/security/ReentrancyGuard.sol';
+import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
 //*********************************************************************//
@@ -62,7 +62,7 @@ contract AaveStrategy is Ownable, ReentrancyGuard, IStrategy {
     Returns the underlying token address.
     @return Underlying token address.
     */
-    function getunderlyingAsset () external view override returns (address) {
+    function getunderlyingAsset() external view override returns (address) {
         return adaiToken.UNDERLYING_ASSET_ADDRESS();
     }
 
@@ -135,14 +135,9 @@ contract AaveStrategy is Ownable, ReentrancyGuard, IStrategy {
             // Deposits MATIC into the pool
             wethGateway.depositETH{ value: address(this).balance }(address(lendingPool), address(this), 155);
         } else {
-            uint balance = IERC20(_inboundCurrency).balanceOf(address(this));
+            uint256 balance = IERC20(_inboundCurrency).balanceOf(address(this));
             IERC20(_inboundCurrency).approve(address(lendingPool), balance);
-            lendingPool.deposit(
-                _inboundCurrency,
-                balance,
-                address(this),
-                155
-            );
+            lendingPool.deposit(_inboundCurrency, balance, address(this), 155);
         }
     }
 
@@ -158,18 +153,16 @@ contract AaveStrategy is Ownable, ReentrancyGuard, IStrategy {
         uint256 _amount,
         uint256 _minAmount
     ) external override nonReentrant onlyOwner {
-        if (adaiToken.balanceOf(address(this)) > 0) {
-            if (_inboundCurrency == address(0) || _inboundCurrency == address(rewardToken)) {
-                adaiToken.approve(address(wethGateway), _amount);
+        if (_inboundCurrency == address(0) || _inboundCurrency == address(rewardToken)) {
+            adaiToken.approve(address(wethGateway), _amount);
 
-                wethGateway.withdrawETH(address(lendingPool), _amount, address(this));
-                if (_inboundCurrency == address(rewardToken)) {
-                    // Wraps MATIC back into WMATIC
-                    WMatic(address(rewardToken)).deposit{ value: _amount }();
-                }
-            } else {
-                lendingPool.withdraw(_inboundCurrency, _amount, address(this));
+            wethGateway.withdrawETH(address(lendingPool), _amount, address(this));
+            if (_inboundCurrency == address(rewardToken)) {
+                // Wraps MATIC back into WMATIC
+                WMatic(address(rewardToken)).deposit{ value: _amount }();
             }
+        } else {
+            lendingPool.withdraw(_inboundCurrency, _amount, address(this));
         }
         if (_inboundCurrency == address(0)) {
             (bool success, ) = msg.sender.call{ value: address(this).balance }("");
@@ -198,18 +191,16 @@ contract AaveStrategy is Ownable, ReentrancyGuard, IStrategy {
     ) external override nonReentrant onlyOwner {
         uint256 redeemAmount = variableDeposits ? _amount : type(uint256).max;
         // Withdraws funds (principal + interest + rewards) from external pool
-        if (adaiToken.balanceOf(address(this)) > 0) {
-            if (_inboundCurrency == address(0) || _inboundCurrency == address(rewardToken)) {
-                adaiToken.approve(address(wethGateway), redeemAmount);
+        if (_inboundCurrency == address(0) || _inboundCurrency == address(rewardToken)) {
+            adaiToken.approve(address(wethGateway), redeemAmount);
 
-                wethGateway.withdrawETH(address(lendingPool), redeemAmount, address(this));
-                if (_inboundCurrency == address(rewardToken)) {
-                    // Wraps MATIC back into WMATIC
-                    WMatic(address(rewardToken)).deposit{ value: address(this).balance }();
-                }
-            } else {
-                lendingPool.withdraw(_inboundCurrency, redeemAmount, address(this));
+            wethGateway.withdrawETH(address(lendingPool), redeemAmount, address(this));
+            if (_inboundCurrency == address(rewardToken)) {
+                // Wraps MATIC back into WMATIC
+                WMatic(address(rewardToken)).deposit{ value: address(this).balance }();
             }
+        } else {
+            lendingPool.withdraw(_inboundCurrency, redeemAmount, address(this));
         }
         if (!disableRewardTokenClaim) {
             // Claims the rewards from the external pool
@@ -244,16 +235,20 @@ contract AaveStrategy is Ownable, ReentrancyGuard, IStrategy {
     Returns total accumalated reward token amount.
     @param disableRewardTokenClaim Reward claim flag.
     */
-    function getAccumalatedRewardTokenAmounts(bool disableRewardTokenClaim) external override returns (uint256[] memory) {
-        uint amount = 0;
+    function getAccumalatedRewardTokenAmounts(bool disableRewardTokenClaim)
+        external
+        override
+        returns (uint256[] memory)
+    {
+        uint256 amount = 0;
         if (!disableRewardTokenClaim) {
-        // atoken address in v2 is fetched from data provider contract
-        // Claims the rewards from the external pool
-        address[] memory assets = new address[](1);
-        assets[0] = address(adaiToken);
-        amount = incentiveController.getRewardsBalance(assets, address(this));
+            // atoken address in v2 is fetched from data provider contract
+            // Claims the rewards from the external pool
+            address[] memory assets = new address[](1);
+            assets[0] = address(adaiToken);
+            amount = incentiveController.getRewardsBalance(assets, address(this));
         }
-        uint[] memory amounts = new uint[](1);
+        uint256[] memory amounts = new uint256[](1);
         amounts[0] = amount;
         return amounts;
     }

@@ -1,7 +1,7 @@
 pragma solidity ^0.8.7;
 
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-import '@openzeppelin/contracts/security/ReentrancyGuard.sol';
+import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "../mobius/IMobiPool.sol";
 import "../mobius/IMobiGauge.sol";
@@ -152,19 +152,17 @@ contract MobiusStrategy is Ownable, ReentrancyGuard, IStrategy {
         amounts[0] = _amount;
 
         uint256 gaugeBalance = gauge.balanceOf(address(this));
-        if (gaugeBalance > 0) {
-            uint256 poolWithdrawAmount = pool.calculateTokenAmount(address(this), amounts, true);
+        uint256 poolWithdrawAmount = pool.calculateTokenAmount(address(this), amounts, true);
 
-            // safety check
-            if (gaugeBalance < poolWithdrawAmount) {
-                poolWithdrawAmount = gaugeBalance;
-            }
-
-            gauge.withdraw(poolWithdrawAmount, false);
-            lpToken.approve(address(pool), poolWithdrawAmount);
-
-            pool.removeLiquidityOneToken(poolWithdrawAmount, 0, _minAmount, block.timestamp + 1000);
+        // safety check
+        if (gaugeBalance < poolWithdrawAmount) {
+            poolWithdrawAmount = gaugeBalance;
         }
+
+        gauge.withdraw(poolWithdrawAmount, false);
+        lpToken.approve(address(pool), poolWithdrawAmount);
+
+        pool.removeLiquidityOneToken(poolWithdrawAmount, 0, _minAmount, block.timestamp + 1000);
 
         // check for impermanent loss
         if (IERC20(_inboundCurrency).balanceOf(address(this)) < _amount) {
@@ -194,30 +192,28 @@ contract MobiusStrategy is Ownable, ReentrancyGuard, IStrategy {
             claimRewards = false;
         }
         uint256 gaugeBalance = gauge.balanceOf(address(this));
-        if (gaugeBalance > 0) {
-            if (!disableRewardTokenClaim) {
-                minter.mint(address(gauge));
+        if (!disableRewardTokenClaim) {
+            minter.mint(address(gauge));
+        }
+        if (variableDeposits) {
+            uint256[] memory amounts = new uint256[](2);
+            amounts[0] = _amount;
+            uint256 poolWithdrawAmount = pool.calculateTokenAmount(address(this), amounts, true);
+
+            // safety check
+            if (gaugeBalance < poolWithdrawAmount) {
+                poolWithdrawAmount = gaugeBalance;
             }
-            if (variableDeposits) {
-                uint256[] memory amounts = new uint256[](2);
-                amounts[0] = _amount;
-                uint256 poolWithdrawAmount = pool.calculateTokenAmount(address(this), amounts, true);
 
-                // safety check
-                if (gaugeBalance < poolWithdrawAmount) {
-                    poolWithdrawAmount = gaugeBalance;
-                }
+            gauge.withdraw(poolWithdrawAmount, claimRewards);
+            lpToken.approve(address(pool), poolWithdrawAmount);
 
-                gauge.withdraw(poolWithdrawAmount, claimRewards);
-                lpToken.approve(address(pool), poolWithdrawAmount);
+            pool.removeLiquidityOneToken(poolWithdrawAmount, 0, _minAmount, block.timestamp + 1000);
+        } else {
+            gauge.withdraw(gaugeBalance, claimRewards);
 
-                pool.removeLiquidityOneToken(poolWithdrawAmount, 0, _minAmount, block.timestamp + 1000);
-            } else {
-                gauge.withdraw(gaugeBalance, claimRewards);
-
-                lpToken.approve(address(pool), lpToken.balanceOf(address(this)));
-                pool.removeLiquidityOneToken(lpToken.balanceOf(address(this)), 0, _minAmount, block.timestamp + 1000);
-            }
+            lpToken.approve(address(pool), lpToken.balanceOf(address(this)));
+            pool.removeLiquidityOneToken(lpToken.balanceOf(address(this)), 0, _minAmount, block.timestamp + 1000);
         }
 
         mobi.transfer(msg.sender, mobi.balanceOf(address(this)));

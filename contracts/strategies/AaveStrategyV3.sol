@@ -9,7 +9,7 @@ import "../aave/IWETHGateway.sol";
 import "../aaveV3/IRewardsController.sol";
 import "../polygon/WMatic.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
-import '@openzeppelin/contracts/security/ReentrancyGuard.sol';
+import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
 //*********************************************************************//
@@ -24,7 +24,6 @@ error TRANSACTIONAL_TOKEN_TRANSFER_FAILURE();
   Interacts with aave & moola protocol to generate interest for the goodghosting pool it is used in, so it's responsible for deposits, withdrawals and getting rewards and sending these back to the pool.
 */
 contract AaveStrategyV3 is Ownable, ReentrancyGuard, IStrategy {
-
     /// @notice Address of the Aave V2 weth gateway contract
     IWETHGateway public immutable wethGateway;
 
@@ -67,10 +66,9 @@ contract AaveStrategyV3 is Ownable, ReentrancyGuard, IStrategy {
     Returns the underlying token address.
     @return Underlying token address.
     */
-    function getunderlyingAsset () external view override returns (address) {
+    function getunderlyingAsset() external view override returns (address) {
         return adaiToken.UNDERLYING_ASSET_ADDRESS();
     }
-
 
     /** 
     @notice
@@ -161,18 +159,16 @@ contract AaveStrategyV3 is Ownable, ReentrancyGuard, IStrategy {
         uint256 _amount,
         uint256 _minAmount
     ) external override nonReentrant onlyOwner {
-        if (adaiToken.balanceOf(address(this)) > 0) {
-            if (_inboundCurrency == address(0) || _inboundCurrency == address(wrappedTxToken)) {
-                adaiToken.approve(address(wethGateway), _amount);
+        if (_inboundCurrency == address(0) || _inboundCurrency == address(wrappedTxToken)) {
+            adaiToken.approve(address(wethGateway), _amount);
 
-                wethGateway.withdrawETH(address(lendingPool), _amount, address(this));
-                if (_inboundCurrency == address(wrappedTxToken) && address(wrappedTxToken) != address(0)) {
-                    // Wraps MATIC back into WMATIC
-                    WMatic(address(wrappedTxToken)).deposit{ value: _amount }();
-                }
-            } else {
-                lendingPool.withdraw(_inboundCurrency, _amount, address(this));
+            wethGateway.withdrawETH(address(lendingPool), _amount, address(this));
+            if (_inboundCurrency == address(wrappedTxToken) && address(wrappedTxToken) != address(0)) {
+                // Wraps MATIC back into WMATIC
+                WMatic(address(wrappedTxToken)).deposit{ value: _amount }();
             }
+        } else {
+            lendingPool.withdraw(_inboundCurrency, _amount, address(this));
         }
         if (_inboundCurrency == address(0)) {
             (bool success, ) = msg.sender.call{ value: address(this).balance }("");
@@ -201,18 +197,16 @@ contract AaveStrategyV3 is Ownable, ReentrancyGuard, IStrategy {
     ) external override nonReentrant onlyOwner {
         uint256 redeemAmount = variableDeposits ? _amount : type(uint256).max;
         // Withdraws funds (principal + interest + rewards) from external pool
-        if (adaiToken.balanceOf(address(this)) > 0) {
-            if (_inboundCurrency == address(0) || _inboundCurrency == address(wrappedTxToken)) {
-                adaiToken.approve(address(wethGateway), redeemAmount);
+        if (_inboundCurrency == address(0) || _inboundCurrency == address(wrappedTxToken)) {
+            adaiToken.approve(address(wethGateway), redeemAmount);
 
-                wethGateway.withdrawETH(address(lendingPool), redeemAmount, address(this));
-                if (_inboundCurrency == address(wrappedTxToken) && address(wrappedTxToken) != address(0)) {
-                    // Wraps MATIC back into WMATIC
-                    WMatic(address(wrappedTxToken)).deposit{ value: address(this).balance }();
-                }
-            } else {
-                lendingPool.withdraw(_inboundCurrency, redeemAmount, address(this));
+            wethGateway.withdrawETH(address(lendingPool), redeemAmount, address(this));
+            if (_inboundCurrency == address(wrappedTxToken) && address(wrappedTxToken) != address(0)) {
+                // Wraps MATIC back into WMATIC
+                WMatic(address(wrappedTxToken)).deposit{ value: address(this).balance }();
             }
+        } else {
+            lendingPool.withdraw(_inboundCurrency, redeemAmount, address(this));
         }
         if (!disableRewardTokenClaim) {
             // Claims the rewards from the external pool
