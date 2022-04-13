@@ -207,7 +207,7 @@ Make sure you install Slither by following the instructions available on [Slithe
 Slither can be executed with the following command:
 
 ```bash
-slither .
+slither . --filter-path "aave|Migrations.sol|merkle|mock|openzeppelin|polygon|aaveV3|curve|mobius"
 ```
 
 
