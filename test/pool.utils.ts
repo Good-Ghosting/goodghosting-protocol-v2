@@ -121,13 +121,33 @@ export const deployPool = async (
       );
       await rewardToken.deposit({ value: ethers.utils.parseEther("25") });
       await rewardToken.transfer(incentiveController.address, ethers.utils.parseEther("25"));
+      if (isInboundToken) {
+        const goodGhostingV2Deployer = new Pool__factory(deployer);
+        await expect(
+          goodGhostingV2Deployer.deploy(
+            rewardToken.address,
+            ethers.utils.parseEther(maxFlexibleSegmentAmount.toString()),
+            depositCount,
+            segmentLength,
+            segmentLength * 2,
+            segmentPayment,
+            earlyWithdrawFee,
+            adminFee,
+            playerCount,
+            isVariableAmount,
+            isInvestmentStrategy ? strategy.address : strategy,
+            isTransactionalToken,
+          ),
+        ).to.be.revertedWith("INVALID_INBOUND_TOKEN()");
+      }
     }
   } else if (strategyType === "aaveV3") {
     lendingPool = await lendingPoolAddressProvider.deploy("TOKEN_NAME", "TOKEN_SYMBOL");
+
     await lendingPool.setUnderlyingAssetAddress(isInboundToken ? inboundToken.address : inboundToken);
 
     const rewardTokenDeployer = new MockWMatic__factory(deployer);
-    rewardToken = await rewardTokenDeployer.deploy();
+    rewardToken = await rewardTokenDeployer.deploy({ maxFeePerGas: 5 });
 
     const rewardControllerDeployer = new RewardsControllerMock__factory(deployer);
     rewardController = await rewardControllerDeployer.deploy(rewardToken.address);
@@ -165,8 +185,29 @@ export const deployPool = async (
         rewardToken.address,
         isInboundToken ? inboundToken.address : inboundToken,
       );
-      await rewardToken.deposit({ value: ethers.utils.parseEther("25") });
-      await rewardToken.transfer(rewardController.address, ethers.utils.parseEther("25"));
+
+      await rewardToken.deposit({ value: ethers.utils.parseEther("10"), maxFeePerGas: 5 });
+
+      await rewardToken.transfer(rewardController.address, ethers.utils.parseEther("10"));
+      if (isInboundToken) {
+        const goodGhostingV2Deployer = new Pool__factory(deployer);
+        await expect(
+          goodGhostingV2Deployer.deploy(
+            rewardToken.address,
+            ethers.utils.parseEther(maxFlexibleSegmentAmount.toString()),
+            depositCount,
+            segmentLength,
+            segmentLength * 2,
+            segmentPayment,
+            earlyWithdrawFee,
+            adminFee,
+            playerCount,
+            isVariableAmount,
+            isInvestmentStrategy ? strategy.address : strategy,
+            isTransactionalToken,
+          ),
+        ).to.be.revertedWith("INVALID_INBOUND_TOKEN()");
+      }
     }
   } else if (strategyType === "curve") {
     const mockCurveTokenDeployer = new MintableERC20__factory(deployer);
@@ -300,6 +341,23 @@ export const deployPool = async (
         ethers.utils.parseEther(maxFlexibleSegmentAmount.toString()),
         depositCount,
         segmentLength,
+        0,
+        segmentPayment,
+        earlyWithdrawFee,
+        adminFee,
+        playerCount,
+        isVariableAmount,
+        isInvestmentStrategy ? strategy.address : strategy,
+        isTransactionalToken,
+      ),
+    ).to.be.revertedWith("INVALID_WAITING_ROUND_SEGMENT_LENGTH()");
+
+    await expect(
+      goodGhostingV2Deployer.deploy(
+        isInboundToken ? inboundToken.address : inboundToken,
+        ethers.utils.parseEther(maxFlexibleSegmentAmount.toString()),
+        depositCount,
+        segmentLength,
         segmentLength / 2,
         segmentPayment,
         earlyWithdrawFee,
@@ -341,6 +399,23 @@ export const deployPool = async (
     }
   } else {
     const goodGhostingV2Deployer = new WhitelistedPool__factory(deployer);
+
+    await expect(
+      goodGhostingV2Deployer.deploy(
+        isInboundToken ? inboundToken.address : inboundToken,
+        ethers.utils.parseEther(maxFlexibleSegmentAmount.toString()),
+        depositCount,
+        segmentLength,
+        0,
+        segmentPayment,
+        earlyWithdrawFee,
+        adminFee,
+        playerCount,
+        isVariableAmount,
+        isInvestmentStrategy ? strategy.address : strategy,
+        isTransactionalToken,
+      ),
+    ).to.be.revertedWith("INVALID_WAITING_ROUND_SEGMENT_LENGTH()");
 
     await expect(
       goodGhostingV2Deployer.deploy(

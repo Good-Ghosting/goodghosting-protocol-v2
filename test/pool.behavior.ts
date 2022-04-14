@@ -475,6 +475,16 @@ export const shouldBehaveLikeJoiningGGPool = async (strategyType: string) => {
       false,
     );
   });
+
+  it("reverts if transactional token is sent while joining when the transactional token flag is false", async () => {
+    const accounts = await ethers.getSigners();
+    const player1 = accounts[2];
+
+    await expect(
+      contracts.goodGhosting.connect(player1).joinGame(0, segmentPayment, { value: segmentPayment }),
+    ).to.be.revertedWith("INVALID_TRANSACTIONAL_TOKEN_AMOUNT()");
+  });
+
   it("reverts if the contract is paused", async () => {
     const accounts = await ethers.getSigners();
     const player1 = accounts[2];
@@ -800,6 +810,20 @@ export const shouldBehaveLikeDepositingGGPool = async (strategyType: string) => 
       false,
     );
   });
+
+  it("reverts if transactional token is sent while depositing when the transactional token flag is false", async () => {
+    const accounts = await ethers.getSigners();
+    const player1 = accounts[2];
+    await joinGame(contracts.goodGhosting, contracts.inboundToken, player1, segmentPayment, segmentPayment);
+    // Advances to last segment
+    await ethers.provider.send("evm_increaseTime", [segmentLength]);
+    await ethers.provider.send("evm_mine", []);
+
+    await expect(
+      contracts.goodGhosting.connect(player1).makeDeposit(0, segmentPayment, { value: segmentPayment }),
+    ).to.be.revertedWith("INVALID_TRANSACTIONAL_TOKEN_AMOUNT()");
+  });
+
   it("reverts if the contract is paused", async () => {
     const accounts = await ethers.getSigners();
     const player1 = accounts[2];
