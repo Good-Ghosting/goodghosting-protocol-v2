@@ -15,6 +15,7 @@ import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 //*********************************************************************//
 // --------------------------- custom errors ------------------------- //
 //*********************************************************************//
+error TOKEN_TRANSFER_FAILURE();
 error INVALID_DATA_PROVIDER();
 error INVALID_LENDING_POOL_ADDRESS_PROVIDER();
 error TRANSACTIONAL_TOKEN_TRANSFER_FAILURE();
@@ -91,6 +92,8 @@ contract AaveStrategyV3 is Ownable, ReentrancyGuard, IStrategy {
     @param _wethGateway A contract which is used to make deposits/withdrawals on transaction token pool on aave.
     @param _dataProvider A contract which mints ERC-721's that represent project ownership and transfers.
     @param _rewardsController A contract which acts as a registry for reserve tokens on aave.
+    @param _wrappedTxToken wrapped txn token address.
+    @param _inboundCurrency inbound currency address.
   */
     constructor(
         IPoolAddressesProvider _poolAddressesProvider,
@@ -131,6 +134,7 @@ contract AaveStrategyV3 is Ownable, ReentrancyGuard, IStrategy {
     Deposits funds into aave.
     @param _inboundCurrency Address of the inbound token.
     @param _minAmount Used for aam strategies, since every strategy overrides from the same strategy interface hence it is defined here.
+    _minAmount isn't needed in this strategy but since all strategies override from the same interface and the amm strategies need it hence it is used here.
     */
     function invest(address _inboundCurrency, uint256 _minAmount) external payable override nonReentrant onlyOwner {
         if (_inboundCurrency == address(0) || _inboundCurrency == address(wrappedTxToken)) {
@@ -153,6 +157,7 @@ contract AaveStrategyV3 is Ownable, ReentrancyGuard, IStrategy {
     @param _inboundCurrency Address of the inbound token.
     @param _amount Amount to withdraw.
     @param _minAmount Used for aam strategies, since every strategy overrides from the same strategy interface hence it is defined here.
+    _minAmount isn't needed in this strategy but since all strategies override from the same interface and the amm strategies need it hence it is used here.
     */
     function earlyWithdraw(
         address _inboundCurrency,
@@ -176,7 +181,13 @@ contract AaveStrategyV3 is Ownable, ReentrancyGuard, IStrategy {
                 revert TRANSACTIONAL_TOKEN_TRANSFER_FAILURE();
             }
         } else {
-            IERC20(_inboundCurrency).transfer(msg.sender, IERC20(_inboundCurrency).balanceOf(address(this)));
+            bool success = IERC20(_inboundCurrency).transfer(
+                msg.sender,
+                IERC20(_inboundCurrency).balanceOf(address(this))
+            );
+            if (!success) {
+                revert TOKEN_TRANSFER_FAILURE();
+            }
         }
     }
 
@@ -187,6 +198,8 @@ contract AaveStrategyV3 is Ownable, ReentrancyGuard, IStrategy {
     @param _amount Amount to withdraw.
     @param variableDeposits Bool Flag which determines whether the deposit is to be made in context of a variable deposit pool or not.
     @param _minAmount Used for aam strategies, since every strategy overrides from the same strategy interface hence it is defined here.
+    _minAmount isn't needed in this strategy but since all strategies override from the same interface and the amm strategies need it hence it is used here.
+    @param disableRewardTokenClaim Reward claim disable flag.
     */
     function redeem(
         address _inboundCurrency,
@@ -216,25 +229,38 @@ contract AaveStrategyV3 is Ownable, ReentrancyGuard, IStrategy {
             rewardsController.claimAllRewardsToSelf(assets);
             for (uint256 i = 0; i < rewardTokens.length; i++) {
                 if (IERC20(rewardTokens[i]).balanceOf(address(this)) > 0) {
-                    IERC20(rewardTokens[i]).transfer(msg.sender, IERC20(rewardTokens[i]).balanceOf(address(this)));
+                    bool success = IERC20(rewardTokens[i]).transfer(
+                        msg.sender,
+                        IERC20(rewardTokens[i]).balanceOf(address(this))
+                    );
+                    if (!success) {
+                        revert TOKEN_TRANSFER_FAILURE();
+                    }
                 }
             }
         }
 
         if (_inboundCurrency == address(0)) {
-            (bool success, ) = msg.sender.call{ value: address(this).balance }("");
-            if (!success) {
+            (bool txTokenTransferSuccessful, ) = msg.sender.call{ value: address(this).balance }("");
+            if (!txTokenTransferSuccessful) {
                 revert TRANSACTIONAL_TOKEN_TRANSFER_FAILURE();
             }
         } else {
-            IERC20(_inboundCurrency).transfer(msg.sender, IERC20(_inboundCurrency).balanceOf(address(this)));
+            bool success = IERC20(_inboundCurrency).transfer(
+                msg.sender,
+                IERC20(_inboundCurrency).balanceOf(address(this))
+            );
+            if (!success) {
+                revert TOKEN_TRANSFER_FAILURE();
+            }
         }
     }
 
     /**
     @notice
     Returns total accumalated reward token amount.
-    @param disableRewardTokenClaim Reward claim flag.
+    This method is not marked as view since in the curve gauge contract "claimable_reward_write" is not marked as view and all strategies share the same strategy interface.
+    @param disableRewardTokenClaim Reward claim disable flag.
     */
     function getAccumalatedRewardTokenAmounts(bool disableRewardTokenClaim)
         external

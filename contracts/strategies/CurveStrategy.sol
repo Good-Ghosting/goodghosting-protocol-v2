@@ -10,6 +10,7 @@ import "./IStrategy.sol";
 //*********************************************************************//
 // --------------------------- custom errors ------------------------- //
 //*********************************************************************//
+error TOKEN_TRANSFER_FAILURE();
 error INVALID_CURVE_TOKEN();
 error INVALID_GAUGE();
 error INVALID_POOL();
@@ -190,6 +191,7 @@ contract CurveStrategy is Ownable, ReentrancyGuard, IStrategy {
             uint256 poolWithdrawAmount = pool.calc_token_amount(amounts, true);
 
             // safety check
+            // the curve mock contracts are pretty complex right now and it is not possible to mock, this is a very rare scenario to occur in production.
             if (gaugeBalance < poolWithdrawAmount) {
                 poolWithdrawAmount = gaugeBalance;
             }
@@ -230,7 +232,10 @@ contract CurveStrategy is Ownable, ReentrancyGuard, IStrategy {
             _amount = IERC20(_inboundCurrency).balanceOf(address(this));
         }
         // msg.sender will always be the pool contract (new owner)
-        IERC20(_inboundCurrency).transfer(msg.sender, IERC20(_inboundCurrency).balanceOf(address(this)));
+        bool success = IERC20(_inboundCurrency).transfer(msg.sender, IERC20(_inboundCurrency).balanceOf(address(this)));
+        if (!success) {
+            revert TOKEN_TRANSFER_FAILURE();
+        }
     }
 
     /**
@@ -240,6 +245,7 @@ contract CurveStrategy is Ownable, ReentrancyGuard, IStrategy {
     @param _amount Amount to withdraw.
     @param variableDeposits Bool Flag which determines whether the deposit is to be made in context of a variable deposit pool or not.
     @param _minAmount Slippage based amount to cover for impermanent loss scenario.
+    @param disableRewardTokenClaim Reward claim disable flag.
     */
     function redeem(
         address _inboundCurrency,
@@ -260,6 +266,7 @@ contract CurveStrategy is Ownable, ReentrancyGuard, IStrategy {
                 uint256 poolWithdrawAmount = pool.calc_token_amount(amounts, true);
 
                 // safety check
+                // the amm mock contracts are pretty complex right now and it is not possible to mock, this is a very rare scenario to occur in production.
                 if (gaugeBalance < poolWithdrawAmount) {
                     poolWithdrawAmount = gaugeBalance;
                 }
@@ -322,17 +329,27 @@ contract CurveStrategy is Ownable, ReentrancyGuard, IStrategy {
             }
         }
 
-        rewardToken.transfer(msg.sender, rewardToken.balanceOf(address(this)));
+        bool success = rewardToken.transfer(msg.sender, rewardToken.balanceOf(address(this)));
+        if (!success) {
+            revert TOKEN_TRANSFER_FAILURE();
+        }
 
-        curve.transfer(msg.sender, curve.balanceOf(address(this)));
+        success = curve.transfer(msg.sender, curve.balanceOf(address(this)));
+        if (!success) {
+            revert TOKEN_TRANSFER_FAILURE();
+        }
 
-        IERC20(_inboundCurrency).transfer(msg.sender, IERC20(_inboundCurrency).balanceOf(address(this)));
+        success = IERC20(_inboundCurrency).transfer(msg.sender, IERC20(_inboundCurrency).balanceOf(address(this)));
+        if (!success) {
+            revert TOKEN_TRANSFER_FAILURE();
+        }
     }
 
     /**
     @notice
     Returns total accumalated reward token amount.
-    @param disableRewardTokenClaim Reward claim flag.
+    This method is not marked as view since in the curve gauge contract "claimable_reward_write" is not marked as view.
+    @param disableRewardTokenClaim Reward claim disable flag.
     */
     function getAccumalatedRewardTokenAmounts(bool disableRewardTokenClaim)
         external

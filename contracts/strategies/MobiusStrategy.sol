@@ -11,6 +11,7 @@ import "./IStrategy.sol";
 //*********************************************************************//
 // --------------------------- custom errors ------------------------- //
 //*********************************************************************//
+error TOKEN_TRANSFER_FAILURE();
 error INVALID_CELO_TOKEN();
 error INVALID_GAUGE();
 error INVALID_MINTER();
@@ -169,7 +170,10 @@ contract MobiusStrategy is Ownable, ReentrancyGuard, IStrategy {
             _amount = IERC20(_inboundCurrency).balanceOf(address(this));
         }
         // msg.sender will always be the pool contract (new owner)
-        IERC20(_inboundCurrency).transfer(msg.sender, IERC20(_inboundCurrency).balanceOf(address(this)));
+        bool success = IERC20(_inboundCurrency).transfer(msg.sender, IERC20(_inboundCurrency).balanceOf(address(this)));
+        if (!success) {
+            revert TOKEN_TRANSFER_FAILURE();
+        }
     }
 
     /**
@@ -179,6 +183,7 @@ contract MobiusStrategy is Ownable, ReentrancyGuard, IStrategy {
     @param _amount Amount to withdraw.
     @param variableDeposits Bool Flag which determines whether the deposit is to be made in context of a variable deposit pool or not.
     @param _minAmount Slippage based amount to cover for impermanent loss scenario.
+    @param disableRewardTokenClaim Reward claim disable flag.
     */
     function redeem(
         address _inboundCurrency,
@@ -216,17 +221,27 @@ contract MobiusStrategy is Ownable, ReentrancyGuard, IStrategy {
             pool.removeLiquidityOneToken(lpToken.balanceOf(address(this)), 0, _minAmount, block.timestamp + 1000);
         }
 
-        mobi.transfer(msg.sender, mobi.balanceOf(address(this)));
+        bool success = mobi.transfer(msg.sender, mobi.balanceOf(address(this)));
+        if (!success) {
+            revert TOKEN_TRANSFER_FAILURE();
+        }
 
-        celo.transfer(msg.sender, celo.balanceOf(address(this)));
+        success = celo.transfer(msg.sender, celo.balanceOf(address(this)));
+        if (!success) {
+            revert TOKEN_TRANSFER_FAILURE();
+        }
 
-        IERC20(_inboundCurrency).transfer(msg.sender, IERC20(_inboundCurrency).balanceOf(address(this)));
+        success = IERC20(_inboundCurrency).transfer(msg.sender, IERC20(_inboundCurrency).balanceOf(address(this)));
+        if (!success) {
+            revert TOKEN_TRANSFER_FAILURE();
+        }
     }
 
     /**
     @notice
     Returns total accumalated reward token amount.
-    @param disableRewardTokenClaim Reward claim flag.
+    This method is not marked as view since in the curve gauge contract "claimable_reward_write" is not marked as view and all strategies share the same strategy interface.
+    @param disableRewardTokenClaim Reward claim disable flag.
     */
     function getAccumalatedRewardTokenAmounts(bool disableRewardTokenClaim)
         external

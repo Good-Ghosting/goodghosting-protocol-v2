@@ -3,7 +3,7 @@ pragma solidity ^0.8.7;
 
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/security/Pausable.sol";
-import '@openzeppelin/contracts/security/ReentrancyGuard.sol';
+import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/utils/math/SafeMath.sol";
 import "./strategies/IStrategy.sol";
@@ -11,6 +11,7 @@ import "./strategies/IStrategy.sol";
 //*********************************************************************//
 // --------------------------- custom errors ------------------------- //
 //*********************************************************************//
+error TOKEN_TRANSFER_FAILURE();
 error GAME_NOT_COMPLETED();
 error GAME_COMPLETED();
 error FLEXIBLE_DEPOSIT_GAME();
@@ -392,6 +393,10 @@ contract Pool is Ownable, Pausable, ReentrancyGuard {
             if (msg.value != amount) {
                 revert INVALID_TRANSACTIONAL_TOKEN_AMOUNT();
             }
+        } else {
+            if (msg.value != 0) {
+                revert INVALID_TRANSACTIONAL_TOKEN_AMOUNT();
+            }
         }
 
         Player memory newPlayer = Player({
@@ -450,7 +455,10 @@ contract Pool is Ownable, Pausable, ReentrancyGuard {
         }
         totalGamePrincipal = totalGamePrincipal.add(_depositAmount);
         if (!isTransactionalToken) {
-            IERC20(inboundToken).transferFrom(msg.sender, address(strategy), _depositAmount);
+            bool success = IERC20(inboundToken).transferFrom(msg.sender, address(strategy), _depositAmount);
+            if (!success) {
+                revert TOKEN_TRANSFER_FAILURE();
+            }
         }
 
         strategy.invest{ value: msg.value }(inboundToken, _minAmount);
@@ -628,7 +636,7 @@ contract Pool is Ownable, Pausable, ReentrancyGuard {
             setGlobalPoolParamsForFlexibleDepositPool();
         }
 
-        if (adminFeeAmount[0] > 0 || adminFeeAmount[1] > 0 || (adminFeeAmount.length > 2 && adminFeeAmount[2] > 0 )) {
+        if (adminFeeAmount[0] > 0 || adminFeeAmount[1] > 0 || (adminFeeAmount.length > 2 && adminFeeAmount[2] > 0)) {
             strategy.redeem(inboundToken, adminFeeAmount[0], flexibleSegmentPayment, 0, disableRewardTokenClaim);
             if (isTransactionalToken) {
                 // safety check
@@ -646,19 +654,28 @@ contract Pool is Ownable, Pausable, ReentrancyGuard {
                 if (adminFeeAmount[0] > IERC20(inboundToken).balanceOf(address(this))) {
                     adminFeeAmount[0] = IERC20(inboundToken).balanceOf(address(this));
                 }
-                IERC20(inboundToken).transfer(owner(), adminFeeAmount[0]);
+                bool success = IERC20(inboundToken).transfer(owner(), adminFeeAmount[0]);
+                if (!success) {
+                    revert TOKEN_TRANSFER_FAILURE();
+                }
             }
 
             for (uint256 i = 0; i < rewardTokens.length; i++) {
                 if (address(rewardTokens[i]) != address(0)) {
-                    rewardTokens[i].transfer(owner(), adminFeeAmount[i + 1]);
+                    bool success = rewardTokens[i].transfer(owner(), adminFeeAmount[i + 1]);
+                    if (!success) {
+                        revert TOKEN_TRANSFER_FAILURE();
+                    }
                 }
             }
         }
 
         if (winnerCount == 0) {
             if (totalIncentiveAmount > 0) {
-                IERC20(incentiveToken).transfer(owner(), totalIncentiveAmount);
+                bool success = IERC20(incentiveToken).transfer(owner(), totalIncentiveAmount);
+                if (!success) {
+                    revert TOKEN_TRANSFER_FAILURE();
+                }
             }
         }
 
@@ -708,7 +725,7 @@ contract Pool is Ownable, Pausable, ReentrancyGuard {
             playerIndex[msg.sender][currentSegment] = 0;
         }
         // since there is complexity of 2 vars here with if else logic so not using 2 memory vars here only 1.
-        uint cummalativePlayerIndexSumForCurrentSegment = cummalativePlayerIndexSum[currentSegment];
+        uint256 cummalativePlayerIndexSumForCurrentSegment = cummalativePlayerIndexSum[currentSegment];
         for (uint256 i = 0; i <= players[msg.sender].mostRecentSegmentPaid; i++) {
             if (cummalativePlayerIndexSumForCurrentSegment > 0) {
                 cummalativePlayerIndexSumForCurrentSegment = cummalativePlayerIndexSumForCurrentSegment.sub(
@@ -751,7 +768,10 @@ contract Pool is Ownable, Pausable, ReentrancyGuard {
             if (IERC20(inboundToken).balanceOf(address(this)) < withdrawAmount) {
                 withdrawAmount = IERC20(inboundToken).balanceOf(address(this));
             }
-            IERC20(inboundToken).transfer(msg.sender, withdrawAmount);
+            bool success = IERC20(inboundToken).transfer(msg.sender, withdrawAmount);
+            if (!success) {
+                revert TOKEN_TRANSFER_FAILURE();
+            }
         }
     }
 
@@ -803,8 +823,8 @@ contract Pool is Ownable, Pausable, ReentrancyGuard {
             }
 
             // calculate playerSharePercentage for each player
-            uint segment = lastSegment == 0 ? 0 : lastSegment.sub(1);
-            playerSharePercentage = playerIndexSum.mul(100).div(cummalativePlayerIndexSum[segment]);
+            uint256 segment = lastSegment == 0 ? 0 : lastSegment.sub(1);
+            playerSharePercentage = (playerIndexSum.mul(100)).div(cummalativePlayerIndexSum[segment]);
 
             if (impermanentLossShare > 0 && totalGameInterest == 0) {
                 // new payput in case of impermanent loss
@@ -870,17 +890,26 @@ contract Pool is Ownable, Pausable, ReentrancyGuard {
             if (payout > IERC20(inboundToken).balanceOf(address(this))) {
                 payout = IERC20(inboundToken).balanceOf(address(this));
             }
-            IERC20(inboundToken).transfer(msg.sender, payout);
+            bool success = IERC20(inboundToken).transfer(msg.sender, payout);
+            if (!success) {
+                revert TOKEN_TRANSFER_FAILURE();
+            }
         }
 
         // sending the rewards & incentives to the winners
         if (playerIncentive > 0) {
-            IERC20(incentiveToken).transfer(msg.sender, playerIncentive);
+            bool success = IERC20(incentiveToken).transfer(msg.sender, playerIncentive);
+            if (!success) {
+                revert TOKEN_TRANSFER_FAILURE();
+            }
         }
 
         for (uint256 i = 0; i < playerReward.length; i++) {
             if (playerReward[i] > 0) {
-                IERC20(rewardTokens[i]).transfer(msg.sender, playerReward[i]);
+                bool success = IERC20(rewardTokens[i]).transfer(msg.sender, playerReward[i]);
+                if (!success) {
+                    revert TOKEN_TRANSFER_FAILURE();
+                }
             }
         }
     }
@@ -928,6 +957,10 @@ contract Pool is Ownable, Pausable, ReentrancyGuard {
         uint256 amount = flexibleSegmentPayment ? _depositAmount : segmentPayment;
         if (isTransactionalToken) {
             if (msg.value != amount) {
+                revert INVALID_TRANSACTIONAL_TOKEN_AMOUNT();
+            }
+        } else {
+            if (msg.value != 0) {
                 revert INVALID_TRANSACTIONAL_TOKEN_AMOUNT();
             }
         }
