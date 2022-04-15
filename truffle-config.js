@@ -46,48 +46,40 @@ module.exports = {
     "celo-moola": {
       provider: kit.connection.web3.currentProvider, // CeloProvider
       network_id: 42220,
-      gas: 5000000,
     },
     "celo-mobius": {
       provider: kit.connection.web3.currentProvider, // CeloProvider
       network_id: 42220,
-      gas: 5000000,
     },
     "local-polygon-curve": {
       host: "127.0.0.1",
       port: 8545,
       network_id: "*",
-      gas: 5000000,
     },
     "local-variable-polygon-curve": {
       host: "127.0.0.1",
       port: 8545,
       network_id: "*",
-      gas: 5000000,
     },
     "local-celo-mobius": {
       host: "127.0.0.1",
       port: 8545,
       network_id: "*",
-      gas: 5000000,
     },
     "local-variable-celo-mobius": {
       host: "127.0.0.1",
       port: 8545,
       network_id: "*",
-      gas: 5000000,
     },
     "local-celo-moola": {
       host: "127.0.0.1",
       port: 8545,
       network_id: "*",
-      gas: 5000000,
     },
     "local-variable-celo-moola": {
       host: "127.0.0.1",
       port: 8545,
       network_id: "*",
-      gas: 5000000,
     },
     "polygon-curve": {
       provider: () =>
