@@ -500,8 +500,7 @@ contract Pool is Ownable, Pausable, ReentrancyGuard {
 
         // calculates the performance/admin fee (takes a cut - the admin percentage fee - from the pool's interest, strategy rewards).
         // calculates the "gameInterest" (net interest) that will be split among winners in the game
-        // calculates the rewardTokenAmount that will be split among winners in the game
-        // calculates the strategyGovernanceTokenAmount that will be split among winners in the game
+        // calculates the rewardTokenAmounts that will be split among winners in the game
         // the admin fee will only be caluclated the first time once hence the nested if to ensure that although this method is called multiple times but the admin fee only get's set once
         if (adminFee > 0) {
             // since this method is called when each player withdraws in a variable deposit game/pool so we need to make sure that if the admin fee % is more than 0 then the fee is only calculated once.
@@ -887,6 +886,8 @@ contract Pool is Ownable, Pausable, ReentrancyGuard {
                 revert TRANSACTIONAL_TOKEN_TRANSFER_FAILURE();
             }
         } else {
+            // this scenario is very tricky to mock
+            // and our mock contracts are pretty complex currently so haven't tested this line with unit tests
             if (payout > IERC20(inboundToken).balanceOf(address(this))) {
                 payout = IERC20(inboundToken).balanceOf(address(this));
             }
@@ -990,10 +991,7 @@ contract Pool is Ownable, Pausable, ReentrancyGuard {
 
         // calculates gross interest
         uint256 grossInterest = 0;
-        // uint256[] memory grossRewardTokenAmount;
         // Sanity check to avoid reverting due to overflow in the "subtraction" below.
-        // This could only happen in case Aave changes the 1:1 ratio between
-        // aToken vs. Token in the future
         if (totalBalance >= totalGamePrincipal) {
             grossInterest = totalBalance.sub(totalGamePrincipal);
         } else {
@@ -1016,8 +1014,7 @@ contract Pool is Ownable, Pausable, ReentrancyGuard {
 
         // calculates the performance/admin fee (takes a cut - the admin percentage fee - from the pool's interest, strategy rewards).
         // calculates the "gameInterest" (net interest) that will be split among winners in the game
-        // calculates the rewardTokenAmount that will be split among winners in the game
-        // calculates the strategyGovernanceTokenAmount that will be split among winners in the game
+        // calculates the rewardTokenAmounts that will be split among winners in the game
 
         if (adminFee > 0) {
             _adminFeeAmount[0] = (grossInterest.mul(adminFee)).div(uint256(100));
