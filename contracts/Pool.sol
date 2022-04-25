@@ -61,7 +61,7 @@ contract Pool is Ownable, Pausable, ReentrancyGuard {
     /// @notice The time duration (in seconds) of each segment.
     uint256 public immutable segmentLength;
 
-    /// @notice The time duration (in seconds) of each segment.
+    /// @notice The time duration (in seconds) of last segment (waiting round).
     uint256 public immutable waitingRoundSegmentLength;
 
     /// @notice The performance admin fee (percentage).
@@ -70,7 +70,7 @@ contract Pool is Ownable, Pausable, ReentrancyGuard {
     /// @notice Defines the max quantity of players allowed in the game.
     uint256 public immutable maxPlayersCount;
 
-    /// @notice The amount to be paid on each segment.
+    /// @notice The amount to be paid on each segment in case "flexibleSegmentPayment" is false (fixed payments).
     uint256 public immutable segmentPayment;
 
     /// @notice Address of the token used for depositing into the game by players.
@@ -82,10 +82,10 @@ contract Pool is Ownable, Pausable, ReentrancyGuard {
     /// @notice Strategy Contract Address
     IStrategy public strategy;
 
-    /// @notice Flag which determines whether the deposit token is a transactional token like eth or matic.
+    /// @notice Flag which determines whether the deposit token is a transactional token like eth or matic (blockchain native token, not ERC20).
     bool public immutable isTransactionalToken;
 
-    /// @notice When the game started (deployed timestamp).
+    /// @notice When the game started (game initialized timestamp).
     uint256 public firstSegmentStart;
 
     /// @notice Timestamp when the waiting segment starts.
@@ -159,7 +159,7 @@ contract Pool is Ownable, Pausable, ReentrancyGuard {
     /// @notice Stores info about the player index which is used to determine the share of interest of each winner.
     mapping(address => mapping(uint256 => uint256)) public playerIndex;
 
-    /// @notice Stores info of the segment counter needed for ui as bbackup for graph.
+    /// @notice Stores info of the segment counter needed for ui as backup for graph.
     mapping(uint256 => uint256) public segmentCounter;
 
     /// @notice Stores info of cummalativePlayerIndexSum for each segment for early exit scenario.
@@ -235,7 +235,8 @@ contract Pool is Ownable, Pausable, ReentrancyGuard {
     /// @dev Checks if the game is completed or not.
     /// @return "true" if completeted; otherwise, "false".
     function isGameCompleted() public view returns (bool) {
-        // Game is completed when the current segment is greater than "lastSegment" of the game.
+        // Game is completed when the current segment is greater than "lastSegment" of the game
+        // or if "emergencyWithdraw" was enabled.
         return getCurrentSegment() > lastSegment || emergencyWithdraw;
     }
 
@@ -317,10 +318,8 @@ contract Pool is Ownable, Pausable, ReentrancyGuard {
         if (_segmentLength == 0) {
             revert INVALID_SEGMENT_LENGTH();
         }
-        if (!_flexibleSegmentPayment) {
-            if (_segmentPayment == 0) {
-                revert INVALID_SEGMENT_PAYMENT();
-            }
+        if (!_flexibleSegmentPayment && _segmentPayment == 0) {
+            revert INVALID_SEGMENT_PAYMENT();
         }
         if (_waitingRoundSegmentLength == 0) {
             revert INVALID_WAITING_ROUND_SEGMENT_LENGTH();
@@ -330,10 +329,12 @@ contract Pool is Ownable, Pausable, ReentrancyGuard {
         }
 
         address _underlyingAsset = _strategy.getunderlyingAsset();
-        if (_underlyingAsset != address(0)) {
-            if (_underlyingAsset != _inboundCurrency && !_isTransactionalToken) {
+        if (
+            _underlyingAsset != address(0) &&
+            _underlyingAsset != _inboundCurrency &&
+            !_isTransactionalToken
+        ) {
                 revert INVALID_INBOUND_TOKEN();
-            }
         }
 
         // Initializes default variables
@@ -579,7 +580,8 @@ contract Pool is Ownable, Pausable, ReentrancyGuard {
     }
 
     /**
-    @dev Disable claiming reward tokens.
+    @dev Disable claiming reward tokens for emergency scenarios, like when external reward contracts become
+        inactive or rewards funds aren't available, allowing users to withdraw principal + interest from contract.
     */
     function disableClaimingRewardTokens() external onlyOwner whenGameIsNotCompleted {
         disableRewardTokenClaim = true;
