@@ -26,4 +26,6 @@ interface IStrategy {
     function getRewardTokens() external view returns (IERC20[] memory);
 
     function getUnderlyingAsset() external view returns (address);
+
+    function strategyOwner() external view returns (address);
 }

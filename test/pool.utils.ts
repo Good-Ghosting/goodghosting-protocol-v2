@@ -384,6 +384,7 @@ export const deployPool = async (
       isTransactionalToken,
     );
     if (isInvestmentStrategy) {
+      await expect(goodGhosting.initialize()).to.be.revertedWith("INVALID_OWNER()");
       await strategy.transferOwnership(goodGhosting.address);
     }
 
@@ -457,6 +458,7 @@ export const deployPool = async (
     );
 
     if (isInvestmentStrategy) {
+      await expect(goodGhosting.initialize()).to.be.revertedWith("INVALID_OWNER()");
       await strategy.transferOwnership(goodGhosting.address);
     }
     await expect(goodGhosting.initialize()).to.be.revertedWith(

@@ -58,6 +58,10 @@ contract CurveStrategy is Ownable, ReentrancyGuard, IStrategy {
     // ------------------------- external views -------------------------- //
     //*********************************************************************//
 
+    function strategyOwner() public view override returns (address) {
+        return super.owner();
+    }
+
     /** 
     @notice
     Returns the total accumalated amount i.e principal + interest stored in curve, only used in case of variable deposit pools.

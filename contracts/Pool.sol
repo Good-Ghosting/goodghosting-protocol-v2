@@ -44,6 +44,7 @@ error FUNDS_REDEEMED_FROM_EXTERNAL_POOL();
 error EARLY_EXIT_NOT_POSSIBLE();
 error GAME_NOT_INITIALIZED();
 error GAME_ALREADY_INITIALIZED();
+error INVALID_OWNER();
 
 /**
 @title GoodGhosting V2 Hodl Contract
@@ -365,6 +366,9 @@ contract Pool is Ownable, Pausable, ReentrancyGuard {
     @dev Initializes the pool
     */
     function initialize() public virtual onlyOwner whenGameIsNotInitialized whenNotPaused {
+        if (strategy.strategyOwner() != address(this)) {
+          revert INVALID_OWNER();
+        }
         firstSegmentStart = block.timestamp; //gets current time
         waitingRoundSegmentStart = block.timestamp + (segmentLength * depositCount);
     }
