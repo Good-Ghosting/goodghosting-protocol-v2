@@ -256,7 +256,7 @@ contract Pool is Ownable, Pausable, ReentrancyGuard {
 
     /// @dev Calculates the current segment of the game.
     /// @return current game segment.
-    function getCurrentSegment() public view returns (uint256) {
+    function getCurrentSegment() public view whenGameIsInitialized returns (uint256) {
         uint256 currentSegment;
         if (
             waitingRoundSegmentStart <= block.timestamp &&

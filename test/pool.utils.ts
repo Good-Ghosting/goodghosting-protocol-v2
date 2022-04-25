@@ -391,6 +391,8 @@ export const deployPool = async (
       "GAME_NOT_INITIALIZED()",
     );
 
+    await expect(goodGhosting.getCurrentSegment()).to.be.revertedWith("GAME_NOT_INITIALIZED()");
+
     await goodGhosting.initialize();
 
     await expect(goodGhosting.initialize()).to.be.revertedWith("GAME_ALREADY_INITIALIZED()");
@@ -460,6 +462,9 @@ export const deployPool = async (
     await expect(goodGhosting.initialize()).to.be.revertedWith(
       "Whitelisting enabled - use initializePool(bytes32) instead",
     );
+
+    await expect(goodGhosting.getCurrentSegment()).to.be.revertedWith("GAME_NOT_INITIALIZED()");
+
     await goodGhosting.initializePool(merkleRoot);
 
     await expect(goodGhosting.initializePool(merkleRoot)).to.be.revertedWith("GAME_ALREADY_INITIALIZED()");
