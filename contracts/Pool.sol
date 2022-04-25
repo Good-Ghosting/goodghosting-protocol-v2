@@ -43,6 +43,8 @@ error PLAYER_DID_NOT_PAID_PREVIOUS_SEGMENT();
 error FUNDS_REDEEMED_FROM_EXTERNAL_POOL();
 error EARLY_EXIT_NOT_POSSIBLE();
 error GAME_NOT_INITIALIZED();
+error GAME_ALREADY_INITIALIZED();
+error INVALID_OWNER();
 
 /**
 @title GoodGhosting V2 Contract
@@ -92,7 +94,7 @@ contract Pool is Ownable, Pausable, ReentrancyGuard {
     uint256 public waitingRoundSegmentStart;
 
     /// @notice The number of segments in the game (segment count).
-    uint256 public lastSegment;
+    uint256 public depositCount;
 
     /// @notice The early withdrawal fee (percentage).
     uint128 public earlyWithdrawalFee;
@@ -228,6 +230,13 @@ contract Pool is Ownable, Pausable, ReentrancyGuard {
         _;
     }
 
+    modifier whenGameIsNotInitialized() {
+        if (firstSegmentStart > 0) {
+            revert GAME_ALREADY_INITIALIZED();
+        }
+        _;
+    }
+
     //*********************************************************************//
     // ------------------------- external views -------------------------- //
     //*********************************************************************//
@@ -235,9 +244,9 @@ contract Pool is Ownable, Pausable, ReentrancyGuard {
     /// @dev Checks if the game is completed or not.
     /// @return "true" if completeted; otherwise, "false".
     function isGameCompleted() public view returns (bool) {
-        // Game is completed when the current segment is greater than "lastSegment" of the game
+        // Game is completed when the current segment is greater than "depositCount" of the game
         // or if "emergencyWithdraw" was enabled.
-        return getCurrentSegment() > lastSegment || emergencyWithdraw;
+        return getCurrentSegment() > depositCount || emergencyWithdraw;
     }
 
     /// @dev gets the number of players in the game.
@@ -248,14 +257,14 @@ contract Pool is Ownable, Pausable, ReentrancyGuard {
 
     /// @dev Calculates the current segment of the game.
     /// @return current game segment.
-    function getCurrentSegment() public view returns (uint256) {
+    function getCurrentSegment() public view whenGameIsInitialized returns (uint256) {
         uint256 currentSegment;
         if (
             waitingRoundSegmentStart <= block.timestamp &&
             block.timestamp <= (waitingRoundSegmentStart.add(waitingRoundSegmentLength))
         ) {
             uint256 waitingRoundSegment = block.timestamp.sub(waitingRoundSegmentStart).div(waitingRoundSegmentLength);
-            currentSegment = lastSegment.add(waitingRoundSegment);
+            currentSegment = depositCount.add(waitingRoundSegment);
         } else {
             currentSegment = block.timestamp.sub(firstSegmentStart).div(segmentLength);
         }
@@ -328,7 +337,7 @@ contract Pool is Ownable, Pausable, ReentrancyGuard {
             revert INVALID_WAITING_ROUND_SEGMENT_LENGTH();
         }
 
-        address _underlyingAsset = _strategy.getunderlyingAsset();
+        address _underlyingAsset = _strategy.getUnderlyingAsset();
         if (
             _underlyingAsset != address(0) &&
             _underlyingAsset != _inboundCurrency &&
@@ -338,7 +347,7 @@ contract Pool is Ownable, Pausable, ReentrancyGuard {
         }
 
         // Initializes default variables
-        lastSegment = _depositCount;
+        depositCount = _depositCount;
         segmentLength = _segmentLength;
         waitingRoundSegmentLength = _waitingRoundSegmentLength;
         segmentPayment = _segmentPayment;
@@ -356,9 +365,12 @@ contract Pool is Ownable, Pausable, ReentrancyGuard {
     /**
     @dev Initializes the pool
     */
-    function initialize() public virtual onlyOwner whenNotPaused {
+    function initialize() public virtual onlyOwner whenGameIsNotInitialized whenNotPaused {
+        if (strategy.strategyOwner() != address(this)) {
+          revert INVALID_OWNER();
+        }
         firstSegmentStart = block.timestamp; //gets current time
-        waitingRoundSegmentStart = block.timestamp + (segmentLength * lastSegment);
+        waitingRoundSegmentStart = block.timestamp + (segmentLength * depositCount);
     }
 
     //*********************************************************************//
@@ -441,7 +453,7 @@ contract Pool is Ownable, Pausable, ReentrancyGuard {
         cummalativePlayerIndexSum[currentSegment] = cummalativePlayerIndexSumInMemory;
         // check if this is deposit for the last segment. If yes, the player is a winner.
         // since both join game and deposit method call this method so having it here
-        if (currentSegment == lastSegment.sub(1)) {
+        if (currentSegment == depositCount.sub(1)) {
             // array indexes start from 0
             winnerCount = winnerCount.add(uint256(1));
             players[msg.sender].isWinner = true;
@@ -494,7 +506,7 @@ contract Pool is Ownable, Pausable, ReentrancyGuard {
             // the reason being like totalBalance for every player this is updated and prev. value is used to add any left over value
             if (address(rewardTokens[i]) != address(0) && inboundToken != address(rewardTokens[i])) {
                 grossRewardTokenAmount[i] = rewardTokenAmounts[i].add(
-                    strategy.getAccumalatedRewardTokenAmounts(disableRewardTokenClaim)[i]
+                    strategy.getAccumulatedRewardTokenAmounts(disableRewardTokenClaim)[i]
                 );
             }
         }
@@ -567,7 +579,7 @@ contract Pool is Ownable, Pausable, ReentrancyGuard {
         if (totalGamePrincipal == 0) {
             revert EARLY_EXIT_NOT_POSSIBLE();
         }
-        lastSegment = getCurrentSegment();
+        depositCount = getCurrentSegment();
         emergencyWithdraw = true;
     }
 
@@ -807,15 +819,15 @@ contract Pool is Ownable, Pausable, ReentrancyGuard {
         if (
             player.isWinner ||
             ((
-                lastSegment == 0
-                    ? players[msg.sender].mostRecentSegmentPaid >= lastSegment
-                    : players[msg.sender].mostRecentSegmentPaid >= lastSegment.sub(1)
+                depositCount == 0
+                    ? players[msg.sender].mostRecentSegmentPaid >= depositCount
+                    : players[msg.sender].mostRecentSegmentPaid >= depositCount.sub(1)
             ) && emergencyWithdraw)
         ) {
             // Calculate Cummalative index for each player
             uint256 playerIndexSum = 0;
             uint256 segmentPaid = emergencyWithdraw
-                ? lastSegment == 0 ? 0 : lastSegment.sub(1)
+                ? depositCount == 0 ? 0 : depositCount.sub(1)
                 : players[msg.sender].mostRecentSegmentPaid;
 
             // calculate playerIndexSum for each player
@@ -824,7 +836,7 @@ contract Pool is Ownable, Pausable, ReentrancyGuard {
             }
 
             // calculate playerSharePercentage for each player
-            uint256 segment = lastSegment == 0 ? 0 : lastSegment.sub(1);
+            uint256 segment = depositCount == 0 ? 0 : depositCount.sub(1);
             playerSharePercentage = (playerIndexSum.mul(100)).div(cummalativePlayerIndexSum[segment]);
 
             if (impermanentLossShare > 0 && totalGameInterest == 0) {
@@ -852,7 +864,7 @@ contract Pool is Ownable, Pausable, ReentrancyGuard {
             // subtract global params to make sure they are updated in case of flexible segment payment
             if (flexibleSegmentPayment) {
                 totalGameInterest = totalGameInterest.sub(playerInterestShare);
-                cummalativePlayerIndexSum[lastSegment.sub(1)] = cummalativePlayerIndexSum[lastSegment.sub(1)].sub(
+                cummalativePlayerIndexSum[depositCount.sub(1)] = cummalativePlayerIndexSum[depositCount.sub(1)].sub(
                     playerIndexSum
                 );
                 for (uint256 i = 0; i < rewardTokens.length; i++) {
@@ -943,7 +955,7 @@ contract Pool is Ownable, Pausable, ReentrancyGuard {
         // segment happens on segment n-1 (penultimate segment).
         // Any segment greater than the last segment means the game is completed, and cannot
         // receive payments
-        if (currentSegment == 0 || currentSegment >= lastSegment || emergencyWithdraw) {
+        if (currentSegment == 0 || currentSegment >= depositCount || emergencyWithdraw) {
             revert DEPOSIT_NOT_ALLOWED();
         }
 

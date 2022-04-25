@@ -147,7 +147,7 @@ export const deployPool = async (
     await lendingPool.setUnderlyingAssetAddress(isInboundToken ? inboundToken.address : inboundToken);
 
     const rewardTokenDeployer = new MockWMatic__factory(deployer);
-    rewardToken = await rewardTokenDeployer.deploy({ maxFeePerGas: 5 });
+    rewardToken = await rewardTokenDeployer.deploy();
 
     const rewardControllerDeployer = new RewardsControllerMock__factory(deployer);
     rewardController = await rewardControllerDeployer.deploy(rewardToken.address);
@@ -186,7 +186,7 @@ export const deployPool = async (
         isInboundToken ? inboundToken.address : inboundToken,
       );
 
-      await rewardToken.deposit({ value: ethers.utils.parseEther("10"), maxFeePerGas: 5 });
+      await rewardToken.deposit({ value: ethers.utils.parseEther("10") });
 
       await rewardToken.transfer(rewardController.address, ethers.utils.parseEther("10"));
       if (isInboundToken) {
@@ -384,6 +384,7 @@ export const deployPool = async (
       isTransactionalToken,
     );
     if (isInvestmentStrategy) {
+      await expect(goodGhosting.initialize()).to.be.revertedWith("INVALID_OWNER()");
       await strategy.transferOwnership(goodGhosting.address);
     }
 
@@ -391,7 +392,11 @@ export const deployPool = async (
       "GAME_NOT_INITIALIZED()",
     );
 
+    await expect(goodGhosting.getCurrentSegment()).to.be.revertedWith("GAME_NOT_INITIALIZED()");
+
     await goodGhosting.initialize();
+
+    await expect(goodGhosting.initialize()).to.be.revertedWith("GAME_ALREADY_INITIALIZED()");
 
     if (isIncentiveToken) {
       await goodGhosting.setIncentiveToken(incentiveToken.address);
@@ -453,12 +458,18 @@ export const deployPool = async (
     );
 
     if (isInvestmentStrategy) {
+      await expect(goodGhosting.initialize()).to.be.revertedWith("INVALID_OWNER()");
       await strategy.transferOwnership(goodGhosting.address);
     }
     await expect(goodGhosting.initialize()).to.be.revertedWith(
       "Whitelisting enabled - use initializePool(bytes32) instead",
     );
+
+    await expect(goodGhosting.getCurrentSegment()).to.be.revertedWith("GAME_NOT_INITIALIZED()");
+
     await goodGhosting.initializePool(merkleRoot);
+
+    await expect(goodGhosting.initializePool(merkleRoot)).to.be.revertedWith("GAME_ALREADY_INITIALIZED()");
 
     if (isIncentiveToken) {
       await goodGhosting.setIncentiveToken(incentiveToken.address);

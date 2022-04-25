@@ -53,6 +53,10 @@ contract AaveStrategyV3 is Ownable, ReentrancyGuard, IStrategy {
     // ------------------------- external views -------------------------- //
     //*********************************************************************//
 
+    function strategyOwner() public view override returns (address) {
+        return super.owner();
+    }
+
     /** 
     @notice
     Returns the total accumalated amount i.e principal + interest stored in aave, only used in case of variable deposit pools.
@@ -67,7 +71,7 @@ contract AaveStrategyV3 is Ownable, ReentrancyGuard, IStrategy {
     Returns the underlying token address.
     @return Underlying token address.
     */
-    function getunderlyingAsset() external view override returns (address) {
+    function getUnderlyingAsset() external view override returns (address) {
         return adaiToken.UNDERLYING_ASSET_ADDRESS();
     }
 
@@ -262,7 +266,7 @@ contract AaveStrategyV3 is Ownable, ReentrancyGuard, IStrategy {
     This method is not marked as view since in the curve gauge contract "claimable_reward_write" is not marked as view and all strategies share the same strategy interface.
     @param disableRewardTokenClaim Reward claim disable flag.
     */
-    function getAccumalatedRewardTokenAmounts(bool disableRewardTokenClaim)
+    function getAccumulatedRewardTokenAmounts(bool disableRewardTokenClaim)
         external
         override
         returns (uint256[] memory)

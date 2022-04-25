@@ -316,7 +316,7 @@ export const shouldBehaveLikeGGPool = async (strategyType: string) => {
 
   it("checks if the contract's variables were properly initialized", async () => {
     const inboundCurrencyResult = await contracts.goodGhosting.inboundToken();
-    const lastSegmentResult = await contracts.goodGhosting.lastSegment();
+    const lastSegmentResult = await contracts.goodGhosting.depositCount();
     const segmentLengthResult = await contracts.goodGhosting.segmentLength();
     const segmentPaymentResult = await contracts.goodGhosting.segmentPayment();
     const earlyWithdrawFee = await contracts.goodGhosting.earlyWithdrawalFee();
@@ -1741,8 +1741,8 @@ export const shouldBehaveLikeRedeemingFromGGPool = async (strategyType: string) 
         ethers.BigNumber.from(index1.toString()),
       );
     }
-    const lastSegment = await contracts.goodGhosting.lastSegment();
-    const cummalativePlayerIndexSum = await contracts.goodGhosting.cummalativePlayerIndexSum(lastSegment - 1);
+    const depositCountVal = await contracts.goodGhosting.depositCount();
+    const cummalativePlayerIndexSum = await contracts.goodGhosting.cummalativePlayerIndexSum(depositCountVal - 1);
     assert(cummalativePlayerIndexSum.eq(cummalativePlayer1IndexBeforeWithdraw));
   });
 
@@ -2448,9 +2448,9 @@ export const shouldBehaveLikePlayersWithdrawingFromGGPool = async (strategyType:
     await contracts.goodGhosting.redeemFromExternalPoolForFixedDepositPool("90");
     const gameInterest = await contracts.goodGhosting.totalGameInterest();
     const playerInfo = await contracts.goodGhosting.players(player1.address);
-    const lastSegment = await contracts.goodGhosting.lastSegment();
+    const depositCountVal = await contracts.goodGhosting.depositCount();
 
-    const cummalativePlayerIndexSum = await contracts.goodGhosting.cummalativePlayerIndexSum(lastSegment - 1);
+    const cummalativePlayerIndexSum = await contracts.goodGhosting.cummalativePlayerIndexSum(depositCountVal - 1);
 
     let cummalativePlayer1IndexBeforeWithdraw = ethers.BigNumber.from(0);
 

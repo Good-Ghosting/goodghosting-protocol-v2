@@ -21,9 +21,11 @@ interface IStrategy {
 
     function getTotalAmount() external view returns (uint256);
 
-    function getAccumalatedRewardTokenAmounts(bool disableRewardTokenClaim) external returns (uint256[] memory);
+    function getAccumulatedRewardTokenAmounts(bool disableRewardTokenClaim) external returns (uint256[] memory);
 
     function getRewardTokens() external view returns (IERC20[] memory);
 
-    function getunderlyingAsset() external view returns (address);
+    function getUnderlyingAsset() external view returns (address);
+
+    function strategyOwner() external view returns (address);
 }
