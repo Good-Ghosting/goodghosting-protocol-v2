@@ -336,7 +336,7 @@ contract Pool is Ownable, Pausable, ReentrancyGuard {
             revert INVALID_WAITING_ROUND_SEGMENT_LENGTH();
         }
 
-        address _underlyingAsset = _strategy.getunderlyingAsset();
+        address _underlyingAsset = _strategy.getUnderlyingAsset();
         if (
             _underlyingAsset != address(0) &&
             _underlyingAsset != _inboundCurrency &&

@@ -79,7 +79,7 @@ contract CurveStrategy is Ownable, ReentrancyGuard, IStrategy {
     Returns the underlying token address.
     @return Underlying token address.
     */
-    function getunderlyingAsset() external view override returns (address) {
+    function getUnderlyingAsset() external view override returns (address) {
         return address(0);
     }
 
