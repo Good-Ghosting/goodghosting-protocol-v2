@@ -147,7 +147,7 @@ export const deployPool = async (
     await lendingPool.setUnderlyingAssetAddress(isInboundToken ? inboundToken.address : inboundToken);
 
     const rewardTokenDeployer = new MockWMatic__factory(deployer);
-    rewardToken = await rewardTokenDeployer.deploy({ maxFeePerGas: 5 });
+    rewardToken = await rewardTokenDeployer.deploy();
 
     const rewardControllerDeployer = new RewardsControllerMock__factory(deployer);
     rewardController = await rewardControllerDeployer.deploy(rewardToken.address);
@@ -186,7 +186,7 @@ export const deployPool = async (
         isInboundToken ? inboundToken.address : inboundToken,
       );
 
-      await rewardToken.deposit({ value: ethers.utils.parseEther("10"), maxFeePerGas: 5 });
+      await rewardToken.deposit({ value: ethers.utils.parseEther("10") });
 
       await rewardToken.transfer(rewardController.address, ethers.utils.parseEther("10"));
       if (isInboundToken) {
