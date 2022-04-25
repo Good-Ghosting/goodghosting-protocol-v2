@@ -43,9 +43,10 @@ error PLAYER_DID_NOT_PAID_PREVIOUS_SEGMENT();
 error FUNDS_REDEEMED_FROM_EXTERNAL_POOL();
 error EARLY_EXIT_NOT_POSSIBLE();
 error GAME_NOT_INITIALIZED();
+error GAME_ALREADY_INITIALIZED();
 
 /**
-@title GoodGhosting V2 Contract
+@title GoodGhosting V2 Hodl Contract
 @notice Allows users to join a pool with a yield bearing strategy, the winners get interest and rewards, losers get their principal back.
 */
 contract Pool is Ownable, Pausable, ReentrancyGuard {
@@ -228,6 +229,13 @@ contract Pool is Ownable, Pausable, ReentrancyGuard {
         _;
     }
 
+    modifier whenGameIsNotInitialized() {
+        if (firstSegmentStart > 0) {
+            revert GAME_ALREADY_INITIALIZED();
+        }
+        _;
+    }
+
     //*********************************************************************//
     // ------------------------- external views -------------------------- //
     //*********************************************************************//
@@ -356,7 +364,7 @@ contract Pool is Ownable, Pausable, ReentrancyGuard {
     /**
     @dev Initializes the pool
     */
-    function initialize() public virtual onlyOwner whenNotPaused {
+    function initialize() public virtual onlyOwner whenGameIsNotInitialized whenNotPaused {
         firstSegmentStart = block.timestamp; //gets current time
         waitingRoundSegmentStart = block.timestamp + (segmentLength * depositCount);
     }

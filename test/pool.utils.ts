@@ -393,6 +393,8 @@ export const deployPool = async (
 
     await goodGhosting.initialize();
 
+    await expect(goodGhosting.initialize()).to.be.revertedWith("GAME_ALREADY_INITIALIZED()");
+
     if (isIncentiveToken) {
       await goodGhosting.setIncentiveToken(incentiveToken.address);
       await mintTokens(incentiveToken, goodGhosting.address);
@@ -459,6 +461,8 @@ export const deployPool = async (
       "Whitelisting enabled - use initializePool(bytes32) instead",
     );
     await goodGhosting.initializePool(merkleRoot);
+
+    await expect(goodGhosting.initializePool(merkleRoot)).to.be.revertedWith("GAME_ALREADY_INITIALIZED()");
 
     if (isIncentiveToken) {
       await goodGhosting.setIncentiveToken(incentiveToken.address);

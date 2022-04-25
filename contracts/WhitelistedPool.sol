@@ -53,7 +53,7 @@ contract WhitelistedPool is Pool, MerkleDistributor {
     @dev Initializes the pool
     @param _merkleRoot Merkle Root for whitelisted players.
     */
-    function initializePool(bytes32 _merkleRoot) external onlyOwner whenNotPaused {
+    function initializePool(bytes32 _merkleRoot) external onlyOwner whenGameIsNotInitialized whenNotPaused {
         setMerkleRoot(_merkleRoot);
         super.initialize();
     }
