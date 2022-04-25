@@ -47,7 +47,7 @@ error GAME_ALREADY_INITIALIZED();
 error INVALID_OWNER();
 
 /**
-@title GoodGhosting V2 Hodl Contract
+@title GoodGhosting V2 Contract
 @notice Allows users to join a pool with a yield bearing strategy, the winners get interest and rewards, losers get their principal back.
 */
 contract Pool is Ownable, Pausable, ReentrancyGuard {
