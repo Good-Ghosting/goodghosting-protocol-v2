@@ -351,7 +351,7 @@ contract CurveStrategy is Ownable, ReentrancyGuard, IStrategy {
     This method is not marked as view since in the curve gauge contract "claimable_reward_write" is not marked as view.
     @param disableRewardTokenClaim Reward claim disable flag.
     */
-    function getAccumalatedRewardTokenAmounts(bool disableRewardTokenClaim)
+    function getAccumulatedRewardTokenAmounts(bool disableRewardTokenClaim)
         external
         override
         returns (uint256[] memory)

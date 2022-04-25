@@ -21,7 +21,7 @@ interface IStrategy {
 
     function getTotalAmount() external view returns (uint256);
 
-    function getAccumalatedRewardTokenAmounts(bool disableRewardTokenClaim) external returns (uint256[] memory);
+    function getAccumulatedRewardTokenAmounts(bool disableRewardTokenClaim) external returns (uint256[] memory);
 
     function getRewardTokens() external view returns (IERC20[] memory);
 

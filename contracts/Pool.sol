@@ -502,7 +502,7 @@ contract Pool is Ownable, Pausable, ReentrancyGuard {
             // the reason being like totalBalance for every player this is updated and prev. value is used to add any left over value
             if (address(rewardTokens[i]) != address(0) && inboundToken != address(rewardTokens[i])) {
                 grossRewardTokenAmount[i] = rewardTokenAmounts[i].add(
-                    strategy.getAccumalatedRewardTokenAmounts(disableRewardTokenClaim)[i]
+                    strategy.getAccumulatedRewardTokenAmounts(disableRewardTokenClaim)[i]
                 );
             }
         }
