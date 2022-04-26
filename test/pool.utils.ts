@@ -476,6 +476,8 @@ export const deployPool = async (
       await mintTokens(incentiveToken, goodGhosting.address);
     }
   }
+  const isInitialized = await goodGhosting.isInitialized();
+  assert(isInitialized);
 
   return {
     inboundToken,

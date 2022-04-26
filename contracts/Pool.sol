@@ -271,6 +271,11 @@ contract Pool is Ownable, Pausable, ReentrancyGuard {
         return currentSegment;
     }
 
+    /// @dev Checks if the game has been initialized or not.
+    function isInitialized() external view returns(bool) {
+        return firstSegmentStart > 0;
+    }
+
     //*********************************************************************//
     // ------------------------- constructor -------------------------- //
     //*********************************************************************//
