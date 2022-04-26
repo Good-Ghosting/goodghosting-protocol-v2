@@ -479,6 +479,12 @@ export const deployPool = async (
   const isInitialized = await goodGhosting.isInitialized();
   assert(isInitialized);
 
+  if (!isTransactionalToken) {
+    await expect(
+      deployer.sendTransaction({ to: goodGhosting.address, value: ethers.utils.parseEther("1.0") }),
+    ).to.be.revertedWith("INVALID_TRANSACTIONAL_TOKEN_AMOUNT()");
+  }
+
   return {
     inboundToken,
     lendingPool,

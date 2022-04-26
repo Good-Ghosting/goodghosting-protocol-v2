@@ -1086,5 +1086,9 @@ contract Pool is Ownable, Pausable, ReentrancyGuard {
     }
 
     // Fallback Functions for calldata and reciever for handling only ether transfer
-    receive() external payable {}
+    receive() external payable {
+        if (!isTransactionalToken) {
+                revert INVALID_TRANSACTIONAL_TOKEN_AMOUNT();
+        }
+    }
 }
