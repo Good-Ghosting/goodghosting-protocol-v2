@@ -4960,6 +4960,7 @@ export const shouldBehaveLikeVariableDepositPool = async (strategyType: string) 
       playerRewardAmounts[0] = rewardDifferenceForPlayer1.toString();
       playerRewardAmounts[1] = "0";
 
+      // the player1Deposit.add(interestEarnedByPlayer1) is slightly more than the actual values the diff is very so this assertion reverts due to it
       await expect(result)
         .to.emit(contracts.goodGhosting, "Withdrawal")
         .withArgs(
@@ -5114,6 +5115,8 @@ export const shouldBehaveLikeVariableDepositPool = async (strategyType: string) 
       const rewardAmounts: any = [];
       rewardAmounts[0] = rewardDifferenceForPlayer1.toString();
       rewardAmounts[1] = "0";
+
+      // the player1Deposit.add(interestEarnedByPlayer1) is slightly more than the actual values the diff is very so this assertion reverts due to it
       await expect(result)
         .to.emit(contracts.goodGhosting, "Withdrawal")
         .withArgs(
