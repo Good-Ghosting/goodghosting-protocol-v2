@@ -164,8 +164,8 @@ contract Pool is Ownable, Pausable, ReentrancyGuard {
     /// @notice Stores info of the segment counter needed for ui as backup for graph.
     mapping(uint256 => uint256) public segmentCounter;
 
-    /// @notice Stores info of cummalativePlayerIndexSum for each segment for early exit scenario.
-    mapping(uint256 => uint256) public cummalativePlayerIndexSum;
+    /// @notice Stores info of cumulativePlayerIndexSum for each segment for early exit scenario.
+    mapping(uint256 => uint256) public cumulativePlayerIndexSum;
 
     /// @notice list of players.
     address[] public iterablePlayers;
@@ -451,11 +451,11 @@ contract Pool is Ownable, Pausable, ReentrancyGuard {
         uint256 currentSegmentplayerIndex = _depositAmount.mul(MULTIPLIER).div(block.timestamp);
         playerIndex[msg.sender][currentSegment] = currentSegmentplayerIndex;
 
-        uint256 cummalativePlayerIndexSumInMemory = cummalativePlayerIndexSum[currentSegment];
+        uint256 cummalativePlayerIndexSumInMemory = cumulativePlayerIndexSum[currentSegment];
         for (uint256 i = 0; i <= players[msg.sender].mostRecentSegmentPaid; i++) {
             cummalativePlayerIndexSumInMemory = cummalativePlayerIndexSumInMemory.add(playerIndex[msg.sender][i]);
         }
-        cummalativePlayerIndexSum[currentSegment] = cummalativePlayerIndexSumInMemory;
+        cumulativePlayerIndexSum[currentSegment] = cummalativePlayerIndexSumInMemory;
         // check if this is deposit for the last segment. If yes, the player is a winner.
         // since both join game and deposit method call this method so having it here
         if (currentSegment == depositCount.sub(1)) {
@@ -743,19 +743,19 @@ contract Pool is Ownable, Pausable, ReentrancyGuard {
             playerIndex[msg.sender][currentSegment] = 0;
         }
         // since there is complexity of 2 vars here with if else logic so not using 2 memory vars here only 1.
-        uint256 cummalativePlayerIndexSumForCurrentSegment = cummalativePlayerIndexSum[currentSegment];
+        uint256 cummalativePlayerIndexSumForCurrentSegment = cumulativePlayerIndexSum[currentSegment];
         for (uint256 i = 0; i <= players[msg.sender].mostRecentSegmentPaid; i++) {
             if (cummalativePlayerIndexSumForCurrentSegment > 0) {
                 cummalativePlayerIndexSumForCurrentSegment = cummalativePlayerIndexSumForCurrentSegment.sub(
                     playerIndex[msg.sender][i]
                 );
             } else {
-                cummalativePlayerIndexSum[currentSegment - 1] = cummalativePlayerIndexSum[currentSegment - 1].sub(
+                cumulativePlayerIndexSum[currentSegment - 1] = cumulativePlayerIndexSum[currentSegment - 1].sub(
                     playerIndex[msg.sender][i]
                 );
             }
         }
-        cummalativePlayerIndexSum[currentSegment] = cummalativePlayerIndexSumForCurrentSegment;
+        cumulativePlayerIndexSum[currentSegment] = cummalativePlayerIndexSumForCurrentSegment;
 
         // update winner count
         if (winnerCount > 0 && player.isWinner) {
@@ -842,7 +842,7 @@ contract Pool is Ownable, Pausable, ReentrancyGuard {
 
             // calculate playerSharePercentage for each player
             uint256 segment = depositCount == 0 ? 0 : depositCount.sub(1);
-            playerSharePercentage = (playerIndexSum.mul(100)).div(cummalativePlayerIndexSum[segment]);
+            playerSharePercentage = (playerIndexSum.mul(100)).div(cumulativePlayerIndexSum[segment]);
 
             if (impermanentLossShare > 0 && totalGameInterest == 0) {
                 // new payput in case of impermanent loss
@@ -850,7 +850,7 @@ contract Pool is Ownable, Pausable, ReentrancyGuard {
             } else {
                 // Player is a winner and gets a bonus!
                 // the player share of interest is calculated from player index
-                // player share % = playerIndex / cummalativePlayerIndexSum of player indexes of all winners * 100
+                // player share % = playerIndex / cumulativePlayerIndexSum of player indexes of all winners * 100
                 // so, interest share = player share % * total game interest
                 playerInterestShare = totalGameInterest.mul(playerSharePercentage).div(uint256(100));
                 payout = payout.add(playerInterestShare);
@@ -869,7 +869,7 @@ contract Pool is Ownable, Pausable, ReentrancyGuard {
             // subtract global params to make sure they are updated in case of flexible segment payment
             if (flexibleSegmentPayment) {
                 totalGameInterest = totalGameInterest.sub(playerInterestShare);
-                cummalativePlayerIndexSum[depositCount.sub(1)] = cummalativePlayerIndexSum[depositCount.sub(1)].sub(
+                cumulativePlayerIndexSum[depositCount.sub(1)] = cumulativePlayerIndexSum[depositCount.sub(1)].sub(
                     playerIndexSum
                 );
                 for (uint256 i = 0; i < rewardTokens.length; i++) {

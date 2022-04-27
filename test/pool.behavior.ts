@@ -1314,7 +1314,7 @@ export const shouldBehaveLikeEarlyWithdrawingGGPool = async (strategyType: strin
     await ethers.provider.send("evm_increaseTime", [segmentLength]);
     await ethers.provider.send("evm_mine", []);
     const currentSegment = await contracts.goodGhosting.getCurrentSegment();
-    const cumalativePlayerIndexBeforeWithdraw = await contracts.goodGhosting.cummalativePlayerIndexSum(
+    const cumalativePlayerIndexBeforeWithdraw = await contracts.goodGhosting.cumulativePlayerIndexSum(
       currentSegment - 1,
     );
     const player1Info = await contracts.goodGhosting.players(player1.address);
@@ -1343,7 +1343,7 @@ export const shouldBehaveLikeEarlyWithdrawingGGPool = async (strategyType: strin
       ),
     );
     await contracts.goodGhosting.connect(player1).earlyWithdraw(0);
-    const cumalativePlayerIndexAfterWithdraw = await contracts.goodGhosting.cummalativePlayerIndexSum(
+    const cumalativePlayerIndexAfterWithdraw = await contracts.goodGhosting.cumulativePlayerIndexSum(
       currentSegment - 1,
     );
     assert(cumalativePlayerIndexAfterWithdraw.eq(cummalativePlayer2IndexBeforeWithdraw));
@@ -1742,8 +1742,8 @@ export const shouldBehaveLikeRedeemingFromGGPool = async (strategyType: string) 
       );
     }
     const depositCountVal = await contracts.goodGhosting.depositCount();
-    const cummalativePlayerIndexSum = await contracts.goodGhosting.cummalativePlayerIndexSum(depositCountVal - 1);
-    assert(cummalativePlayerIndexSum.eq(cummalativePlayer1IndexBeforeWithdraw));
+    const cumulativePlayerIndexSum = await contracts.goodGhosting.cumulativePlayerIndexSum(depositCountVal - 1);
+    assert(cumulativePlayerIndexSum.eq(cummalativePlayer1IndexBeforeWithdraw));
   });
 
   context("when incentive token is defined", async () => {
@@ -2253,7 +2253,7 @@ export const shouldBehaveLikePlayersWithdrawingFromGGPool = async (strategyType:
     const player1PostWithdrawBalance = await contracts.inboundToken.balanceOf(player1.address);
     assert(player1PostWithdrawBalance.sub(player1PreWithdrawBalance).eq(segmentPayment));
 
-    // Expect Player2 to get an amount greater than the cummalativePlayerIndexSum of all the deposits
+    // Expect Player2 to get an amount greater than the cumulativePlayerIndexSum of all the deposits
     const player2PreWithdrawBalance = await contracts.inboundToken.balanceOf(player2.address);
     playerMaticBalanceBeforeWithdraw = await contracts.rewardToken.balanceOf(player2.address);
 
@@ -2450,7 +2450,7 @@ export const shouldBehaveLikePlayersWithdrawingFromGGPool = async (strategyType:
     const playerInfo = await contracts.goodGhosting.players(player1.address);
     const depositCountVal = await contracts.goodGhosting.depositCount();
 
-    const cummalativePlayerIndexSum = await contracts.goodGhosting.cummalativePlayerIndexSum(depositCountVal - 1);
+    const cumulativePlayerIndexSum = await contracts.goodGhosting.cumulativePlayerIndexSum(depositCountVal - 1);
 
     let cummalativePlayer1IndexBeforeWithdraw = ethers.BigNumber.from(0);
 
@@ -2462,7 +2462,7 @@ export const shouldBehaveLikePlayersWithdrawingFromGGPool = async (strategyType:
     }
     let playerShare = ethers.BigNumber.from(cummalativePlayer1IndexBeforeWithdraw)
       .mul(ethers.BigNumber.from(100))
-      .div(ethers.BigNumber.from(cummalativePlayerIndexSum));
+      .div(ethers.BigNumber.from(cumulativePlayerIndexSum));
     playerShare = ethers.BigNumber.from(gameInterest).mul(playerShare).div(ethers.BigNumber.from(100));
     const userDeposit = ethers.BigNumber.from(segmentPayment).mul(ethers.BigNumber.from(depositCount));
     if (strategyType === "curve") {
