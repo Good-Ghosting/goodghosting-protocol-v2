@@ -266,6 +266,12 @@ contract Pool is Ownable, Pausable, ReentrancyGuard {
         ) {
             uint256 waitingRoundSegment = block.timestamp.sub(waitingRoundSegmentStart).div(waitingRoundSegmentLength);
             currentSegment = depositCount.add(waitingRoundSegment);
+        } else if (block.timestamp > (waitingRoundSegmentStart.add(waitingRoundSegmentLength))) {
+            // handling the logic after waiting round has passed in to avoid inconsistency in current segment value
+            currentSegment =
+                waitingRoundSegmentStart.sub(firstSegmentStart).div(segmentLength) +
+                block.timestamp.sub((waitingRoundSegmentStart.add(waitingRoundSegmentLength))).div(segmentLength) +
+                1;
         } else {
             currentSegment = block.timestamp.sub(firstSegmentStart).div(segmentLength);
         }
