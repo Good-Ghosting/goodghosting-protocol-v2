@@ -378,13 +378,15 @@ contract Pool is Ownable, Pausable, ReentrancyGuard {
 
     /**
     @dev Initializes the pool
+    @param _incentiveToken Incentive token address (optional to set).
     */
-    function initialize() public virtual onlyOwner whenGameIsNotInitialized whenNotPaused {
+    function initialize(IERC20 _incentiveToken) public virtual onlyOwner whenGameIsNotInitialized whenNotPaused {
         if (strategy.strategyOwner() != address(this)) {
             revert INVALID_OWNER();
         }
         firstSegmentStart = block.timestamp; //gets current time
         waitingRoundSegmentStart = block.timestamp + (segmentLength * depositCount);
+        incentiveToken = _incentiveToken;
     }
 
     //*********************************************************************//
@@ -597,13 +599,14 @@ contract Pool is Ownable, Pausable, ReentrancyGuard {
         emergencyWithdraw = true;
     }
 
-    /**
-    @dev Set's the incentive token address.
-    @param _incentiveToken Incentive token address
-    */
-    function setIncentiveToken(IERC20 _incentiveToken) external onlyOwner whenGameIsNotCompleted {
-        incentiveToken = _incentiveToken;
-    }
+    // /**
+    // @dev Set's the incentive token address.
+    // @param _incentiveToken Incentive token address
+    // commented for now
+    // */
+    // function setIncentiveToken(IERC20 _incentiveToken) external onlyOwner whenGameIsNotCompleted {
+    //     incentiveToken = _incentiveToken;
+    // }
 
     /**
     @dev Disable claiming reward tokens for emergency scenarios, like when external reward contracts become
