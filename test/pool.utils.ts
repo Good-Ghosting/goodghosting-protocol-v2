@@ -369,6 +369,25 @@ export const deployPool = async (
       ),
     ).to.be.revertedWith("INVALID_WAITING_ROUND_SEGMENT_LENGTH()");
 
+    if (isVariableAmount) {
+      await expect(
+        goodGhostingV2Deployer.deploy(
+          isInboundToken ? inboundToken.address : inboundToken,
+          "0",
+          depositCount,
+          segmentLength,
+          segmentLength * 2,
+          segmentPayment,
+          earlyWithdrawFee,
+          adminFee,
+          playerCount,
+          isVariableAmount,
+          isInvestmentStrategy ? strategy.address : strategy,
+          isTransactionalToken,
+        ),
+      ).to.be.revertedWith("INVALID_MAX_FLEXIBLE_AMOUNT()");
+    }
+
     goodGhosting = await goodGhostingV2Deployer.deploy(
       isInboundToken ? inboundToken.address : inboundToken,
       ethers.utils.parseEther(maxFlexibleSegmentAmount.toString()),

@@ -45,6 +45,7 @@ error EARLY_EXIT_NOT_POSSIBLE();
 error GAME_NOT_INITIALIZED();
 error GAME_ALREADY_INITIALIZED();
 error INVALID_OWNER();
+error INVALID_MAX_FLEXIBLE_AMOUNT();
 
 /**
 @title GoodGhosting V2 Hodl Contract
@@ -272,7 +273,7 @@ contract Pool is Ownable, Pausable, ReentrancyGuard {
     }
 
     /// @dev Checks if the game has been initialized or not.
-    function isInitialized() external view returns(bool) {
+    function isInitialized() external view returns (bool) {
         return firstSegmentStart > 0;
     }
 
@@ -342,13 +343,15 @@ contract Pool is Ownable, Pausable, ReentrancyGuard {
             revert INVALID_WAITING_ROUND_SEGMENT_LENGTH();
         }
 
+        if (_flexibleSegmentPayment) {
+            if (_maxFlexibleSegmentPaymentAmount == 0) {
+                revert INVALID_MAX_FLEXIBLE_AMOUNT();
+            }
+        }
+
         address _underlyingAsset = _strategy.getUnderlyingAsset();
-        if (
-            _underlyingAsset != address(0) &&
-            _underlyingAsset != _inboundCurrency &&
-            !_isTransactionalToken
-        ) {
-                revert INVALID_INBOUND_TOKEN();
+        if (_underlyingAsset != address(0) && _underlyingAsset != _inboundCurrency && !_isTransactionalToken) {
+            revert INVALID_INBOUND_TOKEN();
         }
 
         // Initializes default variables
@@ -372,7 +375,7 @@ contract Pool is Ownable, Pausable, ReentrancyGuard {
     */
     function initialize() public virtual onlyOwner whenGameIsNotInitialized whenNotPaused {
         if (strategy.strategyOwner() != address(this)) {
-          revert INVALID_OWNER();
+            revert INVALID_OWNER();
         }
         firstSegmentStart = block.timestamp; //gets current time
         waitingRoundSegmentStart = block.timestamp + (segmentLength * depositCount);
@@ -1088,7 +1091,7 @@ contract Pool is Ownable, Pausable, ReentrancyGuard {
     // Fallback Functions for calldata and reciever for handling only ether transfer
     receive() external payable {
         if (!isTransactionalToken) {
-                revert INVALID_TRANSACTIONAL_TOKEN_AMOUNT();
+            revert INVALID_TRANSACTIONAL_TOKEN_AMOUNT();
         }
     }
 }
