@@ -105,6 +105,17 @@ export const shouldBehaveLikeGGPool = async (strategyType: string) => {
     await expect(contracts.goodGhosting.enableEmergencyWithdraw()).to.be.revertedWith("EARLY_EXIT_NOT_POSSIBLE()");
   });
 
+  it("reverts if admin calls the enableEmergencyWithdraw function multiple times", async () => {
+    const accounts = await ethers.getSigners();
+    const player1 = accounts[2];
+    const player2 = accounts[3];
+
+    await joinGame(contracts.goodGhosting, contracts.inboundToken, player2, segmentPayment, segmentPayment);
+    await joinGame(contracts.goodGhosting, contracts.inboundToken, player1, segmentPayment, segmentPayment);
+    await contracts.goodGhosting.enableEmergencyWithdraw();
+    await expect(contracts.goodGhosting.enableEmergencyWithdraw()).to.be.revertedWith("GAME_COMPLETED()");
+  });
+
   it("reverts if the contract is deployed with more than 100% early withdraw fee", async () => {
     await expect(
       deployPool(
