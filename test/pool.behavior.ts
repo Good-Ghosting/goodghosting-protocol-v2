@@ -1407,6 +1407,12 @@ export const shouldBehaveLikeRedeemingFromGGPool = async (strategyType: string) 
     );
   });
 
+  it("allows admint to set incentive token after initialization", async () => {
+    await contracts.goodGhosting.setIncentiveToken(contracts.inboundToken.address);
+    const incentiveToken = await contracts.goodGhosting.incentiveToken();
+    assert(incentiveToken.toLowerCase() === contracts.inboundToken.address.toLowerCase());
+  });
+
   it("allows anyone to redeem from external pool when game is completed", async () => {
     const accounts = await ethers.getSigners();
     const player1 = accounts[2];
@@ -1778,6 +1784,12 @@ export const shouldBehaveLikeRedeemingFromGGPool = async (strategyType: string) 
         strategyType,
         0,
         false,
+      );
+    });
+
+    it("reverts if admin tries to set incentive token again", async () => {
+      await expect(contracts.goodGhosting.setIncentiveToken(contracts.inboundToken.address)).to.be.revertedWith(
+        "INCENTIVE_TOKEN_ALREADY_SET()",
       );
     });
 

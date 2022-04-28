@@ -46,6 +46,7 @@ error GAME_NOT_INITIALIZED();
 error GAME_ALREADY_INITIALIZED();
 error INVALID_OWNER();
 error INVALID_MAX_FLEXIBLE_AMOUNT();
+error INCENTIVE_TOKEN_ALREADY_SET();
 
 /**
 @title GoodGhosting V2 Hodl Contract
@@ -599,14 +600,17 @@ contract Pool is Ownable, Pausable, ReentrancyGuard {
         emergencyWithdraw = true;
     }
 
-    // /**
-    // @dev Set's the incentive token address.
-    // @param _incentiveToken Incentive token address
-    // commented for now
-    // */
-    // function setIncentiveToken(IERC20 _incentiveToken) external onlyOwner whenGameIsNotCompleted {
-    //     incentiveToken = _incentiveToken;
-    // }
+    /**
+    @dev Set's the incentive token address.
+    @param _incentiveToken Incentive token address
+    commented for now
+    */
+    function setIncentiveToken(IERC20 _incentiveToken) external onlyOwner whenGameIsNotCompleted {
+        if (address(incentiveToken) != address(0)) {
+            revert INCENTIVE_TOKEN_ALREADY_SET();
+        }
+        incentiveToken = _incentiveToken;
+    }
 
     /**
     @dev Disable claiming reward tokens for emergency scenarios, like when external reward contracts become
