@@ -107,6 +107,9 @@ contract Pool is Ownable, Pausable, ReentrancyGuard {
     /// @notice total principal amount.
     uint256 public totalGamePrincipal;
 
+    /// @notice original total principal amount to track -ve values in case of impermanent loss
+    uint256 public originalTotalGamePrincipal;
+
     /// @notice performance fee amount allocated to the admin.
     uint256[] public adminFeeAmount;
 
@@ -187,7 +190,8 @@ contract Pool is Ownable, Pausable, ReentrancyGuard {
         uint256 totalGamePrincipal,
         uint256 totalGameInterest,
         uint256 totalIncentiveAmount,
-        uint256[] totalRewardAmounts
+        uint256[] totalRewardAmounts,
+        uint256 originalTotalGamePrincipal
     );
 
     event VariablePoolParamsSet(
@@ -1026,6 +1030,7 @@ contract Pool is Ownable, Pausable, ReentrancyGuard {
 
         // calculates gross interest
         uint256 grossInterest = 0;
+        originalTotalGamePrincipal = totalGamePrincipal;
         // Sanity check to avoid reverting due to overflow in the "subtraction" below.
         if (totalBalance >= totalGamePrincipal) {
             grossInterest = totalBalance.sub(totalGamePrincipal);
@@ -1097,7 +1102,8 @@ contract Pool is Ownable, Pausable, ReentrancyGuard {
             totalGamePrincipal,
             totalGameInterest,
             totalIncentiveAmount,
-            rewardTokenAmounts
+            rewardTokenAmounts,
+            originalTotalGamePrincipal
         );
     }
 
