@@ -8,7 +8,6 @@ const CurveStrategyArtifact = artifacts.require("CurveStrategy");
 const SafeMathLib = artifacts.require("SafeMath");
 
 const config = require("../deploy.config");
-
 function printSummary(
   // contract's constructor parameters
   {
@@ -187,6 +186,7 @@ function printSummary(
 module.exports = function (deployer, network, accounts) {
   // Injects network name into process .env variable to make accessible on test suite.
   process.env.NETWORK = network;
+  const ZERO_ADDRESS = "0x0000000000000000000000000000000000000000";
 
   // Skips migration for local tests and soliditycoverage
   if (["test", "soliditycoverage"].includes(network)) return;
@@ -312,8 +312,8 @@ module.exports = function (deployer, network, accounts) {
 
     await strategyInstance.transferOwnership(ggInstance.address);
     config.deployConfigs.isWhitelisted
-      ? await ggInstance.initializePool(config.deployConfigs.merkleroot)
-      : await ggInstance.initialize();
+      ? await ggInstance.initializePool(config.deployConfigs.merkleroot, ZERO_ADDRESS)
+      : await ggInstance.initialize(ZERO_ADDRESS);
     // Prints deployment summary
     printSummary(
       {
