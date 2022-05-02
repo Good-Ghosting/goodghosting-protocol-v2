@@ -78,6 +78,20 @@ contract CurveStrategy is Ownable, ReentrancyGuard, IStrategy {
         return totalAccumalatedAmount;
     }
 
+    function getNetDepositAmount(uint256 _amount) external view override returns (uint256) {
+          if (poolType == AAVE_POOL) {
+            uint256[NUM_AAVE_TOKENS] memory amounts; // fixed-sized array is initialized w/ [0, 0, 0]
+            amounts[uint256(uint128(inboundTokenIndex))] = _amount;
+            uint256 poolWithdrawAmount = pool.calc_token_amount(amounts, true);
+            return pool.calc_withdraw_one_coin(poolWithdrawAmount, inboundTokenIndex);
+          } else {
+            uint256[NUM_ATRI_CRYPTO_TOKENS] memory amounts; // fixed-sized array is initialized w/ [0, 0, 0, 0, 0]
+            amounts[uint256(uint128(inboundTokenIndex))] = _amount;
+            uint256 poolWithdrawAmount = pool.calc_token_amount(amounts, true);
+            return pool.calc_withdraw_one_coin(poolWithdrawAmount, uint256(uint128(inboundTokenIndex)));
+          }
+    }
+
     /** 
     @notice
     Returns the underlying token address.

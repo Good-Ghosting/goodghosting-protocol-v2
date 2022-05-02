@@ -60,6 +60,13 @@ contract MobiusStrategy is Ownable, ReentrancyGuard, IStrategy {
         return totalAccumalatedAmount;
     }
 
+    function getNetDepositAmount(uint256 _amount) external view override returns (uint256) {
+        uint256[] memory amounts = new uint256[](2);
+        amounts[0] = _amount;
+        uint256 poolWithdrawAmount = pool.calculateTokenAmount(address(this), amounts, true);
+        return pool.calculateRemoveLiquidityOneToken(address(this), poolWithdrawAmount, 0);
+    }
+
     /** 
     @notice
     Returns the underlying token address.

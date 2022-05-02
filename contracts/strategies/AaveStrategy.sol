@@ -62,6 +62,10 @@ contract AaveStrategy is Ownable, ReentrancyGuard, IStrategy {
         return adaiToken.balanceOf(address(this));
     }
 
+    function getNetDepositAmount(uint256 _amount) external view override returns (uint256) {
+        return _amount;
+    }
+
     /** 
     @notice
     Returns the underlying token address.
