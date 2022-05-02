@@ -334,6 +334,12 @@ contract("Variale Deposit Pool with Curve Strategy", accounts => {
         await token.methods.balanceOf(players[3]).call({ from: admin }),
       );
 
+      const playerInfoForLargeDepositPlayer = await goodGhosting.players(players[2]);
+      const netAmountPaidForLargeDepositPlayer = playerInfoForLargeDepositPlayer.netAmountPaid;
+
+      const playerInfoForSmallDepositPlayer = await goodGhosting.players(players[3]);
+      const netAmountPaidForSmallDepositPlayer = playerInfoForSmallDepositPlayer.netAmountPaid;
+
       // starts from 2, since player1 (loser), requested an early withdraw and player 2 withdrew after the last segment
       for (let i = 2; i < players.length - 1; i++) {
         const player = players[i];
@@ -425,6 +431,10 @@ contract("Variale Deposit Pool with Curve Strategy", accounts => {
       const wmaticBalanceDiffForPlayer2 = smallDepositPlayerWmaticRewardBalanceAfter.sub(
         smallDepositPlayerWmaticRewardBalanceBefore,
       );
+
+      assert(inboundTokenBalanceDiffForPlayer2.gt(netAmountPaidForSmallDepositPlayer));
+      assert(inboundTokenBalanceDiffForPlayer1.gt(netAmountPaidForLargeDepositPlayer));
+
       assert(curveBalanceDiffForPlayer1.gt(curveBalanceDiffForPlayer2));
       assert(wmaticBalanceDiffForPlayer1.gte(wmaticBalanceDiffForPlayer2));
       assert(inboundTokenBalanceDiffForPlayer1.gt(inboundTokenBalanceDiffForPlayer2));
