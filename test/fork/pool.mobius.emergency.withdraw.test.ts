@@ -178,15 +178,22 @@ contract("Pool with Mobius Strategy when admin enables early game completion", a
         let inboundTokenBalanceBeforeRedeem = await token.methods.balanceOf(player).call();
         mobiRewardBalanceBefore = web3.utils.toBN(await mobi.methods.balanceOf(player).call({ from: admin }));
         celoRewardBalanceBefore = web3.utils.toBN(await celo.methods.balanceOf(player).call({ from: admin }));
+        const playerInfo = await goodGhosting.players(player);
+        const netAmountPaid = playerInfo.netAmountPaid;
 
-        let result;
         // redeem already called hence passing in 0
-        result = await goodGhosting.withdraw(0, { from: player });
+        await goodGhosting.withdraw(0, { from: player });
 
         let inboundTokenBalanceAfterRedeem = await token.methods.balanceOf(player).call();
         mobiRewardBalanceAfter = web3.utils.toBN(await mobi.methods.balanceOf(player).call({ from: admin }));
         celoRewardBalanceAfter = web3.utils.toBN(await celo.methods.balanceOf(player).call({ from: admin }));
         assert(web3.utils.toBN(inboundTokenBalanceBeforeRedeem).lt(web3.utils.toBN(inboundTokenBalanceAfterRedeem)));
+
+        const difference = web3.utils
+          .toBN(inboundTokenBalanceAfterRedeem)
+          .sub(web3.utils.toBN(inboundTokenBalanceBeforeRedeem));
+
+        assert(difference.lte(netAmountPaid), "expected balance diff to be more than paid amount");
 
         assert(
           mobiRewardBalanceAfter.gt(mobiRewardBalanceBefore),

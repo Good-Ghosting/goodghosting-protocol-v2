@@ -314,9 +314,14 @@ contract("Pool with Mobius Strategy with no winners", accounts => {
         let mobiRewardBalanceAfter = web3.utils.toBN(0);
         let celoRewardBalanceBefore = web3.utils.toBN(0);
         let celoRewardBalanceAfter = web3.utils.toBN(0);
+        let inboundBalanceBefore = web3.utils.toBN(0);
+        let inboundBalanceAfter = web3.utils.toBN(0);
 
         mobiRewardBalanceBefore = web3.utils.toBN(await mobi.methods.balanceOf(player).call({ from: admin }));
         celoRewardBalanceBefore = web3.utils.toBN(await celo.methods.balanceOf(player).call({ from: admin }));
+        inboundBalanceBefore = web3.utils.toBN(await token.methods.balanceOf(player).call({ from: admin }));
+        const playerInfo = await goodGhosting.players(player);
+        const netAmountPaid = playerInfo.netAmountPaid;
 
         let result;
         // redeem already called hence passing in 0
@@ -324,6 +329,10 @@ contract("Pool with Mobius Strategy with no winners", accounts => {
 
         mobiRewardBalanceAfter = web3.utils.toBN(await mobi.methods.balanceOf(player).call({ from: admin }));
         celoRewardBalanceAfter = web3.utils.toBN(await celo.methods.balanceOf(player).call({ from: admin }));
+        inboundBalanceAfter = web3.utils.toBN(await token.methods.balanceOf(player).call({ from: admin }));
+        const difference = inboundBalanceAfter.sub(inboundBalanceBefore);
+
+        assert(difference.eq(netAmountPaid), "expected balance diff to be equal to the paid amount");
 
         assert(
           mobiRewardBalanceAfter.eq(mobiRewardBalanceBefore),
