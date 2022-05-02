@@ -176,9 +176,14 @@ contract("Pool with Curve Strategy when admin enables early game completion", ac
         let curveRewardBalanceAfter = web3.utils.toBN(0);
         let wmaticRewardBalanceBefore = web3.utils.toBN(0);
         let wmaticRewardBalanceAfter = web3.utils.toBN(0);
+        let inboundBalanceBefore = web3.utils.toBN(0);
+        let inboundBalanceAfter = web3.utils.toBN(0);
 
         curveRewardBalanceBefore = web3.utils.toBN(await curve.methods.balanceOf(player).call({ from: admin }));
         wmaticRewardBalanceBefore = web3.utils.toBN(await wmatic.methods.balanceOf(player).call({ from: admin }));
+        inboundBalanceBefore = web3.utils.toBN(await token.methods.balanceOf(player).call({ from: admin }));
+        const playerInfo = await goodGhosting.players(player);
+        const netAmountPaid = playerInfo.netAmountPaid;
 
         let result;
         // redeem already called hence passing in 0
@@ -186,6 +191,10 @@ contract("Pool with Curve Strategy when admin enables early game completion", ac
 
         curveRewardBalanceAfter = web3.utils.toBN(await curve.methods.balanceOf(player).call({ from: admin }));
         wmaticRewardBalanceAfter = web3.utils.toBN(await wmatic.methods.balanceOf(player).call({ from: admin }));
+        inboundBalanceAfter = web3.utils.toBN(await token.methods.balanceOf(player).call({ from: admin }));
+        const difference = inboundBalanceAfter.sub(inboundBalanceBefore);
+
+        assert(difference.gt(netAmountPaid), "expected balance diff to be more than paid amount");
 
         assert(
           curveRewardBalanceAfter.gt(curveRewardBalanceBefore),
