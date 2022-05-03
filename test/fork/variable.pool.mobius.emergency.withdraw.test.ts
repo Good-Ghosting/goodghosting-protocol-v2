@@ -189,7 +189,7 @@ contract("Pool with Mobius Strategy when admin enables early game completion", a
         const netAmountPaid = playerInfo.netAmountPaid;
 
         // redeem already called hence passing in 0
-        await goodGhosting.withdraw(0, { from: player });
+        await goodGhosting.withdraw(netAmountPaid.toString(), { from: player });
 
         let inboundTokenBalanceAfterRedeem = await token.methods.balanceOf(player).call();
         mobiRewardBalanceAfter = web3.utils.toBN(await mobi.methods.balanceOf(player).call({ from: admin }));

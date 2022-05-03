@@ -317,7 +317,7 @@ contract("Variable Deposit Pool with Mobius Strategy", accounts => {
 
         let result;
         // redeem already called hence passing in 0
-        result = await goodGhosting.withdraw(0, { from: player });
+        result = await goodGhosting.withdraw(netAmountPaid.toString(), { from: player });
         mobiRewardBalanceAfter = web3.utils.toBN(await mobi.methods.balanceOf(player).call({ from: admin }));
         celoRewardBalanceAfter = web3.utils.toBN(await celo.methods.balanceOf(player).call({ from: admin }));
         inboundBalanceAfter = web3.utils.toBN(await token.methods.balanceOf(player).call({ from: admin }));
