@@ -110,9 +110,6 @@ contract Pool is Ownable, Pausable, ReentrancyGuard {
     /// @notice total principal amount.
     uint256 public totalGamePrincipal;
 
-    /// @notice original total principal amount to track -ve values in case of impermanent loss
-    uint256 public originalTotalGamePrincipal;
-
     /// @notice performance fee amount allocated to the admin.
     uint256[] public adminFeeAmount;
 
@@ -194,8 +191,7 @@ contract Pool is Ownable, Pausable, ReentrancyGuard {
         uint256 totalGamePrincipal,
         uint256 totalGameInterest,
         uint256 totalIncentiveAmount,
-        uint256[] totalRewardAmounts,
-        uint256 originalTotalGamePrincipal
+        uint256[] totalRewardAmounts
     );
 
     event VariablePoolParamsSet(
@@ -768,7 +764,7 @@ contract Pool is Ownable, Pausable, ReentrancyGuard {
         activePlayersCount = activePlayersCount.sub(1);
 
         // In an early withdraw, users get their principal minus the earlyWithdrawalFee % defined in the constructor.
-        uint256 withdrawAmount = player.netAmountPaid.sub(player.amountPaid.mul(earlyWithdrawalFee).div(uint256(100)));
+        uint256 withdrawAmount = player.netAmountPaid.sub(player.netAmountPaid.mul(earlyWithdrawalFee).div(uint256(100)));
         // Decreases the totalGamePrincipal on earlyWithdraw
         totalGamePrincipal = totalGamePrincipal.sub(player.amountPaid);
         netTotalGamePrincipal = netTotalGamePrincipal.sub(player.netAmountPaid);
@@ -1120,8 +1116,7 @@ contract Pool is Ownable, Pausable, ReentrancyGuard {
             netTotalGamePrincipal,
             totalGameInterest,
             totalIncentiveAmount,
-            rewardTokenAmounts,
-            originalTotalGamePrincipal
+            rewardTokenAmounts
         );
     }
 

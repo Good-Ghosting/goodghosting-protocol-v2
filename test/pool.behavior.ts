@@ -638,7 +638,7 @@ export const shouldBehaveLikeJoiningGGPool = async (strategyType: string) => {
         ),
       );
       assert(
-        ethers.BigNumber.from(governanceTokenPlayer2BalanceAfterWithdraw).eq(
+        ethers.BigNumber.from(governanceTokenPlayer2BalanceAfterWithdraw).gt(
           ethers.BigNumber.from(governanceTokenPlayer2BalanceBeforeWithdraw),
         ),
       );
@@ -1621,7 +1621,6 @@ export const shouldBehaveLikeRedeemingFromGGPool = async (strategyType: string) 
         .sub(ethers.BigNumber.from(adminGovernanceTokenFee))
         .toString();
     }
-    const originalTotalGamePrincipal = await contracts.goodGhosting.originalTotalGamePrincipal();
 
     await expect(result)
       .to.emit(contracts.goodGhosting, "FundsRedeemedFromExternalPool")
@@ -1631,7 +1630,6 @@ export const shouldBehaveLikeRedeemingFromGGPool = async (strategyType: string) 
         expectedInterestValue,
         ethers.BigNumber.from(0),
         rewardAmounts,
-        originalTotalGamePrincipal,
       );
   });
 
@@ -1911,26 +1909,6 @@ export const shouldBehaveLikeRedeemingFromGGPool = async (strategyType: string) 
 
         assert(impermanentLossShareFromContract.eq(calculatedImpermanentLossShare));
       });
-
-      it("originalTotalGamePrincipal is calculated correctly in case of impermanentLoss", async () => {
-        const accounts = await ethers.getSigners();
-        const player1 = accounts[2];
-        await joinGamePaySegmentsAndComplete(
-          contracts.inboundToken,
-          player1,
-          segmentPayment,
-          depositCount,
-          segmentLength,
-          contracts.goodGhosting,
-          segmentPayment,
-        );
-        // to trigger impermanent loss
-        await contracts.goodGhosting.redeemFromExternalPoolForFixedDepositPool("900000000000000000");
-        const principalAmount = await contracts.goodGhosting.totalGamePrincipal();
-        const originalTotalGamePrincipal = await contracts.goodGhosting.originalTotalGamePrincipal();
-
-        assert(originalTotalGamePrincipal.gt(principalAmount));
-      });
     }
   });
 };
@@ -2000,18 +1978,10 @@ export const shouldBehaveLikeGGPoolWithNoWinners = async (strategyType: string) 
         .sub(ethers.BigNumber.from(adminGovernanceTokenFee))
         .toString();
     }
-    const originalTotalGamePrincipal = await contracts.goodGhosting.originalTotalGamePrincipal();
 
     await expect(result)
       .to.emit(contracts.goodGhosting, "FundsRedeemedFromExternalPool")
-      .withArgs(
-        totalBalance,
-        principalAmount,
-        adminBalance,
-        ethers.BigNumber.from(0),
-        rewardAmounts,
-        originalTotalGamePrincipal,
-      );
+      .withArgs(totalBalance, principalAmount, adminBalance, ethers.BigNumber.from(0), rewardAmounts);
   });
 
   it("user is able to withdraw in case no one wins", async () => {
@@ -2162,7 +2132,7 @@ export const shouldBehaveLikePlayersWithdrawingFromGGPool = async (strategyType:
         ),
       );
       assert(
-        ethers.BigNumber.from(governanceTokenPlayer2BalanceAfterWithdraw).eq(
+        ethers.BigNumber.from(governanceTokenPlayer2BalanceAfterWithdraw).gt(
           ethers.BigNumber.from(governanceTokenPlayer2BalanceBeforeWithdraw),
         ),
       );
@@ -5651,7 +5621,6 @@ export const shouldBehaveLikeGGPoolWithTransactionalToken = async (strategyType:
     if (strategyType !== "aave" && strategyType !== "aaveV3") {
       rewardAmounts[1] = ethers.BigNumber.from("0").toString();
     }
-    const originalTotalGamePrincipal = await contracts.goodGhosting.originalTotalGamePrincipal();
 
     expect(result)
       .to.emit(contracts.goodGhosting, "FundsRedeemedFromExternalPool")
@@ -5661,7 +5630,6 @@ export const shouldBehaveLikeGGPoolWithTransactionalToken = async (strategyType:
         expectedInterestValue,
         ethers.BigNumber.from(0),
         rewardAmounts,
-        originalTotalGamePrincipal,
       );
   });
 
