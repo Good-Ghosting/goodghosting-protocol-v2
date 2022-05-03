@@ -218,9 +218,10 @@ contract("Variable Pool with Curve Strategy when admin enables early game comple
 
         curveRewardBalanceBefore = web3.utils.toBN(await curve.methods.balanceOf(player).call({ from: admin }));
         wmaticRewardBalanceBefore = web3.utils.toBN(await wmatic.methods.balanceOf(player).call({ from: admin }));
+        const playerInfo = await goodGhosting.players(player);
 
         let result;
-        result = await goodGhosting.withdraw(0, { from: player });
+        result = await goodGhosting.withdraw(playerInfo.netAmountPaid.toString(), { from: player });
 
         curveRewardBalanceAfter = web3.utils.toBN(await curve.methods.balanceOf(player).call({ from: admin }));
         wmaticRewardBalanceAfter = web3.utils.toBN(await wmatic.methods.balanceOf(player).call({ from: admin }));

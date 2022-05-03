@@ -353,7 +353,7 @@ contract("Variale Deposit Pool with Curve Strategy", accounts => {
         const playerInfo = await goodGhosting.players(player);
 
         let result;
-        result = await goodGhosting.withdraw(playerInfo.amountPaid.toString(), { from: player });
+        result = await goodGhosting.withdraw(playerInfo.netAmountPaid.toString(), { from: player });
 
         curveRewardBalanceAfter = web3.utils.toBN(await curve.methods.balanceOf(player).call({ from: admin }));
         wmaticRewardBalanceAfter = web3.utils.toBN(await wmatic.methods.balanceOf(player).call({ from: admin }));
