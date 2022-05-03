@@ -25,7 +25,7 @@ contract MockCurveGauge is MintableERC20 {
     }
 
     function deposit(uint256 _value) external {
-        _mint(msg.sender, _value / 2);
+        _mint(msg.sender, _value);
         reserve.transferFrom(msg.sender, address(this), _value);
     }
 
@@ -35,11 +35,10 @@ contract MockCurveGauge is MintableERC20 {
             polygonRewardToken.transfer(msg.sender, polygonRewardToken.balanceOf(address(this)));
             curve.transfer(msg.sender, curve.balanceOf(address(this)));
         }
-        uint256 amt = _value * 2;
-        if (amt > reserve.balanceOf(address(this))) {
-            amt = reserve.balanceOf(address(this));
+        if (_value > reserve.balanceOf(address(this))) {
+            _value = reserve.balanceOf(address(this));
         }
-        reserve.transfer(msg.sender, amt);
+        reserve.transfer(msg.sender, _value);
     }
 
     function claimable_reward_write(address _addr, address _token) external returns (uint256) {

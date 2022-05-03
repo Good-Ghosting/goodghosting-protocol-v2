@@ -3909,7 +3909,7 @@ export const shouldBehaveLikeVariableDepositPool = async (strategyType: string) 
       await contracts.curvePool.connect(deployer).drain(ethers.utils.parseEther("5"));
 
       await contracts.goodGhosting.connect(player1).withdraw("9000");
-      await contracts.goodGhosting.connect(player2).withdraw("800000000000000000");
+      await contracts.goodGhosting.connect(player2).withdraw("9000");
       const player1AfterWithdrawBalance = await contracts.inboundToken.balanceOf(player1.address);
       const player2AfterWithdrawBalance = await contracts.inboundToken.balanceOf(player2.address);
 
