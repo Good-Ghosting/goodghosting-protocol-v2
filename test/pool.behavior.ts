@@ -515,7 +515,7 @@ export const shouldBehaveLikeJoiningGGPool = async (strategyType: string) => {
     const accounts = await ethers.getSigners();
     const player1 = accounts[2];
     await expect(contracts.goodGhosting.connect(player1).joinGame(0, segmentPayment)).to.be.revertedWith(
-      "ERC20: insufficient allowance",
+      "ERC20: transfer amount exceeds allowance",
     );
   });
 
@@ -3806,8 +3806,8 @@ export const shouldBehaveLikeVariableDepositPool = async (strategyType: string) 
     const player1BeforeWithdrawIncentiveTokenBalance = await contracts.incentiveToken.balanceOf(player1.address);
     const player2BeforeWithdrawIncentiveTokenBalance = await contracts.incentiveToken.balanceOf(player2.address);
 
-    await contracts.goodGhosting.connect(player1).withdraw("9000");
-    await contracts.goodGhosting.connect(player2).withdraw("800000000000000000");
+    await contracts.goodGhosting.connect(player1).withdraw("0");
+    await contracts.goodGhosting.connect(player2).withdraw("0");
     const player1AfterWithdrawIncentiveTokenBalance = await contracts.incentiveToken.balanceOf(player1.address);
     const player2AfterWithdrawIncentiveTokenBalance = await contracts.incentiveToken.balanceOf(player2.address);
     const player1AfterWithdrawBalance = await contracts.inboundToken.balanceOf(player1.address);
@@ -5478,7 +5478,7 @@ export const shouldBehaveLikeVariableDepositPool = async (strategyType: string) 
       }
 
       await contracts.goodGhosting.connect(player1).withdraw("9000");
-      await contracts.goodGhosting.connect(player2).withdraw("800000000000000000");
+      await contracts.goodGhosting.connect(player2).withdraw("9000");
       const player1AfterWithdrawBalance = await contracts.inboundToken.balanceOf(player1.address);
       const player2AfterWithdrawBalance = await contracts.inboundToken.balanceOf(player2.address);
 
