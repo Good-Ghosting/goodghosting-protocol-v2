@@ -354,10 +354,8 @@ contract Pool is Ownable, Pausable, ReentrancyGuard {
             revert INVALID_WAITING_ROUND_SEGMENT_LENGTH();
         }
 
-        if (_flexibleSegmentPayment) {
-            if (_maxFlexibleSegmentPaymentAmount == 0) {
-                revert INVALID_MAX_FLEXIBLE_AMOUNT();
-            }
+        if (_flexibleSegmentPayment&& _maxFlexibleSegmentPaymentAmount == 0) {
+            revert INVALID_MAX_FLEXIBLE_AMOUNT();
         }
 
         address _underlyingAsset = _strategy.getUnderlyingAsset();
@@ -617,7 +615,6 @@ contract Pool is Ownable, Pausable, ReentrancyGuard {
     /**
     @dev Set's the incentive token address.
     @param _incentiveToken Incentive token address
-    commented for now
     */
     function setIncentiveToken(IERC20 _incentiveToken) external onlyOwner whenGameIsNotCompleted {
         if (address(incentiveToken) != address(0)) {
