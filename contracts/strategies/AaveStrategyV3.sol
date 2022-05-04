@@ -53,6 +53,11 @@ contract AaveStrategyV3 is Ownable, ReentrancyGuard, IStrategy {
     // ------------------------- external views -------------------------- //
     //*********************************************************************//
 
+    /** 
+    @notice
+    Get strategy owner address.
+    @return Strategy owner.
+    */
     function strategyOwner() public view override returns (address) {
         return super.owner();
     }
@@ -66,6 +71,11 @@ contract AaveStrategyV3 is Ownable, ReentrancyGuard, IStrategy {
         return adaiToken.balanceOf(address(this));
     }
 
+    /** 
+    @notice
+    Get net deposit for a deposit amount (used only for amm strategies).
+    @return net amount.
+    */
     function getNetDepositAmount(uint256 _amount) external view override returns (uint256) {
         return _amount;
     }

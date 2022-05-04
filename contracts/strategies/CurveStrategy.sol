@@ -10,34 +10,31 @@ import "./IStrategy.sol";
 //*********************************************************************//
 // --------------------------- custom errors ------------------------- //
 //*********************************************************************//
-error TOKEN_TRANSFER_FAILURE();
 error INVALID_CURVE_TOKEN();
 error INVALID_GAUGE();
 error INVALID_POOL();
 error INVALID_REWARD_TOKEN();
+error TOKEN_TRANSFER_FAILURE();
 
 /**
   @notice
   Interacts with curve protocol to generate interest & additional rewards for the goodghosting pool it is used in, so it's responsible for deposits, staking lp tokens, withdrawals and getting rewards and sending these back to the pool.
 */
 contract CurveStrategy is Ownable, ReentrancyGuard, IStrategy {
-    /// @notice pool address
-    ICurvePool public pool;
-
-    /// @notice gauge address
-    ICurveGauge public immutable gauge;
-
     /// @notice reward token address for eg wmatic in case of polygon deployment
     IERC20 public immutable rewardToken;
 
     /// @notice curve token
     IERC20 public immutable curve;
 
-    /// @notice curve lp token
-    IERC20 public lpToken;
+    /// @notice gauge address
+    ICurveGauge public immutable gauge;
 
     /// @notice token index in the pool in int form
     int128 public immutable inboundTokenIndex;
+
+    /// @notice flag to differentiate between aave and atricrypto pool
+    uint64 public immutable poolType;
 
     /// @notice total tokens in aave pool
     uint64 public constant NUM_AAVE_TOKENS = 3;
@@ -51,13 +48,20 @@ contract CurveStrategy is Ownable, ReentrancyGuard, IStrategy {
     /// @notice identifies the "Atri Crypto Pool" Type
     uint64 public constant ATRI_CRYPTO_POOL = 1;
 
-    /// @notice flag to differentiate between aave and atricrypto pool
-    uint64 public immutable poolType;
+    /// @notice pool address
+    ICurvePool public pool;
+
+    /// @notice curve lp token
+    IERC20 public lpToken;
 
     //*********************************************************************//
     // ------------------------- external views -------------------------- //
     //*********************************************************************//
-
+    /** 
+    @notice
+    Get strategy owner address.
+    @return Strategy owner.
+    */
     function strategyOwner() public view override returns (address) {
         return super.owner();
     }
@@ -78,6 +82,11 @@ contract CurveStrategy is Ownable, ReentrancyGuard, IStrategy {
         return totalAccumalatedAmount;
     }
 
+    /** 
+    @notice
+    Get net deposit for a deposit amount (used only for amm strategies).
+    @return net amount.
+    */
     function getNetDepositAmount(uint256 _amount) external view override returns (uint256) {
           if (poolType == AAVE_POOL) {
             uint256[NUM_AAVE_TOKENS] memory amounts; // fixed-sized array is initialized w/ [0, 0, 0]

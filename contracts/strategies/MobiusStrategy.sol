@@ -23,9 +23,6 @@ error INVALID_POOL();
   Interacts with mobius protocol to generate interest & additional rewards for the goodghosting pool it is used in, so it's responsible for deposits, staking lp tokens, withdrawals and getting rewards and sending these back to the pool.
 */
 contract MobiusStrategy is Ownable, ReentrancyGuard, IStrategy {
-    /// @notice pool address
-    IMobiPool public pool;
-
     /// @notice gauge address
     IMobiGauge public immutable gauge;
 
@@ -41,10 +38,17 @@ contract MobiusStrategy is Ownable, ReentrancyGuard, IStrategy {
     /// @notice mobi lp token
     IERC20 public lpToken;
 
+    /// @notice pool address
+    IMobiPool public pool;
+
     //*********************************************************************//
     // ------------------------- external views -------------------------- //
     //*********************************************************************//
-
+    /** 
+    @notice
+    Get strategy owner address.
+    @return Strategy owner.
+    */
     function strategyOwner() public view override returns (address) {
         return super.owner();
     }
@@ -60,6 +64,11 @@ contract MobiusStrategy is Ownable, ReentrancyGuard, IStrategy {
         return totalAccumalatedAmount;
     }
 
+    /** 
+    @notice
+    Get net deposit for a deposit amount (used only for amm strategies).
+    @return net amount.
+    */
     function getNetDepositAmount(uint256 _amount) external view override returns (uint256) {
         uint256[] memory amounts = new uint256[](2);
         amounts[0] = _amount;
@@ -176,7 +185,7 @@ contract MobiusStrategy is Ownable, ReentrancyGuard, IStrategy {
 
         pool.removeLiquidityOneToken(poolWithdrawAmount, 0, _minAmount, block.timestamp + 1000);
 
-        // check for impermanent loss
+        // check for impermanent loss (safety check)
         if (IERC20(_inboundCurrency).balanceOf(address(this)) < _amount) {
             _amount = IERC20(_inboundCurrency).balanceOf(address(this));
         }
@@ -206,11 +215,10 @@ contract MobiusStrategy is Ownable, ReentrancyGuard, IStrategy {
         bool claimRewards = true;
         if (disableRewardTokenClaim) {
             claimRewards = false;
-        }
-        uint256 gaugeBalance = gauge.balanceOf(address(this));
-        if (!disableRewardTokenClaim) {
+        } else {
             minter.mint(address(gauge));
         }
+        uint256 gaugeBalance = gauge.balanceOf(address(this));
         if (variableDeposits) {
             uint256[] memory amounts = new uint256[](2);
             amounts[0] = _amount;

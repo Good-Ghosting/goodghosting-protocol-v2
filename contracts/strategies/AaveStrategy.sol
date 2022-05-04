@@ -21,7 +21,7 @@ error TRANSACTIONAL_TOKEN_TRANSFER_FAILURE();
 
 /**
   @notice
-  Interacts with aave & moola protocol to generate interest for the goodghosting pool it is used in, so it's responsible for deposits, withdrawals and getting rewards and sending these back to the pool.
+  Interacts with aave v2 & moola protocol to generate interest for the goodghosting pool it is used in, so it's responsible for deposits, withdrawals and getting rewards and sending these back to the pool.
 */
 contract AaveStrategy is Ownable, ReentrancyGuard, IStrategy {
     /// @notice Address of the Aave V2 incentive controller contract
@@ -49,6 +49,11 @@ contract AaveStrategy is Ownable, ReentrancyGuard, IStrategy {
     // ------------------------- external views -------------------------- //
     //*********************************************************************//
 
+    /** 
+    @notice
+    Get strategy owner address.
+    @return Strategy owner.
+    */
     function strategyOwner() public view override returns (address) {
         return super.owner();
     }
@@ -62,6 +67,11 @@ contract AaveStrategy is Ownable, ReentrancyGuard, IStrategy {
         return adaiToken.balanceOf(address(this));
     }
 
+    /** 
+    @notice
+    Get net deposit for a deposit amount (used only for amm strategies).
+    @return net amount.
+    */
     function getNetDepositAmount(uint256 _amount) external view override returns (uint256) {
         return _amount;
     }
