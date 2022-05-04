@@ -483,7 +483,9 @@ export const deployPool = async (
     }
 
     if (isInvestmentStrategy) {
-      await expect(goodGhosting.initialize(incentiveTokenAddress)).to.be.revertedWith("INVALID_OWNER()");
+      await expect(goodGhosting.initializePool(merkleRoot, incentiveTokenAddress)).to.be.revertedWith(
+        "INVALID_OWNER()",
+      );
       await strategy.transferOwnership(goodGhosting.address);
     }
     await expect(goodGhosting.initialize(incentiveTokenAddress)).to.be.revertedWith(
