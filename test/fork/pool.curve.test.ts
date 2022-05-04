@@ -28,9 +28,7 @@ contract("Pool with Curve Strategy", accounts => {
     segmentPayment: segmentPaymentInt,
     adminFee,
     earlyWithdrawFee,
-    maxPlayersCount,
   } = configs.deployConfigs;
-  // const BN = web3.utils.toBN; // https://web3js.readthedocs.io/en/v1.2.7/web3-utils.html#bn
   let token: any;
   let pool: any;
   let gaugeToken: any;
@@ -386,10 +384,10 @@ contract("Pool with Curve Strategy", accounts => {
           "expected curve balance after withdrawal to be greater than before withdrawal",
         );
 
-        // for some reason forking mainnet we don't get back wmatic rewards
+        // for some reason forking mainnet we don't get back wmatic rewards(wamtic rewards were stopped from curve's end IMO)
         assert(
           wmaticRewardBalanceAfter.lte(wmaticRewardBalanceBefore),
-          "expected wmatic balance after withdrawal to be equal to before withdrawal",
+          "expected wmatic balance after withdrawal to be equal to or less than before withdrawal",
         );
 
         truffleAssert.eventEmitted(
@@ -424,10 +422,10 @@ contract("Pool with Curve Strategy", accounts => {
           curveRewardBalanceAfter.gt(curveRewardBalanceBefore),
           "expected curve balance after withdrawal to be greater than before withdrawal",
         );
-        // for some reason forking mainnet we don't get back wmatic rewards
+        // for some reason forking mainnet we don't get back wmatic rewards(wamtic rewards were stopped from curve's end IMO)
         assert(
           wmaticRewardBalanceAfter.gte(wmaticRewardBalanceBefore),
-          "expected wmatic balance after withdrawal to be equal to before withdrawal",
+          "expected wmatic balance after withdrawal to be equal to or greater than before withdrawal",
         );
       }
     });

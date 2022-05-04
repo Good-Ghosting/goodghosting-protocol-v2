@@ -26,9 +26,7 @@ contract("Pool with Mobius Strategy", accounts => {
     segmentPayment: segmentPaymentInt,
     adminFee,
     earlyWithdrawFee,
-    maxPlayersCount,
   } = configs.deployConfigs;
-  // const BN = web3.utils.toBN; // https://web3js.readthedocs.io/en/v1.2.7/web3-utils.html#bn
   let token: any;
   let pool: any;
   let gaugeToken: any;

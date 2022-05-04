@@ -16,7 +16,6 @@ contract("Variable Deposit Pool with Moola Strategy", accounts => {
     providersConfigs = configs.providers.celo.moola;
   }
   const { depositCount, segmentLength, segmentPayment: segmentPaymentInt, adminFee } = configs.deployConfigs;
-  // const BN = web3.utils.toBN; // https://web3js.readthedocs.io/en/v1.2.7/web3-utils.html#bn
   let token: any;
   let admin = accounts[0];
   let transferAmount: any;
@@ -41,7 +40,7 @@ contract("Variable Deposit Pool with Moola Strategy", accounts => {
         const player = players[i];
         transferAmount = daiAmount;
         if (i === 2) {
-          // Player 2 needs additional funds to rejoin
+          // Player 2 needs additional funds
           transferAmount = web3.utils.toBN(daiAmount).add(segmentPayment).mul(web3.utils.toBN(6)).toString();
         }
         await token.methods.transfer(player, transferAmount).send({ from: unlockedDaiAccount });
@@ -59,7 +58,6 @@ contract("Variable Deposit Pool with Moola Strategy", accounts => {
         let result;
         if (i == 2) {
           result = await goodGhosting.joinGame(0, web3.utils.toWei("23"), { from: player });
-          // got logs not defined error when keep the event assertion check outside of the if-else
           truffleAssert.eventEmitted(
             result,
             "JoinedGame",
@@ -86,7 +84,7 @@ contract("Variable Deposit Pool with Moola Strategy", accounts => {
             );
           });
         }
-        // player 1 early withdraws in segment 0 and joins again
+        // player 2 early withdraws in segment 0 and joins again
         if (i == 2) {
           await goodGhosting.earlyWithdraw(0, { from: player });
 

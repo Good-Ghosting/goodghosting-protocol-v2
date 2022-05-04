@@ -28,9 +28,7 @@ contract("Variale Deposit Pool with Curve Strategy", accounts => {
     segmentPayment: segmentPaymentInt,
     adminFee,
     earlyWithdrawFee,
-    maxPlayersCount,
   } = configs.deployConfigs;
-  // const BN = web3.utils.toBN; // https://web3js.readthedocs.io/en/v1.2.7/web3-utils.html#bn
   let token: any;
   let pool: any;
   let gaugeToken: any;
@@ -67,7 +65,7 @@ contract("Variale Deposit Pool with Curve Strategy", accounts => {
         const player = players[i];
         let transferAmount = daiAmount;
         if (i === 2) {
-          // Player 1 needs additional funds to rejoin
+          // Player 2 needs additional funds
           transferAmount = web3.utils.toBN(daiAmount).add(segmentPayment).mul(web3.utils.toBN(6)).toString();
         }
         await token.methods.transfer(player, transferAmount).send({ from: unlockedDaiAccount });
@@ -105,7 +103,6 @@ contract("Variale Deposit Pool with Curve Strategy", accounts => {
             : userProvidedMinAmount.sub(userProvidedMinAmount.mul(web3.utils.toBN("10")).div(web3.utils.toBN("10000")));
         if (i == 2) {
           result = await goodGhosting.joinGame(minAmountWithFees.toString(), web3.utils.toWei("23"), { from: player });
-          // got logs not defined error when keep the event assertion check outside of the if-else
           truffleAssert.eventEmitted(
             result,
             "JoinedGame",
@@ -132,7 +129,7 @@ contract("Variale Deposit Pool with Curve Strategy", accounts => {
             );
           });
         }
-        // player 1 early withdraws in segment 0 and joins again
+        // player 2 early withdraws in segment 0 and joins again
         if (i == 2) {
           const withdrawAmount = segmentPayment.sub(
             segmentPayment.mul(web3.utils.toBN(earlyWithdrawFee)).div(web3.utils.toBN(100)),
@@ -209,7 +206,6 @@ contract("Variale Deposit Pool with Curve Strategy", accounts => {
             depositResult = await goodGhosting.makeDeposit(minAmountWithFees.toString(), web3.utils.toWei("23"), {
               from: player,
             });
-            // got logs not defined error when keep the event assertion check outside of the if-else
             truffleAssert.eventEmitted(
               depositResult,
               "Deposit",
@@ -363,10 +359,10 @@ contract("Variale Deposit Pool with Curve Strategy", accounts => {
           "expected curve balance after withdrawal to be greater than before withdrawal",
         );
 
-        // for some reason forking mainnet we don't get back wmatic rewards
+        // for some reason forking mainnet we don't get back wmatic rewards(wamtic rewards were stopped from curve's end IMO)
         assert(
           wmaticRewardBalanceBefore.lte(wmaticRewardBalanceAfter),
-          "expected wmatic balance after withdrawal to be equal to before withdrawal",
+          "expected wmatic balance after withdrawal to be equal to or less than before withdrawal",
         );
 
         truffleAssert.eventEmitted(
@@ -482,10 +478,10 @@ contract("Variale Deposit Pool with Curve Strategy", accounts => {
           curveRewardBalanceAfter.gt(curveRewardBalanceBefore),
           "expected curve balance after withdrawal to be greater than before withdrawal",
         );
-        // for some reason forking mainnet we don't get back wmatic rewards
+        // for some reason forking mainnet we don't get back wmatic rewards(wamtic rewards were stopped from curve's end IMO)
         assert(
           wmaticRewardBalanceAfter.gte(wmaticRewardBalanceBefore),
-          "expected wmatic balance after withdrawal to be equal to before withdrawal",
+          "expected wmatic balance after withdrawal to be equal to or greater than before withdrawal",
         );
         assert(inboundTokenPoolBalance.eq(web3.utils.toBN(0)));
         assert(curveRewardTokenPoolBalance.gte(web3.utils.toBN(0)));

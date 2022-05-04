@@ -10,7 +10,6 @@ import * as dataProvider from "../../artifacts/contracts/mock/LendingPoolAddress
 chai.use(solidity);
 const { expect } = chai;
 
-// dai holder
 let impersonatedSigner: any;
 let daiInstance: any, wmaticInstance: any;
 let accounts: any[];
@@ -177,9 +176,7 @@ describe("Aave V3 Variable Deposit Pool Fork Tests with no winners", () => {
       assert(inboundTokenDiff.eq(playerInfo.amountPaid));
     }
     const largeDepositUserInboundTokenBalanceAfterWithdraw = await daiInstance.balanceOf(accounts[1].address);
-    const largeDepositUserRewardTokenBalanceAftertWithdraw = await wmaticInstance.balanceOf(accounts[1].address);
     const smallDepositUserInboundTokenBalanceAftetWithdraw = await daiInstance.balanceOf(accounts[2].address);
-    const smallDepositUserRewardTokenBalanceAfterWithdraw = await wmaticInstance.balanceOf(accounts[2].address);
     const inboundtokenDiffForPlayer1 = largeDepositUserInboundTokenBalanceAfterWithdraw.sub(
       largeDepositUserInboundTokenBalanceBeforeWithdraw,
     );

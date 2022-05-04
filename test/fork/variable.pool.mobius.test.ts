@@ -27,7 +27,6 @@ contract("Variable Deposit Pool with Mobius Strategy", accounts => {
     adminFee,
     earlyWithdrawFee,
   } = configs.deployConfigs;
-  // const BN = web3.utils.toBN; // https://web3js.readthedocs.io/en/v1.2.7/web3-utils.html#bn
   let token: any;
   let pool: any;
   let gaugeToken: any;
@@ -60,6 +59,7 @@ contract("Variable Deposit Pool with Mobius Strategy", accounts => {
         const player = players[i];
         let transferAmount = daiAmount;
         if (i === 2) {
+          // Player 2 needs additional funds
           transferAmount = web3.utils.toBN(daiAmount).add(segmentPayment).mul(web3.utils.toBN(6)).toString();
         }
         await token.methods.transfer(player, transferAmount).send({ from: unlockedDaiAccount });
@@ -120,7 +120,7 @@ contract("Variable Deposit Pool with Mobius Strategy", accounts => {
             );
           });
         }
-        // player 1 early withdraws in segment 0 and joins again
+        // player 2 early withdraws in segment 0 and joins again
         if (i == 2) {
           const withdrawAmount = segmentPayment.sub(
             segmentPayment.mul(web3.utils.toBN(earlyWithdrawFee)).div(web3.utils.toBN(100)),
@@ -316,7 +316,6 @@ contract("Variable Deposit Pool with Mobius Strategy", accounts => {
         const netAmountPaid = playerInfo.netAmountPaid;
 
         let result;
-        // redeem already called hence passing in 0
         result = await goodGhosting.withdraw(netAmountPaid.toString(), { from: player });
         mobiRewardBalanceAfter = web3.utils.toBN(await mobi.methods.balanceOf(player).call({ from: admin }));
         celoRewardBalanceAfter = web3.utils.toBN(await celo.methods.balanceOf(player).call({ from: admin }));
@@ -330,10 +329,10 @@ contract("Variable Deposit Pool with Mobius Strategy", accounts => {
           "expected mobi balance after withdrawal to be greater than before withdrawal",
         );
 
-        // // for some reason forking mainnet we don't get back celo rewards
+        // for some reason forking mainnet we don't get back celo rewards (does not happen on mainnet)
         assert(
           celoRewardBalanceAfter.lte(celoRewardBalanceBefore),
-          "expected celo balance after withdrawal to be equal to before withdrawal",
+          "expected celo balance after withdrawal to be equal to or less than before withdrawal",
         );
 
         truffleAssert.eventEmitted(
@@ -384,10 +383,10 @@ contract("Variable Deposit Pool with Mobius Strategy", accounts => {
           mobiRewardBalanceAfter.gt(mobiRewardBalanceBefore),
           "expected mobi balance after withdrawal to be greater than before withdrawal",
         );
-        // for some reason forking mainnet we don't get back celo rewards
+        // for some reason forking mainnet we don't get back celo rewards (does not happen on mainnet)
         assert(
           celoRewardBalanceAfter.gte(celoRewardBalanceBefore),
-          "expected celo balance after withdrawal to be equal to before withdrawal",
+          "expected celo balance after withdrawal to be greater than or equal to before withdrawal",
         );
       }
     });

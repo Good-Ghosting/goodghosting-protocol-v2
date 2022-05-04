@@ -30,17 +30,13 @@ contract("Variable Pool with Curve Strategy when admin enables early game comple
     segmentPayment: segmentPaymentInt,
     adminFee,
     earlyWithdrawFee,
-    maxPlayersCount,
   } = configs.deployConfigs;
-  // const BN = web3.utils.toBN; // https://web3js.readthedocs.io/en/v1.2.7/web3-utils.html#bn
   let token: any;
   let pool: any;
   let gaugeToken: any;
   let curveStrategy: any;
   let admin = accounts[0];
   const players = accounts.slice(1, 6); // 5 players
-  const loser = players[0];
-  const userWithdrawingAfterLastSegment = players[1];
   const daiDecimals = web3.utils.toBN(1000000000000000000);
   const segmentPayment = daiDecimals.mul(web3.utils.toBN(segmentPaymentInt)); // equivalent to 10 Inbound Token
   let goodGhosting: any;
@@ -69,6 +65,7 @@ contract("Variable Pool with Curve Strategy when admin enables early game comple
         const player = players[i];
         let transferAmount = daiAmount;
         if (i === 2) {
+          // Player 2 needs additional funds
           transferAmount = web3.utils.toBN(daiAmount).add(segmentPayment).mul(web3.utils.toBN(6)).toString();
         }
         await token.methods.transfer(player, transferAmount).send({ from: unlockedDaiAccount });
@@ -106,7 +103,6 @@ contract("Variable Pool with Curve Strategy when admin enables early game comple
             : userProvidedMinAmount.sub(userProvidedMinAmount.mul(web3.utils.toBN("10")).div(web3.utils.toBN("10000")));
         if (i == 2) {
           result = await goodGhosting.joinGame(minAmountWithFees.toString(), web3.utils.toWei("23"), { from: player });
-          // got logs not defined error when keep the event assertion check outside of the if-else
           truffleAssert.eventEmitted(
             result,
             "JoinedGame",
@@ -133,7 +129,7 @@ contract("Variable Pool with Curve Strategy when admin enables early game comple
             );
           });
         }
-        // player 1 early withdraws in segment 0 and joins again
+        // player 2 early withdraws in segment 0 and joins again
         if (i == 2) {
           const withdrawAmount = segmentPayment.sub(
             segmentPayment.mul(web3.utils.toBN(earlyWithdrawFee)).div(web3.utils.toBN(100)),
@@ -233,10 +229,10 @@ contract("Variable Pool with Curve Strategy when admin enables early game comple
           "expected curve balance after withdrawal to be greater than before withdrawal",
         );
 
-        // for some reason forking mainnet we don't get back wmatic rewards
+        // for some reason forking mainnet we don't get back wmatic rewards(wamtic rewards were stopped from curve's end IMO)
         assert(
           wmaticRewardBalanceBefore.lte(wmaticRewardBalanceAfter),
-          "expected wmatic balance after withdrawal to be equal to before withdrawal",
+          "expected wmatic balance after withdrawal to be equal to or less than before withdrawal",
         );
 
         truffleAssert.eventEmitted(
@@ -352,10 +348,10 @@ contract("Variable Pool with Curve Strategy when admin enables early game comple
           curveRewardBalanceAfter.gt(curveRewardBalanceBefore),
           "expected curve balance after withdrawal to be greater than before withdrawal",
         );
-        // for some reason forking mainnet we don't get back wmatic rewards
+        // for some reason forking mainnet we don't get back wmatic rewards(wamtic rewards were stopped from curve's end IMO)
         assert(
           wmaticRewardBalanceAfter.gte(wmaticRewardBalanceBefore),
-          "expected wmatic balance after withdrawal to be equal to before withdrawal",
+          "expected wmatic balance after withdrawal to be equal to or greater than before withdrawal",
         );
         assert(inboundTokenPoolBalance.eq(web3.utils.toBN(0)));
         assert(curveRewardTokenPoolBalance.gte(web3.utils.toBN(0)));

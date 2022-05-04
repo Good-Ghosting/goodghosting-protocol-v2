@@ -10,7 +10,6 @@ import * as dataProvider from "../../artifacts/contracts/mock/LendingPoolAddress
 chai.use(solidity);
 const { expect } = chai;
 
-// dai holder
 let impersonatedSigner: any;
 let daiInstance: any, wmaticInstance: any;
 let accounts: any[];

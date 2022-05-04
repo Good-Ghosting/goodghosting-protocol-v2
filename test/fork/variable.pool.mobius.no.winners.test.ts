@@ -27,15 +27,12 @@ contract("Variable Deposit Pool with Mobius Strategy with no winners", accounts 
     adminFee,
     earlyWithdrawFee,
   } = configs.deployConfigs;
-  // const BN = web3.utils.toBN; // https://web3js.readthedocs.io/en/v1.2.7/web3-utils.html#bn
   let token: any;
   let pool: any;
   let gaugeToken: any;
   let mobiusStrategy: any;
   let admin = accounts[0];
   const players = accounts.slice(1, 6); // 5 players
-  const loser = players[0];
-  const userWithdrawingAfterLastSegment = players[1];
   const daiDecimals = web3.utils.toBN(1000000000000000000);
   const segmentPayment = daiDecimals.mul(web3.utils.toBN(segmentPaymentInt)); // equivalent to 10 Inbound Token
   const daiAmount = segmentPayment.mul(web3.utils.toBN(depositCount * 5)).toString();
@@ -60,6 +57,7 @@ contract("Variable Deposit Pool with Mobius Strategy with no winners", accounts 
         const player = players[i];
         let transferAmount = daiAmount;
         if (i === 2) {
+          // Player 2 needs additional funds
           transferAmount = web3.utils.toBN(daiAmount).add(segmentPayment).mul(web3.utils.toBN(6)).toString();
         }
         await token.methods.transfer(player, transferAmount).send({ from: unlockedDaiAccount });
@@ -93,7 +91,6 @@ contract("Variable Deposit Pool with Mobius Strategy with no winners", accounts 
             : userProvidedMinAmount.sub(userProvidedMinAmount.mul(web3.utils.toBN("10")).div(web3.utils.toBN("10000")));
         if (i == 2) {
           result = await goodGhosting.joinGame(minAmountWithFees.toString(), web3.utils.toWei("23"), { from: player });
-          // got logs not defined error when keep the event assertion check outside of the if-else
           truffleAssert.eventEmitted(
             result,
             "JoinedGame",
@@ -120,7 +117,7 @@ contract("Variable Deposit Pool with Mobius Strategy with no winners", accounts 
             );
           });
         }
-        // player 1 early withdraws in segment 0 and joins again
+        // player 2 early withdraws in segment 0 and joins again
         if (i == 2) {
           const withdrawAmount = segmentPayment.sub(
             segmentPayment.mul(web3.utils.toBN(earlyWithdrawFee)).div(web3.utils.toBN(100)),
@@ -193,7 +190,7 @@ contract("Variable Deposit Pool with Mobius Strategy with no winners", accounts 
         const netAmountPaid = playerInfo.netAmountPaid;
 
         let result;
-        // redeem already called hence passing in 0
+        // to avoid tx revert due to slippage passing in 0
         result = await goodGhosting.withdraw(0, { from: player });
         mobiRewardBalanceAfter = web3.utils.toBN(await mobi.methods.balanceOf(player).call({ from: admin }));
         celoRewardBalanceAfter = web3.utils.toBN(await celo.methods.balanceOf(player).call({ from: admin }));
@@ -208,10 +205,10 @@ contract("Variable Deposit Pool with Mobius Strategy with no winners", accounts 
           "expected mobi balance after withdrawal to be greater than before withdrawal",
         );
 
-        // // for some reason forking mainnet we don't get back celo rewards
+        // for some reason forking mainnet we don't get back celo rewards (does not happen on mainnet)
         assert(
           celoRewardBalanceAfter.lte(celoRewardBalanceBefore),
-          "expected celo balance after withdrawal to be equal to before withdrawal",
+          "expected celo balance after withdrawal to be equal to or less than before withdrawal",
         );
 
         truffleAssert.eventEmitted(
@@ -256,10 +253,10 @@ contract("Variable Deposit Pool with Mobius Strategy with no winners", accounts 
           mobiRewardBalanceAfter.gt(mobiRewardBalanceBefore),
           "expected mobi balance after withdrawal to be greater than before withdrawal",
         );
-        // for some reason forking mainnet we don't get back celo rewards
+        // for some reason forking mainnet we don't get back celo rewards (does not happen on mainnet)
         assert(
           celoRewardBalanceAfter.gte(celoRewardBalanceBefore),
-          "expected celo balance after withdrawal to be equal to before withdrawal",
+          "expected celo balance after withdrawal to be equal to or greater than before withdrawal",
         );
 
         const mobiPoolRewardBalanceAfter = web3.utils.toBN(
