@@ -351,7 +351,7 @@ contract Pool is Ownable, Pausable, ReentrancyGuard {
             revert INVALID_WAITING_ROUND_SEGMENT_LENGTH();
         }
 
-        if (_flexibleSegmentPayment&& _maxFlexibleSegmentPaymentAmount == 0) {
+        if (_flexibleSegmentPayment && _maxFlexibleSegmentPaymentAmount == 0) {
             revert INVALID_MAX_FLEXIBLE_AMOUNT();
         }
 
