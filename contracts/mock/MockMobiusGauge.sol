@@ -7,6 +7,7 @@ contract MockMobiusGauge is MintableERC20 {
     IERC20 public reserve;
     IERC20 public mobi;
 
+
     constructor(
         string memory name,
         string memory symbol,
@@ -22,7 +23,7 @@ contract MockMobiusGauge is MintableERC20 {
     }
 
     function deposit(uint256 _value) external {
-        _mint(msg.sender, _value / 2);
+        _mint(msg.sender, _value);
         reserve.transferFrom(msg.sender, address(this), _value);
     }
 
@@ -31,11 +32,10 @@ contract MockMobiusGauge is MintableERC20 {
         if (_claim_rewards) {
             mobi.transfer(msg.sender, mobi.balanceOf(address(this)));
         }
-        uint256 amt = _value * 2;
-        if (amt > reserve.balanceOf(address(this))) {
-            amt = reserve.balanceOf(address(this));
+        if (_value > reserve.balanceOf(address(this))) {
+            _value = reserve.balanceOf(address(this));
         }
-        reserve.transfer(msg.sender, amt);
+        reserve.transfer(msg.sender, _value);
     }
 
     function claimable_reward(address _addr, address _token) external view returns (uint256) {

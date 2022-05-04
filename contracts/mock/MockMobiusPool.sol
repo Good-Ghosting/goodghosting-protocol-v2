@@ -46,18 +46,15 @@ contract MockMobiusPool is MintableERC20 {
         uint256 minAmount,
         uint256 deadline
     ) external returns (uint256) {
-        uint256 amt = tokenAmount;
-        if (minAmount != 9000 && minAmount != 0) {
-            tokenAmount = IERC20(address(this)).balanceOf(msg.sender);
-            amt = IERC20(reserve).balanceOf(address(this));
-        }
-        _burn(msg.sender, tokenAmount);
         if (minAmount == 900000000000000000) {
-            IERC20(reserve).transfer(msg.sender, 6000000000000000000);
-        } else if (minAmount == 800000000000000000) {
-            IERC20(reserve).transfer(msg.sender, IERC20(reserve).balanceOf(address(this)));
+            reserve.transfer(msg.sender, 6000000000000000000);
+        } else if (minAmount == 9000) {
+            reserve.transfer(msg.sender, tokenAmount / 2);
         } else {
-            IERC20(reserve).transfer(msg.sender, amt);
+            if (tokenAmount > reserve.balanceOf(address(this))) {
+                tokenAmount = reserve.balanceOf(address(this));
+            }
+            reserve.transfer(msg.sender, tokenAmount);
         }
     }
 
@@ -66,7 +63,7 @@ contract MockMobiusPool is MintableERC20 {
         uint256 tokenAmount,
         uint8 tokenIndex
     ) external view returns (uint256) {
-        return IERC20(address(this)).balanceOf(gauge) + IERC20(address(this)).balanceOf(msg.sender);
+        return tokenAmount;
     }
 
     function calculateTokenAmount(
