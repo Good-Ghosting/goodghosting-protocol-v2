@@ -119,8 +119,8 @@ export const deployPool = async (
         rewardToken.address,
         isInboundToken ? inboundToken.address : inboundToken,
       );
-      await rewardToken.deposit({ value: ethers.utils.parseEther("25") });
-      await rewardToken.transfer(incentiveController.address, ethers.utils.parseEther("25"));
+      await rewardToken.deposit({ value: ethers.utils.parseEther("8") });
+      await rewardToken.transfer(incentiveController.address, ethers.utils.parseEther("8"));
       if (isInboundToken) {
         const goodGhostingV2Deployer = new Pool__factory(deployer);
         await expect(
@@ -186,9 +186,9 @@ export const deployPool = async (
         isInboundToken ? inboundToken.address : inboundToken,
       );
 
-      await rewardToken.deposit({ value: ethers.utils.parseEther("10") });
+      await rewardToken.deposit({ value: ethers.utils.parseEther("8") });
 
-      await rewardToken.transfer(rewardController.address, ethers.utils.parseEther("10"));
+      await rewardToken.transfer(rewardController.address, ethers.utils.parseEther("8"));
       if (isInboundToken) {
         const goodGhostingV2Deployer = new Pool__factory(deployer);
         await expect(

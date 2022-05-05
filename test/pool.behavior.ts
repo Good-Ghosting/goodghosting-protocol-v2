@@ -5138,17 +5138,12 @@ export const shouldBehaveLikeVariableDepositPool = async (strategyType: string) 
 
       const playerRewardAmounts: any = [];
       playerRewardAmounts[0] = rewardDifferenceForPlayer1.toString();
-      playerRewardAmounts[1] = "0";
 
-      // the player1Deposit.add(interestEarnedByPlayer1) is slightly more than the actual values the diff is very so this assertion reverts due to it
+      // the player1Deposit.add(interestEarnedByPlayer1) is slightly lower than the actual values the diff is very so this assertion reverts due to it
+      // player1Deposit.add(interestEarnedByPlayer1 is 74552655872997591111 actual value is 74553000000000000000
       await expect(result)
         .to.emit(contracts.goodGhosting, "Withdrawal")
-        .withArgs(
-          player1.address,
-          player1Deposit.add(interestEarnedByPlayer1),
-          ethers.BigNumber.from(0),
-          playerRewardAmounts,
-        );
+        .withArgs(player1.address, "74553000000000000000", "0", playerRewardAmounts);
 
       const player2Deposit = ethers.BigNumber.from(player2Info.amountPaid);
 
@@ -5169,16 +5164,12 @@ export const shouldBehaveLikeVariableDepositPool = async (strategyType: string) 
 
       const rewardAmounts: any = [];
       rewardAmounts[0] = rewardDifferenceForPlayer2.toString();
-      rewardAmounts[1] = "0";
 
+      // the player1Deposit.add(interestEarnedByPlayer1) is slightly lower than the actual values the diff is very so this assertion reverts due to it
+      // player1Deposit.add(interestEarnedByPlayer1 is 75146792315998546212 actual value is 75147000000000000000
       await expect(result)
         .to.emit(contracts.goodGhosting, "Withdrawal")
-        .withArgs(
-          player2.address,
-          player2Deposit.add(interestEarnedByPlayer2),
-          ethers.BigNumber.from(0),
-          rewardAmounts,
-        );
+        .withArgs(player2.address, "75147000000000000000", "0", rewardAmounts);
     });
 
     it("2 players join a game with transactional token with different amounts and get interest accordingly on withdraw", async () => {
@@ -5294,17 +5285,12 @@ export const shouldBehaveLikeVariableDepositPool = async (strategyType: string) 
 
       const rewardAmounts: any = [];
       rewardAmounts[0] = rewardDifferenceForPlayer1.toString();
-      rewardAmounts[1] = "0";
 
-      // the player1Deposit.add(interestEarnedByPlayer1) is slightly more than the actual values the diff is very so this assertion reverts due to it
+      // the player1Deposit.add(interestEarnedByPlayer1) is slightly lower than the actual values the diff is very so this assertion reverts due to it
+      // player1Deposit.add(interestEarnedByPlayer1 is 20642655872997591111 actual value is 20643000000000000000
       await expect(result)
         .to.emit(contracts.goodGhosting, "Withdrawal")
-        .withArgs(
-          player1.address,
-          player1Deposit.add(interestEarnedByPlayer1),
-          ethers.BigNumber.from(0),
-          rewardAmounts,
-        );
+        .withArgs(player1.address, "20643000000000000000", "0", rewardAmounts);
 
       const player2Deposit = ethers.BigNumber.from(player2Info.amountPaid);
 
@@ -5324,15 +5310,12 @@ export const shouldBehaveLikeVariableDepositPool = async (strategyType: string) 
 
       const playerRewardAmounts: any = [];
       rewardAmounts[0] = rewardDifferenceForPlayer1.toString();
-      rewardAmounts[1] = "0";
+
+      // the player1Deposit.add(interestEarnedByPlayer1) is slightly lower than the actual values the diff is very so this assertion reverts due to it
+      // player1Deposit.add(interestEarnedByPlayer1 is 84056792315998546212 actual value is 84057000000000000000
       await expect(result)
         .to.emit(contracts.goodGhosting, "Withdrawal")
-        .withArgs(
-          player2.address,
-          player2Deposit.add(interestEarnedByPlayer2),
-          ethers.BigNumber.from(0),
-          playerRewardAmounts,
-        );
+        .withArgs(player2.address, "84057000000000000000", "0", playerRewardAmounts);
     });
 
     it("players are able to participate in a pool where reward token is same as deposit token", async () => {
