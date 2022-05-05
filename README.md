@@ -137,6 +137,12 @@ Install Truffle.
 yarn add global truffle
 ```
 
+Install Hardhat.
+
+```bash
+yarn add global hardhat
+```
+
 Install Ganache for having a local dev Ethereum network.
 
 ```bash
