@@ -169,7 +169,10 @@ yarn compile
 
 ## Unit Tests
 
-**Requirement:** Make sure the `FORKING` var is set false before running the unit test suite.
+**Requirements** :
+
+- Make sure the `FORKING` var in .env is set false before running the unit test suite.
+- Make sure the `MNEMONIC` var in .env is set as "here is where your twelve words mnemonic should be put my friend" before running the unit test suite.
 
 To run the unit tests use either
 `yarn test`
