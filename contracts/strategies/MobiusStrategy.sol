@@ -11,12 +11,12 @@ import "./IStrategy.sol";
 //*********************************************************************//
 // --------------------------- custom errors ------------------------- //
 //*********************************************************************//
-error TOKEN_TRANSFER_FAILURE();
 error INVALID_CELO_TOKEN();
 error INVALID_GAUGE();
 error INVALID_MINTER();
 error INVALID_MOBI_TOKEN();
 error INVALID_POOL();
+error TOKEN_TRANSFER_FAILURE();
 
 /**
   @notice
@@ -49,7 +49,7 @@ contract MobiusStrategy is Ownable, ReentrancyGuard, IStrategy {
     Get strategy owner address.
     @return Strategy owner.
     */
-    function strategyOwner() public view override returns (address) {
+    function strategyOwner() external view override returns (address) {
         return super.owner();
     }
 

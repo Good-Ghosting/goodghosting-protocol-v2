@@ -118,7 +118,16 @@ Once this function is called, it updates the last segment value to current segme
 
 # Development
 
-The repository uses both hardhat and truffle, hardhat is used for aave strategy based pool deployments and unit tests and for other strategy fork tests and deployments truffle is used.
+The repository uses both hardhat and truffle.
+**Hardhat**
+
+- Unit Tests
+- Aave Strategy Pools Fork Tests
+
+**Truffle**
+
+- Curve, Mobius and Moola Fork Tests
+- All mainnet deployments
 
 ## Setup
 
@@ -126,6 +135,12 @@ Install Truffle.
 
 ```bash
 yarn add global truffle
+```
+
+Install Hardhat.
+
+```bash
+yarn add global hardhat
 ```
 
 Install Ganache for having a local dev Ethereum network.
@@ -154,7 +169,10 @@ yarn compile
 
 ## Unit Tests
 
-**Requirement:** Make sure the `FORKING` var is set false before running the unit test suite.
+**Requirements** :
+
+- Make sure the `FORKING` var in .env is set false before running the unit test suite.
+- Make sure the `MNEMONIC` var in .env is set as "here is where your twelve words mnemonic should be put my friend" before running the unit test suite.
 
 To run the unit tests use either
 `yarn test`
@@ -195,6 +213,8 @@ To run the integrated test scenarios forking from Mainnet (Polygon or Celo) you'
 
 - Review the deployment configs ([deploy-config.js file](./deploy-config.js)) prior to executing the test on the forked network.
 
+- You'll also need a rpc provider the best option for polygon is infura for celo you can use their public rpc `https://forno.celo.org/`
+
 ### Steps
 
 #### Polygon
@@ -224,6 +244,8 @@ slither . --filter-path "aave|Migrations.sol|merkle|mock|openzeppelin|polygon|aa
 ```
 
 # Contract Deployment
+
+- You'll need a rpc provider the best option for polygon is infura for celo you can use their public rpc `https://forno.celo.org/`
 
 ## Polygon
 
@@ -334,12 +356,13 @@ Constructor Arguments ABI-Encoded:
    > Saving artifacts
    -------------------------------------
    > Total cost:         0.213315808 ETH
+
+
+Summary
+=======
+> Total deployments:   3
+> Final cost:          0.213315808 ETH
 ```
-
-# Summary
-
-> Total deployments: 3
-> Final cost: 0.213315808 ETH
 
 - **Aave V2 Strategy Based Pool** Start by setting the `MNEMONIC` var (which is the 12 word seed phrase in your wallet) & the `RPC` var in the .env file & then make sure you have the [right deployment configs set](https://github.com/Good-Ghosting/goodghosting-protocol-v1/blob/master/deploy.config.ts)(if a **whitelisted pool** needs to be deployed make sure the merkle root is set and the [isWhitelisted var](https://github.com/Good-Ghosting/goodghosting-protocol-v1/blob/master/deploy.config.ts#L135) is true), then just run `yarn deploy:polygon-aave`.
 
@@ -448,12 +471,12 @@ Constructor Arguments ABI-Encoded:
    > Saving artifacts
    -------------------------------------
    > Total cost:         0.213315808 ETH
+
+Summary
+=======
+> Total deployments:   3
+> Final cost:          0.213315808 ETH
 ```
-
-# Summary
-
-> Total deployments: 3
-> Final cost: 0.213315808 ETH
 
 - **Curve Strategy Based Pool** Start by setting the `MNEMONIC` var (which is the 12 word seed phrase in your wallet) & the `RPC` var in the .env file & then make sure you have the [right deployment configs set](https://github.com/Good-Ghosting/goodghosting-protocol-v1/blob/master/deploy.config.ts)(if a **whitelisted pool** needs to be deployed make sure the merkle root is set and the [isWhitelisted var](https://github.com/Good-Ghosting/goodghosting-protocol-v1/blob/master/deploy.config.ts#L135) is true), then just run `yarn deploy:polygon-curve`.
 
@@ -564,7 +587,6 @@ Constructor Arguments ABI-Encoded:
    -------------------------------------
    > Total cost:         0.224520672 ETH
 
-
 Summary
 =======
 > Total deployments:   3
@@ -573,8 +595,7 @@ Summary
 
 ## Celo
 
-Start by setting the `MNEMONIC` var (which is the 12 word seed phrase in your wallet) in the .env file, also set the `CELO_PRIVATE_KEY` var which is the private key of your celo wallet & then make sure you have the [right deployment configs set](https://github.com/Good-Ghosting/goodghosting-protocol-v1/blob/master/deploy.config.ts)(if a **whitelisted pool** needs to be deployed make sure the merkle root is set and the [isWhitelisted var](https://github.com/Good-Ghosting/goodghosting-protocol-v1/blob/master/deploy.config.ts#L135) is true). Open two terminal windows, in one of them run
-`ganache-cli -f https://forno.celo.org/ -m "clutchaptain shoe salt awake harvest setup primary inmate ugly among become" -i 999 --unlock {WHALE_ADDRESS_FORKED_NETWORK}` in the 2nd window run `yarn deploy:celo-mobius` for mobius strategy based pool or `yarn deploy:celo-moola` for moola strategy based pool.
+Start by setting the `CELO_PRIVATE_KEY` var which is the private key of your celo wallet & then make sure you have the [right deployment configs set](https://github.com/Good-Ghosting/goodghosting-protocol-v1/blob/master/deploy.config.ts)(if a **whitelisted pool** needs to be deployed make sure the merkle root is set and the [isWhitelisted var](https://github.com/Good-Ghosting/goodghosting-protocol-v1/blob/master/deploy.config.ts#L135) is true). Open the terminal window and run `yarn deploy:celo-moola` or `yarn deploy:celo-mobius` depending on whether moola or mobius strategy pool needs to be deployed.
 
 You will see something like this:
 

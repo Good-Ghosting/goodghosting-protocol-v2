@@ -77,7 +77,7 @@ const config: HardhatUserConfig = {
     tests: "./test",
   },
   mocha: {
-    timeout: 150000,
+    timeout: 200000,
   },
   solidity: {
     compilers: [
