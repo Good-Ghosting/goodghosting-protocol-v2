@@ -62,7 +62,7 @@ contract CurveStrategy is Ownable, ReentrancyGuard, IStrategy {
     Get strategy owner address.
     @return Strategy owner.
     */
-    function strategyOwner() public view override returns (address) {
+    function strategyOwner() external view override returns (address) {
         return super.owner();
     }
 
