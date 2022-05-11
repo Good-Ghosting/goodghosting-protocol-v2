@@ -87,7 +87,7 @@ describe("Aave Pool Fork Tests with the deposit token as transsactional token", 
     );
 
     await strategy.connect(accounts[0]).transferOwnership(pool.address);
-    await pool.initialize();
+    await pool.initialize(ZERO_ADDRESS);
   });
 
   it("checks if users have their balance increased", async () => {
