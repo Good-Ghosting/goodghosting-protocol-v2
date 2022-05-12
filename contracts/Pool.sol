@@ -50,7 +50,7 @@ error RENOUNCE_OWNERSHIP_NOT_ALLOWED();
 
 
 /**
-@title GoodGhosting V2 Contract
+@title GoodGhosting V2 Hodl Contract
 @notice Allows users to join a pool with a yield bearing strategy, the winners get interest and rewards, losers get their principal back.
 */
 contract Pool is Ownable, Pausable, ReentrancyGuard {
