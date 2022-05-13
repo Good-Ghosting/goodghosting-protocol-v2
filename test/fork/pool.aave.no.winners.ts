@@ -22,12 +22,16 @@ const ZERO_ADDRESS = "0x0000000000000000000000000000000000000000";
 
 describe("Aave Pool Fork Tests where no player wins", () => {
   if (
-    process.env.NETWORK === "local-celo-mobius" ||
+    process.env.NETWORK === "local-celo-mobius-dai" ||
+    process.env.NETWORK === "local-celo-mobius-usdc" ||
     process.env.NETWORK === "local-celo-moola" ||
     process.env.NETWORK === "local-variable-celo-moola" ||
-    process.env.NETWORK === "local-variable-celo-mobius" ||
-    process.env.NETWORK === "local-polygon-curve" ||
-    process.env.NETWORK === "local-variable-polygon-curve"
+    process.env.NETWORK === "local-variable-celo-mobius-dai" ||
+    process.env.NETWORK === "local-variable-celo-mobius-ussdc" ||
+    process.env.NETWORK === "local-polygon-curve-aave" ||
+    process.env.NETWORK === "local-polygon-curve-atricrypto" ||
+    process.env.NETWORK === "local-variable-polygon-curve-aave" ||
+    process.env.NETWORK === "local-variable-polygon-curve-atricrypto"
   ) {
     return;
   }
@@ -50,28 +54,28 @@ describe("Aave Pool Fork Tests where no player wins", () => {
     impersonatedSigner = await ethers.getSigner(impersonateAddress);
 
     lendingPoolAddressProviderInstance = new ethers.Contract(
-      providers["aave"]["polygon"].lendingPoolAddressProvider,
+      providers["polygon"]["aaveV2"].lendingPoolAddressProvider,
       lendingProvider.abi,
       impersonatedSigner,
     );
     dataProviderInstance = new ethers.Contract(
-      providers["aave"]["polygon"].dataProvider,
+      providers["polygon"]["aaveV2"].dataProvider,
       dataProvider.abi,
       impersonatedSigner,
     );
     incentiveControllerInstance = new ethers.Contract(
-      providers["aave"]["polygon"].incentiveController,
+      providers["polygon"]["aaveV2"].incentiveController,
       incentiveController.abi,
       impersonatedSigner,
     );
 
-    wmaticInstance = new ethers.Contract(providers["aave"]["polygon"].wmatic, wmatic.abi, impersonatedSigner);
-    daiInstance = new ethers.Contract(providers["aave"]["polygon"]["dai"].address, wmatic.abi, impersonatedSigner);
+    wmaticInstance = new ethers.Contract(providers["polygon"]["wmatic"].address, wmatic.abi, impersonatedSigner);
+    daiInstance = new ethers.Contract(providers["polygon"]["dai"].address, wmatic.abi, impersonatedSigner);
 
     strategy = await ethers.getContractFactory("AaveStrategy", accounts[0]);
     strategy = await strategy.deploy(
       lendingPoolAddressProviderInstance.address,
-      providers["aave"]["polygon"].wethGateway,
+      providers["polygon"]["aaveV2"].wethGateway,
       dataProviderInstance.address,
       incentiveControllerInstance.address,
       wmaticInstance.address,
