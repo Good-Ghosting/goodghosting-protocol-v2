@@ -47,26 +47,50 @@ module.exports = {
       provider: kit.connection.web3.currentProvider, // CeloProvider
       network_id: 42220,
     },
-    "celo-mobius": {
+    "celo-mobius-dai": {
       provider: kit.connection.web3.currentProvider, // CeloProvider
       network_id: 42220,
     },
-    "local-polygon-curve": {
+    "celo-mobius-usdc": {
+      provider: kit.connection.web3.currentProvider, // CeloProvider
+      network_id: 42220,
+    },
+    "local-polygon-curve-aave": {
       host: "127.0.0.1",
       port: 8545,
       network_id: "*",
     },
-    "local-variable-polygon-curve": {
+    "local-polygon-curve-atricrypto": {
       host: "127.0.0.1",
       port: 8545,
       network_id: "*",
     },
-    "local-celo-mobius": {
+    "local-variable-polygon-curve-aave": {
       host: "127.0.0.1",
       port: 8545,
       network_id: "*",
     },
-    "local-variable-celo-mobius": {
+    "local-variable-polygon-curve-atricrypto": {
+      host: "127.0.0.1",
+      port: 8545,
+      network_id: "*",
+    },
+    "local-celo-mobius-dai": {
+      host: "127.0.0.1",
+      port: 8545,
+      network_id: "*",
+    },
+    "local-celo-mobius-usdc": {
+      host: "127.0.0.1",
+      port: 8545,
+      network_id: "*",
+    },
+    "local-variable-celo-mobius-dai": {
+      host: "127.0.0.1",
+      port: 8545,
+      network_id: "*",
+    },
+    "local-variable-celo-mobius-usdc": {
       host: "127.0.0.1",
       port: 8545,
       network_id: "*",
@@ -81,7 +105,23 @@ module.exports = {
       port: 8545,
       network_id: "*",
     },
-    "polygon-curve": {
+    "polygon-curve-aave": {
+      provider: () =>
+        new HDWalletProvider(
+          process.env.MNEMONIC,
+          process.env.RPC,
+          0, //address_index
+          10, // num_addresses
+          true, // shareNonce
+        ),
+      network_id: 137, // Polygon mainnet id
+      networkCheckTimeout: 60000,
+      gasPrice: 60000000000, // 32 Gwei
+      confirmations: 2, // # of confs to wait between deployments. (default: 0)
+      timeoutBlocks: 50, // # of blocks before a deployment times out  (minimum/default: 50)
+      skipDryRun: false, // Skip dry run before migrations? (default: false for public nets )
+    },
+    "polygon-curve-atricrypto": {
       provider: () =>
         new HDWalletProvider(
           process.env.MNEMONIC,
