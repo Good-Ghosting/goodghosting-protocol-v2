@@ -386,7 +386,7 @@ contract Pool is Ownable, Pausable, ReentrancyGuard {
             revert INVALID_OWNER();
         }
         firstSegmentStart = block.timestamp; //gets current time
-        waitingRoundSegmentStart = block.timestamp + (segmentLength * depositCount);
+        waitingRoundSegmentStart = firstSegmentStart + (segmentLength * depositCount);
         incentiveToken = _incentiveToken;
     }
 
@@ -403,7 +403,9 @@ contract Pool is Ownable, Pausable, ReentrancyGuard {
         if (getCurrentSegment() > 0) {
             revert GAME_ALREADY_STARTED();
         }
-        if (players[msg.sender].addr == msg.sender && !players[msg.sender].canRejoin) {
+
+        bool canRejoin = players[msg.sender].canRejoin;
+        if (players[msg.sender].addr == msg.sender && !canRejoin) {
             revert PLAYER_ALREADY_JOINED();
         }
 
@@ -412,8 +414,6 @@ contract Pool is Ownable, Pausable, ReentrancyGuard {
             revert MAX_PLAYER_COUNT_REACHED();
         }
        
-        bool canRejoin = players[msg.sender].canRejoin;
-
         if (flexibleSegmentPayment && _depositAmount > maxFlexibleSegmentPaymentAmount) {
             revert INVALID_FLEXIBLE_AMOUNT();
         }
