@@ -56,6 +56,7 @@ error RENOUNCE_OWNERSHIP_NOT_ALLOWED();
 contract Pool is Ownable, Pausable, ReentrancyGuard {
     /// using for better readability.
     using SafeMath for uint256;
+    using SafeMath for uint128;
 
     /// @notice Multiplier used for calculating playerIndex to avoid precision issues.
     uint256 public constant MULTIPLIER = 10**3;
@@ -156,10 +157,11 @@ contract Pool is Ownable, Pausable, ReentrancyGuard {
         bool canRejoin;
         bool isWinner;
         address addr;
-        uint256 mostRecentSegmentPaid;
-        uint256 amountPaid;
-        uint256 netAmountPaid;
-        uint256 depositAmount;
+        uint64 withdrawalSegment;
+        uint64 mostRecentSegmentPaid;
+        uint128 amountPaid;
+        uint128 netAmountPaid;
+        uint128 depositAmount;
     }
 
     /// @notice Stores info about the players in the game.
@@ -433,13 +435,14 @@ contract Pool is Ownable, Pausable, ReentrancyGuard {
 
         Player memory newPlayer = Player({
             addr: msg.sender,
+            withdrawalSegment: 0,
             mostRecentSegmentPaid: 0,
             amountPaid: 0,
             netAmountPaid: 0,
             withdrawn: false,
             canRejoin: false,
             isWinner: false,
-            depositAmount: amount
+            depositAmount: uint128(amount)
         });
         players[msg.sender] = newPlayer;
         if (!canRejoin) {
@@ -462,10 +465,10 @@ contract Pool is Ownable, Pausable, ReentrancyGuard {
         uint256 _netDepositAmount
     ) internal virtual nonReentrant {
         uint256 currentSegment = getCurrentSegment();
-        players[msg.sender].mostRecentSegmentPaid = currentSegment;
+        players[msg.sender].mostRecentSegmentPaid = uint64(currentSegment);
 
-        players[msg.sender].amountPaid = players[msg.sender].amountPaid.add(_depositAmount);
-        players[msg.sender].netAmountPaid = players[msg.sender].netAmountPaid.add(_netDepositAmount);
+        players[msg.sender].amountPaid = uint128(players[msg.sender].amountPaid.add(_depositAmount));
+        players[msg.sender].netAmountPaid = uint128(players[msg.sender].netAmountPaid.add(_netDepositAmount));
 
         // PLAYER INDEX CALCULATION TO DETERMINE INTEREST SHARE
         // player index = prev. segment player index + segment amount deposited / time stamp of deposit
@@ -769,7 +772,7 @@ contract Pool is Ownable, Pausable, ReentrancyGuard {
         netTotalGamePrincipal = netTotalGamePrincipal.sub(player.netAmountPaid);
 
         uint256 currentSegment = getCurrentSegment();
-
+        player.withdrawalSegment = uint64(currentSegment);
         // Users that early withdraw during the first segment, are allowed to rejoin.
         if (currentSegment == 0) {
             player.canRejoin = true;
@@ -872,7 +875,7 @@ contract Pool is Ownable, Pausable, ReentrancyGuard {
             for (uint256 i = 0; i <= segmentPaid; i++) {
                 playerIndexSum = playerIndexSum.add(playerIndex[msg.sender][i]);
             }
-
+            player.withdrawalSegment = uint64(segmentPaid.add(1));
             // calculate playerSharePercentage for each player
             uint256 segment = depositCount == 0 ? 0 : depositCount.sub(1);
             playerSharePercentage = (playerIndexSum.mul(100)).div(cumulativePlayerIndexSum[segment]);
