@@ -6,6 +6,7 @@ const MoolaStrategyArtifact = artifacts.require("AaveStrategy");
 const AaveV3StrategyArtifact = artifacts.require("AaveStrategyV3");
 const CurveStrategyArtifact = artifacts.require("CurveStrategy");
 const SafeMathLib = artifacts.require("SafeMath");
+const fs = require("fs");
 
 const config = require("../deploy.config");
 function printSummary(
@@ -92,17 +93,25 @@ function printSummary(
     "address", // dataProvider
     "address", // incentiveController
     "address", // rewardToken
+    "address", // inbound currency address
   ];
 
-  var moolaStrategyValues = [lendingPoolProvider, wethGateway, dataProvider, incentiveController, rewardToken];
+  var moolaStrategyValues = [
+    lendingPoolProvider,
+    wethGateway,
+    dataProvider,
+    incentiveController,
+    rewardToken,
+    inboundCurrencyAddress,
+  ];
   var aaveStrategyValues = [
     lendingPoolAddressProviderAave,
     wethGatewayAave,
     dataProviderAave,
     incentiveControllerAave,
     incentiveTokenAave,
+    inboundCurrencyAddress,
   ];
-  console.log(moolaStrategyValues);
 
   var curveStrategyParameterTypes = [
     "address", // curvePool
@@ -298,7 +307,7 @@ module.exports = function (deployer, network, accounts) {
     } else {
       strategyArgs = [CurveStrategyArtifact, curvePool, curveTokenIndex, curvePoolType, curveGauge, wmatic, curve];
     }
-    await deployer.deploy(...strategyArgs);
+    const strategyTx = await deployer.deploy(...strategyArgs);
     let strategyInstance;
     if (
       network === "local-celo-mobius-dai" ||
@@ -340,14 +349,122 @@ module.exports = function (deployer, network, accounts) {
     // Deploys the Pool Contract
     await deployer.deploy(SafeMathLib);
     await deployer.link(SafeMathLib, goodGhostingContract);
-    await deployer.deploy(...deploymentArgs);
-
+    const poolTx = await deployer.deploy(...deploymentArgs);
     const ggInstance = await goodGhostingContract.deployed();
-
     await strategyInstance.transferOwnership(ggInstance.address);
     config.deployConfigs.isWhitelisted
       ? await ggInstance.initializePool(config.deployConfigs.merkleroot, ZERO_ADDRESS)
       : await ggInstance.initialize(ZERO_ADDRESS);
+
+    const poolTxInfo = await web3.eth.getTransaction(poolTx.transactionHash);
+    const strategyTxInfo = await web3.eth.getTransaction(strategyTx.transactionHash);
+
+    const deploymentResult = {};
+    deploymentResult.network = process.env.NETWORK;
+    deploymentResult.owner = accounts[0];
+    deploymentResult.pool = ggInstance.address;
+    deploymentResult.poolDeploymentHash = poolTx.transactionHash;
+    deploymentResult.poolDeploymentBlock = poolTxInfo.blockNumber;
+    deploymentResult.strategyDeploymentHash = strategyTx.transactionHash;
+    deploymentResult.strategyDeploymentBlock = strategyTxInfo.blockNumber;
+    deploymentResult.strategyOwner = ggInstance.address;
+    deploymentResult.strategy = strategyInstance.address;
+    deploymentResult.inboundCurrencyAddress = inboundCurrencyAddress;
+    deploymentResult.maxFlexibleSegmentPaymentAmount = maxFlexibleSegmentPaymentAmount;
+    deploymentResult.depositCount = config.deployConfigs.depositCount;
+    deploymentResult.segmentLength = config.deployConfigs.segmentLength;
+    deploymentResult.waitingRoundSegmentLength = config.deployConfigs.waitingRoundSegmentLength;
+    deploymentResult.segmentPayment = config.deployConfigs.segmentPayment;
+    deploymentResult.segmentPaymentWei = segmentPaymentWei;
+    deploymentResult.earlyWithdrawFee = config.deployConfigs.earlyWithdrawFee;
+    deploymentResult.adminFee = config.deployConfigs.adminFee;
+    deploymentResult.maxPlayersCount = maxPlayersCount;
+    deploymentResult.incentiveToken = config.deployConfigs.incentiveToken;
+    deploymentResult.flexibleDepositSegment = flexibleSegmentPayment;
+    deploymentResult.transactionalTokenDepositEnabled = config.deployConfigs.isTransactionalToken;
+    if (
+      deploymentResult.network === "local-celo-mobius-dai" ||
+      deploymentResult.network === "celo-mobius-dai" ||
+      deploymentResult.network === "local-variable-celo-mobius-dai" ||
+      deploymentResult.network === "local-celo-mobius-usdc" ||
+      deploymentResult.network === "celo-mobius-usdc" ||
+      deploymentResult.network === "local-variable-celo-mobius-usdc"
+    ) {
+      deploymentResult.mobiusPool = mobiusPool;
+      deploymentResult.mobiusGauge = mobiusGauge;
+      deploymentResult.minter = minter;
+      deploymentResult.mobi = mobi;
+      deploymentResult.celo = celo;
+
+      var mobiusStrategyParameterTypes = ["address", "address", "address", "address", "address"];
+
+      var mobiusStrategyValues = [mobiusPool, mobiusGauge, minter, mobi, celo];
+
+      deploymentResult.strategyEncodedParameters = abi
+        .rawEncode(mobiusStrategyParameterTypes, mobiusStrategyValues)
+        .toString("hex");
+    } else if (
+      deploymentResult.network === "local-celo-moola" ||
+      deploymentResult.network === "local-variable-celo-moola" ||
+      deploymentResult.network === "celo-moola"
+    ) {
+      deploymentResult.lendingPoolProviderMoola = lendingPoolProvider;
+      deploymentResult.wethGatewayMoola = "0x0000000000000000000000000000000000000000";
+      deploymentResult.dataProviderMoola = dataProvider;
+      deploymentResult.incentiveControllerMoola = "0x0000000000000000000000000000000000000000";
+      deploymentResult.rewardTokenMoola = "0x0000000000000000000000000000000000000000";
+      var moolaStrategyParameterTypes = ["address", "address", "address", "address", "address"];
+
+      var moolaStrategyValues = [
+        deploymentResult.lendingPoolProviderMoola,
+        deploymentResult.wethGatewayMoola,
+        deploymentResult.dataProviderMoola,
+        deploymentResult.incentiveControllerMoola,
+        deploymentResult.rewardTokenMoola,
+      ];
+      deploymentResult.strategyEncodedParameters = abi
+        .rawEncode(moolaStrategyParameterTypes, moolaStrategyValues)
+        .toString("hex");
+    } else if (deploymentResult.network == "polygon-aave" || deploymentResult.network == "polygon-aaveV3") {
+      deploymentResult.lendingPoolProviderAave = aavePoolConfigs.lendingPoolAddressProvider;
+      deploymentResult.wethGatewayAave = aavePoolConfigs.wethGateway;
+      deploymentResult.dataProviderAave = aavePoolConfigs.dataProvider;
+      deploymentResult.incentiveControllerAave = aavePoolConfigs.incentiveController;
+      deploymentResult.rewardTokenAave = wmatic;
+      var aaveStrategyParameterTypes = ["address", "address", "address", "address", "address", "address"];
+      var aaveStrategyValues = [
+        deploymentResult.lendingPoolProviderAave,
+        deploymentResult.wethGatewayAave,
+        deploymentResult.dataProviderAave,
+        deploymentResult.incentiveControllerAave,
+        deploymentResult.rewardTokenAave,
+        deploymentResult.inboundCurrencyAddress,
+      ];
+      deploymentResult.strategyEncodedParameters = abi
+        .rawEncode(aaveStrategyParameterTypes, aaveStrategyValues)
+        .toString("hex");
+    } else {
+      deploymentResult.curvePool = curvePool;
+      deploymentResult.curveGauge = curveGauge;
+      deploymentResult.tokenIndex = curveTokenIndex;
+      deploymentResult.poolType = curvePoolType;
+      deploymentResult.rewardToken = wmatic;
+      deploymentResult.curveToken = curve;
+
+      var curveStrategyParameterTypes = ["address", "address", "uint", "uint", "address", "address"];
+      var curveStrategyValues = [
+        deploymentResult.curvePool,
+        deploymentResult.curveGauge,
+        deploymentResult.tokenIndex,
+        deploymentResult.poolType,
+        deploymentResult.rewardToken,
+        deploymentResult.curveToken,
+      ];
+      deploymentResult.strategyEncodedParameters = abi
+        .rawEncode(curveStrategyParameterTypes, curveStrategyValues)
+        .toString("hex");
+    }
+
     // Prints deployment summary
     printSummary(
       {
@@ -391,5 +508,13 @@ module.exports = function (deployer, network, accounts) {
         owner: accounts[0],
       },
     );
+
+    fs.writeFile("./deployment-result.json", JSON.stringify(deploymentResult, null, 4), err => {
+      if (err) {
+        console.error(err);
+        return;
+      }
+      console.log("Deployment Result Documented");
+    });
   });
 };

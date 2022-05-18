@@ -110,6 +110,7 @@
     "@celo/contractkit": "^1.5.0",
     "@truffle/hdwallet-provider": "^2.0.2",
     "ethereumjs-abi": "^0.6.8",
+    "fs": "^0.0.1-security",
     "ganache-time-traveler": "^1.0.16",
     "hardhat": "^2.9.1",
     "truffle": "5.3.14",
