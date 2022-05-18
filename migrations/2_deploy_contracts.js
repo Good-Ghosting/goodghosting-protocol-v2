@@ -352,9 +352,12 @@ module.exports = function (deployer, network, accounts) {
     const poolTx = await deployer.deploy(...deploymentArgs);
     const ggInstance = await goodGhostingContract.deployed();
     await strategyInstance.transferOwnership(ggInstance.address);
-    config.deployConfigs.isWhitelisted
-      ? await ggInstance.initializePool(config.deployConfigs.merkleroot, ZERO_ADDRESS)
-      : await ggInstance.initialize(ZERO_ADDRESS);
+
+    if (process.env.INITIALIZE == "true") {
+      config.deployConfigs.isWhitelisted
+        ? await ggInstance.initializePool(config.deployConfigs.merkleroot, ZERO_ADDRESS)
+        : await ggInstance.initialize(ZERO_ADDRESS);
+    }
 
     const poolTxInfo = await web3.eth.getTransaction(poolTx.transactionHash);
     const strategyTxInfo = await web3.eth.getTransaction(strategyTx.transactionHash);
