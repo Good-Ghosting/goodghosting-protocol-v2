@@ -9,16 +9,20 @@ const configs = require("../../deploy.config");
 
 contract("Pool with Mobius Strategy", accounts => {
   // Only executes this test file for local network fork
-  if (!["local-celo-mobius"].includes(process.env.NETWORK ? process.env.NETWORK : "")) return;
+  if (!["local-celo-mobius-dai", "local-celo-mobius-usdc"].includes(process.env.NETWORK ? process.env.NETWORK : ""))
+    return;
 
   const unlockedDaiAccount = process.env.WHALE_ADDRESS_FORKED_NETWORK;
   let providersConfigs: any;
   let GoodGhostingArtifact: any;
   let mobi: any;
   let celo: any;
-  if (process.env.NETWORK === "local-celo-mobius") {
-    GoodGhostingArtifact = Pool;
-    providersConfigs = configs.providers.celo.mobius;
+  GoodGhostingArtifact = Pool;
+
+  if (process.env.NETWORK === "local-celo-mobius-dai") {
+    providersConfigs = configs.providers.celo["mobius-cUSD-DAI"];
+  } else {
+    providersConfigs = configs.providers.celo["mobius-cUSD-USDC"];
   }
   const {
     depositCount,
@@ -42,9 +46,12 @@ contract("Pool with Mobius Strategy", accounts => {
   describe("simulates a full game with 5 players and 4 of them winning the game and with admin fee % as 0", async () => {
     it("initializes contract instances and transfers Inbound Token to players", async () => {
       pool = new web3.eth.Contract(mobiusPool.abi, providersConfigs.pool);
-      token = new web3.eth.Contract(wmatic.abi, providersConfigs.cusd.address);
-      mobi = new web3.eth.Contract(wmatic.abi, providersConfigs.mobi);
-      celo = new web3.eth.Contract(wmatic.abi, providersConfigs.celo);
+      token = new web3.eth.Contract(
+        wmatic.abi,
+        configs.providers["celo"][configs.deployConfigs.inboundCurrencySymbol].address,
+      );
+      mobi = new web3.eth.Contract(wmatic.abi, configs.providers["celo"]["mobi"].address);
+      celo = new web3.eth.Contract(wmatic.abi, configs.providers["celo"]["celo"].address);
 
       goodGhosting = await GoodGhostingArtifact.deployed();
       mobiusStrategy = await MobiusStrategy.deployed();
