@@ -92,7 +92,7 @@ so hence cumulativePlayerIndexSum will be 7, now the twist is that player 2 earl
 
 With Hodl Pools especially there comes a risk of funds being locked in the external protocol in case something happens or if an external protocol utilized by one of the goodghosting pools migrates to a new contract in the middle of a game. So to handle these scenario's we have a introduced a new function in the smart contract (enableEmergencyWithdraw)[https://github.com/Good-Ghosting/goodghosting-protocol-v1/blob/master/contracts/Pool.sol#L572] which can only be called by the contract deployer aka the admin.
 
-Once this function is called, it updates the last segment value to current segment & makes the emergency flag true in the smart contract, players then who have deposited in the prev. segment i.e current segment - 1 are all considered as winners and they can withdraw their funds immeditately once the emergency flag is enabled.
+Once this function is called, it updates the last segment value to current segment & makes the emergency flag true in the smart contract, players then who have deposited in the prev. segment i.e current segment - 1 are all considered as winners and they can withdraw their funds immediately once the emergency flag is enabled.
 
 **NOTE** - Handling this emergency early exit is the reason `cumulativePlayerIndexSum` is a mapping.
 
@@ -336,7 +336,7 @@ Early Withdrawal Fee: 1%
 Custom Pool Fee: 1%
 Max Quantity of Players: 115792089237316195423570985008687907853269984665640564039457584007913129639935
 Flexible Deposit Pool: false
-Transactional Token Depsoit Pool: false
+Transactional Token Deposit Pool: false
 Strategy: 0x7f8bA69d2D7bD4490AB0aa35B92e29B845aaB7fA
 Lending Pool Provider: 0xa97684ead0e402dC232d5A977953DF7ECBaB3CDb
 WETHGateway: 0x9BdB5fcc80A49640c7872ac089Cc0e00A98451B6
@@ -451,7 +451,7 @@ Early Withdrawal Fee: 1%
 Custom Pool Fee: 1%
 Max Quantity of Players: 115792089237316195423570985008687907853269984665640564039457584007913129639935
 Flexible Deposit Pool: false
-Transactional Token Depsoit Pool: false
+Transactional Token Deposit Pool: false
 Strategy: 0x7f8bA69d2D7bD4490AB0aa35B92e29B845aaB7fA
 Lending Pool Provider: 0xd05e3E715d945B59290df0ae8eF85c1BdB684744
 WETHGateway: 0xbEadf48d62aCC944a06EEaE0A9054A90E5A7dc97
@@ -565,7 +565,7 @@ Early Withdrawal Fee: 1%
 Custom Pool Fee: 1%
 Max Quantity of Players: 115792089237316195423570985008687907853269984665640564039457584007913129639935
 Flexible Deposit Pool: false
-Transactional Token Depsoit Pool: false
+Transactional Token Deposit Pool: false
 Strategy: 0x96083906aAD9dC0860e5B05a919f190213701Fae
 Curve Pool: 0x1d8b86e3d88cdb2d34688e87e72f388cb541b7c8
 Curve Gauge: 0x3b6b158a76fd8ccc297538f454ce7b4787778c7c
@@ -673,7 +673,7 @@ Early Withdrawal Fee: 1%
 Custom Pool Fee: 1%
 Max Quantity of Players: 115792089237316195423570985008687907853269984665640564039457584007913129639935
 Flexible Deposit Pool: false
-Transactional Token Depsoit Pool: false
+Transactional Token Deposit Pool: false
 Strategy: 0x422Bf01090c47E0A5222A740433Eb6D7AEA4c328
 Mobius Pool: 0x9906589Ea8fd27504974b7e8201DF5bBdE986b03
 Mobius Gauge: 0xc96AeeaFF32129da934149F6134Aa7bf291a754E
