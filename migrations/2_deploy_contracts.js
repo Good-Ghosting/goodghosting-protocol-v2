@@ -115,10 +115,10 @@ function printSummary(
   var curveStrategyValues = [curvePool, tokenIndex, poolType, curveGauge, wmatic, curve];
 
   var poolEncodedParameters = abi.rawEncode(poolParameterTypes, poolParameterValues);
-  var mobiusStrategylEncodedParameters = abi.rawEncode(mobiusStrategyParameterTypes, mobiusStrategyValues);
-  var moolsStrategylEncodedParameters = abi.rawEncode(moolaStrategyParameterTypes, moolaStrategyValues);
-  var curveStrategylEncodedParameters = abi.rawEncode(curveStrategyParameterTypes, curveStrategyValues);
-  var aaveStrategylEncodedParameters = abi.rawEncode(moolaStrategyParameterTypes, aaveStrategyValues);
+  var mobiusStrategyEncodedParameters = abi.rawEncode(mobiusStrategyParameterTypes, mobiusStrategyValues);
+  var moolaStrategyEncodedParameters = abi.rawEncode(moolaStrategyParameterTypes, moolaStrategyValues);
+  var curveStrategyEncodedParameters = abi.rawEncode(curveStrategyParameterTypes, curveStrategyValues);
+  var aaveStrategyEncodedParameters = abi.rawEncode(moolaStrategyParameterTypes, aaveStrategyValues);
 
   console.log("\n\n\n----------------------------------------------------");
   console.log("GoodGhosting Holding Pool deployed with the following arguments:");
@@ -137,7 +137,7 @@ function printSummary(
   console.log(`Custom Pool Fee: ${adminFee}%`);
   console.log(`Max Quantity of Players: ${maxPlayersCount}`);
   console.log(`Flexible Deposit Pool: ${flexibleDepositSegment}`);
-  console.log(`Transactional Token Depsoit Pool: ${config.deployConfigs.isTransactionalToken}`);
+  console.log(`Transactional Token Deposit Pool: ${config.deployConfigs.isTransactionalToken}`);
 
   console.log(`Strategy: ${strategy}`);
   if (
@@ -150,7 +150,7 @@ function printSummary(
     console.log(`Mobius Minter: ${minter}`);
     console.log(`Mobi Token: ${mobi}`);
     console.log(`Celo Token: ${celo}`);
-    console.log("Mobius Strategy Encoded Params: ", mobiusStrategylEncodedParameters.toString("hex"));
+    console.log("Mobius Strategy Encoded Params: ", mobiusStrategyEncodedParameters.toString("hex"));
   } else if (
     networkName === "local-celo-moola" ||
     networkName === "local-variable-celo-moola" ||
@@ -161,14 +161,14 @@ function printSummary(
     console.log(`Data Provider: ${dataProvider}`);
     console.log(`IncentiveController: ${incentiveController}`);
     console.log(`Reward Token: ${rewardToken}`);
-    console.log("Moola Strategy Encoded Params: ", moolsStrategylEncodedParameters.toString("hex"));
+    console.log("Moola Strategy Encoded Params: ", moolaStrategyEncodedParameters.toString("hex"));
   } else if (networkName == "polygon-aave" || networkName == "polygon-aaveV3") {
     console.log(`Lending Pool Provider: ${lendingPoolAddressProviderAave}`);
     console.log(`WETHGateway: ${wethGatewayAave}`);
     console.log(`Data Provider: ${dataProviderAave}`);
     console.log(`IncentiveController: ${incentiveControllerAave}`);
     console.log(`Reward Token: ${incentiveTokenAave}`);
-    console.log("Aave Strategy Encoded Params: ", aaveStrategylEncodedParameters.toString("hex"));
+    console.log("Aave Strategy Encoded Params: ", aaveStrategyEncodedParameters.toString("hex"));
   } else {
     console.log(`Curve Pool: ${curvePool}`);
     console.log(`Curve Gauge: ${curveGauge}`);
@@ -176,7 +176,7 @@ function printSummary(
     console.log(`Pool Type: ${poolType}`);
     console.log(`Reward Token: ${wmatic}`);
     console.log(`Curve Token: ${curve}`);
-    console.log("Curve Strategy Encoded Params: ", curveStrategylEncodedParameters.toString("hex"));
+    console.log("Curve Strategy Encoded Params: ", curveStrategyEncodedParameters.toString("hex"));
   }
   console.log("\n\nConstructor Arguments ABI-Encoded:");
   console.log(poolEncodedParameters.toString("hex"));
