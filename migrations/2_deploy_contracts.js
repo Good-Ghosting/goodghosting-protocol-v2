@@ -304,6 +304,10 @@ module.exports = function (deployer, network, accounts) {
     await deployer.link(SafeMathLib, goodGhostingContract);
     const poolTx = await deployer.deploy(...deploymentArgs);
     const ggInstance = await goodGhostingContract.deployed();
+
+    if (config.deployConfigs.owner && config.deployConfigs.owner != "0x") {
+      await ggInstance.transferOwnership(config.deployConfigs.owner);
+    }
     await strategyInstance.transferOwnership(ggInstance.address);
 
     if (config.deployConfigs.initialize) {
@@ -502,7 +506,7 @@ module.exports = function (deployer, network, accounts) {
     fs.writeFile("./deployment-result.json", JSON.stringify(deploymentResult, null, 4), err => {
       if (err) {
         console.error(err);
-        return;
+        throw new Error(`Error while writing deployment logs to file: ${err}`);
       }
       console.log("Deployment Result Documented");
     });
