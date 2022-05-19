@@ -316,7 +316,11 @@ module.exports = function (deployer, network, accounts) {
     const strategyTxInfo = await web3.eth.getTransaction(strategyTx.transactionHash);
 
     const deploymentResult = {};
-    deploymentResult.network = process.env.NETWORK;
+    if (network.includes("celo")) {
+      deploymentResult.network = "celo";
+    } else {
+      deploymentResult.network = "polygon";
+    }
     deploymentResult.poolOwner = accounts[0];
     deploymentResult.poolAddress = ggInstance.address;
     deploymentResult.poolDeploymentHash = poolTx.transactionHash;
