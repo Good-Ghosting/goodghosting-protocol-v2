@@ -7,12 +7,16 @@ chai.use(solidity);
 
 describe("Whitelisted Pool Tests", () => {
   if (
-    process.env.NETWORK === "local-celo-mobius" ||
+    process.env.NETWORK === "local-celo-mobius-dai" ||
+    process.env.NETWORK === "local-celo-mobius-usdc" ||
     process.env.NETWORK === "local-celo-moola" ||
     process.env.NETWORK === "local-variable-celo-moola" ||
-    process.env.NETWORK === "local-variable-celo-mobius" ||
-    process.env.NETWORK === "local-polygon-curve" ||
-    process.env.NETWORK === "local-variable-polygon-curve"
+    process.env.NETWORK === "local-variable-celo-mobius-dai" ||
+    process.env.NETWORK === "local-variable-celo-mobius-usdc" ||
+    process.env.NETWORK === "local-polygon-curve-aave" ||
+    process.env.NETWORK === "local-polygon-curve-atricrypto" ||
+    process.env.NETWORK === "local-variable-polygon-curve-aave" ||
+    process.env.NETWORK === "local-variable-polygon-curve-atricrypto"
   ) {
     return;
   }
