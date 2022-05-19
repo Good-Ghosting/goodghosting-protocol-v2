@@ -98,4 +98,5 @@ exports.deployConfigs = {
   merkleroot: "0xd566243e283f1357e5e97dd0c9ab0d78177583074b440cb07815e05f615178bf", // merkle root for 1st 4 player addresses in the fork tests
   isWhitelisted: false,
   incentiveToken: "0x0000000000000000000000000000000000000000",
+  initialize: true,
 };

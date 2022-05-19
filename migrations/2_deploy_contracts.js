@@ -355,7 +355,7 @@ module.exports = function (deployer, network, accounts) {
     const ggInstance = await goodGhostingContract.deployed();
     await strategyInstance.transferOwnership(ggInstance.address);
 
-    if (process.env.INITIALIZE == "true") {
+    if (config.deployConfigs.initialize) {
       config.deployConfigs.isWhitelisted
         ? await ggInstance.initializePool(config.deployConfigs.merkleroot, ZERO_ADDRESS)
         : await ggInstance.initialize(ZERO_ADDRESS);
@@ -366,14 +366,14 @@ module.exports = function (deployer, network, accounts) {
 
     const deploymentResult = {};
     deploymentResult.network = process.env.NETWORK;
-    deploymentResult.owner = accounts[0];
-    deploymentResult.pool = ggInstance.address;
+    deploymentResult.poolOwner = accounts[0];
+    deploymentResult.poolAddress = ggInstance.address;
     deploymentResult.poolDeploymentHash = poolTx.transactionHash;
     deploymentResult.poolDeploymentBlock = poolTxInfo.blockNumber;
     deploymentResult.strategyDeploymentHash = strategyTx.transactionHash;
     deploymentResult.strategyDeploymentBlock = strategyTxInfo.blockNumber;
     deploymentResult.strategyOwner = ggInstance.address;
-    deploymentResult.strategy = strategyInstance.address;
+    deploymentResult.strategyAddress = strategyInstance.address;
     deploymentResult.inboundCurrencyAddress = inboundCurrencyAddress;
     deploymentResult.maxFlexibleSegmentPaymentAmount = maxFlexibleSegmentPaymentAmount;
     deploymentResult.depositCount = config.deployConfigs.depositCount;
@@ -387,6 +387,36 @@ module.exports = function (deployer, network, accounts) {
     deploymentResult.incentiveToken = config.deployConfigs.incentiveToken;
     deploymentResult.flexibleDepositSegment = flexibleSegmentPayment;
     deploymentResult.transactionalTokenDepositEnabled = config.deployConfigs.isTransactionalToken;
+    var poolParameterTypes = [
+      "address", // inboundCurrencyAddress,
+      "uint256", // maxFlexibleSegmentPaymentAmount
+      "uint256", // depositCount
+      "uint256", // segmentLength
+      "uint256", // waitingRoundSegmentLength
+      "uint256", // segmentPaymentWei
+      "uint256", // earlyWithdrawFee
+      "uint256", // adminFee
+      "uint256", // maxPlayersCount
+      "bool", // flexibleDepositSegment
+      "address", // strategy
+      "bool", // isTransactionalToken
+    ];
+    var poolParameterValues = [
+      inboundCurrencyAddress,
+      maxFlexibleSegmentPaymentAmount,
+      config.deployConfigs.depositCount,
+      config.deployConfigs.segmentLength,
+      config.deployConfigs.waitingRoundSegmentLength,
+      segmentPaymentWei,
+      config.deployConfigs.earlyWithdrawFee,
+      config.deployConfigs.adminFee,
+      maxPlayersCount,
+      flexibleSegmentPayment,
+      strategyInstance.address,
+      config.deployConfigs.isTransactionalToken,
+    ];
+    deploymentResult.poolEncodedParameters = abi.rawEncode(poolParameterTypes, poolParameterValues).toString("hex");
+
     if (
       deploymentResult.network === "local-celo-mobius-dai" ||
       deploymentResult.network === "celo-mobius-dai" ||
@@ -395,11 +425,11 @@ module.exports = function (deployer, network, accounts) {
       deploymentResult.network === "celo-mobius-usdc" ||
       deploymentResult.network === "local-variable-celo-mobius-usdc"
     ) {
-      deploymentResult.mobiusPool = mobiusPool;
-      deploymentResult.mobiusGauge = mobiusGauge;
-      deploymentResult.minter = minter;
-      deploymentResult.mobi = mobi;
-      deploymentResult.celo = celo;
+      deploymentResult.mobiusPoolAddress = mobiusPool;
+      deploymentResult.mobiusGaugeAddress = mobiusGauge;
+      deploymentResult.minterAddress = minter;
+      deploymentResult.mobiAddress = mobi;
+      deploymentResult.celoAddress = celo;
 
       var mobiusStrategyParameterTypes = ["address", "address", "address", "address", "address"];
 
@@ -413,57 +443,57 @@ module.exports = function (deployer, network, accounts) {
       deploymentResult.network === "local-variable-celo-moola" ||
       deploymentResult.network === "celo-moola"
     ) {
-      deploymentResult.lendingPoolProviderMoola = lendingPoolProvider;
-      deploymentResult.wethGatewayMoola = "0x0000000000000000000000000000000000000000";
-      deploymentResult.dataProviderMoola = dataProvider;
-      deploymentResult.incentiveControllerMoola = "0x0000000000000000000000000000000000000000";
-      deploymentResult.rewardTokenMoola = "0x0000000000000000000000000000000000000000";
+      deploymentResult.lendingPoolProviderMoolaAddress = lendingPoolProvider;
+      deploymentResult.wethGatewayMoolaAddress = "0x0000000000000000000000000000000000000000";
+      deploymentResult.dataProviderMoolaAddress = dataProvider;
+      deploymentResult.incentiveControllerMoolaAddress = "0x0000000000000000000000000000000000000000";
+      deploymentResult.rewardTokenMoolaAddress = "0x0000000000000000000000000000000000000000";
       var moolaStrategyParameterTypes = ["address", "address", "address", "address", "address"];
 
       var moolaStrategyValues = [
-        deploymentResult.lendingPoolProviderMoola,
-        deploymentResult.wethGatewayMoola,
-        deploymentResult.dataProviderMoola,
-        deploymentResult.incentiveControllerMoola,
-        deploymentResult.rewardTokenMoola,
+        deploymentResult.lendingPoolProviderMoolaAddress,
+        deploymentResult.wethGatewayMoolaAddress,
+        deploymentResult.dataProviderMoolaAddress,
+        deploymentResult.incentiveControllerMoolaAddress,
+        deploymentResult.rewardTokenMoolaAddress,
       ];
       deploymentResult.strategyEncodedParameters = abi
         .rawEncode(moolaStrategyParameterTypes, moolaStrategyValues)
         .toString("hex");
     } else if (deploymentResult.network == "polygon-aave" || deploymentResult.network == "polygon-aaveV3") {
-      deploymentResult.lendingPoolProviderAave = aavePoolConfigs.lendingPoolAddressProvider;
-      deploymentResult.wethGatewayAave = aavePoolConfigs.wethGateway;
-      deploymentResult.dataProviderAave = aavePoolConfigs.dataProvider;
-      deploymentResult.incentiveControllerAave = aavePoolConfigs.incentiveController;
-      deploymentResult.rewardTokenAave = wmatic;
+      deploymentResult.lendingPoolProviderAaveAddress = aavePoolConfigs.lendingPoolAddressProvider;
+      deploymentResult.wethGatewayAaveAddress = aavePoolConfigs.wethGateway;
+      deploymentResult.dataProviderAaveAddress = aavePoolConfigs.dataProvider;
+      deploymentResult.incentiveControllerAaveAddress = aavePoolConfigs.incentiveController;
+      deploymentResult.rewardTokenAaveAddress = wmatic;
       var aaveStrategyParameterTypes = ["address", "address", "address", "address", "address", "address"];
       var aaveStrategyValues = [
-        deploymentResult.lendingPoolProviderAave,
-        deploymentResult.wethGatewayAave,
-        deploymentResult.dataProviderAave,
-        deploymentResult.incentiveControllerAave,
-        deploymentResult.rewardTokenAave,
+        deploymentResult.lendingPoolProviderAaveAddress,
+        deploymentResult.wethGatewayAaveAddress,
+        deploymentResult.dataProviderAaveAddress,
+        deploymentResult.incentiveControllerAaveAddress,
+        deploymentResult.rewardTokenAaveAddress,
         deploymentResult.inboundCurrencyAddress,
       ];
       deploymentResult.strategyEncodedParameters = abi
         .rawEncode(aaveStrategyParameterTypes, aaveStrategyValues)
         .toString("hex");
     } else {
-      deploymentResult.curvePool = curvePool;
-      deploymentResult.curveGauge = curveGauge;
+      deploymentResult.curvePoolAddress = curvePool;
+      deploymentResult.curveGaugeAddress = curveGauge;
       deploymentResult.tokenIndex = curveTokenIndex;
       deploymentResult.poolType = curvePoolType;
-      deploymentResult.rewardToken = wmatic;
-      deploymentResult.curveToken = curve;
+      deploymentResult.rewardTokenAddress = wmatic;
+      deploymentResult.curveTokenAddress = curve;
 
       var curveStrategyParameterTypes = ["address", "address", "uint", "uint", "address", "address"];
       var curveStrategyValues = [
-        deploymentResult.curvePool,
-        deploymentResult.curveGauge,
+        deploymentResult.curvePoolAddress,
+        deploymentResult.curveGaugeAddress,
         deploymentResult.tokenIndex,
         deploymentResult.poolType,
-        deploymentResult.rewardToken,
-        deploymentResult.curveToken,
+        deploymentResult.rewardTokenAddress,
+        deploymentResult.curveTokenAddress,
       ];
       deploymentResult.strategyEncodedParameters = abi
         .rawEncode(curveStrategyParameterTypes, curveStrategyValues)
