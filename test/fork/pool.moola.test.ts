@@ -13,7 +13,7 @@ contract("Pool with Moola Strategy", accounts => {
   let GoodGhostingArtifact: any;
   if (process.env.NETWORK === "local-celo-moola") {
     GoodGhostingArtifact = Pool;
-    providersConfigs = configs.providers.celo.moola;
+    providersConfigs = configs.providers.celo.strategies.moola;
   }
   const { depositCount, segmentLength, segmentPayment: segmentPaymentInt, adminFee } = configs.deployConfigs;
   // const BN = web3.utils.toBN; // https://web3js.readthedocs.io/en/v1.2.7/web3-utils.html#bn

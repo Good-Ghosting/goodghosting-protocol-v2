@@ -25,10 +25,10 @@ contract("Pool with Curve Strategy", accounts => {
   let wmatic: any;
   if (process.env.NETWORK === "local-polygon-curve-aave") {
     GoodGhostingArtifact = Pool;
-    providersConfigs = configs.providers["polygon"]["polygon-curve-aave"];
+    providersConfigs = configs.providers["polygon"].strategies["polygon-curve-aave"];
   } else {
     GoodGhostingArtifact = Pool;
-    providersConfigs = configs.providers["polygon"]["polygon-curve-atricrypto"];
+    providersConfigs = configs.providers["polygon"].strategies["polygon-curve-atricrypto"];
   }
   const {
     depositCount,
@@ -59,10 +59,10 @@ contract("Pool with Curve Strategy", accounts => {
       }
       token = new web3.eth.Contract(
         wmaticABI.abi,
-        configs.providers["polygon"][configs.deployConfigs.inboundCurrencySymbol].address,
+        configs.providers["polygon"].tokens[configs.deployConfigs.inboundCurrencySymbol].address,
       );
-      curve = new web3.eth.Contract(wmaticABI.abi, configs.providers["polygon"]["curve"].address);
-      wmatic = new web3.eth.Contract(wmaticABI.abi, configs.providers["polygon"]["wmatic"].address);
+      curve = new web3.eth.Contract(wmaticABI.abi, configs.providers["polygon"].tokens["curve"].address);
+      wmatic = new web3.eth.Contract(wmaticABI.abi, configs.providers["polygon"].tokens["wmatic"].address);
 
       goodGhosting = await GoodGhostingArtifact.deployed();
       curveStrategy = await CurveStrategy.deployed();
@@ -302,6 +302,8 @@ contract("Pool with Curve Strategy", accounts => {
     });
 
     it("redeems funds from external pool", async () => {
+      const waitingRoundLength = await goodGhosting.waitingRoundSegmentLength();
+      await timeMachine.advanceTime(parseInt(waitingRoundLength.toString()));
       const userSlippage = 1;
       let minAmount;
       let curveBalanceBeforeRedeem, curveBalanceAfterRedeem, wmaticBalanceBeforeRedeem, wmaticBalanceAfterRedeem;
@@ -320,6 +322,9 @@ contract("Pool with Curve Strategy", accounts => {
       if (parseInt(userProvidedMinAmount.toString()) < parseInt(minAmount.toString())) {
         minAmount = userProvidedMinAmount;
       }
+      // await curveStrategy.getAccumulatedRewardTokenAmounts(false, { from: admin})
+      // const amts = await curveStrategy.additionalAmount()
+      // console.log(amts.toString())
 
       let eventAmount = web3.utils.toBN(0);
       let result;
@@ -327,9 +332,11 @@ contract("Pool with Curve Strategy", accounts => {
         from: admin,
       });
 
+      // const curvebal = await curve.methods.balanceOf(curveStrategy.address).call();
+      // console.log(curvebal.toString())
       curveBalanceAfterRedeem = await curve.methods.balanceOf(goodGhosting.address).call();
       wmaticBalanceAfterRedeem = await wmatic.methods.balanceOf(goodGhosting.address).call();
-
+      // console.log(curveBalanceAfterRedeem.toString())
       assert(web3.utils.toBN(curveBalanceBeforeRedeem).lte(web3.utils.toBN(curveBalanceAfterRedeem)));
       // for some reason forking mainnet we don't get back wmatic rewards so the before and after balance is equal
       assert(web3.utils.toBN(wmaticBalanceBeforeRedeem).lte(web3.utils.toBN(wmaticBalanceAfterRedeem)));

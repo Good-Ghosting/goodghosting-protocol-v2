@@ -13,7 +13,7 @@ contract("Variable Deposit Pool with Moola Strategy", accounts => {
   let GoodGhostingArtifact: any;
   if (process.env.NETWORK === "local-variable-celo-moola") {
     GoodGhostingArtifact = Pool;
-    providersConfigs = configs.providers.celo.moola;
+    providersConfigs = configs.providers.celo.strategies.moola;
   }
   const { depositCount, segmentLength, segmentPayment: segmentPaymentInt, adminFee } = configs.deployConfigs;
   let token: any;

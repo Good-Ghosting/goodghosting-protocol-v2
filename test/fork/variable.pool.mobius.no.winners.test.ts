@@ -24,9 +24,9 @@ contract("Variable Deposit Pool with Mobius Strategy with no winners", accounts 
   GoodGhostingArtifact = Pool;
 
   if (process.env.NETWORK === "local-variable-celo-mobius-dai") {
-    providersConfigs = configs.providers.celo["mobius-cUSD-DAI"];
+    providersConfigs = configs.providers.celo.strategies["mobius-cUSD-DAI"];
   } else {
-    providersConfigs = configs.providers.celo["mobius-cUSD-USDC"];
+    providersConfigs = configs.providers.celo.strategies["mobius-cUSD-USDC"];
   }
   const {
     depositCount,
@@ -52,10 +52,10 @@ contract("Variable Deposit Pool with Mobius Strategy with no winners", accounts 
       pool = new web3.eth.Contract(mobiusPool.abi, providersConfigs.pool);
       token = new web3.eth.Contract(
         wmatic.abi,
-        configs.providers["celo"][configs.deployConfigs.inboundCurrencySymbol].address,
+        configs.providers["celo"].tokens[configs.deployConfigs.inboundCurrencySymbol].address,
       );
-      mobi = new web3.eth.Contract(wmatic.abi, configs.providers["celo"]["mobi"].address);
-      celo = new web3.eth.Contract(wmatic.abi, configs.providers["celo"]["celo"].address);
+      mobi = new web3.eth.Contract(wmatic.abi, configs.providers["celo"].tokens["mobi"].address);
+      celo = new web3.eth.Contract(wmatic.abi, configs.providers["celo"].tokens["celo"].address);
 
       goodGhosting = await GoodGhostingArtifact.deployed();
       mobiusStrategy = await MobiusStrategy.deployed();

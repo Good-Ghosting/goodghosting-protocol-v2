@@ -11,7 +11,6 @@ import * as dataProvider from "../../artifacts/contracts/mock/LendingPoolAddress
 chai.use(solidity);
 const { expect } = chai;
 
-let impersonatedSigner: any;
 let wmaticInstance: any;
 
 let accounts: any[];
@@ -47,27 +46,27 @@ describe("Aave Variable Deposit Pool Fork Tests with the deposit token as transs
     let lendingPoolAddressProviderInstance: any, dataProviderInstance: any, incentiveControllerInstance: any;
 
     lendingPoolAddressProviderInstance = new ethers.Contract(
-      providers["polygon"]["aaveV2"].lendingPoolAddressProvider,
+      providers["polygon"].strategies["aaveV2"].lendingPoolAddressProvider,
       lendingProvider.abi,
       accounts[0],
     );
     dataProviderInstance = new ethers.Contract(
-      providers["polygon"]["aaveV2"].dataProvider,
+      providers["polygon"].strategies["aaveV2"].dataProvider,
       dataProvider.abi,
       accounts[0],
     );
     incentiveControllerInstance = new ethers.Contract(
-      providers["polygon"]["aaveV2"].incentiveController,
+      providers["polygon"].strategies["aaveV2"].incentiveController,
       incentiveController.abi,
       accounts[0],
     );
 
-    wmaticInstance = new ethers.Contract(providers["polygon"]["wmatic"].address, wmatic, accounts[0]);
+    wmaticInstance = new ethers.Contract(providers["polygon"].tokens["wmatic"].address, wmatic, accounts[0]);
 
     strategy = await ethers.getContractFactory("AaveStrategy", accounts[0]);
     strategy = await strategy.deploy(
       lendingPoolAddressProviderInstance.address,
-      providers["polygon"]["aaveV2"].wethGateway,
+      providers["polygon"].strategies["aaveV2"].wethGateway,
       dataProviderInstance.address,
       incentiveControllerInstance.address,
       wmaticInstance.address,

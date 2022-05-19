@@ -20,9 +20,9 @@ contract("Pool with Mobius Strategy when admin enables early game completion", a
   GoodGhostingArtifact = Pool;
 
   if (process.env.NETWORK === "local-celo-mobius-dai") {
-    providersConfigs = configs.providers.celo["mobius-cUSD-DAI"];
+    providersConfigs = configs.providers.celo.strategies["mobius-cUSD-DAI"];
   } else {
-    providersConfigs = configs.providers.celo["mobius-cUSD-USDC"];
+    providersConfigs = configs.providers.celo.strategies["mobius-cUSD-USDC"];
   }
   const { depositCount, segmentLength, segmentPayment: segmentPaymentInt, adminFee } = configs.deployConfigs;
   let token: any;
@@ -41,10 +41,10 @@ contract("Pool with Mobius Strategy when admin enables early game completion", a
 
       token = new web3.eth.Contract(
         wmatic.abi,
-        configs.providers["celo"][configs.deployConfigs.inboundCurrencySymbol].address,
+        configs.providers["celo"].tokens[configs.deployConfigs.inboundCurrencySymbol].address,
       );
-      mobi = new web3.eth.Contract(wmatic.abi, configs.providers["celo"]["mobi"].address);
-      celo = new web3.eth.Contract(wmatic.abi, configs.providers["celo"]["celo"].address);
+      mobi = new web3.eth.Contract(wmatic.abi, configs.providers["celo"].tokens["mobi"].address);
+      celo = new web3.eth.Contract(wmatic.abi, configs.providers["celo"].tokens["celo"].address);
 
       goodGhosting = await GoodGhostingArtifact.deployed();
       mobiusStrategy = await MobiusStrategy.deployed();

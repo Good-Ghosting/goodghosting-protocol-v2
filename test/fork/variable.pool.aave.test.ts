@@ -11,7 +11,7 @@ chai.use(solidity);
 const { expect } = chai;
 
 let impersonatedSigner: any;
-let daiInstance: any, wmaticInstance: any, adaiInstance: any;
+let daiInstance: any, wmaticInstance: any;
 let accounts: any[];
 let pool: any, strategy: any;
 const { depositCount, segmentLength, segmentPayment: segmentPaymentInt, earlyWithdrawFee } = deployConfigs;
@@ -54,28 +54,28 @@ describe("Aave Variable Deposit Pool Fork Tests", () => {
     impersonatedSigner = await ethers.getSigner(impersonateAddress);
 
     lendingPoolAddressProviderInstance = new ethers.Contract(
-      providers["polygon"]["aaveV2"].lendingPoolAddressProvider,
+      providers["polygon"].strategies["aaveV2"].lendingPoolAddressProvider,
       lendingProvider.abi,
       impersonatedSigner,
     );
     dataProviderInstance = new ethers.Contract(
-      providers["polygon"]["aaveV2"].dataProvider,
+      providers["polygon"].strategies["aaveV2"].dataProvider,
       dataProvider.abi,
       impersonatedSigner,
     );
     incentiveControllerInstance = new ethers.Contract(
-      providers["polygon"]["aaveV2"].incentiveController,
+      providers["polygon"].strategies["aaveV2"].incentiveController,
       incentiveController.abi,
       impersonatedSigner,
     );
 
-    wmaticInstance = new ethers.Contract(providers["polygon"]["wmatic"].address, wmatic.abi, impersonatedSigner);
-    daiInstance = new ethers.Contract(providers["polygon"]["dai"].address, wmatic.abi, impersonatedSigner);
+    wmaticInstance = new ethers.Contract(providers["polygon"].tokens["wmatic"].address, wmatic.abi, impersonatedSigner);
+    daiInstance = new ethers.Contract(providers["polygon"].tokens["dai"].address, wmatic.abi, impersonatedSigner);
 
     strategy = await ethers.getContractFactory("AaveStrategy", accounts[0]);
     strategy = await strategy.deploy(
       lendingPoolAddressProviderInstance.address,
-      providers["polygon"]["aaveV2"].wethGateway,
+      providers["polygon"].strategies["aaveV2"].wethGateway,
       dataProviderInstance.address,
       incentiveControllerInstance.address,
       wmaticInstance.address,

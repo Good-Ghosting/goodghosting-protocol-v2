@@ -54,28 +54,28 @@ describe("Aave V3 Pool Fork Tests when admin enables early game completion", () 
     impersonatedSigner = await ethers.getSigner(impersonateAddress);
 
     lendingPoolAddressProviderInstance = new ethers.Contract(
-      providers["polygon"]["aaveV3"].lendingPoolAddressProvider,
+      providers["polygon"].strategies["aaveV3"].lendingPoolAddressProvider,
       lendingProvider.abi,
       impersonatedSigner,
     );
     dataProviderInstance = new ethers.Contract(
-      providers["polygon"]["aaveV3"].dataProvider,
+      providers["polygon"].strategies["aaveV3"].dataProvider,
       dataProvider.abi,
       impersonatedSigner,
     );
     incentiveControllerInstance = new ethers.Contract(
-      providers["polygon"]["aaveV3"].incentiveController,
+      providers["polygon"].strategies["aaveV3"].incentiveController,
       incentiveController.abi,
       impersonatedSigner,
     );
 
-    wmaticInstance = new ethers.Contract(providers["polygon"]["wmatic"].address, wmatic.abi, impersonatedSigner);
-    daiInstance = new ethers.Contract(providers["polygon"]["dai"].address, wmatic.abi, impersonatedSigner);
+    wmaticInstance = new ethers.Contract(providers["polygon"].tokens["wmatic"].address, wmatic.abi, impersonatedSigner);
+    daiInstance = new ethers.Contract(providers["polygon"].tokens["dai"].address, wmatic.abi, impersonatedSigner);
 
     strategy = await ethers.getContractFactory("AaveStrategyV3", accounts[0]);
     strategy = await strategy.deploy(
       lendingPoolAddressProviderInstance.address,
-      providers["polygon"]["aaveV3"].wethGateway,
+      providers["polygon"].strategies["aaveV3"].wethGateway,
       dataProviderInstance.address,
       incentiveControllerInstance.address,
       wmaticInstance.address,

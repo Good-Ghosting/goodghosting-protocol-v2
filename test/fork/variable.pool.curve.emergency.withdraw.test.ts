@@ -27,10 +27,10 @@ contract("Variable Pool with Curve Strategy when admin enables early game comple
   let wmatic: any;
   if (process.env.NETWORK === "local-variable-polygon-curve-aave") {
     GoodGhostingArtifact = Pool;
-    providersConfigs = configs.providers["polygon"]["polygon-curve-aave"];
+    providersConfigs = configs.providers["polygon"].strategies["polygon-curve-aave"];
   } else {
     GoodGhostingArtifact = Pool;
-    providersConfigs = configs.providers["polygon"]["polygon-curve-atricrypto"];
+    providersConfigs = configs.providers["polygon"].strategies["polygon-curve-atricrypto"];
   }
   const {
     depositCount,
@@ -59,10 +59,10 @@ contract("Variable Pool with Curve Strategy when admin enables early game comple
       }
       token = new web3.eth.Contract(
         wmaticABI.abi,
-        configs.providers["polygon"][configs.deployConfigs.inboundCurrencySymbol].address,
+        configs.providers["polygon"].tokens[configs.deployConfigs.inboundCurrencySymbol].address,
       );
-      curve = new web3.eth.Contract(wmaticABI.abi, configs.providers["polygon"]["curve"].address);
-      wmatic = new web3.eth.Contract(wmaticABI.abi, configs.providers["polygon"]["wmatic"].address);
+      curve = new web3.eth.Contract(wmaticABI.abi, configs.providers["polygon"].tokens["curve"].address);
+      wmatic = new web3.eth.Contract(wmaticABI.abi, configs.providers["polygon"].tokens["wmatic"].address);
 
       goodGhosting = await GoodGhostingArtifact.deployed();
       curveStrategy = await CurveStrategy.deployed();
