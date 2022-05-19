@@ -7,8 +7,8 @@ const AaveV3StrategyArtifact = artifacts.require("AaveStrategyV3");
 const CurveStrategyArtifact = artifacts.require("CurveStrategy");
 const SafeMathLib = artifacts.require("SafeMath");
 const fs = require("fs");
-
 const config = require("../deploy.config");
+
 function printSummary(
   // contract's constructor parameters
   {
@@ -175,7 +175,7 @@ function printSummary(
     console.log(`IncentiveController: ${incentiveController}`);
     console.log(`Reward Token: ${rewardToken}`);
     console.log("Moola Strategy Encoded Params: ", moolsStrategylEncodedParameters.toString("hex"));
-  } else if (networkName == "polygon-aave" || networkName == "polygon-aaveV3") {
+  } else if (networkName == "polygon-aave-v2" || networkName == "polygon-aave-v3") {
     console.log(`Lending Pool Provider: ${lendingPoolAddressProviderAave}`);
     console.log(`WETHGateway: ${wethGatewayAave}`);
     console.log(`Data Provider: ${dataProviderAave}`);
@@ -206,34 +206,23 @@ module.exports = function (deployer, network, accounts) {
 
   deployer.then(async () => {
     let maxFlexibleSegmentPaymentAmount, flexibleSegmentPayment;
-    if (
-      network === "local-variable-celo-mobius-dai" ||
-      network === "local-variable-celo-mobius-usdc" ||
-      network === "local-variable-celo-moola" ||
-      network === "local-variable-polygon-curve-aave" ||
-      network === "local-variable-polygon-curve-atricrypto"
-    ) {
+    if (network.toString().includes("local-variable")) {
       flexibleSegmentPayment = true;
       maxFlexibleSegmentPaymentAmount = "1000000000000000000000";
     } else {
       flexibleSegmentPayment = config.deployConfigs.flexibleSegmentPayment;
       maxFlexibleSegmentPaymentAmount = config.deployConfigs.maxFlexibleSegmentPaymentAmount;
     }
-    const mobiusPoolConfigs =
-      network == "local-variable-celo-mobius-dai" || network == "local-celo-mobius-dai" || network == "celo-mobius-dai"
-        ? config.providers["celo"].strategies["mobius-cUSD-DAI"]
-        : config.providers["celo"].strategies["mobius-cUSD-USDC"];
+    const mobiusPoolConfigs = network.includes("celo-mobius-dai")
+      ? config.providers["celo"].strategies["mobius-cUSD-DAI"]
+      : config.providers["celo"].strategies["mobius-cUSD-USDC"];
     const moolaPoolConfigs = config.providers["celo"].strategies["moola"];
-    const curvePoolConfigs =
-      network == "local-variable-polygon-curve-aave" ||
-      network == "local-polygon-curve-aave" ||
-      network == "polygon-curve-aave"
-        ? config.providers["polygon"].strategies["polygon-curve-aave"]
-        : config.providers["polygon"].strategies["polygon-curve-atricrypto"];
-    const aavePoolConfigs =
-      network == "polygon-aave"
-        ? config.providers["polygon"].strategies["aaveV2"]
-        : config.providers["polygon"].strategies["aaveV3"];
+    const curvePoolConfigs = network.includes("polygon-curve-aave")
+      ? config.providers["polygon"].strategies["polygon-curve-aave"]
+      : config.providers["polygon"].strategies["polygon-curve-atricrypto"];
+    const aavePoolConfigs = network.includes("polygon-aave-v2")
+      ? config.providers["polygon"].strategies["aaveV2"]
+      : config.providers["polygon"].strategies["aaveV3"];
     const curvePool = curvePoolConfigs.pool;
     const curveGauge = curvePoolConfigs.gauge;
     const wmatic = config.providers["polygon"].tokens["wmatic"].address;
@@ -244,30 +233,12 @@ module.exports = function (deployer, network, accounts) {
     const curveTokenIndex = curvePoolConfigs.tokenIndex;
     const curvePoolType = curvePoolConfigs.poolType;
 
-    const inboundCurrencyAddress =
-      network === "local-celo-mobius-dai" ||
-      network === "local-variable-celo-mobius-dai" ||
-      network === "celo-mobius-dai" ||
-      network === "local-celo-mobius-usdc" ||
-      network === "local-variable-celo-mobius-usdc" ||
-      network === "celo-mobius-usdc" ||
-      network === "local-celo-moola" ||
-      network === "local-variable-celo-moola" ||
-      network === "celo-moola"
-        ? config.providers["celo"].tokens[config.deployConfigs.inboundCurrencySymbol].address
-        : config.providers["polygon"].tokens[config.deployConfigs.inboundCurrencySymbol].address;
-    const inboundCurrencyDecimals =
-      network === "local-celo-mobius-dai" ||
-      network === "local-variable-celo-mobius-dai" ||
-      network === "celo-mobius-dai" ||
-      network === "local-celo-mobius-usdc" ||
-      network === "local-variable-celo-mobius-usdc" ||
-      network === "celo-mobius-usdc" ||
-      network === "local-celo-moola" ||
-      network === "local-variable-celo-moola" ||
-      network === "celo-moola"
-        ? config.providers["celo"].tokens[config.deployConfigs.inboundCurrencySymbol].decimals
-        : config.providers["polygon"].tokens[config.deployConfigs.inboundCurrencySymbol].decimals;
+    const inboundCurrencyAddress = network.includes("celo")
+      ? config.providers["celo"].tokens[config.deployConfigs.inboundCurrencySymbol].address
+      : config.providers["polygon"].tokens[config.deployConfigs.inboundCurrencySymbol].address;
+    const inboundCurrencyDecimals = network.includes("celo")
+      ? config.providers["celo"].tokens[config.deployConfigs.inboundCurrencySymbol].decimals
+      : config.providers["polygon"].tokens[config.deployConfigs.inboundCurrencySymbol].decimals;
     const segmentPaymentWei = (config.deployConfigs.segmentPayment * 10 ** inboundCurrencyDecimals).toString();
     const mobiusPool = mobiusPoolConfigs.pool;
     const mobi = config.providers["celo"].tokens["mobi"].address;
@@ -276,16 +247,9 @@ module.exports = function (deployer, network, accounts) {
     const maxPlayersCount = config.deployConfigs.maxPlayersCount;
     const goodGhostingContract = config.deployConfigs.isWhitelisted ? WhitelistedContract : GoodGhostingContract; // defaults to Ethereum version
     let strategyArgs;
-    if (
-      network === "local-celo-mobius-dai" ||
-      network === "celo-mobius-dai" ||
-      network === "local-variable-celo-mobius-dai" ||
-      network === "local-celo-mobius-usdc" ||
-      network === "celo-mobius-usdc" ||
-      network === "local-variable-celo-mobius-usdc"
-    ) {
+    if (network.includes("celo-mobius")) {
       strategyArgs = [MobiusStrategyArtifact, mobiusPool, mobiusGauge, minter, mobi, celo];
-    } else if (network === "local-celo-moola" || network === "local-variable-celo-moola" || network === "celo-moola") {
+    } else if (network.includes("celo-moola")) {
       strategyArgs = [
         MoolaStrategyArtifact,
         lendingPoolProvider,
@@ -293,12 +257,12 @@ module.exports = function (deployer, network, accounts) {
         dataProvider,
         "0x0000000000000000000000000000000000000000",
         // wmatic address in case of aave deployments
-        config.deployConfigs.incentiveToken,
+        "0x0000000000000000000000000000000000000000",
         inboundCurrencyAddress,
       ];
-    } else if (network === "polygon-aave" || network === "polygon-aaveV3") {
+    } else if (network.includes("polygon-aave")) {
       strategyArgs = [
-        network === "polygon-aave" ? MoolaStrategyArtifact : AaveV3StrategyArtifact,
+        network.includes("polygon-aave-v2") ? MoolaStrategyArtifact : AaveV3StrategyArtifact,
         aavePoolConfigs.lendingPoolAddressProvider,
         aavePoolConfigs.wethGateway,
         aavePoolConfigs.dataProvider,
@@ -311,24 +275,11 @@ module.exports = function (deployer, network, accounts) {
     }
     const strategyTx = await deployer.deploy(...strategyArgs);
     let strategyInstance;
-    if (
-      network === "local-celo-mobius-dai" ||
-      network === "celo-mobius-dai" ||
-      network === "local-variable-celo-mobius-dai" ||
-      network === "local-celo-mobius-usdc" ||
-      network === "celo-mobius-usdc" ||
-      network === "local-variable-celo-mobius-usdc"
-    )
-      strategyInstance = await MobiusStrategyArtifact.deployed();
-    else if (
-      network === "local-celo-moola" ||
-      network === "local-variable-celo-moola" ||
-      network === "celo-moola" ||
-      network === "polygon-aave" ||
-      network === "polygon-aaveV3"
-    )
-      strategyInstance =
-        network === "polygon-aaveV3" ? await AaveV3StrategyArtifact.deployed() : await MoolaStrategyArtifact.deployed();
+    if (network.includes("celo-mobius")) strategyInstance = await MobiusStrategyArtifact.deployed();
+    else if (network.includes("celo-moola") || network.includes("polygon-aave"))
+      strategyInstance = network.includes("polygon-aave-v3")
+        ? await AaveV3StrategyArtifact.deployed()
+        : await MoolaStrategyArtifact.deployed();
     else strategyInstance = await CurveStrategyArtifact.deployed();
 
     // Prepares deployment arguments
@@ -460,7 +411,7 @@ module.exports = function (deployer, network, accounts) {
       deploymentResult.strategyEncodedParameters = abi
         .rawEncode(moolaStrategyParameterTypes, moolaStrategyValues)
         .toString("hex");
-    } else if (deploymentResult.network == "polygon-aave" || deploymentResult.network == "polygon-aaveV3") {
+    } else if (deploymentResult.network == "polygon-aave-v2" || deploymentResult.network == "polygon-aave-v3") {
       deploymentResult.lendingPoolProviderAaveAddress = aavePoolConfigs.lendingPoolAddressProvider;
       deploymentResult.wethGatewayAaveAddress = aavePoolConfigs.wethGateway;
       deploymentResult.dataProviderAaveAddress = aavePoolConfigs.dataProvider;

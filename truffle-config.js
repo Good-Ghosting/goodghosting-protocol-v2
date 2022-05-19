@@ -137,7 +137,7 @@ module.exports = {
       timeoutBlocks: 50, // # of blocks before a deployment times out  (minimum/default: 50)
       skipDryRun: false, // Skip dry run before migrations? (default: false for public nets )
     },
-    "polygon-aaveV3": {
+    "polygon-aave-v3": {
       provider: () =>
         new HDWalletProvider(
           process.env.MNEMONIC,
@@ -153,7 +153,7 @@ module.exports = {
       timeoutBlocks: 50, // # of blocks before a deployment times out  (minimum/default: 50)
       skipDryRun: false, // Skip dry run before migrations? (default: false for public nets )
     },
-    "polygon-aave": {
+    "polygon-aave-v2": {
       provider: () =>
         new HDWalletProvider(
           process.env.MNEMONIC,

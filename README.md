@@ -249,14 +249,14 @@ slither . --filter-path "aave|Migrations.sol|merkle|mock|openzeppelin|polygon|aa
 
 ## Polygon
 
-- **Aave V3 Strategy Based Pool** Start by setting the `MNEMONIC` var (which is the 12 word seed phrase in your wallet) & the `RPC` var in the .env file & then make sure you have the [right deployment configs set](https://github.com/Good-Ghosting/goodghosting-protocol-v1/blob/master/deploy.config.ts)(if a **whitelisted pool** needs to be deployed make sure the merkle root is set and the [isWhitelisted var](https://github.com/Good-Ghosting/goodghosting-protocol-v1/blob/master/deploy.config.ts#L135) is true), then just run `yarn deploy:polygon-aaveV3`.
+- **Aave V3 Strategy Based Pool** Start by setting the `MNEMONIC` var (which is the 12 word seed phrase in your wallet) & the `RPC` var in the .env file & then make sure you have the [right deployment configs set](https://github.com/Good-Ghosting/goodghosting-protocol-v1/blob/master/deploy.config.ts)(if a **whitelisted pool** needs to be deployed make sure the merkle root is set and the [isWhitelisted var](https://github.com/Good-Ghosting/goodghosting-protocol-v1/blob/master/deploy.config.ts#L135) is true), then just run `yarn deploy:polygon-aave-v3`.
 
 You will see something like this:
 
 ```
 Starting migrations...
 ======================
-> Network name:    'polygon-aaveV3'
+> Network name:    'polygon-aave-v3'
 > Network id:      137
 > Block gas limit: 30000000 (0x1c9c380)
 
@@ -324,7 +324,7 @@ Starting migrations...
 GoodGhosting Holding Pool deployed with the following arguments:
 ----------------------------------------------------
 
-Network Name: polygon-aaveV3
+Network Name: polygon-aave-v3
 Contract's Owner: 0xf88b0247e611eE5af8Cf98f5303769Cba8e7177C
 Inbound Currency: 0x8f3Cf7ad23Cd3CaDbD9735AFf958023239c6A063
 Maximum Flexible Segment Payment Amount: 0
@@ -364,14 +364,14 @@ Summary
 > Final cost:          0.213315808 ETH
 ```
 
-- **Aave V2 Strategy Based Pool** Start by setting the `MNEMONIC` var (which is the 12 word seed phrase in your wallet) & the `RPC` var in the .env file & then make sure you have the [right deployment configs set](https://github.com/Good-Ghosting/goodghosting-protocol-v1/blob/master/deploy.config.ts)(if a **whitelisted pool** needs to be deployed make sure the merkle root is set and the [isWhitelisted var](https://github.com/Good-Ghosting/goodghosting-protocol-v1/blob/master/deploy.config.ts#L135) is true), then just run `yarn deploy:polygon-aave`.
+- **Aave V2 Strategy Based Pool** Start by setting the `MNEMONIC` var (which is the 12 word seed phrase in your wallet) & the `RPC` var in the .env file & then make sure you have the [right deployment configs set](https://github.com/Good-Ghosting/goodghosting-protocol-v1/blob/master/deploy.config.ts)(if a **whitelisted pool** needs to be deployed make sure the merkle root is set and the [isWhitelisted var](https://github.com/Good-Ghosting/goodghosting-protocol-v1/blob/master/deploy.config.ts#L135) is true), then just run `yarn deploy:polygon-aave-v2`.
 
 You will see something like this:
 
 ```
 Starting migrations...
 ======================
-> Network name:    'polygon-aave'
+> Network name:    'polygon-aave-v2'
 > Network id:      137
 > Block gas limit: 30000000 (0x1c9c380)
 
@@ -439,7 +439,7 @@ Starting migrations...
 GoodGhosting Holding Pool deployed with the following arguments:
 ----------------------------------------------------
 
-Network Name: polygon-aave
+Network Name: polygon-aave-v2
 Contract's Owner: 0xf88b0247e611eE5af8Cf98f5303769Cba8e7177C
 Inbound Currency: 0x8f3Cf7ad23Cd3CaDbD9735AFf958023239c6A063
 Maximum Flexible Segment Payment Amount: 0
