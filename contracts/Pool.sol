@@ -50,7 +50,7 @@ error RENOUNCE_OWNERSHIP_NOT_ALLOWED();
 
 
 /**
-@title GoodGhosting V2 Contract
+@title GoodGhosting V2 Hodl Contract
 @notice Allows users to join a pool with a yield bearing strategy, the winners get interest and rewards, losers get their principal back.
 */
 contract Pool is Ownable, Pausable, ReentrancyGuard {
@@ -684,7 +684,9 @@ contract Pool is Ownable, Pausable, ReentrancyGuard {
         }
 
         if (adminFeeAmount[0] > 0) {
-            strategy.redeem(inboundToken, adminFeeAmount[0], flexibleSegmentPayment, 0, disableRewardTokenClaim);
+            if (flexibleSegmentPayment) {
+               strategy.redeem(inboundToken, adminFeeAmount[0], flexibleSegmentPayment, 0, disableRewardTokenClaim);
+            }
             if (isTransactionalToken) {
                 // safety check
                 // this scenario is very tricky to mock
@@ -708,7 +710,7 @@ contract Pool is Ownable, Pausable, ReentrancyGuard {
             }
         }
 
-        if (adminFeeAmount[1] > 0 || (adminFeeAmount.length > 2 && adminFeeAmount[2] > 0)) {
+        if ((adminFeeAmount.length > 1 && adminFeeAmount[1] > 0) || (adminFeeAmount.length > 2 && adminFeeAmount[2] > 0)) {
             for (uint256 i = 0; i < rewardTokens.length; i++) {
                 if (address(rewardTokens[i]) != address(0)) {
                     bool success = rewardTokens[i].transfer(owner(), adminFeeAmount[i + 1]);

@@ -20,6 +20,7 @@ const { depositCount, segmentLength, segmentPayment: segmentPaymentInt, earlyWit
 
 const daiDecimals = ethers.BigNumber.from("1000000000000000000");
 const segmentPayment = daiDecimals.mul(ethers.BigNumber.from(segmentPaymentInt)); // equivalent to 10 Inbound Token
+const ZERO_ADDRESS = "0x0000000000000000000000000000000000000000";
 
 describe("Aave V3 Variable Deposit Pool Fork Tests with the deposit token same as reward token", () => {
   if (
@@ -86,7 +87,7 @@ describe("Aave V3 Variable Deposit Pool Fork Tests with the deposit token same a
     );
 
     await strategy.connect(accounts[0]).transferOwnership(pool.address);
-    await pool.initialize();
+    await pool.initialize(ZERO_ADDRESS);
 
     // send out tokens to the players
     for (let i = 0; i < 5; i++) {

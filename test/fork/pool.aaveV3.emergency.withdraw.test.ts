@@ -18,6 +18,7 @@ const { depositCount, segmentLength, segmentPayment: segmentPaymentInt, earlyWit
 
 const daiDecimals = ethers.BigNumber.from("1000000000000000000");
 const segmentPayment = daiDecimals.mul(ethers.BigNumber.from(segmentPaymentInt)); // equivalent to 10 Inbound Token
+const ZERO_ADDRESS = "0x0000000000000000000000000000000000000000";
 
 describe("Aave V3 Pool Fork Tests when admin enables early game completion", () => {
   if (
@@ -93,7 +94,7 @@ describe("Aave V3 Pool Fork Tests when admin enables early game completion", () 
       false,
     );
     await strategy.connect(accounts[0]).transferOwnership(pool.address);
-    await pool.initialize();
+    await pool.initialize(ZERO_ADDRESS);
 
     const impersonateAccountBalance = await daiInstance.balanceOf(impersonatedSigner.address);
     console.log(`Impersonate Account  Balance`, impersonateAccountBalance.toString());
