@@ -213,25 +213,28 @@ module.exports = function (deployer, network, accounts) {
       flexibleSegmentPayment = config.deployConfigs.flexibleSegmentPayment;
       maxFlexibleSegmentPaymentAmount = config.deployConfigs.maxFlexibleSegmentPaymentAmount;
     }
-    const mobiusPoolConfigs = network.includes("celo-mobius-dai")
-      ? config.providers["celo"].strategies["mobius-cUSD-DAI"]
-      : config.providers["celo"].strategies["mobius-cUSD-USDC"];
-    const moolaPoolConfigs = config.providers["celo"].strategies["moola"];
-    const curvePoolConfigs = network.includes("polygon-curve-aave")
-      ? config.providers["polygon"].strategies["polygon-curve-aave"]
-      : config.providers["polygon"].strategies["polygon-curve-atricrypto"];
-    const aavePoolConfigs = network.includes("polygon-aave-v2")
-      ? config.providers["polygon"].strategies["aaveV2"]
-      : config.providers["polygon"].strategies["aaveV3"];
-    const curvePool = curvePoolConfigs.pool;
-    const curveGauge = curvePoolConfigs.gauge;
-    const wmatic = config.providers["polygon"].tokens["wmatic"].address;
-    const curve = config.providers["polygon"].tokens["curve"].address;
-    const lendingPoolProvider = moolaPoolConfigs.lendingPoolAddressProvider;
-    const dataProvider = moolaPoolConfigs.dataProvider;
-    const mobiusGauge = mobiusPoolConfigs.gauge;
-    const curveTokenIndex = curvePoolConfigs.tokenIndex;
-    const curvePoolType = curvePoolConfigs.poolType;
+
+    const strategyConfig =
+      config.providers[network.includes("celo") ? "celo" : "polygon"].strategies[config.deployConfigs.strategy];
+    // const mobiusPoolConfigs = config.providers["celo"].strategies["mobius-cUSD-DAI"]
+    //   ? config.providers["celo"].strategies["mobius-cUSD-DAI"]
+    //   : config.providers["celo"].strategies["mobius-cUSD-USDC"];
+    // const moolaPoolConfigs = config.providers["celo"].strategies["moola"];
+    // const curvePoolConfigs = network.includes("polygon-curve-aave")
+    //   ? config.providers["polygon"].strategies["polygon-curve-aave"]
+    //   : config.providers["polygon"].strategies["polygon-curve-atricrypto"];
+    // const aavePoolConfigs = network.includes("polygon-aave-v2")
+    //   ? config.providers["polygon"].strategies["aaveV2"]
+    //   : config.providers["polygon"].strategies["aaveV3"];
+    // const curvePool = curvePoolConfigs.pool;
+    // const curveGauge = curvePoolConfigs.gauge;
+    // const wmatic = config.providers["polygon"].tokens["wmatic"].address;
+    // const curve = config.providers["polygon"].tokens["curve"].address;
+    // const lendingPoolProvider = moolaPoolConfigs.lendingPoolAddressProvider;
+    // const dataProvider = moolaPoolConfigs.dataProvider;
+    // const mobiusGauge = mobiusPoolConfigs.gauge;
+    // const curveTokenIndex = curvePoolConfigs.tokenIndex;
+    // const curvePoolType = curvePoolConfigs.poolType;
 
     const inboundCurrencyAddress = network.includes("celo")
       ? config.providers["celo"].tokens[config.deployConfigs.inboundCurrencySymbol].address
@@ -240,46 +243,67 @@ module.exports = function (deployer, network, accounts) {
       ? config.providers["celo"].tokens[config.deployConfigs.inboundCurrencySymbol].decimals
       : config.providers["polygon"].tokens[config.deployConfigs.inboundCurrencySymbol].decimals;
     const segmentPaymentWei = (config.deployConfigs.segmentPayment * 10 ** inboundCurrencyDecimals).toString();
-    const mobiusPool = mobiusPoolConfigs.pool;
-    const mobi = config.providers["celo"].tokens["mobi"].address;
-    const celo = config.providers["celo"].tokens["celo"].address;
-    const minter = mobiusPoolConfigs.minter;
+    // const mobiusPool = mobiusPoolConfigs.pool;
+    // const mobi = config.providers["celo"].tokens["mobi"].address;
+    // const celo = config.providers["celo"].tokens["celo"].address;
+    // const minter = mobiusPoolConfigs.minter;
     const maxPlayersCount = config.deployConfigs.maxPlayersCount;
     const goodGhostingContract = config.deployConfigs.isWhitelisted ? WhitelistedContract : GoodGhostingContract; // defaults to Ethereum version
     let strategyArgs;
-    if (network.includes("celo-mobius")) {
-      strategyArgs = [MobiusStrategyArtifact, mobiusPool, mobiusGauge, minter, mobi, celo];
-    } else if (network.includes("celo-moola")) {
+    if (config.deployConfigs.strategy === "mobius-cUSD-DAI" || config.deployConfigs.strategy === "mobius-cUSD-USDC") {
+      strategyArgs = [
+        MobiusStrategyArtifact,
+        strategyConfig.pool,
+        strategyConfig.gauge,
+        strategyConfig.minter,
+        config.providers["celo"].tokens["mobi"].address,
+        config.providers["celo"].tokens["celo"].address,
+      ];
+    } else if (config.deployConfigs.strategy === "moola") {
       strategyArgs = [
         MoolaStrategyArtifact,
-        lendingPoolProvider,
+        strategyConfig.lendingPoolAddressProvider,
         "0x0000000000000000000000000000000000000000",
-        dataProvider,
+        strategyConfig.dataProvider,
         "0x0000000000000000000000000000000000000000",
         // wmatic address in case of aave deployments
         "0x0000000000000000000000000000000000000000",
         inboundCurrencyAddress,
       ];
-    } else if (network.includes("polygon-aave")) {
+    } else if (config.deployConfigs.strategy === "aaveV2" || config.deployConfigs.strategy === "aaveV3") {
       strategyArgs = [
-        network.includes("polygon-aave-v2") ? MoolaStrategyArtifact : AaveV3StrategyArtifact,
-        aavePoolConfigs.lendingPoolAddressProvider,
-        aavePoolConfigs.wethGateway,
-        aavePoolConfigs.dataProvider,
-        aavePoolConfigs.incentiveController,
-        wmatic,
+        config.deployConfigs.strategy === "aaveV2" ? MoolaStrategyArtifact : AaveV3StrategyArtifact,
+        strategyConfig.lendingPoolAddressProvider,
+        strategyConfig.wethGateway,
+        strategyConfig.dataProvider,
+        strategyConfig.incentiveController,
+        config.providers["polygon"].tokens["wmatic"].address,
         inboundCurrencyAddress,
       ];
     } else {
-      strategyArgs = [CurveStrategyArtifact, curvePool, curveTokenIndex, curvePoolType, curveGauge, wmatic, curve];
+      strategyArgs = [
+        CurveStrategyArtifact,
+        strategyConfig.pool,
+        strategyConfig.tokenIndex,
+        strategyConfig.poolType,
+        strategyConfig.gauge,
+        config.providers["polygon"].tokens["wmatic"].address,
+        config.providers["polygon"].tokens["curve"].address,
+      ];
     }
     const strategyTx = await deployer.deploy(...strategyArgs);
     let strategyInstance;
-    if (network.includes("celo-mobius")) strategyInstance = await MobiusStrategyArtifact.deployed();
-    else if (network.includes("celo-moola") || network.includes("polygon-aave"))
-      strategyInstance = network.includes("polygon-aave-v3")
-        ? await AaveV3StrategyArtifact.deployed()
-        : await MoolaStrategyArtifact.deployed();
+    if (config.deployConfigs.strategy === "mobius-cUSD-DAI" || config.deployConfigs.strategy === "mobius-cUSD-USDC")
+      strategyInstance = await MobiusStrategyArtifact.deployed();
+    else if (
+      config.deployConfigs.strategy === "moola" ||
+      config.deployConfigs.strategy === "aaveV2" ||
+      config.deployConfigs.strategy === "aaveV3"
+    )
+      strategyInstance =
+        config.deployConfigs.strategy == "aaveV3"
+          ? await AaveV3StrategyArtifact.deployed()
+          : await MoolaStrategyArtifact.deployed();
     else strategyInstance = await CurveStrategyArtifact.deployed();
 
     // Prepares deployment arguments
@@ -343,7 +367,7 @@ module.exports = function (deployer, network, accounts) {
     deploymentResult.earlyWithdrawFee = config.deployConfigs.earlyWithdrawFee;
     deploymentResult.adminFee = config.deployConfigs.adminFee;
     deploymentResult.maxPlayersCount = maxPlayersCount;
-    deploymentResult.incentiveToken = config.deployConfigs.incentiveToken;
+    deploymentResult.incentiveTokenAddress = config.deployConfigs.incentiveToken;
     deploymentResult.flexibleDepositSegment = flexibleSegmentPayment;
     deploymentResult.transactionalTokenDepositEnabled = config.deployConfigs.isTransactionalToken;
     var poolParameterTypes = [
@@ -376,35 +400,30 @@ module.exports = function (deployer, network, accounts) {
     ];
     deploymentResult.poolEncodedParameters = abi.rawEncode(poolParameterTypes, poolParameterValues).toString("hex");
 
-    if (
-      deploymentResult.network === "local-celo-mobius-dai" ||
-      deploymentResult.network === "celo-mobius-dai" ||
-      deploymentResult.network === "local-variable-celo-mobius-dai" ||
-      deploymentResult.network === "local-celo-mobius-usdc" ||
-      deploymentResult.network === "celo-mobius-usdc" ||
-      deploymentResult.network === "local-variable-celo-mobius-usdc"
-    ) {
-      deploymentResult.mobiusPoolAddress = mobiusPool;
-      deploymentResult.mobiusGaugeAddress = mobiusGauge;
-      deploymentResult.minterAddress = minter;
-      deploymentResult.mobiAddress = mobi;
-      deploymentResult.celoAddress = celo;
+    if (config.deployConfigs.strategy === "mobius-cUSD-DAI" || config.deployConfigs.strategy === "mobius-cUSD-USDC") {
+      deploymentResult.mobiusPoolAddress = strategyConfig.pool;
+      deploymentResult.mobiusGaugeAddress = strategyConfig.gauge;
+      deploymentResult.minterAddress = strategyConfig.minter;
+      deploymentResult.mobiAddress = config.providers["celo"].tokens["mobi"].address;
+      deploymentResult.celoAddress = config.providers["celo"].tokens["celo"].address;
 
       var mobiusStrategyParameterTypes = ["address", "address", "address", "address", "address"];
 
-      var mobiusStrategyValues = [mobiusPool, mobiusGauge, minter, mobi, celo];
+      var mobiusStrategyValues = [
+        deploymentResult.mobiusPoolAddress,
+        deploymentResult.mobiusGaugeAddress,
+        deploymentResult.minterAddress,
+        deploymentResult.mobiAddress,
+        deploymentResult.celoAddress,
+      ];
 
       deploymentResult.strategyEncodedParameters = abi
         .rawEncode(mobiusStrategyParameterTypes, mobiusStrategyValues)
         .toString("hex");
-    } else if (
-      deploymentResult.network === "local-celo-moola" ||
-      deploymentResult.network === "local-variable-celo-moola" ||
-      deploymentResult.network === "celo-moola"
-    ) {
-      deploymentResult.lendingPoolProviderMoolaAddress = lendingPoolProvider;
+    } else if (config.deployConfigs.strategy === "moola") {
+      deploymentResult.lendingPoolProviderMoolaAddress = strategyConfig.lendingPoolAddressProvider;
       deploymentResult.wethGatewayMoolaAddress = "0x0000000000000000000000000000000000000000";
-      deploymentResult.dataProviderMoolaAddress = dataProvider;
+      deploymentResult.dataProviderMoolaAddress = strategyConfig.dataProvider;
       deploymentResult.incentiveControllerMoolaAddress = "0x0000000000000000000000000000000000000000";
       deploymentResult.rewardTokenMoolaAddress = "0x0000000000000000000000000000000000000000";
       var moolaStrategyParameterTypes = ["address", "address", "address", "address", "address"];
@@ -419,12 +438,12 @@ module.exports = function (deployer, network, accounts) {
       deploymentResult.strategyEncodedParameters = abi
         .rawEncode(moolaStrategyParameterTypes, moolaStrategyValues)
         .toString("hex");
-    } else if (deploymentResult.network == "polygon-aave-v2" || deploymentResult.network == "polygon-aave-v3") {
-      deploymentResult.lendingPoolProviderAaveAddress = aavePoolConfigs.lendingPoolAddressProvider;
-      deploymentResult.wethGatewayAaveAddress = aavePoolConfigs.wethGateway;
-      deploymentResult.dataProviderAaveAddress = aavePoolConfigs.dataProvider;
-      deploymentResult.incentiveControllerAaveAddress = aavePoolConfigs.incentiveController;
-      deploymentResult.rewardTokenAaveAddress = wmatic;
+    } else if (config.deployConfigs.strategy === "aaveV2" || config.deployConfigs.strategy === "aaveV3") {
+      deploymentResult.lendingPoolProviderAaveAddress = strategyConfig.lendingPoolAddressProvider;
+      deploymentResult.wethGatewayAaveAddress = strategyConfig.wethGateway;
+      deploymentResult.dataProviderAaveAddress = strategyConfig.dataProvider;
+      deploymentResult.incentiveControllerAaveAddress = strategyConfig.incentiveController;
+      deploymentResult.rewardTokenAaveAddress = config.providers["polygon"].tokens["wmatic"].address;
       var aaveStrategyParameterTypes = ["address", "address", "address", "address", "address", "address"];
       var aaveStrategyValues = [
         deploymentResult.lendingPoolProviderAaveAddress,
@@ -438,12 +457,12 @@ module.exports = function (deployer, network, accounts) {
         .rawEncode(aaveStrategyParameterTypes, aaveStrategyValues)
         .toString("hex");
     } else {
-      deploymentResult.curvePoolAddress = curvePool;
-      deploymentResult.curveGaugeAddress = curveGauge;
-      deploymentResult.tokenIndex = curveTokenIndex;
-      deploymentResult.poolType = curvePoolType;
-      deploymentResult.rewardTokenAddress = wmatic;
-      deploymentResult.curveTokenAddress = curve;
+      deploymentResult.curvePoolAddress = strategyConfig.pool;
+      deploymentResult.curveGaugeAddress = strategyConfig.gauge;
+      deploymentResult.tokenIndex = strategyConfig.tokenIndex;
+      deploymentResult.poolType = strategyConfig.poolType;
+      deploymentResult.rewardTokenAddress = config.providers["polygon"].tokens["wmatic"].address;
+      deploymentResult.curveTokenAddress = config.providers["polygon"].tokens["curve"].address;
 
       var curveStrategyParameterTypes = ["address", "address", "uint", "uint", "address", "address"];
       var curveStrategyValues = [
@@ -459,49 +478,49 @@ module.exports = function (deployer, network, accounts) {
         .toString("hex");
     }
 
-    // Prints deployment summary
-    printSummary(
-      {
-        inboundCurrencyAddress,
-        depositCount: config.deployConfigs.depositCount,
-        maxFlexibleSegmentPaymentAmount,
-        segmentLength: config.deployConfigs.segmentLength,
-        waitingRoundSegmentLength: config.deployConfigs.waitingRoundSegmentLength,
-        segmentPaymentWei,
-        earlyWithdrawFee: config.deployConfigs.earlyWithdrawFee,
-        adminFee: config.deployConfigs.adminFee,
-        maxPlayersCount,
-        flexibleDepositSegment: flexibleSegmentPayment,
-        strategy: strategyInstance.address,
-        mobiusPool,
-        mobiusGauge,
-        minter,
-        mobi,
-        celo,
-        lendingPoolProvider,
-        wethGateway: "0x0000000000000000000000000000000000000000",
-        dataProvider,
-        incentiveController: "0x0000000000000000000000000000000000000000",
-        rewardToken: config.deployConfigs.incentiveToken,
-        curvePool,
-        curveGauge,
-        tokenIndex: curveTokenIndex,
-        poolType: curvePoolType,
-        curve,
-        wmatic,
-        lendingPoolAddressProviderAave: aavePoolConfigs.lendingPoolAddressProvider,
-        wethGatewayAave: aavePoolConfigs.wethGateway,
-        dataProviderAave: aavePoolConfigs.dataProvider,
-        incentiveControllerAave: aavePoolConfigs.incentiveController,
-        incentiveTokenAave: wmatic,
-      },
-      {
-        networkName: process.env.NETWORK,
-        inboundCurrencySymbol: config.deployConfigs.inboundCurrencySymbol,
-        segmentPayment: config.deployConfigs.segmentPayment,
-        owner: accounts[0],
-      },
-    );
+    // // Prints deployment summary
+    // printSummary(
+    //   {
+    //     inboundCurrencyAddress,
+    //     depositCount: config.deployConfigs.depositCount,
+    //     maxFlexibleSegmentPaymentAmount,
+    //     segmentLength: config.deployConfigs.segmentLength,
+    //     waitingRoundSegmentLength: config.deployConfigs.waitingRoundSegmentLength,
+    //     segmentPaymentWei,
+    //     earlyWithdrawFee: config.deployConfigs.earlyWithdrawFee,
+    //     adminFee: config.deployConfigs.adminFee,
+    //     maxPlayersCount,
+    //     flexibleDepositSegment: flexibleSegmentPayment,
+    //     strategy: strategyInstance.address,
+    //     mobiusPool,
+    //     mobiusGauge,
+    //     minter,
+    //     mobi,
+    //     celo,
+    //     lendingPoolProvider,
+    //     wethGateway: "0x0000000000000000000000000000000000000000",
+    //     dataProvider,
+    //     incentiveController: "0x0000000000000000000000000000000000000000",
+    //     rewardToken: config.deployConfigs.incentiveToken,
+    //     curvePool,
+    //     curveGauge,
+    //     tokenIndex: curveTokenIndex,
+    //     poolType: curvePoolType,
+    //     curve,
+    //     wmatic,
+    //     lendingPoolAddressProviderAave: aavePoolConfigs.lendingPoolAddressProvider,
+    //     wethGatewayAave: aavePoolConfigs.wethGateway,
+    //     dataProviderAave: aavePoolConfigs.dataProvider,
+    //     incentiveControllerAave: aavePoolConfigs.incentiveController,
+    //     incentiveTokenAave: wmatic,
+    //   },
+    //   {
+    //     networkName: process.env.NETWORK,
+    //     inboundCurrencySymbol: config.deployConfigs.inboundCurrencySymbol,
+    //     segmentPayment: config.deployConfigs.segmentPayment,
+    //     owner: accounts[0],
+    //   },
+    // );
 
     fs.writeFile("./deployment-result.json", JSON.stringify(deploymentResult, null, 4), err => {
       if (err) {
