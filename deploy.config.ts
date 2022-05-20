@@ -84,7 +84,8 @@ exports.providers = {
   },
 };
 exports.deployConfigs = {
-  inboundCurrencySymbol: "dai", // name of the inbound currency symbol. Must be defined in the object {providers.network} above.
+  strategy: "mobius-cUSD-DAI",
+  inboundCurrencySymbol: "cusd", // name of the inbound currency symbol. Must be defined in the object {providers.network} above.
   owner: "0x", //dummy address,
   depositCount: 3, // integer number of segments
   segmentLength: 604800, // in seconds
