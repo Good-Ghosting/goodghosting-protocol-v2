@@ -14,8 +14,10 @@ const configs = require("../../deploy.config");
 contract("Variable Pool with Curve Strategy when admin enables early game completion", accounts => {
   // Only executes this test file for local network fork
   if (
-    !["local-variable-polygon-curve-aave", "local-variable-polygon-curve-atricrypto"].includes(
-      process.env.NETWORK ? process.env.NETWORK : "",
+    !(
+      (["local-variable-polygon"].includes(process.env.NETWORK ? process.env.NETWORK : "") &&
+        configs.deployConfigs.strategy === "polygon-curve-aave") ||
+      configs.deployConfigs.strategy === "polygon-curve-atricrypto"
     )
   )
     return;
@@ -25,7 +27,7 @@ contract("Variable Pool with Curve Strategy when admin enables early game comple
   let GoodGhostingArtifact: any;
   let curve: any;
   let wmatic: any;
-  if (process.env.NETWORK === "local-variable-polygon-curve-aave") {
+  if (configs.deployConfigs.strategy === "polygon-curve-aave") {
     GoodGhostingArtifact = Pool;
     providersConfigs = configs.providers["polygon"].strategies["polygon-curve-aave"];
   } else {

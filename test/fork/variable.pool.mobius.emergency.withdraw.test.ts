@@ -10,8 +10,10 @@ const configs = require("../../deploy.config");
 contract("Pool with Mobius Strategy when admin enables early game completion", accounts => {
   // Only executes this test file for local network fork
   if (
-    !["local-variable-celo-mobius-dai", "local-variable-celo-mobius-usdc"].includes(
-      process.env.NETWORK ? process.env.NETWORK : "",
+    !(
+      (["local-variable-celo"].includes(process.env.NETWORK ? process.env.NETWORK : "") &&
+        configs.deployConfigs.strategy === "mobius-cUSD-DAI") ||
+      configs.deployConfigs.strategy === "mobius-cUSD-USDC"
     )
   )
     return;
@@ -23,7 +25,7 @@ contract("Pool with Mobius Strategy when admin enables early game completion", a
   let celo: any;
   GoodGhostingArtifact = Pool;
 
-  if (process.env.NETWORK === "local-variable-celo-mobius-dai") {
+  if (configs.deployConfigs.strategy === "mobius-cUSD-DAI") {
     providersConfigs = configs.providers.celo.strategies["mobius-cUSD-DAI"];
   } else {
     providersConfigs = configs.providers.celo.strategies["mobius-cUSD-USDC"];

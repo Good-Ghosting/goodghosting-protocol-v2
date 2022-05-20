@@ -9,7 +9,13 @@ const configs = require("../../deploy.config");
 
 contract("Pool with Mobius Strategy", accounts => {
   // Only executes this test file for local network fork
-  if (!["local-celo-mobius-dai", "local-celo-mobius-usdc"].includes(process.env.NETWORK ? process.env.NETWORK : ""))
+  if (
+    !(
+      (["local-celo"].includes(process.env.NETWORK ? process.env.NETWORK : "") &&
+        configs.deployConfigs.strategy === "mobius-cUSD-DAI") ||
+      configs.deployConfigs.strategy === "mobius-cUSD-USDC"
+    )
+  )
     return;
 
   const unlockedDaiAccount = process.env.WHALE_ADDRESS_FORKED_NETWORK;
@@ -19,7 +25,7 @@ contract("Pool with Mobius Strategy", accounts => {
   let celo: any;
   GoodGhostingArtifact = Pool;
 
-  if (process.env.NETWORK === "local-celo-mobius-dai") {
+  if (configs.deployConfigs.strategy === "mobius-cUSD-DAI") {
     providersConfigs = configs.providers.celo.strategies["mobius-cUSD-DAI"];
   } else {
     providersConfigs = configs.providers.celo.strategies["mobius-cUSD-USDC"];

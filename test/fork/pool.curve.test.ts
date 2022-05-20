@@ -12,8 +12,10 @@ const configs = require("../../deploy.config");
 contract("Pool with Curve Strategy", accounts => {
   // Only executes this test file for local network fork
   if (
-    !["local-polygon-curve-aave", "local-polygon-curve-atricrypto"].includes(
-      process.env.NETWORK ? process.env.NETWORK : "",
+    !(
+      (["local-polygon"].includes(process.env.NETWORK ? process.env.NETWORK : "") &&
+        configs.deployConfigs.strategy === "polygon-curve-aave") ||
+      configs.deployConfigs.strategy === "polygon-curve-atricrypto"
     )
   )
     return;
@@ -23,7 +25,7 @@ contract("Pool with Curve Strategy", accounts => {
   let GoodGhostingArtifact: any;
   let curve: any;
   let wmatic: any;
-  if (process.env.NETWORK === "local-polygon-curve-aave") {
+  if (configs.deployConfigs.strategy === "polygon-curve-aave") {
     GoodGhostingArtifact = Pool;
     providersConfigs = configs.providers["polygon"].strategies["polygon-curve-aave"];
   } else {

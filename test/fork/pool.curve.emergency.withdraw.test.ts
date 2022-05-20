@@ -14,8 +14,10 @@ const configs = require("../../deploy.config");
 contract("Pool with Curve Strategy when admin enables early game completion", accounts => {
   // Only executes this test file for local network fork
   if (
-    !["local-polygon-curve-aave", "local-polygon-curve-atricrypto"].includes(
-      process.env.NETWORK ? process.env.NETWORK : "",
+    !(
+      (["local-polygon"].includes(process.env.NETWORK ? process.env.NETWORK : "") &&
+        configs.deployConfigs.strategy === "polygon-curve-aave") ||
+      configs.deployConfigs.strategy === "polygon-curve-atricrypto"
     )
   )
     return;
@@ -27,7 +29,7 @@ contract("Pool with Curve Strategy when admin enables early game completion", ac
   let wmatic: any;
   GoodGhostingArtifact = Pool;
 
-  if (process.env.NETWORK === "local-polygon-curve-aave") {
+  if (configs.deployConfigs.strategy === "polygon-curve-aave") {
     providersConfigs = configs.providers["polygon"].strategies["polygon-curve-aave"];
   } else {
     providersConfigs = configs.providers["polygon"].strategies["polygon-curve-atricrypto"];
@@ -135,6 +137,7 @@ contract("Pool with Curve Strategy when admin enables early game completion", ac
       for (let segmentIndex = 1; segmentIndex < depositCount; segmentIndex++) {
         await timeMachine.advanceTime(segmentLength);
       }
+
       const userSlippage = 1;
       let minAmount;
       let curveBalanceBeforeRedeem, curveBalanceAfterRedeem, wmaticBalanceBeforeRedeem, wmaticBalanceAfterRedeem;
@@ -142,6 +145,7 @@ contract("Pool with Curve Strategy when admin enables early game completion", ac
       wmaticBalanceBeforeRedeem = await wmatic.methods.balanceOf(goodGhosting.address).call();
 
       const gaugeTokenBalance = await gaugeToken.methods.balanceOf(curveStrategy.address).call();
+
       minAmount = await pool.methods
         .calc_withdraw_one_coin(gaugeTokenBalance.toString(), providersConfigs.tokenIndex)
         .call();
