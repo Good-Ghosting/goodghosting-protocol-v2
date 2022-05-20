@@ -353,6 +353,7 @@ module.exports = function (deployer, network, accounts) {
     deploymentResult.poolAddress = ggInstance.address;
     deploymentResult.poolDeploymentHash = poolTx.transactionHash;
     deploymentResult.poolDeploymentBlock = poolTxInfo.blockNumber;
+    deploymentResult.strategyName = config.deployConfigs.strategy;
     deploymentResult.strategyDeploymentHash = strategyTx.transactionHash;
     deploymentResult.strategyDeploymentBlock = strategyTxInfo.blockNumber;
     deploymentResult.strategyOwner = ggInstance.address;
@@ -365,11 +366,15 @@ module.exports = function (deployer, network, accounts) {
     deploymentResult.segmentPayment = config.deployConfigs.segmentPayment;
     deploymentResult.segmentPaymentWei = segmentPaymentWei;
     deploymentResult.earlyWithdrawFee = config.deployConfigs.earlyWithdrawFee;
-    deploymentResult.adminFee = config.deployConfigs.adminFee;
+    deploymentResult.performanceFee = config.deployConfigs.adminFee;
     deploymentResult.maxPlayersCount = maxPlayersCount;
     deploymentResult.incentiveTokenAddress = config.deployConfigs.incentiveToken;
     deploymentResult.flexibleDepositSegment = flexibleSegmentPayment;
     deploymentResult.transactionalTokenDepositEnabled = config.deployConfigs.isTransactionalToken;
+    deploymentResult.rewardTokenAdddresses = await strategyInstance.getRewardTokens();
+    if (config.deployConfigs.isWhitelisted) {
+      deploymentResult.merkleroot = config.deployConfigs.merkleroot;
+    }
     var poolParameterTypes = [
       "address", // inboundCurrencyAddress,
       "uint256", // maxFlexibleSegmentPaymentAmount
@@ -406,7 +411,6 @@ module.exports = function (deployer, network, accounts) {
       deploymentResult.minterAddress = strategyConfig.minter;
       deploymentResult.mobiAddress = config.providers["celo"].tokens["mobi"].address;
       deploymentResult.celoAddress = config.providers["celo"].tokens["celo"].address;
-
       var mobiusStrategyParameterTypes = ["address", "address", "address", "address", "address"];
 
       var mobiusStrategyValues = [
