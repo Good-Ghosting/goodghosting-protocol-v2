@@ -24,16 +24,10 @@ const { expect } = chai;
 
 describe("Pool using Aave strategy", () => {
   if (
-    process.env.NETWORK === "local-celo-mobius-dai" ||
-    process.env.NETWORK === "local-celo-mobius-usdc" ||
-    process.env.NETWORK === "local-celo-moola" ||
-    process.env.NETWORK === "local-variable-celo-moola" ||
-    process.env.NETWORK === "local-variable-celo-mobius-dai" ||
-    process.env.NETWORK === "local-variable-celo-mobius-usdc" ||
-    process.env.NETWORK === "local-polygon-curve-aave" ||
-    process.env.NETWORK === "local-polygon-curve-atricrypto" ||
-    process.env.NETWORK === "local-variable-polygon-curve-aave" ||
-    process.env.NETWORK === "local-variable-polygon-curve-atricrypto"
+    process.env.NETWORK === "local-celo" ||
+    process.env.NETWORK === "local-variable-celo" ||
+    process.env.NETWORK === "local-polygon" ||
+    process.env.NETWORK === "local-variable-polygon"
   ) {
     return;
   }
