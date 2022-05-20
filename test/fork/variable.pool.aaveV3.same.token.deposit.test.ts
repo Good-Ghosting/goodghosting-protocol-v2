@@ -21,18 +21,13 @@ const daiDecimals = ethers.BigNumber.from("1000000000000000000");
 const segmentPayment = daiDecimals.mul(ethers.BigNumber.from(segmentPaymentInt)); // equivalent to 10 Inbound Token
 const ZERO_ADDRESS = "0x0000000000000000000000000000000000000000";
 
+// some tests in this file fail due to some fork issue when run with all the fixed deposit aave strategy pool tests but they pass pass when the fixed pool deposit fork tests are commented
 describe("Aave V3 Variable Deposit Pool Fork Tests with the deposit token same as reward token", () => {
   if (
-    process.env.NETWORK === "local-celo-mobius-dai" ||
-    process.env.NETWORK === "local-celo-mobius-usdc" ||
-    process.env.NETWORK === "local-celo-moola" ||
-    process.env.NETWORK === "local-variable-celo-moola" ||
-    process.env.NETWORK === "local-variable-celo-mobius-dai" ||
-    process.env.NETWORK === "local-variable-celo-mobius-usdc" ||
-    process.env.NETWORK === "local-polygon-curve-aave" ||
-    process.env.NETWORK === "local-polygon-curve-atricrypto" ||
-    process.env.NETWORK === "local-variable-polygon-curve-aave" ||
-    process.env.NETWORK === "local-variable-polygon-curve-atricrypto"
+    process.env.NETWORK === "local-celo" ||
+    process.env.NETWORK === "local-variable-celo" ||
+    process.env.NETWORK === "local-polygon" ||
+    process.env.NETWORK === "local-variable-polygon"
   ) {
     return;
   }

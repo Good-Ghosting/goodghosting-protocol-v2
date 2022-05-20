@@ -11,7 +11,6 @@ import * as dataProvider from "../../artifacts/contracts/mock/LendingPoolAddress
 chai.use(solidity);
 const { expect } = chai;
 
-let impersonatedSigner: any;
 let wmaticInstance: any;
 
 let accounts: any[];
@@ -24,16 +23,10 @@ const ZERO_ADDRESS = "0x0000000000000000000000000000000000000000";
 
 describe("Aave Pool Fork Tests with the deposit token same as reward token", () => {
   if (
-    process.env.NETWORK === "local-celo-mobius-dai" ||
-    process.env.NETWORK === "local-celo-mobius-usdc" ||
-    process.env.NETWORK === "local-celo-moola" ||
-    process.env.NETWORK === "local-variable-celo-moola" ||
-    process.env.NETWORK === "local-variable-celo-mobius-dai" ||
-    process.env.NETWORK === "local-variable-celo-mobius-usdc" ||
-    process.env.NETWORK === "local-polygon-curve-aave" ||
-    process.env.NETWORK === "local-polygon-curve-atricrypto" ||
-    process.env.NETWORK === "local-variable-polygon-curve-aave" ||
-    process.env.NETWORK === "local-variable-polygon-curve-atricrypto"
+    process.env.NETWORK === "local-celo" ||
+    process.env.NETWORK === "local-variable-celo" ||
+    process.env.NETWORK === "local-polygon" ||
+    process.env.NETWORK === "local-variable-polygon"
   ) {
     return;
   }
@@ -70,8 +63,8 @@ describe("Aave Pool Fork Tests with the deposit token same as reward token", () 
       providers["polygon"].strategies["aaveV2"].wethGateway,
       dataProviderInstance.address,
       incentiveControllerInstance.address,
-      providers["polygon"].strategies["wmatic"].address,
-      providers["polygon"].strategies["wmatic"].address,
+      providers["polygon"].tokens["wmatic"].address,
+      providers["polygon"].tokens["wmatic"].address,
     );
 
     pool = await ethers.getContractFactory("Pool", accounts[0]);
