@@ -94,6 +94,8 @@ With Hodl Pools especially there comes a risk of funds being locked in the exter
 
 Once this function is called, it updates the last segment value to current segment & makes the emergency flag true in the smart contract, players then who have deposited in the prev. segment i.e current segment - 1 are all considered as winners and they can withdraw their funds immediately once the emergency flag is enabled.
 
+The mechanism for fixed and variable deposit pool still applies i.e for fixed deposit pools complete funds are redeemed at once but for variable deposit pools each winner would only redeem their own funds(principal + interest + rewards).
+
 **NOTE** - Handling this emergency early exit is the reason `cumulativePlayerIndexSum` is a mapping.
 
 # Smart Contract Overview
