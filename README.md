@@ -211,6 +211,8 @@ To run the integrated test scenarios forking from Mainnet (Polygon or Celo) you'
 
 - Configure `WHALE_ADDRESS_FORKED_NETWORK` in your `.env` file, as you see the .env.example file the whale address is `0x075e72a5edf65f0a5f44699c7654c1a76941ddc8` for polygon & `0x5776b4893faca32A9224F18950406c9599f3B013` for celo.
 
+- Update the strategy type in the deployment config and the inboundCurrencySymbol value according to the type of strategy you want to deploy.
+
 - Review the deployment configs ([deploy-config.js file](./deploy-config.js)) prior to executing the test on the forked network.
 
 - You'll also need a rpc provider the best option for polygon is infura for celo you can use their public rpc `https://forno.celo.org/`
@@ -221,13 +223,13 @@ To run the integrated test scenarios forking from Mainnet (Polygon or Celo) you'
 
 - **Aave V2/V3 Strategy Based Pool** As mentioned above we use hardhat for this, after doing the setup mentioned above, the next step is to set the `FORKING` var in your .env file as `true`, next in your [config](https://github.com/Good-Ghosting/goodghosting-protocol-v1/blob/master/hardhat.config.ts#L62) you set your desired rpc url, currently a public rpc is set. Then you just run `yarn test`.
 
-- **Curve Strategy Based Pool** As mentioned above we use truffle for this, so open a new terminal window and run `ganache-cli -f <Your Polygon RPC> -m "clutchaptain shoe salt awake harvest setup primary inmate ugly among become" -i 999 --unlock {WHALE_ADDRESS_FORKED_NETWORK}` and in the second window run `yarn test:fork:polygon:curve` for fixed deposit pool & `yarn test:fork:variable:polygon:curve` for variable deposit pool.
+- **Curve Strategy Based Pool** As mentioned above we use truffle for this, so open a new terminal window and run `ganache-cli -f <Your Polygon RPC> -m "clutchaptain shoe salt awake harvest setup primary inmate ugly among become" -i 999 --unlock {WHALE_ADDRESS_FORKED_NETWORK}` and in the second window run `yarn test:fork:polygon` for fixed deposit pool & `yarn test:fork:variable:polygon` for variable deposit pool.
 
 #### Celo
 
 Since hardhat currently does not support celo, so we use truffle for celo fork tests. To start open another terminal window and run
 `ganache-cli -f https://forno.celo.org/ -m "clutchaptain shoe salt awake harvest setup primary inmate ugly among become" -i 999 --unlock {WHALE_ADDRESS_FORKED_NETWORK}` and in the second window run
-`yarn test:fork:celo:mobius` for fixed deposit mobius strategy pool, `yarn test:fork:celo:moola` for fixed deposit moola strategy pool, `yarn test:fork:variable:celo:mobius` for variable deposit mobius strategy pool & `yarn test:fork:variable:celo:moola` for variable deposit moola strategy pool.
+`yarn test:fork:celo` for fixed deposit pool, `yarn test:fork:variable:celo` for variable deposit pool/
 
 # Security Tools
 
@@ -247,9 +249,11 @@ slither . --filter-path "aave|Migrations.sol|merkle|mock|openzeppelin|polygon|aa
 
 - You'll need a rpc provider the best option for polygon is infura for celo you can use their public rpc `https://forno.celo.org/`
 
+- Update the `strategy` value and the `inboundCurrencySymbol` value according to the type of strategy you want to deploy in the deployment config.
+
 ## Polygon
 
-- **Aave V3 Strategy Based Pool** Start by setting the `MNEMONIC` var (which is the 12 word seed phrase in your wallet) & the `RPC` var in the .env file & then make sure you have the [right deployment configs set](https://github.com/Good-Ghosting/goodghosting-protocol-v1/blob/master/deploy.config.ts)(if a **whitelisted pool** needs to be deployed make sure the merkle root is set and the [isWhitelisted var](https://github.com/Good-Ghosting/goodghosting-protocol-v1/blob/master/deploy.config.ts#L135) is true), then just run `yarn deploy:polygon-aave-v3`.
+- **Aave V3 Strategy Based Pool** Start by setting the `MNEMONIC` var (which is the 12 word seed phrase in your wallet) & the `RPC` var in the .env file & then make sure you have the [right deployment configs set](https://github.com/Good-Ghosting/goodghosting-protocol-v1/blob/master/deploy.config.ts)(if a **whitelisted pool** needs to be deployed make sure the merkle root is set and the [isWhitelisted var](https://github.com/Good-Ghosting/goodghosting-protocol-v1/blob/master/deploy.config.ts#L135) is true), then just run `yarn deploy:polygon`.
 
 You will see something like this:
 
@@ -364,7 +368,7 @@ Summary
 > Final cost:          0.213315808 ETH
 ```
 
-- **Aave V2 Strategy Based Pool** Start by setting the `MNEMONIC` var (which is the 12 word seed phrase in your wallet) & the `RPC` var in the .env file & then make sure you have the [right deployment configs set](https://github.com/Good-Ghosting/goodghosting-protocol-v1/blob/master/deploy.config.ts)(if a **whitelisted pool** needs to be deployed make sure the merkle root is set and the [isWhitelisted var](https://github.com/Good-Ghosting/goodghosting-protocol-v1/blob/master/deploy.config.ts#L135) is true), then just run `yarn deploy:polygon-aave-v2`.
+- **Aave V2 Strategy Based Pool** Start by setting the `MNEMONIC` var (which is the 12 word seed phrase in your wallet) & the `RPC` var in the .env file & then make sure you have the [right deployment configs set](https://github.com/Good-Ghosting/goodghosting-protocol-v1/blob/master/deploy.config.ts)(if a **whitelisted pool** needs to be deployed make sure the merkle root is set and the [isWhitelisted var](https://github.com/Good-Ghosting/goodghosting-protocol-v1/blob/master/deploy.config.ts#L135) is true), then just run `yarn deploy:polygon`.
 
 You will see something like this:
 
@@ -478,7 +482,7 @@ Summary
 > Final cost:          0.213315808 ETH
 ```
 
-- **Curve Strategy Based Pool** Start by setting the `MNEMONIC` var (which is the 12 word seed phrase in your wallet) & the `RPC` var in the .env file & then make sure you have the [right deployment configs set](https://github.com/Good-Ghosting/goodghosting-protocol-v1/blob/master/deploy.config.ts)(if a **whitelisted pool** needs to be deployed make sure the merkle root is set and the [isWhitelisted var](https://github.com/Good-Ghosting/goodghosting-protocol-v1/blob/master/deploy.config.ts#L135) is true), then just run `yarn deploy:polygon-curve`.
+- **Curve Strategy Based Pool** Start by setting the `MNEMONIC` var (which is the 12 word seed phrase in your wallet) & the `RPC` var in the .env file & then make sure you have the [right deployment configs set](https://github.com/Good-Ghosting/goodghosting-protocol-v1/blob/master/deploy.config.ts)(if a **whitelisted pool** needs to be deployed make sure the merkle root is set and the [isWhitelisted var](https://github.com/Good-Ghosting/goodghosting-protocol-v1/blob/master/deploy.config.ts#L135) is true), then just run `yarn deploy:polygon`.
 
 You will see something like this:
 
@@ -595,7 +599,7 @@ Summary
 
 ## Celo
 
-Start by setting the `CELO_PRIVATE_KEY` var which is the private key of your celo wallet & then make sure you have the [right deployment configs set](https://github.com/Good-Ghosting/goodghosting-protocol-v1/blob/master/deploy.config.ts)(if a **whitelisted pool** needs to be deployed make sure the merkle root is set and the [isWhitelisted var](https://github.com/Good-Ghosting/goodghosting-protocol-v1/blob/master/deploy.config.ts#L135) is true). Open the terminal window and run `yarn deploy:celo-moola` or `yarn deploy:celo-mobius` depending on whether moola or mobius strategy pool needs to be deployed.
+Start by setting the `CELO_PRIVATE_KEY` var which is the private key of your celo wallet & then make sure you have the [right deployment configs set](https://github.com/Good-Ghosting/goodghosting-protocol-v1/blob/master/deploy.config.ts)(if a **whitelisted pool** needs to be deployed make sure the merkle root is set and the [isWhitelisted var](https://github.com/Good-Ghosting/goodghosting-protocol-v1/blob/master/deploy.config.ts#L135) is true). Open the terminal window and run `yarn deploy:celo`.
 
 You will see something like this:
 
