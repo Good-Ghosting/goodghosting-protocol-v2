@@ -8,6 +8,7 @@ const CurveStrategyArtifact = artifacts.require("CurveStrategy");
 const SafeMathLib = artifacts.require("SafeMath");
 const fs = require("fs");
 const config = require("../deploy.config");
+const providerConfig = require("../providers.config");
 
 function printSummary(
   // contract's constructor parameters
@@ -215,38 +216,16 @@ module.exports = function (deployer, network, accounts) {
     }
 
     const strategyConfig =
-      config.providers[network.includes("celo") ? "celo" : "polygon"].strategies[config.deployConfigs.strategy];
-    // const mobiusPoolConfigs = config.providers["celo"].strategies["mobius-cUSD-DAI"]
-    //   ? config.providers["celo"].strategies["mobius-cUSD-DAI"]
-    //   : config.providers["celo"].strategies["mobius-cUSD-USDC"];
-    // const moolaPoolConfigs = config.providers["celo"].strategies["moola"];
-    // const curvePoolConfigs = network.includes("polygon-curve-aave")
-    //   ? config.providers["polygon"].strategies["polygon-curve-aave"]
-    //   : config.providers["polygon"].strategies["polygon-curve-atricrypto"];
-    // const aavePoolConfigs = network.includes("polygon-aave-v2")
-    //   ? config.providers["polygon"].strategies["aaveV2"]
-    //   : config.providers["polygon"].strategies["aaveV3"];
-    // const curvePool = curvePoolConfigs.pool;
-    // const curveGauge = curvePoolConfigs.gauge;
-    // const wmatic = config.providers["polygon"].tokens["wmatic"].address;
-    // const curve = config.providers["polygon"].tokens["curve"].address;
-    // const lendingPoolProvider = moolaPoolConfigs.lendingPoolAddressProvider;
-    // const dataProvider = moolaPoolConfigs.dataProvider;
-    // const mobiusGauge = mobiusPoolConfigs.gauge;
-    // const curveTokenIndex = curvePoolConfigs.tokenIndex;
-    // const curvePoolType = curvePoolConfigs.poolType;
+      providerConfig.providers[network.includes("celo") ? "celo" : "polygon"].strategies[config.deployConfigs.strategy];
 
     const inboundCurrencyAddress = network.includes("celo")
-      ? config.providers["celo"].tokens[config.deployConfigs.inboundCurrencySymbol].address
-      : config.providers["polygon"].tokens[config.deployConfigs.inboundCurrencySymbol].address;
+      ? providerConfig.providers["celo"].tokens[config.deployConfigs.inboundCurrencySymbol].address
+      : providerConfig.providers["polygon"].tokens[config.deployConfigs.inboundCurrencySymbol].address;
     const inboundCurrencyDecimals = network.includes("celo")
-      ? config.providers["celo"].tokens[config.deployConfigs.inboundCurrencySymbol].decimals
-      : config.providers["polygon"].tokens[config.deployConfigs.inboundCurrencySymbol].decimals;
+      ? providerConfig.providers["celo"].tokens[config.deployConfigs.inboundCurrencySymbol].decimals
+      : providerConfig.providers["polygon"].tokens[config.deployConfigs.inboundCurrencySymbol].decimals;
     const segmentPaymentWei = (config.deployConfigs.segmentPayment * 10 ** inboundCurrencyDecimals).toString();
-    // const mobiusPool = mobiusPoolConfigs.pool;
-    // const mobi = config.providers["celo"].tokens["mobi"].address;
-    // const celo = config.providers["celo"].tokens["celo"].address;
-    // const minter = mobiusPoolConfigs.minter;
+
     const maxPlayersCount = config.deployConfigs.maxPlayersCount;
     const goodGhostingContract = config.deployConfigs.isWhitelisted ? WhitelistedContract : GoodGhostingContract; // defaults to Ethereum version
     let strategyArgs;
@@ -256,8 +235,8 @@ module.exports = function (deployer, network, accounts) {
         strategyConfig.pool,
         strategyConfig.gauge,
         strategyConfig.minter,
-        config.providers["celo"].tokens["mobi"].address,
-        config.providers["celo"].tokens["celo"].address,
+        providerConfig.providers["celo"].tokens["mobi"].address,
+        providerConfig.providers["celo"].tokens["celo"].address,
       ];
     } else if (config.deployConfigs.strategy === "moola") {
       strategyArgs = [
@@ -277,7 +256,7 @@ module.exports = function (deployer, network, accounts) {
         strategyConfig.wethGateway,
         strategyConfig.dataProvider,
         strategyConfig.incentiveController,
-        config.providers["polygon"].tokens["wmatic"].address,
+        providerConfig.providers["polygon"].tokens["wmatic"].address,
         inboundCurrencyAddress,
       ];
     } else {
@@ -287,8 +266,8 @@ module.exports = function (deployer, network, accounts) {
         strategyConfig.tokenIndex,
         strategyConfig.poolType,
         strategyConfig.gauge,
-        config.providers["polygon"].tokens["wmatic"].address,
-        config.providers["polygon"].tokens["curve"].address,
+        providerConfig.providers["polygon"].tokens["wmatic"].address,
+        providerConfig.providers["polygon"].tokens["curve"].address,
       ];
     }
     const strategyTx = await deployer.deploy(...strategyArgs);
@@ -409,8 +388,8 @@ module.exports = function (deployer, network, accounts) {
       deploymentResult.mobiusPoolAddress = strategyConfig.pool;
       deploymentResult.mobiusGaugeAddress = strategyConfig.gauge;
       deploymentResult.minterAddress = strategyConfig.minter;
-      deploymentResult.mobiAddress = config.providers["celo"].tokens["mobi"].address;
-      deploymentResult.celoAddress = config.providers["celo"].tokens["celo"].address;
+      deploymentResult.mobiAddress = providerConfig.providers["celo"].tokens["mobi"].address;
+      deploymentResult.celoAddress = providerConfig.providers["celo"].tokens["celo"].address;
       var mobiusStrategyParameterTypes = ["address", "address", "address", "address", "address"];
 
       var mobiusStrategyValues = [
@@ -447,7 +426,7 @@ module.exports = function (deployer, network, accounts) {
       deploymentResult.wethGatewayAaveAddress = strategyConfig.wethGateway;
       deploymentResult.dataProviderAaveAddress = strategyConfig.dataProvider;
       deploymentResult.incentiveControllerAaveAddress = strategyConfig.incentiveController;
-      deploymentResult.rewardTokenAaveAddress = config.providers["polygon"].tokens["wmatic"].address;
+      deploymentResult.rewardTokenAaveAddress = providerConfig.providers["polygon"].tokens["wmatic"].address;
       var aaveStrategyParameterTypes = ["address", "address", "address", "address", "address", "address"];
       var aaveStrategyValues = [
         deploymentResult.lendingPoolProviderAaveAddress,
@@ -465,8 +444,8 @@ module.exports = function (deployer, network, accounts) {
       deploymentResult.curveGaugeAddress = strategyConfig.gauge;
       deploymentResult.tokenIndex = strategyConfig.tokenIndex;
       deploymentResult.poolType = strategyConfig.poolType;
-      deploymentResult.rewardTokenAddress = config.providers["polygon"].tokens["wmatic"].address;
-      deploymentResult.curveTokenAddress = config.providers["polygon"].tokens["curve"].address;
+      deploymentResult.rewardTokenAddress = providerConfig.providers["polygon"].tokens["wmatic"].address;
+      deploymentResult.curveTokenAddress = providerConfig.providers["polygon"].tokens["curve"].address;
 
       var curveStrategyParameterTypes = ["address", "address", "uint", "uint", "address", "address"];
       var curveStrategyValues = [
