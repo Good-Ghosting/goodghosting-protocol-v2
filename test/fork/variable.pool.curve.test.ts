@@ -8,6 +8,7 @@ const curveGauge = require("../../artifacts/contracts/curve/ICurveGauge.sol/ICur
 const aavepoolABI = require("../../abi-external/curve-aave-pool-abi.json");
 const atricryptopoolABI = require("../../abi-external/curve-atricrypto-pool-abi.json");
 const configs = require("../../deploy.config");
+const providerConfig = require("../../providers.config");
 
 contract("Variale Deposit Pool with Curve Strategy", accounts => {
   // Only executes this test file for local network fork
@@ -27,10 +28,10 @@ contract("Variale Deposit Pool with Curve Strategy", accounts => {
   let wmatic: any;
   if (configs.deployConfigs.strategy === "polygon-curve-aave") {
     GoodGhostingArtifact = Pool;
-    providersConfigs = configs.providers["polygon"].strategies["polygon-curve-aave"];
+    providersConfigs = providerConfig.providers["polygon"].strategies["polygon-curve-aave"];
   } else {
     GoodGhostingArtifact = Pool;
-    providersConfigs = configs.providers["polygon"].strategies["polygon-curve-atricrypto"];
+    providersConfigs = providerConfig.providers["polygon"].strategies["polygon-curve-atricrypto"];
   }
   const {
     depositCount,
@@ -62,10 +63,10 @@ contract("Variale Deposit Pool with Curve Strategy", accounts => {
       }
       token = new web3.eth.Contract(
         wmaticABI.abi,
-        configs.providers["polygon"].tokens[configs.deployConfigs.inboundCurrencySymbol].address,
+        providerConfig.providers["polygon"].tokens[configs.deployConfigs.inboundCurrencySymbol].address,
       );
-      curve = new web3.eth.Contract(wmaticABI.abi, configs.providers["polygon"].tokens["curve"].address);
-      wmatic = new web3.eth.Contract(wmaticABI.abi, configs.providers["polygon"].tokens["wmatic"].address);
+      curve = new web3.eth.Contract(wmaticABI.abi, providerConfig.providers["polygon"].tokens["curve"].address);
+      wmatic = new web3.eth.Contract(wmaticABI.abi, providerConfig.providers["polygon"].tokens["wmatic"].address);
 
       goodGhosting = await GoodGhostingArtifact.deployed();
       curveStrategy = await CurveStrategy.deployed();

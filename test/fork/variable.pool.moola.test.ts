@@ -3,6 +3,7 @@ const timeMachine = require("ganache-time-traveler");
 const truffleAssert = require("truffle-assertions");
 const wmatic = require("../../artifacts/contracts/mock/MintableERC20.sol/MintableERC20.json");
 const configs = require("../../deploy.config");
+const providerConfig = require("../../providers.config");
 
 contract("Variable Deposit Pool with Moola Strategy", accounts => {
   // Only executes this test file for local network fork
@@ -19,7 +20,7 @@ contract("Variable Deposit Pool with Moola Strategy", accounts => {
   let GoodGhostingArtifact: any;
   if (configs.deployConfigs.strategy === "moola") {
     GoodGhostingArtifact = Pool;
-    providersConfigs = configs.providers.celo.strategies.moola;
+    providersConfigs = providerConfig.providers.celo.strategies.moola;
   }
   const { depositCount, segmentLength, segmentPayment: segmentPaymentInt, adminFee } = configs.deployConfigs;
   let token: any;
@@ -37,7 +38,7 @@ contract("Variable Deposit Pool with Moola Strategy", accounts => {
     it("initializes contract instances and transfers Inbound Token to players", async () => {
       token = new web3.eth.Contract(
         wmatic.abi,
-        configs.providers["celo"].tokens[configs.deployConfigs.inboundCurrencySymbol].address,
+        providerConfig.providers["celo"].tokens[configs.deployConfigs.inboundCurrencySymbol].address,
       );
 
       goodGhosting = await GoodGhostingArtifact.deployed();

@@ -10,6 +10,7 @@ const curveGauge = require("../../artifacts/contracts/curve/ICurveGauge.sol/ICur
 const aavepoolABI = require("../../abi-external/curve-aave-pool-abi.json");
 const atricryptopoolABI = require("../../abi-external/curve-atricrypto-pool-abi.json");
 const configs = require("../../deploy.config");
+const providerConfig = require("../../providers.config");
 
 contract("Variable Pool with Curve Strategy when admin enables early game completion", accounts => {
   // Only executes this test file for local network fork
@@ -29,10 +30,10 @@ contract("Variable Pool with Curve Strategy when admin enables early game comple
   let wmatic: any;
   if (configs.deployConfigs.strategy === "polygon-curve-aave") {
     GoodGhostingArtifact = Pool;
-    providersConfigs = configs.providers["polygon"].strategies["polygon-curve-aave"];
+    providersConfigs = providerConfig.providers["polygon"].strategies["polygon-curve-aave"];
   } else {
     GoodGhostingArtifact = Pool;
-    providersConfigs = configs.providers["polygon"].strategies["polygon-curve-atricrypto"];
+    providersConfigs = providerConfig.providers["polygon"].strategies["polygon-curve-atricrypto"];
   }
   const {
     depositCount,
@@ -61,10 +62,10 @@ contract("Variable Pool with Curve Strategy when admin enables early game comple
       }
       token = new web3.eth.Contract(
         wmaticABI.abi,
-        configs.providers["polygon"].tokens[configs.deployConfigs.inboundCurrencySymbol].address,
+        providerConfig.providers["polygon"].tokens[configs.deployConfigs.inboundCurrencySymbol].address,
       );
-      curve = new web3.eth.Contract(wmaticABI.abi, configs.providers["polygon"].tokens["curve"].address);
-      wmatic = new web3.eth.Contract(wmaticABI.abi, configs.providers["polygon"].tokens["wmatic"].address);
+      curve = new web3.eth.Contract(wmaticABI.abi, providerConfig.providers["polygon"].tokens["curve"].address);
+      wmatic = new web3.eth.Contract(wmaticABI.abi, providerConfig.providers["polygon"].tokens["wmatic"].address);
 
       goodGhosting = await GoodGhostingArtifact.deployed();
       curveStrategy = await CurveStrategy.deployed();

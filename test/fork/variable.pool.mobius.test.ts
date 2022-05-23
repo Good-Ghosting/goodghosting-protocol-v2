@@ -6,6 +6,7 @@ const wmatic = require("../../artifacts/contracts/mock/MintableERC20.sol/Mintabl
 const mobiusPool = require("../../artifacts/contracts/mobius/IMobiPool.sol/IMobiPool.json");
 const mobiusGauge = require("../../artifacts/contracts/mobius/IMobiGauge.sol/IMobiGauge.json");
 const configs = require("../../deploy.config");
+const providerConfig = require("../../providers.config");
 
 contract("Variable Deposit Pool with Mobius Strategy", accounts => {
   // Only executes this test file for local network fork
@@ -26,9 +27,9 @@ contract("Variable Deposit Pool with Mobius Strategy", accounts => {
   GoodGhostingArtifact = Pool;
 
   if (configs.deployConfigs.strategy === "mobius-cUSD-DAI") {
-    providersConfigs = configs.providers.celo.strategies["mobius-cUSD-DAI"];
+    providersConfigs = providerConfig.providers.celo.strategies["mobius-cUSD-DAI"];
   } else {
-    providersConfigs = configs.providers.celo.strategies["mobius-cUSD-USDC"];
+    providersConfigs = providerConfig.providers.celo.strategies["mobius-cUSD-USDC"];
   }
   const {
     depositCount,
@@ -56,10 +57,10 @@ contract("Variable Deposit Pool with Mobius Strategy", accounts => {
       pool = new web3.eth.Contract(mobiusPool.abi, providersConfigs.pool);
       token = new web3.eth.Contract(
         wmatic.abi,
-        configs.providers["celo"].tokens[configs.deployConfigs.inboundCurrencySymbol].address,
+        providerConfig.providers["celo"].tokens[configs.deployConfigs.inboundCurrencySymbol].address,
       );
-      mobi = new web3.eth.Contract(wmatic.abi, configs.providers["celo"].tokens["mobi"].address);
-      celo = new web3.eth.Contract(wmatic.abi, configs.providers["celo"].tokens["celo"].address);
+      mobi = new web3.eth.Contract(wmatic.abi, providerConfig.providers["celo"].tokens["mobi"].address);
+      celo = new web3.eth.Contract(wmatic.abi, providerConfig.providers["celo"].tokens["celo"].address);
 
       goodGhosting = await GoodGhostingArtifact.deployed();
       mobiusStrategy = await MobiusStrategy.deployed();
