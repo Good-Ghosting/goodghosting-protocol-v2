@@ -41,4 +41,6 @@ interface ICurvePool {
     function calc_token_amount(uint256[3] calldata _amounts, bool is_deposit) external view returns (uint256);
 
     function calc_token_amount(uint256[5] calldata _amounts, bool is_deposit) external view returns (uint256);
+
+    function underlying_coins(uint256 arg0) external view returns (address);
 }

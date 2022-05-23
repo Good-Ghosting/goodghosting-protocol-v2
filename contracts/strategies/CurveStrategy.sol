@@ -11,6 +11,7 @@ import "./IStrategy.sol";
 // --------------------------- custom errors ------------------------- //
 //*********************************************************************//
 error INVALID_CURVE_TOKEN();
+error INVALID_DEPOSIT_TOKEN();
 error INVALID_GAUGE();
 error INVALID_POOL();
 error INVALID_REWARD_TOKEN();
@@ -175,6 +176,9 @@ contract CurveStrategy is Ownable, ReentrancyGuard, IStrategy {
     @param _minAmount Slippage based amount to cover for impermanent loss scenario.
     */
     function invest(address _inboundCurrency, uint256 _minAmount) external payable override nonReentrant onlyOwner {
+        if (pool.underlying_coins(uint256(uint128(inboundTokenIndex))) != _inboundCurrency) {
+            revert INVALID_DEPOSIT_TOKEN();
+        }
         uint256 contractBalance = IERC20(_inboundCurrency).balanceOf(address(this));
         IERC20(_inboundCurrency).approve(address(pool), contractBalance);
         /*
@@ -211,6 +215,9 @@ contract CurveStrategy is Ownable, ReentrancyGuard, IStrategy {
         uint256 _amount,
         uint256 _minAmount
     ) external override nonReentrant onlyOwner {
+        if (pool.underlying_coins(uint256(uint128(inboundTokenIndex))) != _inboundCurrency) {
+            revert INVALID_DEPOSIT_TOKEN();
+        }
         uint256 gaugeBalance = gauge.balanceOf(address(this));
         if (poolType == AAVE_POOL) {
             uint256[NUM_AAVE_TOKENS] memory amounts; // fixed-sized array is initialized w/ [0, 0, 0]
@@ -281,6 +288,9 @@ contract CurveStrategy is Ownable, ReentrancyGuard, IStrategy {
         uint256 _minAmount,
         bool disableRewardTokenClaim
     ) external override nonReentrant onlyOwner {
+        if (pool.underlying_coins(uint256(uint128(inboundTokenIndex))) != _inboundCurrency) {
+            revert INVALID_DEPOSIT_TOKEN();
+        }
         bool claimRewards = true;
         if (disableRewardTokenClaim) {
             claimRewards = false;

@@ -12,6 +12,7 @@ import "./IStrategy.sol";
 // --------------------------- custom errors ------------------------- //
 //*********************************************************************//
 error INVALID_CELO_TOKEN();
+error INVALID_DEPOSIT_TOKEN();
 error INVALID_GAUGE();
 error INVALID_MINTER();
 error INVALID_MOBI_TOKEN();
@@ -145,6 +146,9 @@ contract MobiusStrategy is Ownable, ReentrancyGuard, IStrategy {
     @param _minAmount Slippage based amount to cover for impermanent loss scenario.
     */
     function invest(address _inboundCurrency, uint256 _minAmount) external payable override nonReentrant onlyOwner {
+        if (address(pool.getToken(0)) != _inboundCurrency) {
+            revert INVALID_DEPOSIT_TOKEN();
+        }
         uint256 contractBalance = IERC20(_inboundCurrency).balanceOf(address(this));
         IERC20(_inboundCurrency).approve(address(pool), contractBalance);
 
@@ -169,6 +173,9 @@ contract MobiusStrategy is Ownable, ReentrancyGuard, IStrategy {
         uint256 _amount,
         uint256 _minAmount
     ) external override nonReentrant onlyOwner {
+        if (address(pool.getToken(0)) != _inboundCurrency) {
+            revert INVALID_DEPOSIT_TOKEN();
+        }
         uint256[] memory amounts = new uint256[](2);
         amounts[0] = _amount;
 
@@ -212,6 +219,9 @@ contract MobiusStrategy is Ownable, ReentrancyGuard, IStrategy {
         uint256 _minAmount,
         bool disableRewardTokenClaim
     ) external override nonReentrant onlyOwner {
+        if (address(pool.getToken(0)) != _inboundCurrency) {
+            revert INVALID_DEPOSIT_TOKEN();
+        }
         bool claimRewards = true;
         if (disableRewardTokenClaim) {
             claimRewards = false;
