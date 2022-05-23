@@ -72,8 +72,8 @@ contract NoExternalStrategy is Ownable, IStrategy {
     @notice
     Returns the instances of the reward tokens
     */
-    function getRewardTokens() external pure override returns (IERC20[] memory) {
-]        return rewardTokens;
+    function getRewardTokens() external view override returns (IERC20[] memory) {
+        return rewardTokens;
     }
 
     //*********************************************************************//
@@ -173,13 +173,13 @@ contract NoExternalStrategy is Ownable, IStrategy {
     */
     function getAccumulatedRewardTokenAmounts(bool disableRewardTokenClaim)
         external
-        pure
+        view
         override
         returns (uint256[] memory)
     {   
         uint256[] memory amounts = new uint256[](rewardTokens.length);
         for (uint i = 0; i < rewardTokens.length; i++) {
-            amounts[i] = rewardTokens.balanceOf(address(this));
+            amounts[i] = rewardTokens[i].balanceOf(address(this));
     }
         return amounts;
     }
