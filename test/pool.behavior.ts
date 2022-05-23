@@ -643,6 +643,15 @@ export const shouldBehaveLikeJoiningGGPool = async (strategyType: string) => {
     }
   });
 
+  it("player withdrawal segment is updated correctly", async () => {
+    const accounts = await ethers.getSigners();
+    const player1 = accounts[2];
+    await joinGame(contracts.goodGhosting, contracts.inboundToken, player1, segmentPayment, segmentPayment);
+    await contracts.goodGhosting.connect(player1).earlyWithdraw(0);
+    const playerInfo = await contracts.goodGhosting.players(player1.address);
+    assert(playerInfo.withdrawalSegment.eq(ethers.BigNumber.from(0)));
+  });
+
   it("increases activePlayersCount when a new player joins", async () => {
     const accounts = await ethers.getSigners();
     const player1 = accounts[2];
