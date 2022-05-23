@@ -1486,10 +1486,10 @@ export const shouldBehaveLikeRedeemingFromGGPool = async (strategyType: string) 
     );
   });
 
-  it("allows admint to set incentive token after initialization", async () => {
-    await contracts.goodGhosting.setIncentiveToken(contracts.inboundToken.address);
-    const incentiveToken = await contracts.goodGhosting.incentiveToken();
-    assert(incentiveToken.toLowerCase() === contracts.inboundToken.address.toLowerCase());
+  it("reverts if the incentive token is same as the inbound or reward token", async () => {
+    await expect(contracts.goodGhosting.setIncentiveToken(contracts.inboundToken.address)).to.be.revertedWith(
+      "INVALID_INCENTIVE_TOKEN()",
+    );
   });
 
   it("allows anyone to redeem from external pool when game is completed", async () => {
