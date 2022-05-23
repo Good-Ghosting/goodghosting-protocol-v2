@@ -390,7 +390,7 @@ contract Pool is Ownable, Pausable, ReentrancyGuard {
         }
         firstSegmentStart = block.timestamp; //gets current time
         waitingRoundSegmentStart = block.timestamp + (segmentLength * depositCount);
-        incentiveToken = _incentiveToken;
+        setIncentiveToken(_incentiveToken);
     }
 
     //*********************************************************************//
@@ -620,7 +620,7 @@ contract Pool is Ownable, Pausable, ReentrancyGuard {
     @dev Set's the incentive token address.
     @param _incentiveToken Incentive token address
     */
-    function setIncentiveToken(IERC20 _incentiveToken) external onlyOwner whenGameIsNotCompleted {
+    function setIncentiveToken(IERC20 _incentiveToken) public onlyOwner whenGameIsNotCompleted {
         if (address(incentiveToken) != address(0)) {
             revert INCENTIVE_TOKEN_ALREADY_SET();
         }
