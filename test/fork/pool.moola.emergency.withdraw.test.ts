@@ -7,13 +7,7 @@ const providerConfig = require("../../providers.config");
 
 contract("Pool with Moola Strategy when admin enables early game completion", accounts => {
   // Only executes this test file for local network fork
-  if (
-    !(
-      ["local-celo"].includes(process.env.NETWORK ? process.env.NETWORK : "") &&
-      configs.deployConfigs.strategy === "moola"
-    )
-  )
-    return;
+  if (!["local-celo"].includes(process.env.NETWORK ? process.env.NETWORK : "")) return;
 
   const unlockedDaiAccount = process.env.WHALE_ADDRESS_FORKED_NETWORK;
   let providersConfigs: any;

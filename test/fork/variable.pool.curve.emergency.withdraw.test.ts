@@ -14,14 +14,7 @@ const providerConfig = require("../../providers.config");
 
 contract("Variable Pool with Curve Strategy when admin enables early game completion", accounts => {
   // Only executes this test file for local network fork
-  if (
-    !(
-      (["local-variable-polygon"].includes(process.env.NETWORK ? process.env.NETWORK : "") &&
-        configs.deployConfigs.strategy === "polygon-curve-aave") ||
-      configs.deployConfigs.strategy === "polygon-curve-atricrypto"
-    )
-  )
-    return;
+  if (!["local-variable-polygon"].includes(process.env.NETWORK ? process.env.NETWORK : "")) return;
 
   const unlockedDaiAccount = process.env.WHALE_ADDRESS_FORKED_NETWORK;
   let providersConfigs: any;
