@@ -397,6 +397,55 @@ contract Pool is Ownable, Pausable, ReentrancyGuard {
     // ------------------------- internal methods -------------------------- //
     //*********************************************************************//
 
+    function gameAccounting(uint256 _totalBalance) internal returns (uint256) {
+        uint256 _grossInterest = 0;
+        if (_totalBalance >= netTotalGamePrincipal) {
+            _grossInterest = _totalBalance.sub(netTotalGamePrincipal);
+        } else {
+            // handling impermanent loss case
+            impermanentLossShare = (_totalBalance.mul(uint256(100))).div(netTotalGamePrincipal);
+            netTotalGamePrincipal = _totalBalance;
+        }
+        return _grossInterest;
+    }
+
+    function adminAccounting(
+        uint256 _grossInterest,
+        uint256[] memory _grossRewardTokenAmount,
+        uint256[] memory _adminFeeAmount
+    ) internal {
+        // calculates the performance/admin fee (takes a cut - the admin percentage fee - from the pool's interest, strategy rewards).
+        // calculates the "gameInterest" (net interest) that will be split among winners in the game
+        // calculates the rewardTokenAmounts that will be split among winners in the game
+        if (adminFee > 0) {
+            _adminFeeAmount[0] = (_grossInterest.mul(adminFee)).div(uint256(100));
+            totalGameInterest = _grossInterest.sub(_adminFeeAmount[0]);
+
+            for (uint256 i = 0; i < rewardTokens.length; i++) {
+                _adminFeeAmount[i + 1] = (_grossRewardTokenAmount[i].mul(adminFee)).div(uint256(100));
+                rewardTokenAmounts[i] = _grossRewardTokenAmount[i].sub(_adminFeeAmount[i + 1]);
+            }
+        } else {
+            totalGameInterest = _grossInterest;
+            for (uint256 i = 0; i < rewardTokens.length; i++) {
+                rewardTokenAmounts[i] = _grossRewardTokenAmount[i];
+            }
+        }
+
+        // when there's no winners, admin takes all the interest + rewards
+        if (winnerCount == 0 && !emergencyWithdraw) {
+            adminFeeAmount[0] = _grossInterest;
+            for (uint256 i = 0; i < rewardTokens.length; i++) {
+                adminFeeAmount[i + 1] = _grossRewardTokenAmount[i];
+            }
+        } else if (adminFeeAmount[0] == 0) {
+            adminFeeAmount[0] = _adminFeeAmount[0];
+            for (uint256 i = 0; i < rewardTokens.length; i++) {
+                adminFeeAmount[i + 1] = _adminFeeAmount[i + 1];
+            }
+        }
+    }
+
     /**
     @dev Initializes the player stats when they join.
     @param _minAmount Slippage based amount to cover for impermanent loss scenario.
@@ -516,17 +565,7 @@ contract Pool is Ownable, Pausable, ReentrancyGuard {
             ? address(this).balance.add(strategy.getTotalAmount())
             : IERC20(inboundToken).balanceOf(address(this)).add(strategy.getTotalAmount());
 
-        // calculates gross interest
-        uint256 grossInterest = 0;
-
-        // impermanent loss checks
-        if (totalBalance >= netTotalGamePrincipal) {
-            grossInterest = totalBalance.sub(netTotalGamePrincipal);
-        } else {
-            // handling impermanent loss case
-            impermanentLossShare = (totalBalance.mul(uint256(100))).div(netTotalGamePrincipal);
-            netTotalGamePrincipal = totalBalance;
-        }
+        uint256 grossInterest = gameAccounting(totalBalance);
 
         uint256[] memory grossRewardTokenAmount = new uint256[](rewardTokens.length);
         uint256[] memory _adminFeeAmount = new uint256[](rewardTokens.length + 1);
@@ -541,43 +580,13 @@ contract Pool is Ownable, Pausable, ReentrancyGuard {
             }
         }
 
-        // calculates the performance/admin fee (takes a cut - the admin percentage fee - from the pool's interest, strategy rewards).
-        // calculates the "gameInterest" (net interest) that will be split among winners in the game
-        // calculates the rewardTokenAmounts that will be split among winners in the game
-        // the admin fee will only be caluclated the first time once hence the nested if to ensure that although this method is called multiple times but the admin fee only get's set once
-        if (adminFee > 0) {
-            // since this method is called when each player withdraws in a variable deposit game/pool so we need to make sure that if the admin fee % is more than 0 then the fee is only calculated once.
-            if (adminFeeAmount[0] == 0) {
-                _adminFeeAmount[0] = (grossInterest.mul(adminFee)).div(uint256(100));
-                for (uint256 i = 0; i < rewardTokens.length; i++) {
-                    _adminFeeAmount[i + 1] = (grossRewardTokenAmount[i].mul(adminFee)).div(uint256(100));
-                    rewardTokenAmounts[i] = grossRewardTokenAmount[i].sub(_adminFeeAmount[i + 1]);
-                }
-
-                totalGameInterest = grossInterest.sub(_adminFeeAmount[0]);
-            }
-        } else {
-            totalGameInterest = grossInterest;
-            for (uint256 i = 0; i < rewardTokens.length; i++) {
-                rewardTokenAmounts[i] = grossRewardTokenAmount[i];
-            }
-        }
-
-        // when there's no winners, admin takes all the interest + rewards
-        if (winnerCount == 0 && !emergencyWithdraw) {
-            adminFeeAmount[0] = grossInterest;
-            for (uint256 i = 0; i < rewardTokens.length; i++) {
-                adminFeeAmount[i + 1] = grossRewardTokenAmount[i];
-            }
-        } else if (adminFeeAmount[0] == 0) {
-            adminFeeAmount[0] = _adminFeeAmount[0];
-            for (uint256 i = 0; i < rewardTokens.length; i++) {
-                adminFeeAmount[i + 1] = _adminFeeAmount[i + 1];
-            }
+        if (!redeemed) {
+            adminAccounting(grossInterest, grossRewardTokenAmount, _adminFeeAmount);
+            redeemed = true;
         }
 
         if (address(incentiveToken) != address(0)) {
-           totalIncentiveAmount = IERC20(incentiveToken).balanceOf(address(this));
+            totalIncentiveAmount = IERC20(incentiveToken).balanceOf(address(this));
         }
         emit VariablePoolParamsSet(
             totalBalance,
@@ -617,7 +626,8 @@ contract Pool is Ownable, Pausable, ReentrancyGuard {
             for (uint256 i = 0; i < _rewardTokens.length; i++) {
                 // If there's an incentive token address defined, sets the total incentive amount to be distributed among winners.
                 if (
-                    (address(_rewardTokens[i]) == address(_incentiveToken) || inboundToken == address(_incentiveToken))
+                    (address(_rewardTokens[i]) == address(_incentiveToken) ||
+                        (inboundToken != address(0) && inboundToken == address(_incentiveToken)))
                 ) {
                     revert INVALID_INCENTIVE_TOKEN();
                 }
@@ -1047,16 +1057,7 @@ contract Pool is Ownable, Pausable, ReentrancyGuard {
             totalBalance = IERC20(inboundToken).balanceOf(address(this));
         }
 
-        // calculates gross interest
-        uint256 grossInterest = 0;
-        // Sanity check to avoid reverting due to overflow in the "subtraction" below.
-        if (totalBalance >= netTotalGamePrincipal) {
-            grossInterest = totalBalance.sub(netTotalGamePrincipal);
-        } else {
-            // handling impermanent loss case
-            impermanentLossShare = (totalBalance.mul(uint256(100))).div(netTotalGamePrincipal);
-            netTotalGamePrincipal = totalBalance;
-        }
+        uint256 grossInterest = gameAccounting(totalBalance);
 
         rewardTokens = strategy.getRewardTokens();
         uint256[] memory grossRewardTokenAmount = new uint256[](rewardTokens.length);
@@ -1070,39 +1071,10 @@ contract Pool is Ownable, Pausable, ReentrancyGuard {
             }
         }
 
-        // calculates the performance/admin fee (takes a cut - the admin percentage fee - from the pool's interest, strategy rewards).
-        // calculates the "gameInterest" (net interest) that will be split among winners in the game
-        // calculates the rewardTokenAmounts that will be split among winners in the game
+        adminAccounting(grossInterest, grossRewardTokenAmount, _adminFeeAmount);
 
-        if (adminFee > 0) {
-            _adminFeeAmount[0] = (grossInterest.mul(adminFee)).div(uint256(100));
-            totalGameInterest = grossInterest.sub(_adminFeeAmount[0]);
-
-            for (uint256 i = 0; i < rewardTokens.length; i++) {
-                _adminFeeAmount[i + 1] = (grossRewardTokenAmount[i].mul(adminFee)).div(uint256(100));
-                rewardTokenAmounts[i] = grossRewardTokenAmount[i].sub(_adminFeeAmount[i + 1]);
-            }
-        } else {
-            totalGameInterest = grossInterest;
-            for (uint256 i = 0; i < rewardTokens.length; i++) {
-                rewardTokenAmounts[i] = grossRewardTokenAmount[i];
-            }
-        }
-
-        // when there's no winners, admin takes all the interest + rewards
-        if (winnerCount == 0 && !emergencyWithdraw) {
-            adminFeeAmount[0] = grossInterest;
-            for (uint256 i = 0; i < rewardTokens.length; i++) {
-                adminFeeAmount[i + 1] = grossRewardTokenAmount[i];
-            }
-        } else if (adminFeeAmount[0] == 0) {
-            adminFeeAmount[0] = _adminFeeAmount[0];
-            for (uint256 i = 0; i < rewardTokens.length; i++) {
-                adminFeeAmount[i + 1] = _adminFeeAmount[i + 1];
-            }
-        }
         if (address(incentiveToken) != address(0)) {
-           totalIncentiveAmount = IERC20(incentiveToken).balanceOf(address(this));
+            totalIncentiveAmount = IERC20(incentiveToken).balanceOf(address(this));
         }
 
         emit FundsRedeemedFromExternalPool(
