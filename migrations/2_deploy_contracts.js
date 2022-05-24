@@ -200,17 +200,17 @@ module.exports = function (deployer, network, accounts) {
     if (config.deployConfigs.strategy === "mobius-cUSD-DAI" || config.deployConfigs.strategy === "mobius-cUSD-USDC") {
       deploymentResult.mobiusPoolAddress = strategyConfig.pool;
       deploymentResult.mobiusGaugeAddress = strategyConfig.gauge;
-      deploymentResult.minterAddress = strategyConfig.minter;
-      deploymentResult.mobiAddress = providerConfig.providers["celo"].tokens["mobi"].address;
-      deploymentResult.celoAddress = providerConfig.providers["celo"].tokens["celo"].address;
+      deploymentResult.mobiusMinterAddress = strategyConfig.minter;
+      deploymentResult.strategyMobiAddress = providerConfig.providers["celo"].tokens["mobi"].address;
+      deploymentResult.strategyCeloAddress = providerConfig.providers["celo"].tokens["celo"].address;
       var mobiusStrategyParameterTypes = ["address", "address", "address", "address", "address"];
 
       var mobiusStrategyValues = [
         deploymentResult.mobiusPoolAddress,
         deploymentResult.mobiusGaugeAddress,
-        deploymentResult.minterAddress,
-        deploymentResult.mobiAddress,
-        deploymentResult.celoAddress,
+        deploymentResult.mobiusMinterAddress,
+        deploymentResult.strategyMobiAddress,
+        deploymentResult.strategyCeloAddress,
       ];
 
       deploymentResult.strategyEncodedParameters = abi
@@ -222,7 +222,7 @@ module.exports = function (deployer, network, accounts) {
       deploymentResult.dataProviderMoolaAddress = strategyConfig.dataProvider;
       deploymentResult.incentiveControllerMoolaAddress = "0x0000000000000000000000000000000000000000";
       deploymentResult.rewardTokenMoolaAddress = "0x0000000000000000000000000000000000000000";
-      var moolaStrategyParameterTypes = ["address", "address", "address", "address", "address"];
+      var moolaStrategyParameterTypes = ["address", "address", "address", "address", "address", "address"];
 
       var moolaStrategyValues = [
         deploymentResult.lendingPoolProviderMoolaAddress,
@@ -230,6 +230,7 @@ module.exports = function (deployer, network, accounts) {
         deploymentResult.dataProviderMoolaAddress,
         deploymentResult.incentiveControllerMoolaAddress,
         deploymentResult.rewardTokenMoolaAddress,
+        deploymentResult.inboundCurrencyAddress,
       ];
       deploymentResult.strategyEncodedParameters = abi
         .rawEncode(moolaStrategyParameterTypes, moolaStrategyValues)
@@ -255,19 +256,19 @@ module.exports = function (deployer, network, accounts) {
     } else {
       deploymentResult.curvePoolAddress = strategyConfig.pool;
       deploymentResult.curveGaugeAddress = strategyConfig.gauge;
-      deploymentResult.tokenIndex = strategyConfig.tokenIndex;
-      deploymentResult.poolType = strategyConfig.poolType;
-      deploymentResult.rewardTokenAddress = providerConfig.providers["polygon"].tokens["wmatic"].address;
-      deploymentResult.curveTokenAddress = providerConfig.providers["polygon"].tokens["curve"].address;
+      deploymentResult.strategyTokenIndex = strategyConfig.tokenIndex;
+      deploymentResult.strategyPoolType = strategyConfig.poolType;
+      deploymentResult.strategyRewardTokenAddress = providerConfig.providers["polygon"].tokens["wmatic"].address;
+      deploymentResult.strategyCurveTokenAddress = providerConfig.providers["polygon"].tokens["curve"].address;
 
       var curveStrategyParameterTypes = ["address", "address", "uint", "uint", "address", "address"];
       var curveStrategyValues = [
         deploymentResult.curvePoolAddress,
         deploymentResult.curveGaugeAddress,
-        deploymentResult.tokenIndex,
-        deploymentResult.poolType,
-        deploymentResult.rewardTokenAddress,
-        deploymentResult.curveTokenAddress,
+        deploymentResult.strategyTokenIndex,
+        deploymentResult.strategyPoolType,
+        deploymentResult.strategyRewardTokenAddress,
+        deploymentResult.strategyCurveTokenAddress,
       ];
       deploymentResult.strategyEncodedParameters = abi
         .rawEncode(curveStrategyParameterTypes, curveStrategyValues)
