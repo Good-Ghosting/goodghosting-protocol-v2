@@ -49,7 +49,7 @@ export const shouldBehaveLikeGGPool = async (strategyType: string) => {
     );
   });
 
-  it("admin is able to reduce eary withdrawal fees", async () => {
+  it("admin is able to reduce early withdrawal fees", async () => {
     await contracts.goodGhosting.lowerEarlyWithdrawFees(0);
     const earlyWithdrawalFee = await contracts.goodGhosting.earlyWithdrawalFee();
     assert(earlyWithdrawalFee.eq(ethers.BigNumber.from(0)));
@@ -103,6 +103,18 @@ export const shouldBehaveLikeGGPool = async (strategyType: string) => {
 
   it("reverts if the admin triggers early game exit when no one has joined the game", async () => {
     await expect(contracts.goodGhosting.enableEmergencyWithdraw()).to.be.revertedWith("EARLY_EXIT_NOT_POSSIBLE()");
+  });
+
+  it("reverts if a player try to join a game after emergency withdraw has been called by the admin", async () => {
+    const accounts = await ethers.getSigners();
+    const player1 = accounts[2];
+    const player2 = accounts[3];
+    await joinGame(contracts.goodGhosting, contracts.inboundToken, player2, segmentPayment, segmentPayment);
+    await contracts.goodGhosting.enableEmergencyWithdraw();
+    await approveToken(contracts.inboundToken, player1, contracts.goodGhosting.address, segmentPayment);
+    await expect(contracts.goodGhosting.connect(player1).joinGame(0, segmentPayment)).to.be.revertedWith(
+      "GAME_COMPLETED()",
+    );
   });
 
   it("reverts if admin calls the enableEmergencyWithdraw function multiple times", async () => {
@@ -1045,7 +1057,12 @@ export const shouldBehaveLikeDepositingGGPool = async (strategyType: string) => 
     const currentSegment = await contracts.goodGhosting.getCurrentSegment();
     await expect(contracts.goodGhosting.connect(player1).makeDeposit(0, segmentPayment))
       .to.emit(contracts.goodGhosting, "Deposit")
-      .withArgs(player1.address, currentSegment, ethers.BigNumber.from(segmentPayment));
+      .withArgs(
+        player1.address,
+        currentSegment,
+        ethers.BigNumber.from(segmentPayment),
+        ethers.BigNumber.from(segmentPayment),
+      );
   });
 
   it("transfers the payment to the contract", async () => {
@@ -1268,7 +1285,12 @@ export const shouldBehaveLikeEarlyWithdrawingGGPool = async (strategyType: strin
 
     await expect(contracts.goodGhosting.connect(player1).earlyWithdraw(0))
       .to.emit(contracts.goodGhosting, "EarlyWithdrawal")
-      .withArgs(player1.address, playerInfo.amountPaid.sub(feeAmount), ethers.BigNumber.from(0));
+      .withArgs(
+        player1.address,
+        playerInfo.amountPaid.sub(feeAmount),
+        ethers.BigNumber.from(0),
+        ethers.BigNumber.from(0),
+      );
   });
 
   it("user is able to withdraw in the last segment", async () => {
@@ -1290,7 +1312,12 @@ export const shouldBehaveLikeEarlyWithdrawingGGPool = async (strategyType: strin
           .div(ethers.BigNumber.from(100));
         await expect(contracts.goodGhosting.connect(player1).earlyWithdraw(0))
           .to.emit(contracts.goodGhosting, "EarlyWithdrawal")
-          .withArgs(player1.address, playerInfo.amountPaid.sub(feeAmount), ethers.BigNumber.from(0));
+          .withArgs(
+            player1.address,
+            playerInfo.amountPaid.sub(feeAmount),
+            ethers.BigNumber.from(0),
+            ethers.BigNumber.from(0),
+          );
       } else {
         // protocol deposit of the prev. deposit
         await approveToken(contracts.inboundToken, player1, contracts.goodGhosting.address, segmentPayment);
@@ -1325,7 +1352,12 @@ export const shouldBehaveLikeEarlyWithdrawingGGPool = async (strategyType: strin
       const player2Info = await contracts.goodGhosting.players(player2.address);
       await expect(contracts.goodGhosting.connect(player1).earlyWithdraw("900000000000000000"))
         .to.emit(contracts.goodGhosting, "EarlyWithdrawal")
-        .withArgs(player1.address, player1Info.amountPaid.sub(feeAmount), player2Info.amountPaid);
+        .withArgs(
+          player1.address,
+          player1Info.amountPaid.sub(feeAmount),
+          player2Info.amountPaid,
+          player2Info.netAmountPaid,
+        );
     });
   }
 
@@ -1353,7 +1385,12 @@ export const shouldBehaveLikeEarlyWithdrawingGGPool = async (strategyType: strin
     const feeAmount = player1Info.amountPaid.mul(ethers.BigNumber.from(1)).div(ethers.BigNumber.from(100));
     await expect(contracts.goodGhosting.connect(player1).earlyWithdraw(0))
       .to.emit(contracts.goodGhosting, "EarlyWithdrawal")
-      .withArgs(player1.address, player1Info.amountPaid.sub(feeAmount), player2Info.amountPaid);
+      .withArgs(
+        player1.address,
+        player1Info.amountPaid.sub(feeAmount),
+        player2Info.amountPaid,
+        player2Info.netAmountPaid,
+      );
   });
 
   it("reduces winner count when there are 2 player in the pool and one of them withdrew early in the last segment", async () => {
@@ -5672,7 +5709,12 @@ export const shouldBehaveLikeGGPoolWithTransactionalToken = async (strategyType:
     const playerInfo = await contracts.goodGhosting.players(player1.address);
     await expect(result)
       .to.emit(contracts.goodGhosting, "EarlyWithdrawal")
-      .withArgs(player1.address, playerInfo.amountPaid.sub(feeAmount), ethers.BigNumber.from(0));
+      .withArgs(
+        player1.address,
+        playerInfo.amountPaid.sub(feeAmount),
+        ethers.BigNumber.from(0),
+        ethers.BigNumber.from(0),
+      );
   });
 
   it("admin is able to withdraw rewards, when there are no winners in the pool", async () => {
@@ -5788,7 +5830,12 @@ export const shouldBehaveLikeGGPoolWithSameTokenAddresses = async (strategyType:
     const playerInfo = await contracts.goodGhosting.players(player1.address);
     await expect(result)
       .to.emit(contracts.goodGhosting, "EarlyWithdrawal")
-      .withArgs(player1.address, playerInfo.amountPaid.sub(feeAmount), ethers.BigNumber.from(0));
+      .withArgs(
+        player1.address,
+        playerInfo.amountPaid.sub(feeAmount),
+        ethers.BigNumber.from(0),
+        ethers.BigNumber.from(0),
+      );
   });
 
   it("admin is able to withdraw rewards, when there are no winners in the pool", async () => {

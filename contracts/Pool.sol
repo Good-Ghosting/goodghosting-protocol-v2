@@ -185,7 +185,7 @@ contract Pool is Ownable, Pausable, ReentrancyGuard {
     //*********************************************************************//
     event JoinedGame(address indexed player, uint256 amount);
 
-    event Deposit(address indexed player, uint256 indexed segment, uint256 amount);
+    event Deposit(address indexed player, uint256 indexed segment, uint256 amount, uint256 netAmount);
 
     event Withdrawal(address indexed player, uint256 amount, uint256 playerIncentive, uint256[] playerRewardAmounts);
 
@@ -205,7 +205,7 @@ contract Pool is Ownable, Pausable, ReentrancyGuard {
         uint256[] totalRewardAmounts
     );
 
-    event EarlyWithdrawal(address indexed player, uint256 amount, uint256 totalGamePrincipal);
+    event EarlyWithdrawal(address indexed player, uint256 amount, uint256 totalGamePrincipal, uint256 netTotalGamePrincipal);
 
     event AdminWithdrawal(
         address indexed admin,
@@ -758,6 +758,7 @@ contract Pool is Ownable, Pausable, ReentrancyGuard {
         virtual
         whenGameIsInitialized
         whenNotPaused
+        whenGameIsNotCompleted
     {
         _joinGame(_minAmount, _depositAmount);
     }
@@ -818,7 +819,7 @@ contract Pool is Ownable, Pausable, ReentrancyGuard {
             segmentCounter[currentSegment] -= 1;
         }
 
-        emit EarlyWithdrawal(msg.sender, withdrawAmount, totalGamePrincipal);
+        emit EarlyWithdrawal(msg.sender, withdrawAmount, totalGamePrincipal, netTotalGamePrincipal);
         strategy.earlyWithdraw(inboundToken, withdrawAmount, _minAmount);
         if (isTransactionalToken) {
             // safety check
@@ -1033,7 +1034,7 @@ contract Pool is Ownable, Pausable, ReentrancyGuard {
             }
         }
         uint256 netAmount = strategy.getNetDepositAmount(amount);
-        emit Deposit(msg.sender, currentSegment, amount);
+        emit Deposit(msg.sender, currentSegment, amount, netAmount);
         _transferInboundTokenToContract(_minAmount, amount, netAmount);
     }
 
