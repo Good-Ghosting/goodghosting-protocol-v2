@@ -72,7 +72,7 @@ contract AaveStrategy is Ownable, ReentrancyGuard, IStrategy {
     Get net deposit for a deposit amount (used only for amm strategies).
     @return net amount.
     */
-    function getNetDepositAmount(uint256 _amount) external view override returns (uint256) {
+    function getNetDepositAmount(uint256 _amount) external pure override returns (uint256) {
         return _amount;
     }
 
@@ -277,6 +277,7 @@ contract AaveStrategy is Ownable, ReentrancyGuard, IStrategy {
     */
     function getAccumulatedRewardTokenAmounts(bool disableRewardTokenClaim)
         external
+        view
         override
         returns (uint256[] memory)
     {

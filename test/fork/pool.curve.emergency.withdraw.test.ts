@@ -10,20 +10,32 @@ const curveGauge = require("../../artifacts/contracts/curve/ICurveGauge.sol/ICur
 const aavepoolABI = require("../../abi-external/curve-aave-pool-abi.json");
 const atricryptopoolABI = require("../../abi-external/curve-atricrypto-pool-abi.json");
 const configs = require("../../deploy.config");
+const providerConfig = require("../../providers.config");
 
 contract("Pool with Curve Strategy when admin enables early game completion", accounts => {
   // Only executes this test file for local network fork
-  if (!["local-polygon-curve"].includes(process.env.NETWORK ? process.env.NETWORK : "")) return;
+  if (
+    !(
+      (["local-polygon"].includes(process.env.NETWORK ? process.env.NETWORK : "") &&
+        configs.deployConfigs.strategy === "polygon-curve-aave") ||
+      configs.deployConfigs.strategy === "polygon-curve-atricrypto"
+    )
+  )
+    return;
 
   const unlockedDaiAccount = process.env.WHALE_ADDRESS_FORKED_NETWORK;
   let providersConfigs: any;
   let GoodGhostingArtifact: any;
   let curve: any;
   let wmatic: any;
-  if (process.env.NETWORK === "local-polygon-curve") {
-    GoodGhostingArtifact = Pool;
-    providersConfigs = configs.providers["aave"]["polygon-curve"];
+  GoodGhostingArtifact = Pool;
+
+  if (configs.deployConfigs.strategy === "polygon-curve-aave") {
+    providersConfigs = providerConfig.providers["polygon"].strategies["polygon-curve-aave"];
+  } else {
+    providersConfigs = providerConfig.providers["polygon"].strategies["polygon-curve-atricrypto"];
   }
+
   const { depositCount, segmentLength, segmentPayment: segmentPaymentInt, adminFee } = configs.deployConfigs;
   let token: any;
   let pool: any;
@@ -43,9 +55,12 @@ contract("Pool with Curve Strategy when admin enables early game completion", ac
       } else {
         pool = new web3.eth.Contract(atricryptopoolABI, providersConfigs.pool);
       }
-      token = new web3.eth.Contract(wmaticABI.abi, providersConfigs.dai.address);
-      curve = new web3.eth.Contract(wmaticABI.abi, providersConfigs.curve);
-      wmatic = new web3.eth.Contract(wmaticABI.abi, providersConfigs.wmatic);
+      token = new web3.eth.Contract(
+        wmaticABI.abi,
+        providerConfig.providers["polygon"].tokens[configs.deployConfigs.inboundCurrencySymbol].address,
+      );
+      curve = new web3.eth.Contract(wmaticABI.abi, providerConfig.providers["polygon"].tokens["curve"].address);
+      wmatic = new web3.eth.Contract(wmaticABI.abi, providerConfig.providers["polygon"].tokens["wmatic"].address);
 
       goodGhosting = await GoodGhostingArtifact.deployed();
       curveStrategy = await CurveStrategy.deployed();
@@ -123,6 +138,7 @@ contract("Pool with Curve Strategy when admin enables early game completion", ac
       for (let segmentIndex = 1; segmentIndex < depositCount; segmentIndex++) {
         await timeMachine.advanceTime(segmentLength);
       }
+
       const userSlippage = 1;
       let minAmount;
       let curveBalanceBeforeRedeem, curveBalanceAfterRedeem, wmaticBalanceBeforeRedeem, wmaticBalanceAfterRedeem;
@@ -130,6 +146,7 @@ contract("Pool with Curve Strategy when admin enables early game completion", ac
       wmaticBalanceBeforeRedeem = await wmatic.methods.balanceOf(goodGhosting.address).call();
 
       const gaugeTokenBalance = await gaugeToken.methods.balanceOf(curveStrategy.address).call();
+
       minAmount = await pool.methods
         .calc_withdraw_one_coin(gaugeTokenBalance.toString(), providersConfigs.tokenIndex)
         .call();
@@ -153,7 +170,7 @@ contract("Pool with Curve Strategy when admin enables early game completion", ac
       curveBalanceAfterRedeem = await curve.methods.balanceOf(goodGhosting.address).call();
       wmaticBalanceAfterRedeem = await wmatic.methods.balanceOf(goodGhosting.address).call();
 
-      assert(web3.utils.toBN(curveBalanceBeforeRedeem).lt(web3.utils.toBN(curveBalanceAfterRedeem)));
+      assert(web3.utils.toBN(curveBalanceBeforeRedeem).lte(web3.utils.toBN(curveBalanceAfterRedeem)));
       // for some reason forking mainnet we don't get back wmatic rewards so the before and after balance is equal
       assert(web3.utils.toBN(wmaticBalanceBeforeRedeem).lte(web3.utils.toBN(wmaticBalanceAfterRedeem)));
     });
@@ -187,7 +204,7 @@ contract("Pool with Curve Strategy when admin enables early game completion", ac
         assert(difference.gt(netAmountPaid), "expected balance diff to be more than paid amount");
 
         assert(
-          curveRewardBalanceAfter.gt(curveRewardBalanceBefore),
+          curveRewardBalanceAfter.gte(curveRewardBalanceBefore),
           "expected curve balance after withdrawal to be greater than before withdrawal",
         );
 
@@ -226,7 +243,7 @@ contract("Pool with Curve Strategy when admin enables early game completion", ac
         curveRewardBalanceAfter = web3.utils.toBN(await curve.methods.balanceOf(admin).call({ from: admin }));
         wmaticRewardBalanceAfter = web3.utils.toBN(await wmatic.methods.balanceOf(admin).call({ from: admin }));
         assert(
-          curveRewardBalanceAfter.gt(curveRewardBalanceBefore),
+          curveRewardBalanceAfter.gte(curveRewardBalanceBefore),
           "expected curve balance after withdrawal to be greater than before withdrawal",
         );
         // for some reason forking mainnet we don't get back wmatic rewards(wamtic rewards were stopped from curve's end IMO)

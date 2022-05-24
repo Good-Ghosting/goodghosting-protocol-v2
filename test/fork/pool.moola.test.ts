@@ -3,17 +3,24 @@ const timeMachine = require("ganache-time-traveler");
 const truffleAssert = require("truffle-assertions");
 const wmatic = require("../../artifacts/contracts/mock/MintableERC20.sol/MintableERC20.json");
 const configs = require("../../deploy.config");
+const providerConfig = require("../../providers.config");
 
 contract("Pool with Moola Strategy", accounts => {
   // Only executes this test file for local network fork
-  if (!["local-celo-moola"].includes(process.env.NETWORK ? process.env.NETWORK : "")) return;
+  if (
+    !(
+      ["local-celo"].includes(process.env.NETWORK ? process.env.NETWORK : "") &&
+      configs.deployConfigs.strategy === "moola"
+    )
+  )
+    return;
 
   const unlockedDaiAccount = process.env.WHALE_ADDRESS_FORKED_NETWORK;
   let providersConfigs: any;
   let GoodGhostingArtifact: any;
-  if (process.env.NETWORK === "local-celo-moola") {
+  if (configs.deployConfigs.strategy === "moola") {
     GoodGhostingArtifact = Pool;
-    providersConfigs = configs.providers.celo.moola;
+    providersConfigs = providerConfig.providers.celo.strategies.moola;
   }
   const { depositCount, segmentLength, segmentPayment: segmentPaymentInt, adminFee } = configs.deployConfigs;
   // const BN = web3.utils.toBN; // https://web3js.readthedocs.io/en/v1.2.7/web3-utils.html#bn
@@ -28,7 +35,10 @@ contract("Pool with Moola Strategy", accounts => {
 
   describe("simulates a full game with 5 players and 4 of them winning the game and with admin fee % as 0", async () => {
     it("initializes contract instances and transfers Inbound Token to players", async () => {
-      token = new web3.eth.Contract(wmatic.abi, providersConfigs.cusd.address);
+      token = new web3.eth.Contract(
+        wmatic.abi,
+        providerConfig.providers["celo"].tokens[configs.deployConfigs.inboundCurrencySymbol].address,
+      );
 
       goodGhosting = await GoodGhostingArtifact.deployed();
 

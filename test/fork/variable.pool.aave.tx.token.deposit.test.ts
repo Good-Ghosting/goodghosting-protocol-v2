@@ -1,7 +1,8 @@
 import * as chai from "chai";
 import { solidity } from "ethereum-waffle";
 const { ethers } = require("hardhat");
-const { providers, deployConfigs } = require("../../deploy.config");
+const { deployConfigs } = require("../../deploy.config");
+const { providers } = require("../../providers.config");
 const lendingProvider = require("../../artifacts/contracts/aave/ILendingPoolAddressesProvider.sol/ILendingPoolAddressesProvider.json");
 import * as incentiveController from "../../artifacts/contracts/aave/IncentiveController.sol/IncentiveController.json";
 const wmatic = require("../../abi-external/wmatic.abi.json");
@@ -11,7 +12,6 @@ import * as dataProvider from "../../artifacts/contracts/mock/LendingPoolAddress
 chai.use(solidity);
 const { expect } = chai;
 
-let impersonatedSigner: any;
 let wmaticInstance: any;
 
 let accounts: any[];
@@ -24,12 +24,10 @@ const ZERO_ADDRESS = "0x0000000000000000000000000000000000000000";
 
 describe("Aave Variable Deposit Pool Fork Tests with the deposit token as transsactional token", () => {
   if (
-    process.env.NETWORK === "local-celo-mobius" ||
-    process.env.NETWORK === "local-celo-moola" ||
-    process.env.NETWORK === "local-variable-celo-moola" ||
-    process.env.NETWORK === "local-variable-celo-mobius" ||
-    process.env.NETWORK === "local-polygon-curve" ||
-    process.env.NETWORK === "local-variable-polygon-curve"
+    process.env.NETWORK === "local-celo" ||
+    process.env.NETWORK === "local-variable-celo" ||
+    process.env.NETWORK === "local-polygon" ||
+    process.env.NETWORK === "local-variable-polygon"
   ) {
     return;
   }
@@ -43,27 +41,27 @@ describe("Aave Variable Deposit Pool Fork Tests with the deposit token as transs
     let lendingPoolAddressProviderInstance: any, dataProviderInstance: any, incentiveControllerInstance: any;
 
     lendingPoolAddressProviderInstance = new ethers.Contract(
-      providers["aave"]["polygon"].lendingPoolAddressProvider,
+      providers["polygon"].strategies["aaveV2"].lendingPoolAddressProvider,
       lendingProvider.abi,
-      impersonatedSigner,
+      accounts[0],
     );
     dataProviderInstance = new ethers.Contract(
-      providers["aave"]["polygon"].dataProvider,
+      providers["polygon"].strategies["aaveV2"].dataProvider,
       dataProvider.abi,
-      impersonatedSigner,
+      accounts[0],
     );
     incentiveControllerInstance = new ethers.Contract(
-      providers["aave"]["polygon"].incentiveController,
+      providers["polygon"].strategies["aaveV2"].incentiveController,
       incentiveController.abi,
-      impersonatedSigner,
+      accounts[0],
     );
 
-    wmaticInstance = new ethers.Contract(providers["aave"]["polygon"].wmatic, wmatic, accounts[0]);
+    wmaticInstance = new ethers.Contract(providers["polygon"].tokens["wmatic"].address, wmatic, accounts[0]);
 
     strategy = await ethers.getContractFactory("AaveStrategy", accounts[0]);
     strategy = await strategy.deploy(
       lendingPoolAddressProviderInstance.address,
-      providers["aave"]["polygon"].wethGateway,
+      providers["polygon"].strategies["aaveV2"].wethGateway,
       dataProviderInstance.address,
       incentiveControllerInstance.address,
       wmaticInstance.address,

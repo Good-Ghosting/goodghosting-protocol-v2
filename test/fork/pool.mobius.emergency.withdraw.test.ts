@@ -6,19 +6,30 @@ const wmatic = require("../../artifacts/contracts/mock/MintableERC20.sol/Mintabl
 const mobiusPool = require("../../artifacts/contracts/mobius/IMobiPool.sol/IMobiPool.json");
 const mobiusGauge = require("../../artifacts/contracts/mobius/IMobiGauge.sol/IMobiGauge.json");
 const configs = require("../../deploy.config");
+const providerConfig = require("../../providers.config");
 
 contract("Pool with Mobius Strategy when admin enables early game completion", accounts => {
   // Only executes this test file for local network fork
-  if (!["local-celo-mobius"].includes(process.env.NETWORK ? process.env.NETWORK : "")) return;
+  if (
+    !(
+      (["local-celo"].includes(process.env.NETWORK ? process.env.NETWORK : "") &&
+        configs.deployConfigs.strategy === "mobius-cUSD-DAI") ||
+      configs.deployConfigs.strategy === "mobius-cUSD-USDC"
+    )
+  )
+    return;
 
   const unlockedDaiAccount = process.env.WHALE_ADDRESS_FORKED_NETWORK;
   let providersConfigs: any;
   let GoodGhostingArtifact: any;
   let mobi: any;
   let celo: any;
-  if (process.env.NETWORK === "local-celo-mobius") {
-    GoodGhostingArtifact = Pool;
-    providersConfigs = configs.providers.celo.mobius;
+  GoodGhostingArtifact = Pool;
+
+  if (configs.deployConfigs.strategy === "mobius-cUSD-DAI") {
+    providersConfigs = providerConfig.providers.celo.strategies["mobius-cUSD-DAI"];
+  } else {
+    providersConfigs = providerConfig.providers.celo.strategies["mobius-cUSD-USDC"];
   }
   const { depositCount, segmentLength, segmentPayment: segmentPaymentInt, adminFee } = configs.deployConfigs;
   let token: any;
@@ -34,9 +45,13 @@ contract("Pool with Mobius Strategy when admin enables early game completion", a
   describe("simulates a full game with 5 players and 4 of them winning the game and with admin fee % as 0", async () => {
     it("initializes contract instances and transfers Inbound Token to players", async () => {
       pool = new web3.eth.Contract(mobiusPool.abi, providersConfigs.pool);
-      token = new web3.eth.Contract(wmatic.abi, providersConfigs.cusd.address);
-      mobi = new web3.eth.Contract(wmatic.abi, providersConfigs.mobi);
-      celo = new web3.eth.Contract(wmatic.abi, providersConfigs.celo);
+
+      token = new web3.eth.Contract(
+        wmatic.abi,
+        providerConfig.providers["celo"].tokens[configs.deployConfigs.inboundCurrencySymbol].address,
+      );
+      mobi = new web3.eth.Contract(wmatic.abi, providerConfig.providers["celo"].tokens["mobi"].address);
+      celo = new web3.eth.Contract(wmatic.abi, providerConfig.providers["celo"].tokens["celo"].address);
 
       goodGhosting = await GoodGhostingArtifact.deployed();
       mobiusStrategy = await MobiusStrategy.deployed();
