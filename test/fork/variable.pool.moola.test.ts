@@ -7,7 +7,11 @@ const providerConfig = require("../../providers.config");
 
 contract("Variable Deposit Pool with Moola Strategy", accounts => {
   // Only executes this test file for local network fork
-  if (!["local-variable-celo"].includes(process.env.NETWORK ? process.env.NETWORK : "")) return;
+  if (
+    !["local-variable-celo"].includes(process.env.NETWORK ? process.env.NETWORK : "") ||
+    configs.deployConfigs.strategy !== "moola"
+  )
+    return;
 
   const unlockedDaiAccount = process.env.WHALE_ADDRESS_FORKED_NETWORK;
   let providersConfigs: any;
