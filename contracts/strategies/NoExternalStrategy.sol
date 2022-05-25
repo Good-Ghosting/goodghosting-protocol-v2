@@ -83,11 +83,7 @@ contract NoExternalStrategy is Ownable, IStrategy {
     /** 
     @param _inboundCurrency inbound currency address.
     */
-    constructor(
-        address _inboundCurrency,
-        IERC20[] memory _rewardTokens
-
-    ) {
+    constructor(address _inboundCurrency, IERC20[] memory _rewardTokens) {
         inboundToken = IERC20(_inboundCurrency);
         rewardTokens = _rewardTokens;
     }
@@ -120,10 +116,7 @@ contract NoExternalStrategy is Ownable, IStrategy {
                 revert TRANSACTIONAL_TOKEN_TRANSFER_FAILURE();
             }
         } else {
-            bool success = IERC20(_inboundCurrency).transfer(
-                msg.sender,
-                _amount
-            );
+            bool success = IERC20(_inboundCurrency).transfer(msg.sender, _amount);
             if (!success) {
                 revert TOKEN_TRANSFER_FAILURE();
             }
@@ -147,18 +140,28 @@ contract NoExternalStrategy is Ownable, IStrategy {
         uint256 _minAmount,
         bool disableRewardTokenClaim
     ) external override onlyOwner {
-        uint256 redeemAmount = variableDeposits ? _amount : _inboundCurrency == address(0) ? address(this).balance : IERC20(_inboundCurrency).balanceOf(address(this));
+        uint256 redeemAmount = variableDeposits ? _amount : _inboundCurrency == address(0)
+            ? address(this).balance
+            : IERC20(_inboundCurrency).balanceOf(address(this));
+        if (!disableRewardTokenClaim) {
+            for (uint256 i = 0; i < rewardTokens.length; i++) {
+                bool success = IERC20(rewardTokens[i]).transfer(
+                    msg.sender,
+                    IERC20(rewardTokens[i]).balanceOf(address(this))
+                );
+                if (!success) {
+                    revert TOKEN_TRANSFER_FAILURE();
+                }
+            }
+        }
 
         if (_inboundCurrency == address(0)) {
-            (bool txTokenTransferSuccessful, ) = msg.sender.call{ value: redeemAmount}("");
+            (bool txTokenTransferSuccessful, ) = msg.sender.call{ value: redeemAmount }("");
             if (!txTokenTransferSuccessful) {
                 revert TRANSACTIONAL_TOKEN_TRANSFER_FAILURE();
             }
         } else {
-            bool success = IERC20(_inboundCurrency).transfer(
-                msg.sender,
-                redeemAmount
-            );
+            bool success = IERC20(_inboundCurrency).transfer(msg.sender, redeemAmount);
             if (!success) {
                 revert TOKEN_TRANSFER_FAILURE();
             }
@@ -176,15 +179,14 @@ contract NoExternalStrategy is Ownable, IStrategy {
         view
         override
         returns (uint256[] memory)
-    {   
+    {
         uint256[] memory amounts = new uint256[](rewardTokens.length);
-        for (uint i = 0; i < rewardTokens.length; i++) {
+        for (uint256 i = 0; i < rewardTokens.length; i++) {
             amounts[i] = rewardTokens[i].balanceOf(address(this));
-    }
+        }
         return amounts;
     }
 
     // Fallback Functions for calldata and reciever for handling only ether transfer
     receive() external payable {}
 }
-
