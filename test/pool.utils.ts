@@ -18,6 +18,7 @@ import {
   MockMobiusPool__factory,
   MockMobiusGauge__factory,
   MobiusStrategy__factory,
+  NoExternalStrategy__factory,
   MockCurveGauge__factory,
   CurveStrategy__factory,
   Pool,
@@ -324,6 +325,17 @@ export const deployPool = async (
         mobi.address,
         minter.address,
       );
+    }
+  } else {
+    const rewardTokenDeployer = new MintableERC20__factory(deployer);
+    rewardToken = await rewardTokenDeployer.deploy("REWARD", "REWARD");
+
+    if (isInvestmentStrategy) {
+      const noExternalStrategyDeployer = new NoExternalStrategy__factory(deployer);
+      strategy = await noExternalStrategyDeployer.deploy(isInboundToken ? inboundToken.address : inboundToken, [
+        rewardToken.address,
+      ]);
+      await mintTokens(rewardToken, strategy.address);
     }
   }
   if (isSameAsRewardToken) {
