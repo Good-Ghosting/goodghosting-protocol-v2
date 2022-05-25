@@ -96,7 +96,7 @@ contract Pool is Ownable, Pausable, ReentrancyGuard {
     uint256 public waitingRoundSegmentStart;
 
     /// @notice The number of segments in the game (segment count).
-    uint256 public depositCount;
+    uint64 public depositCount;
 
     /// @notice The early withdrawal fee (percentage).
     uint128 public earlyWithdrawalFee;
@@ -160,9 +160,9 @@ contract Pool is Ownable, Pausable, ReentrancyGuard {
         address addr;
         uint64 withdrawalSegment;
         uint64 mostRecentSegmentPaid;
-        uint128 amountPaid;
-        uint128 netAmountPaid;
-        uint128 depositAmount;
+        uint256 amountPaid;
+        uint256 netAmountPaid;
+        uint256 depositAmount;
     }
 
     /// @notice Stores info about the players in the game.
@@ -314,7 +314,7 @@ contract Pool is Ownable, Pausable, ReentrancyGuard {
     constructor(
         address _inboundCurrency,
         uint256 _maxFlexibleSegmentPaymentAmount,
-        uint256 _depositCount,
+        uint64 _depositCount,
         uint256 _segmentLength,
         uint256 _waitingRoundSegmentLength,
         uint256 _segmentPayment,
@@ -484,7 +484,7 @@ contract Pool is Ownable, Pausable, ReentrancyGuard {
             withdrawn: false,
             canRejoin: false,
             isWinner: false,
-            depositAmount: uint128(amount)
+            depositAmount: amount
         });
         players[msg.sender] = newPlayer;
         if (!canRejoin) {
@@ -509,8 +509,8 @@ contract Pool is Ownable, Pausable, ReentrancyGuard {
         uint64 currentSegment = getCurrentSegment();
         players[msg.sender].mostRecentSegmentPaid = currentSegment;
 
-        players[msg.sender].amountPaid = uint128(players[msg.sender].amountPaid.add(_depositAmount));
-        players[msg.sender].netAmountPaid = uint128(players[msg.sender].netAmountPaid.add(_netDepositAmount));
+        players[msg.sender].amountPaid = players[msg.sender].amountPaid.add(_depositAmount);
+        players[msg.sender].netAmountPaid = players[msg.sender].netAmountPaid.add(_netDepositAmount);
 
         // PLAYER INDEX CALCULATION TO DETERMINE INTEREST SHARE
         // player index = prev. segment player index + segment amount deposited / time stamp of deposit
@@ -688,27 +688,29 @@ contract Pool is Ownable, Pausable, ReentrancyGuard {
             _setGlobalPoolParamsForFlexibleDepositPool();
         }
 
-        if (adminFeeAmount[0] != 0) {
+        // to avoid SLOAD multiple times
+        uint256 adminInterestShare = adminFeeAmount[0];
+        if (adminInterestShare != 0) {
             if (flexibleSegmentPayment) {
-                strategy.redeem(inboundToken, adminFeeAmount[0], flexibleSegmentPayment, 0, disableRewardTokenClaim);
+                strategy.redeem(inboundToken, adminInterestShare, flexibleSegmentPayment, 0, disableRewardTokenClaim);
             }
             if (isTransactionalToken) {
                 // safety check
                 // this scenario is very tricky to mock
                 // and our mock contracts are pretty complex currently so haven't tested this line with unit tests
-                if (adminFeeAmount[0] > address(this).balance) {
-                    adminFeeAmount[0] = address(this).balance;
+                if (adminInterestShare > address(this).balance) {
+                    adminInterestShare = address(this).balance;
                 }
-                (bool success, ) = msg.sender.call{ value: adminFeeAmount[0] }("");
+                (bool success, ) = msg.sender.call{ value: adminInterestShare }("");
                 if (!success) {
                     revert TRANSACTIONAL_TOKEN_TRANSFER_FAILURE();
                 }
             } else {
                 // safety check
-                if (adminFeeAmount[0] > IERC20(inboundToken).balanceOf(address(this))) {
-                    adminFeeAmount[0] = IERC20(inboundToken).balanceOf(address(this));
+                if (adminInterestShare > IERC20(inboundToken).balanceOf(address(this))) {
+                    adminInterestShare = IERC20(inboundToken).balanceOf(address(this));
                 }
-                bool success = IERC20(inboundToken).transfer(owner(), adminFeeAmount[0]);
+                bool success = IERC20(inboundToken).transfer(owner(), adminInterestShare);
                 if (!success) {
                     revert TOKEN_TRANSFER_FAILURE();
                 }
@@ -864,19 +866,20 @@ contract Pool is Ownable, Pausable, ReentrancyGuard {
         uint256 playerInterestShare = 0;
         uint256 playerSharePercentage = 0;
         uint256[] memory playerReward = new uint256[](rewardTokens.length);
-
+        // to avoid SLOAD multiple times
+        uint64 depositCountMemory = depositCount;
         if (
             player.isWinner ||
             ((
-                depositCount == 0
-                    ? players[msg.sender].mostRecentSegmentPaid >= depositCount
-                    : players[msg.sender].mostRecentSegmentPaid >= depositCount.sub(1)
+                depositCountMemory == 0
+                    ? players[msg.sender].mostRecentSegmentPaid >= depositCountMemory
+                    : players[msg.sender].mostRecentSegmentPaid >= depositCountMemory.sub(1)
             ) && emergencyWithdraw)
         ) {
             // Calculate Cummalative index for each player
             uint256 playerIndexSum = 0;
 
-            uint64 segment = depositCount == 0 ? 0 : uint64(depositCount.sub(1));
+            uint64 segment = depositCountMemory == 0 ? 0 : uint64(depositCountMemory.sub(1));
             uint64 segmentPaid = emergencyWithdraw ? segment : players[msg.sender].mostRecentSegmentPaid;
 
             // calculate playerIndexSum for each player

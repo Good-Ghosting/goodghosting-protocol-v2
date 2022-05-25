@@ -22,7 +22,7 @@ contract WhitelistedPool is Pool, MerkleDistributor {
     constructor(
         address _inboundCurrency,
         uint256 _maxFlexibleSegmentPaymentAmount,
-        uint256 _depositCount,
+        uint64 _depositCount,
         uint256 _segmentLength,
         uint256 _waitingRoundSegmentLength,
         uint256 _segmentPayment,
