@@ -94,6 +94,9 @@ contract NoExternalStrategy is Ownable, IStrategy {
         rewardTokens = _rewardTokens;
     }
 
+    //*********************************************************************//
+    // ------------------------- internal method -------------------------- //
+    //*********************************************************************//
     /** 
     @notice
     Transfers inbound token amount back to pool.
@@ -156,9 +159,10 @@ contract NoExternalStrategy is Ownable, IStrategy {
         uint256 _minAmount,
         bool disableRewardTokenClaim
     ) external override onlyOwner {
-        uint256 redeemAmount = variableDeposits ? _amount : _inboundCurrency == address(0)
+        uint256 fixedDepositAmount = _inboundCurrency == address(0)
             ? address(this).balance
             : IERC20(_inboundCurrency).balanceOf(address(this));
+        uint256 redeemAmount = variableDeposits ? _amount : fixedDepositAmount;
         if (!disableRewardTokenClaim) {
             for (uint256 i = 0; i < rewardTokens.length; i++) {
                 bool success = IERC20(rewardTokens[i]).transfer(
