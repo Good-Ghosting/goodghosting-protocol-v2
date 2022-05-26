@@ -401,8 +401,13 @@ contract Pool is Ownable, Pausable, ReentrancyGuard {
     //*********************************************************************//
     // ------------------------- internal methods -------------------------- //
     //*********************************************************************//
-
-    function gameAccounting(uint256 _totalBalance) internal returns (uint256) {
+    /**
+    @notice
+    Calculates and updates's game accounting called by methods _setGlobalPoolParamsForFlexibleDepositPool & redeemFromExternalPoolForFixedDepositPool.
+    Updates the game storage vars used for calculating player interest, incentives etc.
+    @param _totalBalance Total inbound token balance in the contract.
+    */
+    function _calculateAndUpdateGameAccounting(uint256 _totalBalance) internal returns (uint256) {
         uint256 _grossInterest = 0;
         if (_totalBalance >= netTotalGamePrincipal) {
             _grossInterest = _totalBalance.sub(netTotalGamePrincipal);
@@ -411,10 +416,22 @@ contract Pool is Ownable, Pausable, ReentrancyGuard {
             impermanentLossShare = (_totalBalance.mul(100)).div(netTotalGamePrincipal);
             netTotalGamePrincipal = _totalBalance;
         }
+        if (address(incentiveToken) != address(0)) {
+            totalIncentiveAmount = IERC20(incentiveToken).balanceOf(address(this));
+        }
         return _grossInterest;
     }
 
-    function adminAccounting(uint256 _grossInterest, uint256[] memory _grossRewardTokenAmount) internal {
+    /**
+    @notice
+    Calculates and set's admin accounting called by methods _setGlobalPoolParamsForFlexibleDepositPool & redeemFromExternalPoolForFixedDepositPool.
+    Updates the admin fee storage var used for admin fee.
+    @param _grossInterest Gross interest amount.
+    @param _grossRewardTokenAmount Gross reward amount array.
+    */
+    function _calculateAndSetAdminAccounting(uint256 _grossInterest, uint256[] memory _grossRewardTokenAmount)
+        internal
+    {
         // calculates the performance/admin fee (takes a cut - the admin percentage fee - from the pool's interest, strategy rewards).
         // calculates the "gameInterest" (net interest) that will be split among winners in the game
         // calculates the rewardTokenAmounts that will be split among winners in the game
@@ -565,7 +582,7 @@ contract Pool is Ownable, Pausable, ReentrancyGuard {
             ? address(this).balance.add(strategy.getTotalAmount())
             : IERC20(inboundToken).balanceOf(address(this)).add(strategy.getTotalAmount());
 
-        uint256 grossInterest = gameAccounting(totalBalance);
+        uint256 grossInterest = _calculateAndUpdateGameAccounting(totalBalance);
 
         uint256[] memory grossRewardTokenAmount = new uint256[](rewardTokens.length);
 
@@ -580,13 +597,10 @@ contract Pool is Ownable, Pausable, ReentrancyGuard {
         }
 
         if (!redeemed) {
-            adminAccounting(grossInterest, grossRewardTokenAmount);
+            _calculateAndSetAdminAccounting(grossInterest, grossRewardTokenAmount);
             redeemed = true;
         }
 
-        if (address(incentiveToken) != address(0)) {
-            totalIncentiveAmount = IERC20(incentiveToken).balanceOf(address(this));
-        }
         emit VariablePoolParamsSet(
             totalBalance,
             netTotalGamePrincipal,
@@ -1068,7 +1082,7 @@ contract Pool is Ownable, Pausable, ReentrancyGuard {
             totalBalance = IERC20(inboundToken).balanceOf(address(this));
         }
 
-        uint256 grossInterest = gameAccounting(totalBalance);
+        uint256 grossInterest = _calculateAndUpdateGameAccounting(totalBalance);
 
         rewardTokens = strategy.getRewardTokens();
         uint256[] memory grossRewardTokenAmount = new uint256[](rewardTokens.length);
@@ -1081,11 +1095,7 @@ contract Pool is Ownable, Pausable, ReentrancyGuard {
             }
         }
 
-        adminAccounting(grossInterest, grossRewardTokenAmount);
-
-        if (address(incentiveToken) != address(0)) {
-            totalIncentiveAmount = IERC20(incentiveToken).balanceOf(address(this));
-        }
+        _calculateAndSetAdminAccounting(grossInterest, grossRewardTokenAmount);
 
         emit FundsRedeemedFromExternalPool(
             isTransactionalToken ? address(this).balance : IERC20(inboundToken).balanceOf(address(this)),
