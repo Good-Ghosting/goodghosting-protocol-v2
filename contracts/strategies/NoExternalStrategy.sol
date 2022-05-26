@@ -94,6 +94,26 @@ contract NoExternalStrategy is Ownable, IStrategy {
         rewardTokens = _rewardTokens;
     }
 
+    /** 
+    @notice
+    Transfers inbound token amount back to pool.
+    @param _inboundCurrency Address of the inbound token.
+    @param _amount transfer amount
+    */
+    function _transferInboundTokenToPool(address _inboundCurrency, uint256 _amount) internal {
+        if (_inboundCurrency == address(0)) {
+            (bool success, ) = msg.sender.call{ value: _amount }("");
+            if (!success) {
+                revert TRANSACTIONAL_TOKEN_TRANSFER_FAILURE();
+            }
+        } else {
+            bool success = IERC20(_inboundCurrency).transfer(msg.sender, _amount);
+            if (!success) {
+                revert TOKEN_TRANSFER_FAILURE();
+            }
+        }
+    }
+
     /**
     @notice
     Deposits funds into this contract.
@@ -116,17 +136,7 @@ contract NoExternalStrategy is Ownable, IStrategy {
         uint256 _amount,
         uint256 _minAmount
     ) external override onlyOwner {
-        if (_inboundCurrency == address(0)) {
-            (bool success, ) = msg.sender.call{ value: _amount }("");
-            if (!success) {
-                revert TRANSACTIONAL_TOKEN_TRANSFER_FAILURE();
-            }
-        } else {
-            bool success = IERC20(_inboundCurrency).transfer(msg.sender, _amount);
-            if (!success) {
-                revert TOKEN_TRANSFER_FAILURE();
-            }
-        }
+        _transferInboundTokenToPool(_inboundCurrency, _amount);
     }
 
     /**
@@ -161,17 +171,7 @@ contract NoExternalStrategy is Ownable, IStrategy {
             }
         }
 
-        if (_inboundCurrency == address(0)) {
-            (bool txTokenTransferSuccessful, ) = msg.sender.call{ value: redeemAmount }("");
-            if (!txTokenTransferSuccessful) {
-                revert TRANSACTIONAL_TOKEN_TRANSFER_FAILURE();
-            }
-        } else {
-            bool success = IERC20(_inboundCurrency).transfer(msg.sender, redeemAmount);
-            if (!success) {
-                revert TOKEN_TRANSFER_FAILURE();
-            }
-        }
+        _transferInboundTokenToPool(_inboundCurrency, redeemAmount);
     }
 
     /**
