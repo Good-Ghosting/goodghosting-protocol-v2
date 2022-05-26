@@ -43,6 +43,9 @@ exports.providers = {
         poolType: 1, // Aave Pool
         tokenIndex: 0, // 0: DAI; 1: USDC; 2: USDT
       },
+      "no-external-strategy": {
+        rewardTokens: ["0x0d500B1d8E8eF31E21C99d1Db9A6444d3ADf1270"],
+      },
     },
   },
   celo: {
@@ -76,6 +79,9 @@ exports.providers = {
         gauge: "0xc96AeeaFF32129da934149F6134Aa7bf291a754E",
         minter: "0x5F0200CA03196D5b817E2044a0Bb0D837e0A7823",
         tokenIndex: 0,
+      },
+      "no-external-strategy": {
+        rewardTokens: ["0x73a210637f6F6B7005512677Ba6B3C96bb4AA44B"],
       },
     },
   },
