@@ -14,6 +14,7 @@ import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 //*********************************************************************//
 // --------------------------- custom errors ------------------------- //
 //*********************************************************************//
+error INVALID_REWARD_TOKEN();
 error TOKEN_TRANSFER_FAILURE();
 error TRANSACTIONAL_TOKEN_TRANSFER_FAILURE();
 
@@ -85,6 +86,11 @@ contract NoExternalStrategy is Ownable, IStrategy {
     */
     constructor(address _inboundCurrency, IERC20[] memory _rewardTokens) {
         inboundToken = IERC20(_inboundCurrency);
+        for (uint256 i = 0; i < _rewardTokens.length; i++) {
+            if (address(_rewardTokens[i]) == address(0)) {
+                revert INVALID_REWARD_TOKEN();
+            }
+        }
         rewardTokens = _rewardTokens;
     }
 
