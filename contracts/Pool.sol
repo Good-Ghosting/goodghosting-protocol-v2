@@ -423,7 +423,7 @@ contract Pool is Ownable, Pausable, ReentrancyGuard {
             adminFeeAmount[0] = _grossInterest;
             // just setting these for consistency since if there are no winners then for accounting both these vars aren't used
             totalGameInterest = _grossInterest;
-             for (uint256 i = 0; i < rewardTokens.length; i++) {
+            for (uint256 i = 0; i < rewardTokens.length; i++) {
                 rewardTokenAmounts[i] = _grossRewardTokenAmount[i];
             }
             for (uint256 i = 0; i < rewardTokens.length; i++) {
@@ -621,13 +621,14 @@ contract Pool is Ownable, Pausable, ReentrancyGuard {
         if (address(incentiveToken) != address(0)) {
             revert INCENTIVE_TOKEN_ALREADY_SET();
         } else {
+            if ((inboundToken != address(0) && inboundToken == address(_incentiveToken))) {
+                revert INVALID_INCENTIVE_TOKEN();
+            }
             IERC20[] memory _rewardTokens = strategy.getRewardTokens();
             for (uint256 i = 0; i < _rewardTokens.length; i++) {
                 // If there's an incentive token address defined, sets the total incentive amount to be distributed among winners.
                 if (
-                    ((address(_rewardTokens[i]) != address(0) &&
-                        address(_rewardTokens[i]) == address(_incentiveToken)) ||
-                        (inboundToken != address(0) && inboundToken == address(_incentiveToken)))
+                    ((address(_rewardTokens[i]) != address(0) && address(_rewardTokens[i]) == address(_incentiveToken)))
                 ) {
                     revert INVALID_INCENTIVE_TOKEN();
                 }
@@ -779,9 +780,7 @@ contract Pool is Ownable, Pausable, ReentrancyGuard {
         activePlayersCount = activePlayersCount.sub(1);
 
         // In an early withdraw, users get their principal minus the earlyWithdrawalFee % defined in the constructor.
-        uint256 withdrawAmount = player.netAmountPaid.sub(
-            player.netAmountPaid.mul(earlyWithdrawalFee).div(100)
-        );
+        uint256 withdrawAmount = player.netAmountPaid.sub(player.netAmountPaid.mul(earlyWithdrawalFee).div(100));
         // Decreases the totalGamePrincipal on earlyWithdraw
         totalGamePrincipal = totalGamePrincipal.sub(player.amountPaid);
         netTotalGamePrincipal = netTotalGamePrincipal.sub(player.netAmountPaid);
@@ -968,6 +967,8 @@ contract Pool is Ownable, Pausable, ReentrancyGuard {
 
         // sending the rewards & incentives to the winners
         if (playerIncentive != 0) {
+            // this scenario is very tricky to mock
+            // and our mock contracts are pretty complex currently so haven't tested this line with unit tests
             if (playerIncentive > IERC20(incentiveToken).balanceOf(address(this))) {
                 playerIncentive = IERC20(incentiveToken).balanceOf(address(this));
             }
@@ -979,6 +980,8 @@ contract Pool is Ownable, Pausable, ReentrancyGuard {
 
         for (uint256 i = 0; i < playerReward.length; i++) {
             if (playerReward[i] != 0) {
+                // this scenario is very tricky to mock
+                // and our mock contracts are pretty complex currently so haven't tested this line with unit tests
                 if (playerReward[i] > IERC20(rewardTokens[i]).balanceOf(address(this))) {
                     playerReward[i] = IERC20(rewardTokens[i]).balanceOf(address(this));
                 }
