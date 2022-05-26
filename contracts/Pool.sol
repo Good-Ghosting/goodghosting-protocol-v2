@@ -795,10 +795,10 @@ contract Pool is Ownable, Pausable, ReentrancyGuard {
         }
 
         // since there is complexity of 2 vars here with if else logic so not using 2 memory vars here only 1.
-        uint256 cummalativePlayerIndexSumForCurrentSegment = cumulativePlayerIndexSum[currentSegment];
+        uint256 cumulativePlayerIndexSumForCurrentSegment = cumulativePlayerIndexSum[currentSegment];
         for (uint256 i = 0; i <= players[msg.sender].mostRecentSegmentPaid; i++) {
-            if (cummalativePlayerIndexSumForCurrentSegment != 0) {
-                cummalativePlayerIndexSumForCurrentSegment = cummalativePlayerIndexSumForCurrentSegment.sub(
+            if (cumulativePlayerIndexSumForCurrentSegment != 0) {
+                cumulativePlayerIndexSumForCurrentSegment = cumulativePlayerIndexSumForCurrentSegment.sub(
                     playerIndex[msg.sender][i]
                 );
             } else {
@@ -807,7 +807,7 @@ contract Pool is Ownable, Pausable, ReentrancyGuard {
                 );
             }
         }
-        cumulativePlayerIndexSum[currentSegment] = cummalativePlayerIndexSumForCurrentSegment;
+        cumulativePlayerIndexSum[currentSegment] = cumulativePlayerIndexSumForCurrentSegment;
 
         // update winner count
         if (winnerCount != 0 && player.isWinner) {
