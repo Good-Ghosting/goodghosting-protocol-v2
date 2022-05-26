@@ -236,7 +236,7 @@ module.exports = function (deployer, network, accounts) {
         deploymentResult.dataProviderMoolaAddress,
         deploymentResult.incentiveControllerMoolaAddress,
         deploymentResult.rewardTokenMoolaAddress,
-        deploymentResult.inboundCurrencyAddress,
+        deploymentResult.inboundCurrencyAddress
       ];
       deploymentResult.strategyEncodedParameters = abi
         .rawEncode(moolaStrategyParameterTypes, moolaStrategyValues)
@@ -254,7 +254,7 @@ module.exports = function (deployer, network, accounts) {
         deploymentResult.dataProviderAaveAddress,
         deploymentResult.incentiveControllerAaveAddress,
         deploymentResult.rewardTokenAaveAddress,
-        deploymentResult.inboundCurrencyAddress,
+        deploymentResult.inboundCurrencyAddress
       ];
       deploymentResult.strategyEncodedParameters = abi
         .rawEncode(aaveStrategyParameterTypes, aaveStrategyValues)
