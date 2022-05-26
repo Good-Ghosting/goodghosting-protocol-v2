@@ -332,6 +332,9 @@ export const deployPool = async (
 
     if (isInvestmentStrategy) {
       const noExternalStrategyDeployer = new NoExternalStrategy__factory(deployer);
+      await expect(
+        noExternalStrategyDeployer.deploy(isInboundToken ? inboundToken.address : inboundToken, [ZERO_ADDRESS]),
+      ).to.be.revertedWith("INVALID_REWARD_TOKEN()");
       strategy = await noExternalStrategyDeployer.deploy(isInboundToken ? inboundToken.address : inboundToken, [
         rewardToken.address,
       ]);
