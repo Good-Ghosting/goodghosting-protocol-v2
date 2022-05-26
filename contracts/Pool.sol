@@ -394,7 +394,7 @@ contract Pool is Ownable, Pausable, ReentrancyGuard {
             revert INVALID_OWNER();
         }
         firstSegmentStart = block.timestamp; //gets current time
-        waitingRoundSegmentStart = block.timestamp + (segmentLength * depositCount);
+        waitingRoundSegmentStart = firstSegmentStart + (segmentLength * depositCount);
         setIncentiveToken(_incentiveToken);
     }
 
@@ -408,7 +408,7 @@ contract Pool is Ownable, Pausable, ReentrancyGuard {
             _grossInterest = _totalBalance.sub(netTotalGamePrincipal);
         } else {
             // handling impermanent loss case
-            impermanentLossShare = (_totalBalance.mul(uint256(100))).div(netTotalGamePrincipal);
+            impermanentLossShare = (_totalBalance.mul(100)).div(netTotalGamePrincipal);
             netTotalGamePrincipal = _totalBalance;
         }
         return _grossInterest;
@@ -421,15 +421,20 @@ contract Pool is Ownable, Pausable, ReentrancyGuard {
         // when there's no winners, admin takes all the interest + rewards
         if (winnerCount == 0 && !emergencyWithdraw) {
             adminFeeAmount[0] = _grossInterest;
+            // just setting these for consistency since if there are no winners then for accounting both these vars aren't used
+            totalGameInterest = _grossInterest;
+             for (uint256 i = 0; i < rewardTokens.length; i++) {
+                rewardTokenAmounts[i] = _grossRewardTokenAmount[i];
+            }
             for (uint256 i = 0; i < rewardTokens.length; i++) {
                 adminFeeAmount[i + 1] = _grossRewardTokenAmount[i];
             }
         } else if (adminFee > 0) {
-            adminFeeAmount[0] = (_grossInterest.mul(adminFee)).div(uint256(100));
+            adminFeeAmount[0] = (_grossInterest.mul(adminFee)).div(100);
             totalGameInterest = _grossInterest.sub(adminFeeAmount[0]);
 
             for (uint256 i = 0; i < rewardTokens.length; i++) {
-                adminFeeAmount[i + 1] = (_grossRewardTokenAmount[i].mul(adminFee)).div(uint256(100));
+                adminFeeAmount[i + 1] = (_grossRewardTokenAmount[i].mul(adminFee)).div(100);
                 rewardTokenAmounts[i] = _grossRewardTokenAmount[i].sub(adminFeeAmount[i + 1]);
             }
         } else {
@@ -449,7 +454,9 @@ contract Pool is Ownable, Pausable, ReentrancyGuard {
         if (getCurrentSegment() != 0) {
             revert GAME_ALREADY_STARTED();
         }
-        if (players[msg.sender].addr == msg.sender && !players[msg.sender].canRejoin) {
+        bool canRejoin = players[msg.sender].canRejoin;
+
+        if (players[msg.sender].addr == msg.sender && !canRejoin) {
             revert PLAYER_ALREADY_JOINED();
         }
 
@@ -457,7 +464,6 @@ contract Pool is Ownable, Pausable, ReentrancyGuard {
         if (activePlayersCount > maxPlayersCount) {
             revert MAX_PLAYER_COUNT_REACHED();
         }
-        bool canRejoin = players[msg.sender].canRejoin;
 
         if (flexibleSegmentPayment && _depositAmount > maxFlexibleSegmentPaymentAmount) {
             revert INVALID_FLEXIBLE_AMOUNT();
@@ -526,7 +532,7 @@ contract Pool is Ownable, Pausable, ReentrancyGuard {
         // since both join game and deposit method call this method so having it here
         if (currentSegment == depositCount.sub(1)) {
             // array indexes start from 0
-            winnerCount = winnerCount.add(uint256(1));
+            winnerCount = winnerCount.add(1);
             players[msg.sender].isWinner = true;
         }
 
@@ -774,7 +780,7 @@ contract Pool is Ownable, Pausable, ReentrancyGuard {
 
         // In an early withdraw, users get their principal minus the earlyWithdrawalFee % defined in the constructor.
         uint256 withdrawAmount = player.netAmountPaid.sub(
-            player.netAmountPaid.mul(earlyWithdrawalFee).div(uint256(100))
+            player.netAmountPaid.mul(earlyWithdrawalFee).div(100)
         );
         // Decreases the totalGamePrincipal on earlyWithdraw
         totalGamePrincipal = totalGamePrincipal.sub(player.amountPaid);
@@ -805,7 +811,7 @@ contract Pool is Ownable, Pausable, ReentrancyGuard {
 
         // update winner count
         if (winnerCount != 0 && player.isWinner) {
-            winnerCount = winnerCount.sub(uint256(1));
+            winnerCount = winnerCount.sub(1);
             player.isWinner = false;
         }
 
@@ -892,23 +898,23 @@ contract Pool is Ownable, Pausable, ReentrancyGuard {
 
             if (impermanentLossShare != 0 && totalGameInterest == 0) {
                 // new payput in case of impermanent loss
-                payout = player.netAmountPaid.mul(impermanentLossShare).div(uint256(100));
+                payout = player.netAmountPaid.mul(impermanentLossShare).div(100);
             } else {
                 // Player is a winner and gets a bonus!
                 // the player share of interest is calculated from player index
                 // player share % = playerIndex / cumulativePlayerIndexSum of player indexes of all winners * 100
                 // so, interest share = player share % * total game interest
-                playerInterestShare = totalGameInterest.mul(playerSharePercentage).div(uint256(100));
+                playerInterestShare = totalGameInterest.mul(playerSharePercentage).div(100);
                 payout = payout.add(playerInterestShare);
             }
 
             // Calculates winner's share of the additional rewards & incentives
             if (totalIncentiveAmount != 0) {
-                playerIncentive = totalIncentiveAmount.mul(playerSharePercentage).div(uint256(100));
+                playerIncentive = totalIncentiveAmount.mul(playerSharePercentage).div(100);
             }
             for (uint256 i = 0; i < rewardTokens.length; i++) {
                 if (address(rewardTokens[i]) != address(0) && rewardTokenAmounts[i] != 0) {
-                    playerReward[i] = rewardTokenAmounts[i].mul(playerSharePercentage).div(uint256(100));
+                    playerReward[i] = rewardTokenAmounts[i].mul(playerSharePercentage).div(100);
                 }
             }
 
