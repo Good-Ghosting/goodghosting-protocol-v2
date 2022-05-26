@@ -20,10 +20,10 @@ error TRANSACTIONAL_TOKEN_TRANSFER_FAILURE();
 
 /**
   @notice
-  As the name suggests this does not interact with any external protocol.
+  This strategy holds the deposited funds without transferring them to an external protocol.
 */
 contract NoExternalStrategy is Ownable, IStrategy {
-    /// @notice reward token address for eg wmatic in case of polygon deployment
+    /// @notice inbound token (deposit token) address
     IERC20 public inboundToken;
 
     /// @notice reward token address
@@ -44,8 +44,8 @@ contract NoExternalStrategy is Ownable, IStrategy {
 
     /** 
     @notice
-    Returns the total accumalated amount i.e principal + interest stored in aave, only used in case of variable deposit pools.
-    @return Total accumalated amount.
+    Returns the total accumulated amount i.e principal + interest stored in aave, only used in case of variable deposit pools.
+    @return Total accumulated amount.
     */
     function getTotalAmount() external view override returns (uint256) {
         return inboundToken.balanceOf(address(this));
@@ -53,7 +53,7 @@ contract NoExternalStrategy is Ownable, IStrategy {
 
     /** 
     @notice
-    Get net deposit for a deposit amount (used only for amm strategies).
+    Get the expected net deposit amount (amount minus slippage) for a given amount. Used only for AMM strategies.
     @return net amount.
     */
     function getNetDepositAmount(uint256 _amount) external pure override returns (uint256) {
@@ -63,7 +63,7 @@ contract NoExternalStrategy is Ownable, IStrategy {
     /** 
     @notice
     Returns the underlying token address.
-    @return Underlying token address.
+    @return Returns the underlying inbound (deposit) token address.
     */
     function getUnderlyingAsset() external view override returns (address) {
         return address(inboundToken);
@@ -176,8 +176,7 @@ contract NoExternalStrategy is Ownable, IStrategy {
 
     /**
     @notice
-    Returns total accumalated reward token amount.
-    This method is not marked as view since in the curve gauge contract "claimable_reward_write" is not marked as view and all strategies share the same strategy interface.
+    Returns total accumulated reward token amount.
     @param disableRewardTokenClaim Reward claim disable flag.
     */
     function getAccumulatedRewardTokenAmounts(bool disableRewardTokenClaim)

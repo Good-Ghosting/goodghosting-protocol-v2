@@ -560,7 +560,7 @@ contract Pool is Ownable, Pausable, ReentrancyGuard {
     /// Can only be called after the game is completed when each player withdraws.
     function _setGlobalPoolParamsForFlexibleDepositPool() internal virtual nonReentrant whenGameIsCompleted {
         // Since this is only called in the case of variable deposit & it is called everytime a player decides to withdraw,
-        // so totalBalance keeps a track of the ucrrent balance & the accumalated principal + interest stored in the strategy protocol.
+        // so totalBalance keeps a track of the ucrrent balance & the accumulated principal + interest stored in the strategy protocol.
         uint256 totalBalance = isTransactionalToken
             ? address(this).balance.add(strategy.getTotalAmount())
             : IERC20(inboundToken).balanceOf(address(this)).add(strategy.getTotalAmount());
@@ -570,7 +570,7 @@ contract Pool is Ownable, Pausable, ReentrancyGuard {
         uint256[] memory grossRewardTokenAmount = new uint256[](rewardTokens.length);
 
         for (uint256 i = 0; i < rewardTokens.length; i++) {
-            // the reward calaculation is the sum of the current reward amount the remaining rewards being accumalated in the strategy protocols.
+            // the reward calculation is the sum of the current reward amount the remaining rewards being accumulated in the strategy protocols.
             // the reason being like totalBalance for every player this is updated and prev. value is used to add any left over value
             if (address(rewardTokens[i]) != address(0) && inboundToken != address(rewardTokens[i])) {
                 grossRewardTokenAmount[i] = rewardTokenAmounts[i].add(
@@ -1071,7 +1071,7 @@ contract Pool is Ownable, Pausable, ReentrancyGuard {
         uint256[] memory grossRewardTokenAmount = new uint256[](rewardTokens.length);
 
         for (uint256 i = 0; i < rewardTokens.length; i++) {
-            // the reward calaculation is the sum of the current reward amount the remaining rewards being accumalated in the strategy protocols.
+            // the reward calculation is the sum of the current reward amount the remaining rewards being accumulated in the strategy protocols.
             // the reason being like totalBalance for every player this is updated and prev. value is used to add any left over value
             if (address(rewardTokens[i]) != address(0) && inboundToken != address(rewardTokens[i])) {
                 grossRewardTokenAmount[i] = rewardTokens[i].balanceOf(address(this));

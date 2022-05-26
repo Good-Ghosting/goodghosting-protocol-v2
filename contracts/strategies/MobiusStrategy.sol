@@ -56,8 +56,8 @@ contract MobiusStrategy is Ownable, ReentrancyGuard, IStrategy {
 
     /** 
     @notice
-    Returns the total accumalated amount i.e principal + interest stored in mobius, only used in case of variable deposit pools.
-    @return Total accumalated amount.
+    Returns the total accumulated amount i.e principal + interest stored in mobius, only used in case of variable deposit pools.
+    @return Total accumulated amount.
     */
     function getTotalAmount() external view override returns (uint256) {
         uint256 gaugeBalance = gauge.balanceOf(address(this));
@@ -67,7 +67,7 @@ contract MobiusStrategy is Ownable, ReentrancyGuard, IStrategy {
 
     /** 
     @notice
-    Get net deposit for a deposit amount (used only for amm strategies).
+    Get the expected net deposit amount (amount minus slippage) for a given amount. Used only for AMM strategies.
     @return net amount.
     */
     function getNetDepositAmount(uint256 _amount) external view override returns (uint256) {
@@ -79,7 +79,7 @@ contract MobiusStrategy is Ownable, ReentrancyGuard, IStrategy {
 
     /** 
     @notice
-    Returns the underlying token address.
+    Returns the underlying inbound (deposit) token address.
     @return Underlying token address.
     */
     function getUnderlyingAsset() external pure override returns (address) {
@@ -268,8 +268,7 @@ contract MobiusStrategy is Ownable, ReentrancyGuard, IStrategy {
 
     /**
     @notice
-    Returns total accumalated reward token amount.
-    This method is not marked as view since in the curve gauge contract "claimable_reward_write" is not marked as view and all strategies share the same strategy interface.
+    Returns total accumulated reward token amount.
     @param disableRewardTokenClaim Reward claim disable flag.
     */
     function getAccumulatedRewardTokenAmounts(bool disableRewardTokenClaim)
