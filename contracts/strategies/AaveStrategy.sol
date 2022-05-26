@@ -240,11 +240,11 @@ contract AaveStrategy is Ownable, ReentrancyGuard, IStrategy {
             if (address(rewardToken) != address(0)) {
                 uint256 claimableRewards = incentiveController.getRewardsBalance(assets, address(this));
                 // moola the celo version of aave does not have the incentive controller logic
-                if (claimableRewards > 0) {
+                if (claimableRewards != 0) {
                     incentiveController.claimRewards(assets, claimableRewards, address(this));
                 }
                 // moola the celo version of aave does not have the incentive controller logic
-                if (rewardToken.balanceOf(address(this)) > 0) {
+                if (rewardToken.balanceOf(address(this)) != 0) {
                     bool success = rewardToken.transfer(msg.sender, rewardToken.balanceOf(address(this)));
                     if (!success) {
                         revert TOKEN_TRANSFER_FAILURE();

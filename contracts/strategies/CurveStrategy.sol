@@ -344,7 +344,7 @@ contract CurveStrategy is Ownable, ReentrancyGuard, IStrategy {
             gauge.withdraw(gaugeBalance, claimRewards);
 
             uint256 lpTokenBalance = lpToken.balanceOf(address(this));
-            if (lpTokenBalance > 0) {
+            if (lpTokenBalance != 0) {
                 if (poolType == AAVE_POOL) {
                     pool.remove_liquidity_one_coin(
                         lpTokenBalance,

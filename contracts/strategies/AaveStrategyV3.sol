@@ -246,7 +246,7 @@ contract AaveStrategyV3 is Ownable, ReentrancyGuard, IStrategy {
 
             rewardsController.claimAllRewardsToSelf(assets);
             for (uint256 i = 0; i < rewardTokens.length; i++) {
-                if (IERC20(rewardTokens[i]).balanceOf(address(this)) > 0) {
+                if (IERC20(rewardTokens[i]).balanceOf(address(this)) != 0) {
                     bool success = IERC20(rewardTokens[i]).transfer(
                         msg.sender,
                         IERC20(rewardTokens[i]).balanceOf(address(this))
