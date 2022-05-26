@@ -219,6 +219,19 @@ contract Pool is Ownable, Pausable, ReentrancyGuard {
         uint256[] adminFeeAmounts
     );
 
+    event EndGameStats(
+        uint256 totalBalance,
+        uint256 totalGamePrincipal,
+        uint256 netTotalGamePricipal,
+        uint256 grossInterest,
+        uint256 totalIncentiveAmount,
+        uint256 impermanentLossShare
+    );
+
+    event AdminFee(
+       uint256[] adminFeeAmounts 
+    );
+
     //*********************************************************************//
     // ------------------------- modifiers -------------------------- //
     //*********************************************************************//
@@ -419,6 +432,10 @@ contract Pool is Ownable, Pausable, ReentrancyGuard {
         if (address(incentiveToken) != address(0)) {
             totalIncentiveAmount = IERC20(incentiveToken).balanceOf(address(this));
         }
+        // this condition is added because emit is to only be emitted when redeemed flag is false but this mehtod is called for every player withdrawal in variable deposit pool.
+        if (!redeemed) {
+            emit EndGameStats(_totalBalance, totalGamePrincipal, netTotalGamePrincipal, _grossInterest, totalIncentiveAmount, impermanentLossShare);
+        }
         return _grossInterest;
     }
 
@@ -460,6 +477,7 @@ contract Pool is Ownable, Pausable, ReentrancyGuard {
                 rewardTokenAmounts[i] = _grossRewardTokenAmount[i];
             }
         }
+        emit AdminFee(adminFeeAmount);
     }
 
     /**
@@ -1067,10 +1085,6 @@ contract Pool is Ownable, Pausable, ReentrancyGuard {
     @param _minAmount Slippage based amount to cover for impermanent loss scenario.
     */
     function redeemFromExternalPoolForFixedDepositPool(uint256 _minAmount) public virtual whenGameIsCompleted {
-        if (redeemed) {
-            revert FUNDS_REDEEMED_FROM_EXTERNAL_POOL();
-        }
-        redeemed = true;
         uint256 totalBalance = 0;
 
         // Withdraws funds (principal + interest + rewards) from external pool
@@ -1083,6 +1097,11 @@ contract Pool is Ownable, Pausable, ReentrancyGuard {
         }
 
         uint256 grossInterest = _calculateAndUpdateGameAccounting(totalBalance);
+        // shifting this after the game accounting since we need to emit a accounting event
+        if (redeemed) {
+            revert FUNDS_REDEEMED_FROM_EXTERNAL_POOL();
+        }
+        redeemed = true;
 
         rewardTokens = strategy.getRewardTokens();
         uint256[] memory grossRewardTokenAmount = new uint256[](rewardTokens.length);
@@ -1096,7 +1115,7 @@ contract Pool is Ownable, Pausable, ReentrancyGuard {
         }
 
         _calculateAndSetAdminAccounting(grossInterest, grossRewardTokenAmount);
-
+        
         emit FundsRedeemedFromExternalPool(
             isTransactionalToken ? address(this).balance : IERC20(inboundToken).balanceOf(address(this)),
             netTotalGamePrincipal,
