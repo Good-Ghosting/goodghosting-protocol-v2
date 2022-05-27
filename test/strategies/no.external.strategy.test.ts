@@ -12,6 +12,8 @@ import {
   shouldBehaveLikeAdminWithdrawingFeesFromGGPoolWithFeePercentMoreThan0,
   shouldBehaveLikeAdminWithdrawingFeesFromGGPoolWithFeePercentis0,
   shouldBehaveLikeVariableDepositPool,
+  shouldBehaveLikeGGPoolWithTransactionalToken,
+  shouldBehaveLikeGGPoolWithSameTokenAddresses,
 } from "../pool.behavior";
 
 chai.use(solidity);
@@ -90,5 +92,13 @@ describe("Pool using No External Strategy", () => {
 
   describe("players participate in a variable amount deposit pool", async () => {
     await shouldBehaveLikeVariableDepositPool("no_strategy");
+  });
+
+  describe("player participate in a pool with a transactional token as a deposit asset", async () => {
+    await shouldBehaveLikeGGPoolWithTransactionalToken("no_strategy");
+  });
+
+  describe("pool where deposit tokens is same as reward/governance token or both", async () => {
+    await shouldBehaveLikeGGPoolWithSameTokenAddresses("no_strategy");
   });
 });

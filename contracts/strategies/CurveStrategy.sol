@@ -215,9 +215,7 @@ contract CurveStrategy is Ownable, ReentrancyGuard, IStrategy {
         uint256 _amount,
         uint256 _minAmount
     ) external override nonReentrant onlyOwner {
-        if (pool.underlying_coins(uint256(uint128(inboundTokenIndex))) != _inboundCurrency) {
-            revert INVALID_DEPOSIT_TOKEN();
-        }
+        // not checking for validity of deposit token here since with pool contract as the owner of the strategy the only way to transfer pool funds is by invest method so the check there is sufficient
         uint256 gaugeBalance = gauge.balanceOf(address(this));
         if (poolType == AAVE_POOL) {
             uint256[NUM_AAVE_TOKENS] memory amounts; // fixed-sized array is initialized w/ [0, 0, 0]
@@ -288,9 +286,7 @@ contract CurveStrategy is Ownable, ReentrancyGuard, IStrategy {
         uint256 _minAmount,
         bool disableRewardTokenClaim
     ) external override nonReentrant onlyOwner {
-        if (pool.underlying_coins(uint256(uint128(inboundTokenIndex))) != _inboundCurrency) {
-            revert INVALID_DEPOSIT_TOKEN();
-        }
+        // not checking for validity of deposit token here since with pool contract as the owner of the strategy the only way to transfer pool funds is by invest method so the check there is sufficient
         bool claimRewards = true;
         if (disableRewardTokenClaim) {
             claimRewards = false;

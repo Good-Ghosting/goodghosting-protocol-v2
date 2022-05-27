@@ -42,7 +42,7 @@ contract NoExternalStrategy is Ownable, IStrategy {
     @return Total accumulated amount.
     */
     function getTotalAmount() external view override returns (uint256) {
-        return inboundToken.balanceOf(address(this));
+        return address(inboundToken) == address(0) ? address(this).balance : inboundToken.balanceOf(address(this));
     }
 
     /** 
@@ -157,19 +157,25 @@ contract NoExternalStrategy is Ownable, IStrategy {
             ? address(this).balance
             : IERC20(_inboundCurrency).balanceOf(address(this));
         uint256 redeemAmount = variableDeposits ? _amount : _balance;
+        // safety check since funds don't get transferred to a extrnal protocol
+        if (_balance >= redeemAmount) {
+            _transferInboundTokenToPool(_inboundCurrency, redeemAmount);
+        }
+
         if (!disableRewardTokenClaim) {
             for (uint256 i = 0; i < rewardTokens.length; i++) {
-                bool success = IERC20(rewardTokens[i]).transfer(
-                    msg.sender,
-                    IERC20(rewardTokens[i]).balanceOf(address(this))
-                );
-                if (!success) {
-                    revert TOKEN_TRANSFER_FAILURE();
+                // safety check since funds don't get transferred to a extrnal protocol
+                if (IERC20(rewardTokens[i]).balanceOf(address(this)) != 0) {
+                    bool success = IERC20(rewardTokens[i]).transfer(
+                        msg.sender,
+                        IERC20(rewardTokens[i]).balanceOf(address(this))
+                    );
+                    if (!success) {
+                        revert TOKEN_TRANSFER_FAILURE();
+                    }
                 }
             }
         }
-
-        _transferInboundTokenToPool(_inboundCurrency, redeemAmount);
     }
 
     /**

@@ -173,9 +173,7 @@ contract MobiusStrategy is Ownable, ReentrancyGuard, IStrategy {
         uint256 _amount,
         uint256 _minAmount
     ) external override nonReentrant onlyOwner {
-        if (address(pool.getToken(0)) != _inboundCurrency) {
-            revert INVALID_DEPOSIT_TOKEN();
-        }
+        // not checking for validity of deposit token here since with pool contract as the owner of the strategy the only way to transfer pool funds is by invest method so the check there is sufficient
         uint256[] memory amounts = new uint256[](2);
         amounts[0] = _amount;
 
@@ -219,9 +217,7 @@ contract MobiusStrategy is Ownable, ReentrancyGuard, IStrategy {
         uint256 _minAmount,
         bool disableRewardTokenClaim
     ) external override nonReentrant onlyOwner {
-        if (address(pool.getToken(0)) != _inboundCurrency) {
-            revert INVALID_DEPOSIT_TOKEN();
-        }
+        // not checking for validity of deposit token here since with pool contract as the owner of the strategy the only way to transfer pool funds is by invest method so the check there is sufficient
         bool claimRewards = true;
         if (disableRewardTokenClaim) {
             claimRewards = false;
