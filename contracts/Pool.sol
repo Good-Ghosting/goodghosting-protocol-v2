@@ -277,6 +277,10 @@ contract Pool is Ownable, Pausable, ReentrancyGuard {
     /// @param _player player address
     /// @return "true" if player is a winner; otherwise, return "false".
     function isWinner(address _player) public view returns (bool) {
+        if (players[_player].amountPaid == 0) {
+            return false;
+        }
+
         return _isWinner(players[_player], depositCount);
     }
 
@@ -645,6 +649,8 @@ contract Pool is Ownable, Pausable, ReentrancyGuard {
     }
 
     /// @dev Checks if player is a winner.
+    /// @dev this function assumes that the player has already joined the game.
+    ///      We should always check if the player is a participant in the pool before using this function.
     /// @return "true" if player is a winner; otherwise, return "false".
     function _isWinner(Player storage _player, uint64 _depositCountMemory) internal view returns (bool) {
         return

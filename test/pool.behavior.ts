@@ -2840,6 +2840,22 @@ export const shouldBehaveLikePlayersWithdrawingFromGGPool = async (strategyType:
     expect(isWinnerPlayer2).to.be.false;
   });
 
+  it("should return true if player has joined the game and admin enables early game completion on the first round", async () => {
+    const accounts = await ethers.getSigners();
+    const player1 = accounts[2];
+    const player2 = accounts[3];
+
+    await joinGame(contracts.goodGhosting, contracts.inboundToken, player1, segmentPayment, segmentPayment);
+
+    await contracts.goodGhosting.enableEmergencyWithdraw();
+
+    const isWinnerPlayer1 = await contracts.goodGhosting.isWinner(player1.address);
+    expect(isWinnerPlayer1).to.be.true;
+
+    const isWinnerPlayer2 = await contracts.goodGhosting.isWinner(player2.address);
+    expect(isWinnerPlayer2).to.be.false;
+  });
+
   context("when incentive token is defined", async () => {
     beforeEach(async () => {
       contracts = await deployPool(
