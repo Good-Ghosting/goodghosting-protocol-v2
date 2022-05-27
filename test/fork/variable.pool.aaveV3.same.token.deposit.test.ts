@@ -167,7 +167,7 @@ describe("Aave V3 Variable Deposit Pool Fork Tests with the deposit token same a
 
   it("admin is able to withdraw from the pool", async () => {
     const inboundTokenBalanceBeforeWithdraw = await wmaticInstance.balanceOf(accounts[0].address);
-    await pool.connect(accounts[0]).adminFeeWithdraw();
+    await pool.connect(accounts[0]).adminFeeWithdraw(0);
     const poolBalanceAfterAllWithdraws = await wmaticInstance.balanceOf(pool.address);
     // diff is 0.001
     assert(poolBalanceAfterAllWithdraws.gte(ethers.BigNumber.from(0)));

@@ -215,7 +215,7 @@ describe("Aave Variable Deposit Pool Fork Tests with no winners", () => {
   it("admin is able to withdraw from the pool", async () => {
     const inboundTokenBalanceBeforeWithdraw = await daiInstance.balanceOf(accounts[0].address);
     const rewardTokenBalanceBeforeWithdraw = await wmaticInstance.balanceOf(accounts[0].address);
-    await pool.connect(accounts[0]).adminFeeWithdraw();
+    await pool.connect(accounts[0]).adminFeeWithdraw(0);
     const rewardTokenBalanceAfterWithdraw = await wmaticInstance.balanceOf(accounts[0].address);
     const poolBalanceAfterAllWithdraws = await daiInstance.balanceOf(pool.address);
     assert(poolBalanceAfterAllWithdraws.eq(ethers.BigNumber.from(0)));
