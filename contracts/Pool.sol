@@ -907,7 +907,6 @@ contract Pool is Ownable, Pausable, ReentrancyGuard {
         } else {
             _setGlobalPoolParamsForFlexibleDepositPool();
         }
-
         uint256 payout = player.netAmountPaid;
         uint256 playerIncentive = 0;
         uint256 playerInterestShare = 0;
