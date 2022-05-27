@@ -327,8 +327,11 @@ export const deployPool = async (
       );
     }
   } else {
-    const rewardTokenDeployer = new MintableERC20__factory(deployer);
-    rewardToken = await rewardTokenDeployer.deploy("REWARD", "REWARD");
+    const rewardTokenDeployer = new MockWMatic__factory(deployer);
+    rewardToken = await rewardTokenDeployer.deploy();
+    if (isSameAsRewardToken) {
+      inboundToken = rewardToken;
+    }
 
     if (isInvestmentStrategy) {
       const noExternalStrategyDeployer = new NoExternalStrategy__factory(deployer);
@@ -338,7 +341,8 @@ export const deployPool = async (
       strategy = await noExternalStrategyDeployer.deploy(isInboundToken ? inboundToken.address : inboundToken, [
         rewardToken.address,
       ]);
-      await mintTokens(rewardToken, strategy.address);
+      await rewardToken.deposit({ value: ethers.utils.parseEther("30") });
+      await rewardToken.transfer(strategy.address, ethers.utils.parseEther("30"));
     }
   }
   if (isSameAsRewardToken) {
@@ -401,6 +405,95 @@ export const deployPool = async (
           isTransactionalToken,
         ),
       ).to.be.revertedWith("INVALID_MAX_FLEXIBLE_AMOUNT()");
+    }
+
+    if (
+      (strategyType === "curve" || strategyType === "mobius") &&
+      isInvestmentStrategy &&
+      !isIncentiveToken &&
+      isInboundToken &&
+      !isTransactionalToken
+    ) {
+      const token = new MintableERC20__factory(deployer);
+      const newInboundToken = await token.deploy("NEW", "NEW");
+      await mintTokens(newInboundToken, player1.address);
+      let newStrategy: any;
+
+      if (strategyType === "curve") {
+        const mockCurveTokenDeployer = new MintableERC20__factory(deployer);
+        const curve = await mockCurveTokenDeployer.deploy("CURVE", "CURVE");
+        const rewardTokenDeployer = new MintableERC20__factory(deployer);
+        const rewardToken = await rewardTokenDeployer.deploy("TOKEN_NAME", "TOKEN_SYMBOL");
+        const curvePoolDeployer = new MockCurvePool__factory(deployer);
+        const curvePool = await curvePoolDeployer.deploy("LP", "LP", inboundToken.address);
+        const curveGaugeDeployer = new MockCurveGauge__factory(deployer);
+        const curveGauge = await curveGaugeDeployer.deploy(
+          "LP-GAUGE",
+          "LP-GAUGE",
+          curve.address,
+          curvePool.address,
+          rewardToken.address,
+        );
+        await curvePool.setGauge(curveGauge.address);
+
+        await rewardToken.mint(curveGauge.address, ethers.utils.parseEther("100000"));
+        await curve.mint(curveGauge.address, ethers.utils.parseEther("100000"));
+        const curveStrategyDeployer = new CurveStrategy__factory(deployer);
+        newStrategy = await curveStrategyDeployer.deploy(
+          curvePool.address,
+          0,
+          curvePoolType,
+          curveGauge.address,
+          rewardToken.address,
+          curve.address,
+        );
+      } else if (strategyType === "mobius") {
+        const mockMobiTokenDeployer = new MintableERC20__factory(deployer);
+        const mobi = await mockMobiTokenDeployer.deploy("MOBI", "MOBI");
+        const mockMinterTokenDeployer = new MockMobiusMinter__factory(deployer);
+        const minter = await mockMinterTokenDeployer.deploy("CELO", "CELO");
+        const mobiPoolDeployer = new MockMobiusPool__factory(deployer);
+        const mobiPool = await mobiPoolDeployer.deploy("LP", "LP", inboundToken.address);
+        const mobiGaugeDeployer = new MockMobiusGauge__factory(deployer);
+        const mobiGauge = await mobiGaugeDeployer.deploy("LP-GAUGE", "LP-GAUGE", mobi.address, mobiPool.address);
+        await mobi.mint(mobiGauge.address, ethers.utils.parseEther("100000"));
+        await mobiPool.setGauge(mobiGauge.address);
+        const mobiStrategyDeployer = new MobiusStrategy__factory(deployer);
+
+        newStrategy = await mobiStrategyDeployer.deploy(
+          mobiPool.address,
+          mobiGauge.address,
+          minter.address,
+          mobi.address,
+          minter.address,
+        );
+      }
+      const goodGhostingNew = await goodGhostingV2Deployer.deploy(
+        newInboundToken.address,
+        ethers.utils.parseEther(maxFlexibleSegmentAmount.toString()),
+        depositCount,
+        segmentLength,
+        segmentLength * 2,
+        segmentPayment,
+        earlyWithdrawFee,
+        adminFee,
+        playerCount,
+        isVariableAmount,
+        newStrategy.address,
+        isTransactionalToken,
+      );
+      await newStrategy.transferOwnership(goodGhostingNew.address);
+      await goodGhostingNew.initialize(ZERO_ADDRESS);
+
+      await newInboundToken
+        .connect(player1)
+        .approve(
+          goodGhostingNew.address,
+          ethers.BigNumber.from(segmentPayment).mul(ethers.BigNumber.from("2")).toString(),
+        );
+      await expect(
+        goodGhostingNew.connect(player1).joinGame(0, ethers.BigNumber.from(segmentPayment)),
+      ).to.be.revertedWith("INVALID_DEPOSIT_TOKEN()");
     }
 
     goodGhosting = await goodGhostingV2Deployer.deploy(
