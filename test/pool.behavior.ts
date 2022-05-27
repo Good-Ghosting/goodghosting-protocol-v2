@@ -1233,8 +1233,6 @@ export const shouldBehaveLikeEarlyWithdrawingGGPool = async (strategyType: strin
     const feeAmount = ethers.BigNumber.from(segmentPayment)
       .mul(ethers.BigNumber.from(1))
       .div(ethers.BigNumber.from(100)); // fee is set as an integer, so needs to be converted to a percentage
-    console.log(player1PostWithdrawBalance.toString());
-    console.log(player1PreWithdrawBalance.toString());
 
     assert(
       player1PostWithdrawBalance
@@ -4046,7 +4044,6 @@ export const shouldBehaveLikeVariableDepositPool = async (strategyType: string) 
 
       await mintTokens(contracts.inboundToken, deployer.address);
       const tokenBalance = await contracts.inboundToken.balanceOf(deployer.address);
-      // console.log(tokenBalance.toString())
       await contracts.inboundToken.connect(deployer).approve(contracts.curvePool.address, tokenBalance);
 
       await contracts.curvePool.connect(deployer).send_liquidity(ethers.utils.parseEther("20"));
@@ -4149,7 +4146,6 @@ export const shouldBehaveLikeVariableDepositPool = async (strategyType: string) 
 
       await mintTokens(contracts.inboundToken, deployer.address);
       const tokenBalance = await contracts.inboundToken.balanceOf(deployer.address);
-      // console.log(tokenBalance.toString())
       await contracts.inboundToken.connect(deployer).approve(contracts.curvePool.address, tokenBalance);
 
       await contracts.curvePool.connect(deployer).send_liquidity(ethers.utils.parseEther("100"));
@@ -4328,7 +4324,6 @@ export const shouldBehaveLikeVariableDepositPool = async (strategyType: string) 
 
       await mintTokens(contracts.inboundToken, deployer.address);
       const tokenBalance = await contracts.inboundToken.balanceOf(deployer.address);
-      // console.log(tokenBalance.toString())
       await contracts.inboundToken.connect(deployer).approve(contracts.curvePool.address, tokenBalance);
 
       await contracts.curvePool.connect(deployer).send_liquidity(ethers.utils.parseEther("20"));
@@ -4437,7 +4432,6 @@ export const shouldBehaveLikeVariableDepositPool = async (strategyType: string) 
 
       await mintTokens(contracts.inboundToken, deployer.address);
       const tokenBalance = await contracts.inboundToken.balanceOf(deployer.address);
-      // console.log(tokenBalance.toString())
       await contracts.inboundToken.connect(deployer).approve(contracts.curvePool.address, tokenBalance);
 
       await contracts.curvePool.connect(deployer).send_liquidity(ethers.utils.parseEther("20"));
@@ -4532,7 +4526,6 @@ export const shouldBehaveLikeVariableDepositPool = async (strategyType: string) 
     } else if (strategyType === "curve") {
       await mintTokens(contracts.inboundToken, deployer.address);
       const tokenBalance = await contracts.inboundToken.balanceOf(deployer.address);
-      // console.log(tokenBalance.toString())
       await contracts.inboundToken.connect(deployer).approve(contracts.curvePool.address, tokenBalance);
 
       await contracts.curvePool.connect(deployer).send_liquidity(ethers.utils.parseEther("20"));
@@ -4659,7 +4652,6 @@ export const shouldBehaveLikeVariableDepositPool = async (strategyType: string) 
     } else if (strategyType === "curve") {
       await mintTokens(contracts.inboundToken, deployer.address);
       const tokenBalance = await contracts.inboundToken.balanceOf(deployer.address);
-      // console.log(tokenBalance.toString())
       await contracts.inboundToken.connect(deployer).approve(contracts.curvePool.address, tokenBalance);
 
       await contracts.curvePool.connect(deployer).send_liquidity(ethers.utils.parseEther("100"));
@@ -4872,7 +4864,6 @@ export const shouldBehaveLikeVariableDepositPool = async (strategyType: string) 
     } else if (strategyType === "curve") {
       await mintTokens(contracts.inboundToken, deployer.address);
       const tokenBalance = await contracts.inboundToken.balanceOf(deployer.address);
-      // console.log(tokenBalance.toString())
       await contracts.inboundToken.connect(deployer).approve(contracts.curvePool.address, tokenBalance);
 
       await contracts.curvePool.connect(deployer).send_liquidity(ethers.utils.parseEther("20"));
@@ -5005,7 +4996,6 @@ export const shouldBehaveLikeVariableDepositPool = async (strategyType: string) 
     } else if (strategyType === "curve") {
       await mintTokens(contracts.inboundToken, deployer.address);
       const tokenBalance = await contracts.inboundToken.balanceOf(deployer.address);
-      // console.log(tokenBalance.toString())
       await contracts.inboundToken.connect(deployer).approve(contracts.curvePool.address, tokenBalance);
 
       await contracts.curvePool.connect(deployer).send_liquidity(ethers.utils.parseEther("20"));
@@ -5060,7 +5050,7 @@ export const shouldBehaveLikeVariableDepositPool = async (strategyType: string) 
     assert(adminRewardBalanceAfterWithdraw.gt(adminRewardBalanceBeforeWithdraw));
   });
 
-  if (strategyType === "aave" || strategyType === "aaveV3") {
+  if (strategyType === "aave" || strategyType === "aaveV3" || strategyType === "no_strategy") {
     it("2 players join a game with transactional token and deposit different amounts at different times throughout and get interest accordingly on withdraw", async () => {
       contracts = await deployPool(
         depositCount,
@@ -5132,15 +5122,17 @@ export const shouldBehaveLikeVariableDepositPool = async (strategyType: string) 
       await ethers.provider.send("evm_increaseTime", [parseInt(waitingRoundLength.toString())]);
       await ethers.provider.send("evm_mine", []);
 
-      // mocks interest generation
-      await contracts.lendingPool
-        .connect(deployer)
-        .depositETH(contracts.lendingPool.address, contracts.lendingPool.address, 0, {
-          value: ethers.utils.parseEther("30"),
-        });
-      const aToken = new ERC20__factory(deployer).attach(await contracts.lendingPool.getLendingPool());
+      if (strategyType !== "no_strategy") {
+        // mocks interest generation
+        await contracts.lendingPool
+          .connect(deployer)
+          .depositETH(contracts.lendingPool.address, contracts.lendingPool.address, 0, {
+            value: ethers.utils.parseEther("30"),
+          });
+        const aToken = new ERC20__factory(deployer).attach(await contracts.lendingPool.getLendingPool());
 
-      await aToken.transfer(contracts.strategy.address, ethers.utils.parseEther("30"));
+        await aToken.transfer(contracts.strategy.address, ethers.utils.parseEther("30"));
+      }
 
       const player1Info = await contracts.goodGhosting.players(player1.address);
       const player2Info = await contracts.goodGhosting.players(player2.address);
@@ -5176,18 +5168,17 @@ export const shouldBehaveLikeVariableDepositPool = async (strategyType: string) 
       const differenceForPlayer1 = player1BalanceAfterWithdraw.sub(player1BalanceBeforeWithdraw);
       const interestEarnedByPlayer1 = differenceForPlayer1.sub(ethers.BigNumber.from(player1Info.amountPaid));
 
-      const player1Deposit = ethers.BigNumber.from(player1Info.amountPaid);
-
       const playerRewardAmounts: any = [];
       playerRewardAmounts[0] = rewardDifferenceForPlayer1.toString();
-
-      // the player1Deposit.add(interestEarnedByPlayer1) is slightly lower than the actual values the diff is very so this assertion reverts due to it
-      // player1Deposit.add(interestEarnedByPlayer1 is 74552655872997591111 actual value is 74553000000000000000
-      await expect(result)
-        .to.emit(contracts.goodGhosting, "Withdrawal")
-        .withArgs(player1.address, "74553000000000000000", "0", playerRewardAmounts);
-
-      const player2Deposit = ethers.BigNumber.from(player2Info.amountPaid);
+      if (strategyType !== "no_strategy") {
+        // the player1Deposit.add(interestEarnedByPlayer1) is slightly lower than the actual values the diff is very so this assertion reverts due to it
+        // player1Deposit.add(interestEarnedByPlayer1 is 74552655872997591111 actual value is 74553000000000000000
+        await expect(result)
+          .to.emit(contracts.goodGhosting, "Withdrawal")
+          .withArgs(player1.address, "74553000000000000000", "0", playerRewardAmounts);
+      } else {
+        await expect(result).to.emit(contracts.goodGhosting, "Withdrawal");
+      }
 
       const player2BalanceBeforeWithdraw = await ethers.provider.getBalance(player2.address);
       const player2RewardBalanceBeforeWithdraw = await contracts.rewardToken.balanceOf(player2.address);
@@ -5207,11 +5198,15 @@ export const shouldBehaveLikeVariableDepositPool = async (strategyType: string) 
       const rewardAmounts: any = [];
       rewardAmounts[0] = rewardDifferenceForPlayer2.toString();
 
-      // the player1Deposit.add(interestEarnedByPlayer1) is slightly lower than the actual values the diff is very so this assertion reverts due to it
-      // player1Deposit.add(interestEarnedByPlayer1 is 75146792315998546212 actual value is 75147000000000000000
-      await expect(result)
-        .to.emit(contracts.goodGhosting, "Withdrawal")
-        .withArgs(player2.address, "75147000000000000000", "0", rewardAmounts);
+      if (strategyType !== "no_strategy") {
+        // the player1Deposit.add(interestEarnedByPlayer1) is slightly lower than the actual values the diff is very so this assertion reverts due to it
+        // player1Deposit.add(interestEarnedByPlayer1 is 74552655872997591111 actual value is 74553000000000000000
+        await expect(result)
+          .to.emit(contracts.goodGhosting, "Withdrawal")
+          .withArgs(player2.address, "74553000000000000000", "0", playerRewardAmounts);
+      } else {
+        await expect(result).to.emit(contracts.goodGhosting, "Withdrawal");
+      }
     });
 
     it("2 players join a game with transactional token with different amounts and get interest accordingly on withdraw", async () => {
@@ -5282,15 +5277,17 @@ export const shouldBehaveLikeVariableDepositPool = async (strategyType: string) 
       await ethers.provider.send("evm_increaseTime", [parseInt(waitingRoundLength.toString())]);
       await ethers.provider.send("evm_mine", []);
 
-      // mocks interest generation
-      await contracts.lendingPool
-        .connect(deployer)
-        .depositETH(contracts.lendingPool.address, contracts.lendingPool.address, 0, {
-          value: ethers.utils.parseEther("30"),
-        });
-      const aToken = new ERC20__factory(deployer).attach(await contracts.lendingPool.getLendingPool());
+      if (strategyType !== "no_strategy") {
+        // mocks interest generation
+        await contracts.lendingPool
+          .connect(deployer)
+          .depositETH(contracts.lendingPool.address, contracts.lendingPool.address, 0, {
+            value: ethers.utils.parseEther("30"),
+          });
+        const aToken = new ERC20__factory(deployer).attach(await contracts.lendingPool.getLendingPool());
 
-      await aToken.transfer(contracts.strategy.address, ethers.utils.parseEther("30"));
+        await aToken.transfer(contracts.strategy.address, ethers.utils.parseEther("30"));
+      }
 
       const player1Info = await contracts.goodGhosting.players(player1.address);
       const player2Info = await contracts.goodGhosting.players(player2.address);
@@ -5323,18 +5320,18 @@ export const shouldBehaveLikeVariableDepositPool = async (strategyType: string) 
       const differenceForPlayer1 = player1BalanceAfterWithdraw.sub(player1BalanceBeforeWithdraw);
       const interestEarnedByPlayer1 = differenceForPlayer1.sub(ethers.BigNumber.from(player1Info.amountPaid));
 
-      const player1Deposit = ethers.BigNumber.from(player1Info.amountPaid);
-
       const rewardAmounts: any = [];
       rewardAmounts[0] = rewardDifferenceForPlayer1.toString();
 
-      // the player1Deposit.add(interestEarnedByPlayer1) is slightly lower than the actual values the diff is very so this assertion reverts due to it
-      // player1Deposit.add(interestEarnedByPlayer1 is 20642655872997591111 actual value is 20643000000000000000
-      await expect(result)
-        .to.emit(contracts.goodGhosting, "Withdrawal")
-        .withArgs(player1.address, "20643000000000000000", "0", rewardAmounts);
-
-      const player2Deposit = ethers.BigNumber.from(player2Info.amountPaid);
+      if (strategyType !== "no_strategy") {
+        // the player1Deposit.add(interestEarnedByPlayer1) is slightly lower than the actual values the diff is very so this assertion reverts due to it
+        // player1Deposit.add(interestEarnedByPlayer1 is 74552655872997591111 actual value is 74553000000000000000
+        await expect(result)
+          .to.emit(contracts.goodGhosting, "Withdrawal")
+          .withArgs(player1.address, "20643000000000000000", "0", rewardAmounts);
+      } else {
+        await expect(result).to.emit(contracts.goodGhosting, "Withdrawal");
+      }
 
       const player2BalanceBeforeWithdraw = await ethers.provider.getBalance(player2.address);
       const player2RewardBalanceBeforeWithdraw = await contracts.rewardToken.balanceOf(player2.address);
@@ -5351,13 +5348,17 @@ export const shouldBehaveLikeVariableDepositPool = async (strategyType: string) 
       assert(rewardDifferenceForPlayer2.gt(rewardDifferenceForPlayer1));
 
       const playerRewardAmounts: any = [];
-      rewardAmounts[0] = rewardDifferenceForPlayer1.toString();
+      playerRewardAmounts[0] = rewardDifferenceForPlayer1.toString();
 
-      // the player1Deposit.add(interestEarnedByPlayer1) is slightly lower than the actual values the diff is very so this assertion reverts due to it
-      // player1Deposit.add(interestEarnedByPlayer1 is 84056792315998546212 actual value is 84057000000000000000
-      await expect(result)
-        .to.emit(contracts.goodGhosting, "Withdrawal")
-        .withArgs(player2.address, "84057000000000000000", "0", playerRewardAmounts);
+      if (strategyType !== "no_strategy") {
+        // the player1Deposit.add(interestEarnedByPlayer1) is slightly lower than the actual values the diff is very so this assertion reverts due to it
+        // player1Deposit.add(interestEarnedByPlayer1 is 74552655872997591111 actual value is 74553000000000000000
+        await expect(result)
+          .to.emit(contracts.goodGhosting, "Withdrawal")
+          .withArgs(player1.address, "84057000000000000000", "0", playerRewardAmounts);
+      } else {
+        await expect(result).to.emit(contracts.goodGhosting, "Withdrawal");
+      }
     });
 
     it("players are able to participate in a pool where reward token is same as deposit token", async () => {
@@ -5427,11 +5428,15 @@ export const shouldBehaveLikeVariableDepositPool = async (strategyType: string) 
       await ethers.provider.send("evm_mine", []);
 
       const rewardTokenPlayer1BalanceBeforeWithdraw = await contracts.inboundToken.balanceOf(player1.address);
+
       await contracts.goodGhosting.connect(player1).withdraw(0);
+
       const rewardTokenAmount = await contracts.goodGhosting.rewardTokenAmounts(0);
       assert(rewardTokenAmount.eq(ethers.BigNumber.from("0")));
       const rewardTokenPlayer2BalanceBeforeWithdraw = await contracts.inboundToken.balanceOf(player2.address);
+
       await contracts.goodGhosting.connect(player2).withdraw(0);
+
       const rewardTokenPlayer1BalanceAfterWithdraw = await contracts.inboundToken.balanceOf(player1.address);
       const rewardTokenPlayer2BalanceAfterWithdraw = await contracts.inboundToken.balanceOf(player2.address);
       assert(rewardTokenPlayer2BalanceAfterWithdraw.gt(rewardTokenPlayer2BalanceBeforeWithdraw));

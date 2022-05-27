@@ -327,9 +327,11 @@ export const deployPool = async (
       );
     }
   } else {
-    const rewardTokenDeployer = new MintableERC20__factory(deployer);
-    rewardToken = await rewardTokenDeployer.deploy("REWARD", "REWARD");
-
+    const rewardTokenDeployer = new MockWMatic__factory(deployer);
+    rewardToken = await rewardTokenDeployer.deploy();
+    if (isSameAsRewardToken) {
+      inboundToken = rewardToken;
+    }
     if (isInvestmentStrategy) {
       const noExternalStrategyDeployer = new NoExternalStrategy__factory(deployer);
       await expect(
@@ -338,7 +340,8 @@ export const deployPool = async (
       strategy = await noExternalStrategyDeployer.deploy(isInboundToken ? inboundToken.address : inboundToken, [
         rewardToken.address,
       ]);
-      await mintTokens(rewardToken, strategy.address);
+      await rewardToken.deposit({ value: ethers.utils.parseEther("50") });
+      await rewardToken.transfer(strategy.address, ethers.utils.parseEther("50"));
     }
   }
   if (isSameAsRewardToken) {
