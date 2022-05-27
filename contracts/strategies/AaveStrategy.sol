@@ -36,7 +36,7 @@ contract AaveStrategy is Ownable, IStrategy {
     ILendingPool public immutable lendingPool;
 
     /// @notice Atoken address
-    AToken public immutable adaiToken;
+    AToken public immutable aToken;
 
     /// @notice AaveProtocolDataProvider address
     AaveProtocolDataProvider public dataProvider;
@@ -63,7 +63,7 @@ contract AaveStrategy is Ownable, IStrategy {
     @return Total accumulated amount.
     */
     function getTotalAmount() external view override returns (uint256) {
-        return adaiToken.balanceOf(address(this));
+        return aToken.balanceOf(address(this));
     }
 
     /** 
@@ -81,7 +81,7 @@ contract AaveStrategy is Ownable, IStrategy {
     @return Underlying token address.
     */
     function getUnderlyingAsset() external view override returns (address) {
-        return adaiToken.UNDERLYING_ASSET_ADDRESS();
+        return aToken.UNDERLYING_ASSET_ADDRESS();
     }
 
     /** 
@@ -130,13 +130,13 @@ contract AaveStrategy is Ownable, IStrategy {
         lendingPool = ILendingPool(_lendingPoolAddressProvider.getLendingPool());
         wethGateway = _wethGateway;
         rewardToken = _rewardToken;
-        address adaiTokenAddress;
+        address aTokenAddress;
         if (_inboundCurrency == address(0)) {
-            (adaiTokenAddress, , ) = dataProvider.getReserveTokensAddresses(address(rewardToken));
+            (aTokenAddress, , ) = dataProvider.getReserveTokensAddresses(address(rewardToken));
         } else {
-            (adaiTokenAddress, , ) = dataProvider.getReserveTokensAddresses(_inboundCurrency);
+            (aTokenAddress, , ) = dataProvider.getReserveTokensAddresses(_inboundCurrency);
         }
-        adaiToken = AToken(adaiTokenAddress);
+        aToken = AToken(aTokenAddress);
     }
 
     /**
@@ -175,7 +175,7 @@ contract AaveStrategy is Ownable, IStrategy {
         uint256 _minAmount
     ) external override onlyOwner {
         if (_inboundCurrency == address(0) || _inboundCurrency == address(rewardToken)) {
-            adaiToken.approve(address(wethGateway), _amount);
+            aToken.approve(address(wethGateway), _amount);
 
             wethGateway.withdrawETH(address(lendingPool), _amount, address(this));
             if (_inboundCurrency == address(rewardToken)) {
@@ -221,7 +221,7 @@ contract AaveStrategy is Ownable, IStrategy {
         uint256 redeemAmount = variableDeposits ? _amount : type(uint256).max;
         // Withdraws funds (principal + interest + rewards) from external pool
         if (_inboundCurrency == address(0) || _inboundCurrency == address(rewardToken)) {
-            adaiToken.approve(address(wethGateway), redeemAmount);
+            aToken.approve(address(wethGateway), redeemAmount);
 
             wethGateway.withdrawETH(address(lendingPool), redeemAmount, address(this));
             if (_inboundCurrency == address(rewardToken)) {
@@ -234,7 +234,7 @@ contract AaveStrategy is Ownable, IStrategy {
         if (!disableRewardTokenClaim) {
             // Claims the rewards from the external pool
             address[] memory assets = new address[](1);
-            assets[0] = address(adaiToken);
+            assets[0] = address(aToken);
 
             if (address(rewardToken) != address(0)) {
                 uint256 claimableRewards = incentiveController.getRewardsBalance(assets, address(this));
@@ -284,7 +284,7 @@ contract AaveStrategy is Ownable, IStrategy {
             // atoken address in v2 is fetched from data provider contract
             // Claims the rewards from the external pool
             address[] memory assets = new address[](1);
-            assets[0] = address(adaiToken);
+            assets[0] = address(aToken);
             amount = incentiveController.getRewardsBalance(assets, address(this));
         }
         uint256[] memory amounts = new uint256[](1);
