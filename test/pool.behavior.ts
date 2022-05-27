@@ -2842,18 +2842,28 @@ export const shouldBehaveLikePlayersWithdrawingFromGGPool = async (strategyType:
 
   it("should return that player is a winner if admin enables early game completion on the first round and the player has joined the game", async () => {
     const accounts = await ethers.getSigners();
-    const player1 = accounts[2];
-    const player2 = accounts[3];
+    const player = accounts[2];
 
-    await joinGame(contracts.goodGhosting, contracts.inboundToken, player1, segmentPayment, segmentPayment);
+    await joinGame(contracts.goodGhosting, contracts.inboundToken, player, segmentPayment, segmentPayment);
 
     await contracts.goodGhosting.enableEmergencyWithdraw();
 
-    const isWinnerPlayer1 = await contracts.goodGhosting.isWinner(player1.address);
-    expect(isWinnerPlayer1).to.be.true;
+    const isWinner = await contracts.goodGhosting.isWinner(player.address);
+    expect(isWinner).to.be.true;
+  });
 
-    const isWinnerPlayer2 = await contracts.goodGhosting.isWinner(player2.address);
-    expect(isWinnerPlayer2).to.be.false;
+  it("should return that player is not winner if player has not joined the game when admin enables early game completion", async () => {
+    const accounts = await ethers.getSigners();
+    const playerHasNotJoined = accounts[2];
+
+    //need at least one deposit on the pool
+    const otherPlayer = accounts[3];
+    await joinGame(contracts.goodGhosting, contracts.inboundToken, otherPlayer, segmentPayment, segmentPayment);
+
+    await contracts.goodGhosting.enableEmergencyWithdraw();
+
+    const isWinner = await contracts.goodGhosting.isWinner(playerHasNotJoined.address);
+    expect(isWinner).to.be.false;
   });
 
   context("when incentive token is defined", async () => {
