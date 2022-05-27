@@ -277,15 +277,7 @@ contract Pool is Ownable, Pausable, ReentrancyGuard {
     /// @param _player player address
     /// @return "true" if player is a winner; otherwise, return "false".
     function isWinner(address _player) public view returns (bool) {
-        Player storage player = players[_player];
-        uint64 depositCountMemory = depositCount;
-        return
-            player.isWinner ||
-            ((
-                depositCountMemory == 0
-                    ? players[_player].mostRecentSegmentPaid >= depositCountMemory
-                    : players[_player].mostRecentSegmentPaid >= depositCountMemory.sub(1)
-            ) && emergencyWithdraw);
+        return _isWinner(players[_player], depositCount);
     }
 
     /// @dev gets the number of players in the game.
@@ -652,6 +644,18 @@ contract Pool is Ownable, Pausable, ReentrancyGuard {
         );
     }
 
+    /// @dev Checks if player is a winner.
+    /// @return "true" if player is a winner; otherwise, return "false".
+    function _isWinner(Player storage player, uint64 depositCountMemory) internal view returns (bool) {
+        return
+            player.isWinner ||
+            ((
+                depositCountMemory == 0
+                    ? player.mostRecentSegmentPaid >= depositCountMemory
+                    : player.mostRecentSegmentPaid >= depositCountMemory.sub(1)
+            ) && emergencyWithdraw);
+    }
+
     //*********************************************************************//
     // ------------------------- external/public methods -------------------------- //
     //*********************************************************************//
@@ -929,7 +933,7 @@ contract Pool is Ownable, Pausable, ReentrancyGuard {
         uint256[] memory playerReward = new uint256[](rewardTokens.length);
         // to avoid SLOAD multiple times
         uint64 depositCountMemory = depositCount;
-        if (isWinner(msg.sender)) {
+        if (_isWinner(player, depositCountMemory)) {
             // Calculate Cummalative index for each player
             uint256 playerIndexSum = 0;
 
