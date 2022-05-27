@@ -283,6 +283,7 @@ contract Pool is Ownable, Pausable, ReentrancyGuard {
     /// @return current game segment.
     function getCurrentSegment() public view whenGameIsInitialized returns (uint64) {
         uint256 currentSegment;
+        // logic for getting the current segment while the game is on waiting round
         if (
             waitingRoundSegmentStart <= block.timestamp &&
             block.timestamp <= (waitingRoundSegmentStart.add(waitingRoundSegmentLength))
@@ -290,12 +291,13 @@ contract Pool is Ownable, Pausable, ReentrancyGuard {
             uint256 waitingRoundSegment = block.timestamp.sub(waitingRoundSegmentStart).div(waitingRoundSegmentLength);
             currentSegment = depositCount.add(waitingRoundSegment);
         } else if (block.timestamp > (waitingRoundSegmentStart.add(waitingRoundSegmentLength))) {
-            // handling the logic after waiting round has passed in to avoid inconsistency in current segment value
+            // logic for getting the current segment after the game completes (waiting round is over)
             currentSegment =
                 waitingRoundSegmentStart.sub(firstSegmentStart).div(segmentLength) +
                 block.timestamp.sub((waitingRoundSegmentStart.add(waitingRoundSegmentLength))).div(segmentLength) +
                 1;
         } else {
+            // logic for getting the current segment during segments that allows depositing (before waiting round)
             currentSegment = block.timestamp.sub(firstSegmentStart).div(segmentLength);
         }
         return uint64(currentSegment);
@@ -722,7 +724,8 @@ contract Pool is Ownable, Pausable, ReentrancyGuard {
 
     /// @dev Allows the admin to withdraw the performance fee, if applicable. This function can be called only by the contract's admin.
     /// Cannot be called before the game ends.
-    function adminFeeWithdraw() external virtual onlyOwner whenGameIsCompleted {
+    /// @param _minAmount Slippage based amount to cover for impermanent loss scenario.
+    function adminFeeWithdraw(uint256 _minAmount) external virtual onlyOwner whenGameIsCompleted {
         if (adminWithdraw) {
             revert ADMIN_FEE_WITHDRAWN();
         }
@@ -740,7 +743,7 @@ contract Pool is Ownable, Pausable, ReentrancyGuard {
         uint256 adminInterestShare = adminFeeAmount[0];
         if (adminInterestShare != 0) {
             if (flexibleSegmentPayment) {
-                strategy.redeem(inboundToken, adminInterestShare, flexibleSegmentPayment, 0, disableRewardTokenClaim);
+                strategy.redeem(inboundToken, adminInterestShare, flexibleSegmentPayment, _minAmount, disableRewardTokenClaim);
             }
             if (isTransactionalToken) {
                 // safety check
@@ -1093,7 +1096,12 @@ contract Pool is Ownable, Pausable, ReentrancyGuard {
     @dev Redeems funds from the external pool and updates the game stats.
     @param _minAmount Slippage based amount to cover for impermanent loss scenario.
     */
-    function redeemFromExternalPoolForFixedDepositPool(uint256 _minAmount) public virtual whenGameIsCompleted {
+    function redeemFromExternalPoolForFixedDepositPool(uint256 _minAmount)
+        public
+        virtual
+        whenGameIsCompleted
+        nonReentrant
+    {
         uint256 totalBalance = 0;
 
         // Withdraws funds (principal + interest + rewards) from external pool
