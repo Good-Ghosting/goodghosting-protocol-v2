@@ -228,9 +228,7 @@ contract Pool is Ownable, Pausable, ReentrancyGuard {
         uint256 impermanentLossShare
     );
 
-    event AdminFee(
-       uint256[] adminFeeAmounts 
-    );
+    event AdminFee(uint256[] adminFeeAmounts);
 
     //*********************************************************************//
     // ------------------------- modifiers -------------------------- //
@@ -272,6 +270,21 @@ contract Pool is Ownable, Pausable, ReentrancyGuard {
         // Game is completed when the current segment is greater than "depositCount" of the game
         // or if "emergencyWithdraw" was enabled.
         return getCurrentSegment() > depositCount || emergencyWithdraw;
+    }
+
+    /// @dev Checks if player is a winner.
+    /// @param _player player address
+    /// @return "true" if player is a winner; otherwise, return "false".
+    function isWinner(address _player) public view returns (bool) {
+        Player storage player = players[_player];
+        uint64 depositCountMemory = depositCount;
+        return
+            player.isWinner ||
+            ((
+                depositCountMemory == 0
+                    ? players[_player].mostRecentSegmentPaid >= depositCountMemory
+                    : players[_player].mostRecentSegmentPaid >= depositCountMemory.sub(1)
+            ) && emergencyWithdraw);
     }
 
     /// @dev gets the number of players in the game.
@@ -434,7 +447,14 @@ contract Pool is Ownable, Pausable, ReentrancyGuard {
         }
         // this condition is added because emit is to only be emitted when redeemed flag is false but this mehtod is called for every player withdrawal in variable deposit pool.
         if (!redeemed) {
-            emit EndGameStats(_totalBalance, totalGamePrincipal, netTotalGamePrincipal, _grossInterest, totalIncentiveAmount, impermanentLossShare);
+            emit EndGameStats(
+                _totalBalance,
+                totalGamePrincipal,
+                netTotalGamePrincipal,
+                _grossInterest,
+                totalIncentiveAmount,
+                impermanentLossShare
+            );
         }
         return _grossInterest;
     }
@@ -905,14 +925,7 @@ contract Pool is Ownable, Pausable, ReentrancyGuard {
         uint256[] memory playerReward = new uint256[](rewardTokens.length);
         // to avoid SLOAD multiple times
         uint64 depositCountMemory = depositCount;
-        if (
-            player.isWinner ||
-            ((
-                depositCountMemory == 0
-                    ? players[msg.sender].mostRecentSegmentPaid >= depositCountMemory
-                    : players[msg.sender].mostRecentSegmentPaid >= depositCountMemory.sub(1)
-            ) && emergencyWithdraw)
-        ) {
+        if (isWinner(msg.sender)) {
             // Calculate Cummalative index for each player
             uint256 playerIndexSum = 0;
 
@@ -1115,7 +1128,7 @@ contract Pool is Ownable, Pausable, ReentrancyGuard {
         }
 
         _calculateAndSetAdminAccounting(grossInterest, grossRewardTokenAmount);
-        
+
         emit FundsRedeemedFromExternalPool(
             isTransactionalToken ? address(this).balance : IERC20(inboundToken).balanceOf(address(this)),
             netTotalGamePrincipal,
