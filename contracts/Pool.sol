@@ -224,6 +224,7 @@ contract Pool is Ownable, Pausable, ReentrancyGuard {
         uint256 totalGamePrincipal,
         uint256 netTotalGamePricipal,
         uint256 grossInterest,
+        uint256[] grossRewardTokenAmount,
         uint256 totalIncentiveAmount,
         uint256 impermanentLossShare
     );
@@ -418,7 +419,10 @@ contract Pool is Ownable, Pausable, ReentrancyGuard {
     Updates the game storage vars used for calculating player interest, incentives etc.
     @param _totalBalance Total inbound token balance in the contract.
     */
-    function _calculateAndUpdateGameAccounting(uint256 _totalBalance) internal returns (uint256) {
+    function _calculateAndUpdateGameAccounting(uint256 _totalBalance, uint256[] memory _grossRewardTokenAmount)
+        internal
+        returns (uint256)
+    {
         uint256 _grossInterest = 0;
         if (_totalBalance >= netTotalGamePrincipal) {
             _grossInterest = _totalBalance.sub(netTotalGamePrincipal);
@@ -437,6 +441,7 @@ contract Pool is Ownable, Pausable, ReentrancyGuard {
                 totalGamePrincipal,
                 netTotalGamePrincipal,
                 _grossInterest,
+                _grossRewardTokenAmount,
                 totalIncentiveAmount,
                 impermanentLossShare
             );
@@ -604,7 +609,7 @@ contract Pool is Ownable, Pausable, ReentrancyGuard {
         uint256 totalBalance = isTransactionalToken
             ? address(this).balance.add(strategy.getTotalAmount())
             : IERC20(inboundToken).balanceOf(address(this)).add(strategy.getTotalAmount());
-        uint256 grossInterest = _calculateAndUpdateGameAccounting(totalBalance);
+
         uint256[] memory grossRewardTokenAmount = new uint256[](rewardTokens.length);
 
         for (uint256 i = 0; i < rewardTokens.length; i++) {
@@ -616,6 +621,7 @@ contract Pool is Ownable, Pausable, ReentrancyGuard {
                 );
             }
         }
+        uint256 grossInterest = _calculateAndUpdateGameAccounting(totalBalance, grossRewardTokenAmount);
 
         if (!redeemed) {
             _calculateAndSetAdminAccounting(grossInterest, grossRewardTokenAmount);
@@ -1100,13 +1106,6 @@ contract Pool is Ownable, Pausable, ReentrancyGuard {
             totalBalance = IERC20(inboundToken).balanceOf(address(this));
         }
 
-        uint256 grossInterest = _calculateAndUpdateGameAccounting(totalBalance);
-        // shifting this after the game accounting since we need to emit a accounting event
-        if (redeemed) {
-            revert FUNDS_REDEEMED_FROM_EXTERNAL_POOL();
-        }
-        redeemed = true;
-
         rewardTokens = strategy.getRewardTokens();
         uint256[] memory grossRewardTokenAmount = new uint256[](rewardTokens.length);
 
@@ -1117,6 +1116,13 @@ contract Pool is Ownable, Pausable, ReentrancyGuard {
                 grossRewardTokenAmount[i] = rewardTokens[i].balanceOf(address(this));
             }
         }
+
+        uint256 grossInterest = _calculateAndUpdateGameAccounting(totalBalance, grossRewardTokenAmount);
+        // shifting this after the game accounting since we need to emit a accounting event
+        if (redeemed) {
+            revert FUNDS_REDEEMED_FROM_EXTERNAL_POOL();
+        }
+        redeemed = true;
 
         _calculateAndSetAdminAccounting(grossInterest, grossRewardTokenAmount);
 
