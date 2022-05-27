@@ -2840,7 +2840,7 @@ export const shouldBehaveLikePlayersWithdrawingFromGGPool = async (strategyType:
     expect(isWinnerPlayer2).to.be.false;
   });
 
-  it("should return true if player has joined the game and admin enables early game completion on the first round", async () => {
+  it("should return that player is a winner if admin enables early game completion on the first round and the player has joined the game", async () => {
     const accounts = await ethers.getSigners();
     const player1 = accounts[2];
     const player2 = accounts[3];
