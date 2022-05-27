@@ -655,11 +655,12 @@ contract Pool is Ownable, Pausable, ReentrancyGuard {
     function _isWinner(Player storage _player, uint64 _depositCountMemory) internal view returns (bool) {
         return
             _player.isWinner ||
-            ((
-                _depositCountMemory == 0
-                    ? _player.mostRecentSegmentPaid >= _depositCountMemory
-                    : _player.mostRecentSegmentPaid >= _depositCountMemory.sub(1)
-            ) && emergencyWithdraw);
+            (emergencyWithdraw &&
+                (
+                    _depositCountMemory == 0
+                        ? _player.mostRecentSegmentPaid >= _depositCountMemory
+                        : _player.mostRecentSegmentPaid >= _depositCountMemory.sub(1)
+                ));
     }
 
     //*********************************************************************//
