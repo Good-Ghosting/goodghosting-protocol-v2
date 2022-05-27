@@ -417,13 +417,13 @@ export const deployPool = async (
 
       if (strategyType === "curve") {
         const mockCurveTokenDeployer = new MintableERC20__factory(deployer);
-        curve = await mockCurveTokenDeployer.deploy("CURVE", "CURVE");
+        const curve = await mockCurveTokenDeployer.deploy("CURVE", "CURVE");
         const rewardTokenDeployer = new MintableERC20__factory(deployer);
-        rewardToken = await rewardTokenDeployer.deploy("TOKEN_NAME", "TOKEN_SYMBOL");
+        const rewardToken = await rewardTokenDeployer.deploy("TOKEN_NAME", "TOKEN_SYMBOL");
         const curvePoolDeployer = new MockCurvePool__factory(deployer);
-        curvePool = await curvePoolDeployer.deploy("LP", "LP", newInboundToken.address);
+        const curvePool = await curvePoolDeployer.deploy("LP", "LP", inboundToken.address);
         const curveGaugeDeployer = new MockCurveGauge__factory(deployer);
-        curveGauge = await curveGaugeDeployer.deploy(
+        const curveGauge = await curveGaugeDeployer.deploy(
           "LP-GAUGE",
           "LP-GAUGE",
           curve.address,
