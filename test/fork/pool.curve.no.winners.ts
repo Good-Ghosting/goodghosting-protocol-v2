@@ -12,14 +12,7 @@ const providerConfig = require("../../providers.config");
 
 contract("Pool with Curve Strategy with no winners", accounts => {
   // Only executes this test file for local network fork
-  if (
-    !(
-      (["local-polygon"].includes(process.env.NETWORK ? process.env.NETWORK : "") &&
-        configs.deployConfigs.strategy === "polygon-curve-aave") ||
-      configs.deployConfigs.strategy === "polygon-curve-atricrypto"
-    )
-  )
-    return;
+  if (!["local-polygon"].includes(process.env.NETWORK ? process.env.NETWORK : "")) return;
 
   const unlockedDaiAccount = process.env.WHALE_ADDRESS_FORKED_NETWORK;
   let providersConfigs: any;
@@ -267,19 +260,12 @@ contract("Pool with Curve Strategy with no winners", accounts => {
         (ev: any) => {
           console.log("totalContractAmount", ev.totalAmount.toString());
           console.log("totalGamePrincipal", ev.totalGamePrincipal.toString());
-          console.log("totalGameInterest", ev.totalGameInterest.toString());
-          console.log("interestPerPlayer", ev.totalGameInterest.div(web3.utils.toBN(players.length - 1)).toString());
-          const adminFee = web3.utils
-            .toBN(configs.deployConfigs.adminFee)
-            .mul(ev.totalGameInterest)
-            .div(web3.utils.toBN("100"));
+          const adminFee = web3.utils.toBN(ev.totalAmount).sub(web3.utils.toBN(ev.totalGamePrincipal));
           eventAmount = web3.utils.toBN(ev.totalAmount.toString());
 
           return (
-            web3.utils
-              .toBN(ev.totalGameInterest)
-              .eq(web3.utils.toBN(ev.totalAmount).sub(web3.utils.toBN(ev.totalGamePrincipal))),
-            eventAmount.eq(contractsDaiBalance) && adminFee.lt(ev.totalGameInterest)
+            web3.utils.toBN(ev.totalGameInterest).eq(web3.utils.toBN(0)),
+            eventAmount.eq(contractsDaiBalance) && adminFee.gt(ev.totalGameInterest)
           );
         },
         `FundsRedeemedFromExternalPool error - event amount: ${eventAmount.toString()}; expectAmount: ${contractsDaiBalance.toString()}`,

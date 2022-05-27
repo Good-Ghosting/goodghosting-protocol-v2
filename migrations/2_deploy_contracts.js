@@ -5,6 +5,8 @@ const MobiusStrategyArtifact = artifacts.require("MobiusStrategy");
 const MoolaStrategyArtifact = artifacts.require("AaveStrategy");
 const AaveV3StrategyArtifact = artifacts.require("AaveStrategyV3");
 const CurveStrategyArtifact = artifacts.require("CurveStrategy");
+const NoExternalStrategyArtifact = artifacts.require("NoExternalStrategy");
+
 const SafeMathLib = artifacts.require("SafeMath");
 const fs = require("fs");
 const config = require("../deploy.config");
@@ -72,6 +74,8 @@ module.exports = function (deployer, network, accounts) {
         providerConfig.providers["polygon"].tokens["wmatic"].address,
         inboundCurrencyAddress,
       ];
+    } else if (config.deployConfigs.strategy === "no-external-strategy") {
+      strategyArgs = [NoExternalStrategyArtifact, inboundCurrencyAddress, strategyConfig.rewardTokens];
     } else {
       strategyArgs = [
         CurveStrategyArtifact,
@@ -96,6 +100,8 @@ module.exports = function (deployer, network, accounts) {
         config.deployConfigs.strategy == "aaveV3"
           ? await AaveV3StrategyArtifact.deployed()
           : await MoolaStrategyArtifact.deployed();
+    else if (config.deployConfigs.strategy === "no-external-strategy")
+      strategyInstance = await NoExternalStrategyArtifact.deployed();
     else strategyInstance = await CurveStrategyArtifact.deployed();
 
     // Prepares deployment arguments
@@ -252,6 +258,12 @@ module.exports = function (deployer, network, accounts) {
       ];
       deploymentResult.strategyEncodedParameters = abi
         .rawEncode(aaveStrategyParameterTypes, aaveStrategyValues)
+        .toString("hex");
+    } else if (config.deployConfigs.strategy === "no-external-strategy") {
+      var noExternalStrategyParameterTypes = ["address", "address[]"];
+      var noExternalStrategyValues = [deploymentResult.inboundCurrencyAddress, deploymentResult.rewardTokenAdddresses];
+      deploymentResult.strategyEncodedParameters = abi
+        .rawEncode(noExternalStrategyParameterTypes, noExternalStrategyValues)
         .toString("hex");
     } else {
       deploymentResult.curvePoolAddress = strategyConfig.pool;

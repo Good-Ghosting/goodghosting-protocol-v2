@@ -58,6 +58,10 @@ contract MockMobiusPool is MintableERC20 {
         }
     }
 
+    function getToken(uint8 index) external view returns (IERC20) {
+        return reserve;
+    }
+
     function calculateRemoveLiquidityOneToken(
         address account,
         uint256 tokenAmount,

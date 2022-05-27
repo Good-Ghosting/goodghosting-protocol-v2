@@ -117,19 +117,26 @@ describe("Aave Pool Fork Tests with the deposit token as transsactional token", 
         const playerInfo = await pool.players(accounts[0].address);
         let totalPrincipal = await pool.totalGamePrincipal();
         totalPrincipal = totalPrincipal.sub(playerInfo.amountPaid);
+        let totaNetlPrincipal = await pool.netTotalGamePrincipal();
+        totaNetlPrincipal = totaNetlPrincipal.sub(playerInfo.netAmountPaid);
         const feeAmount = ethers.BigNumber.from(playerInfo.amountPaid)
           .mul(ethers.BigNumber.from(earlyWithdrawFee))
           .div(ethers.BigNumber.from(100)); // fee is set as an integer, so needs to be converted to a percentage
         await expect(pool.connect(accounts[0]).earlyWithdraw(0))
           .to.emit(pool, "EarlyWithdrawal")
-          .withArgs(accounts[0].address, playerInfo.amountPaid.sub(feeAmount), totalPrincipal);
+          .withArgs(accounts[0].address, playerInfo.amountPaid.sub(feeAmount), totalPrincipal, totaNetlPrincipal);
       }
       const currentSegment = await pool.getCurrentSegment();
 
       for (let j = 1; j < 5; j++) {
         await expect(pool.connect(accounts[j]).makeDeposit(0, 0, { value: segmentPayment }))
           .to.emit(pool, "Deposit")
-          .withArgs(accounts[j].address, currentSegment, ethers.BigNumber.from(segmentPayment));
+          .withArgs(
+            accounts[j].address,
+            currentSegment,
+            ethers.BigNumber.from(segmentPayment),
+            ethers.BigNumber.from(segmentPayment),
+          );
       }
     }
     // above, it accounted for 1st deposit window, and then the loop runs till depositCount - 1.

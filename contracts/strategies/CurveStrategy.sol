@@ -11,6 +11,7 @@ import "./IStrategy.sol";
 // --------------------------- custom errors ------------------------- //
 //*********************************************************************//
 error INVALID_CURVE_TOKEN();
+error INVALID_DEPOSIT_TOKEN();
 error INVALID_GAUGE();
 error INVALID_POOL();
 error INVALID_REWARD_TOKEN();
@@ -68,8 +69,8 @@ contract CurveStrategy is Ownable, ReentrancyGuard, IStrategy {
 
     /** 
     @notice
-    Returns the total accumalated amount i.e principal + interest stored in curve, only used in case of variable deposit pools.
-    @return Total accumalated amount.
+    Returns the total accumulated amount i.e principal + interest stored in curve, only used in case of variable deposit pools.
+    @return Total accumulated amount.
     */
     function getTotalAmount() external view override returns (uint256) {
         uint256 gaugeBalance = gauge.balanceOf(address(this));
@@ -84,7 +85,7 @@ contract CurveStrategy is Ownable, ReentrancyGuard, IStrategy {
 
     /** 
     @notice
-    Get net deposit for a deposit amount (used only for amm strategies).
+    Get the expected net deposit amount (amount minus slippage) for a given amount. Used only for AMM strategies.
     @return net amount.
     */
     function getNetDepositAmount(uint256 _amount) external view override returns (uint256) {
@@ -103,7 +104,7 @@ contract CurveStrategy is Ownable, ReentrancyGuard, IStrategy {
 
     /** 
     @notice
-    Returns the underlying token address.
+    Returns the underlying inbound (deposit) token address.
     @return Underlying token address.
     */
     function getUnderlyingAsset() external pure override returns (address) {
@@ -175,6 +176,9 @@ contract CurveStrategy is Ownable, ReentrancyGuard, IStrategy {
     @param _minAmount Slippage based amount to cover for impermanent loss scenario.
     */
     function invest(address _inboundCurrency, uint256 _minAmount) external payable override nonReentrant onlyOwner {
+        if (pool.underlying_coins(uint256(uint128(inboundTokenIndex))) != _inboundCurrency) {
+            revert INVALID_DEPOSIT_TOKEN();
+        }
         uint256 contractBalance = IERC20(_inboundCurrency).balanceOf(address(this));
         IERC20(_inboundCurrency).approve(address(pool), contractBalance);
         /*
@@ -211,6 +215,9 @@ contract CurveStrategy is Ownable, ReentrancyGuard, IStrategy {
         uint256 _amount,
         uint256 _minAmount
     ) external override nonReentrant onlyOwner {
+        if (pool.underlying_coins(uint256(uint128(inboundTokenIndex))) != _inboundCurrency) {
+            revert INVALID_DEPOSIT_TOKEN();
+        }
         uint256 gaugeBalance = gauge.balanceOf(address(this));
         if (poolType == AAVE_POOL) {
             uint256[NUM_AAVE_TOKENS] memory amounts; // fixed-sized array is initialized w/ [0, 0, 0]
@@ -281,6 +288,9 @@ contract CurveStrategy is Ownable, ReentrancyGuard, IStrategy {
         uint256 _minAmount,
         bool disableRewardTokenClaim
     ) external override nonReentrant onlyOwner {
+        if (pool.underlying_coins(uint256(uint128(inboundTokenIndex))) != _inboundCurrency) {
+            revert INVALID_DEPOSIT_TOKEN();
+        }
         bool claimRewards = true;
         if (disableRewardTokenClaim) {
             claimRewards = false;
@@ -334,7 +344,7 @@ contract CurveStrategy is Ownable, ReentrancyGuard, IStrategy {
             gauge.withdraw(gaugeBalance, claimRewards);
 
             uint256 lpTokenBalance = lpToken.balanceOf(address(this));
-            if (lpTokenBalance > 0) {
+            if (lpTokenBalance != 0) {
                 if (poolType == AAVE_POOL) {
                     pool.remove_liquidity_one_coin(
                         lpTokenBalance,
@@ -374,7 +384,7 @@ contract CurveStrategy is Ownable, ReentrancyGuard, IStrategy {
 
     /**
     @notice
-    Returns total accumalated reward token amount.
+    Returns total accumulated reward token amount.
     This method is not marked as view since in the curve gauge contract "claimable_reward_write" is not marked as view.
     @param disableRewardTokenClaim Reward claim disable flag.
     */

@@ -12,6 +12,7 @@ import "./IStrategy.sol";
 // --------------------------- custom errors ------------------------- //
 //*********************************************************************//
 error INVALID_CELO_TOKEN();
+error INVALID_DEPOSIT_TOKEN();
 error INVALID_GAUGE();
 error INVALID_MINTER();
 error INVALID_MOBI_TOKEN();
@@ -55,8 +56,8 @@ contract MobiusStrategy is Ownable, ReentrancyGuard, IStrategy {
 
     /** 
     @notice
-    Returns the total accumalated amount i.e principal + interest stored in mobius, only used in case of variable deposit pools.
-    @return Total accumalated amount.
+    Returns the total accumulated amount i.e principal + interest stored in mobius, only used in case of variable deposit pools.
+    @return Total accumulated amount.
     */
     function getTotalAmount() external view override returns (uint256) {
         uint256 gaugeBalance = gauge.balanceOf(address(this));
@@ -66,7 +67,7 @@ contract MobiusStrategy is Ownable, ReentrancyGuard, IStrategy {
 
     /** 
     @notice
-    Get net deposit for a deposit amount (used only for amm strategies).
+    Get the expected net deposit amount (amount minus slippage) for a given amount. Used only for AMM strategies.
     @return net amount.
     */
     function getNetDepositAmount(uint256 _amount) external view override returns (uint256) {
@@ -78,7 +79,7 @@ contract MobiusStrategy is Ownable, ReentrancyGuard, IStrategy {
 
     /** 
     @notice
-    Returns the underlying token address.
+    Returns the underlying inbound (deposit) token address.
     @return Underlying token address.
     */
     function getUnderlyingAsset() external pure override returns (address) {
@@ -145,6 +146,9 @@ contract MobiusStrategy is Ownable, ReentrancyGuard, IStrategy {
     @param _minAmount Slippage based amount to cover for impermanent loss scenario.
     */
     function invest(address _inboundCurrency, uint256 _minAmount) external payable override nonReentrant onlyOwner {
+        if (address(pool.getToken(0)) != _inboundCurrency) {
+            revert INVALID_DEPOSIT_TOKEN();
+        }
         uint256 contractBalance = IERC20(_inboundCurrency).balanceOf(address(this));
         IERC20(_inboundCurrency).approve(address(pool), contractBalance);
 
@@ -169,6 +173,9 @@ contract MobiusStrategy is Ownable, ReentrancyGuard, IStrategy {
         uint256 _amount,
         uint256 _minAmount
     ) external override nonReentrant onlyOwner {
+        if (address(pool.getToken(0)) != _inboundCurrency) {
+            revert INVALID_DEPOSIT_TOKEN();
+        }
         uint256[] memory amounts = new uint256[](2);
         amounts[0] = _amount;
 
@@ -212,6 +219,9 @@ contract MobiusStrategy is Ownable, ReentrancyGuard, IStrategy {
         uint256 _minAmount,
         bool disableRewardTokenClaim
     ) external override nonReentrant onlyOwner {
+        if (address(pool.getToken(0)) != _inboundCurrency) {
+            revert INVALID_DEPOSIT_TOKEN();
+        }
         bool claimRewards = true;
         if (disableRewardTokenClaim) {
             claimRewards = false;
@@ -258,8 +268,7 @@ contract MobiusStrategy is Ownable, ReentrancyGuard, IStrategy {
 
     /**
     @notice
-    Returns total accumalated reward token amount.
-    This method is not marked as view since in the curve gauge contract "claimable_reward_write" is not marked as view and all strategies share the same strategy interface.
+    Returns total accumulated reward token amount.
     @param disableRewardTokenClaim Reward claim disable flag.
     */
     function getAccumulatedRewardTokenAmounts(bool disableRewardTokenClaim)

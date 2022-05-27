@@ -131,23 +131,30 @@ describe("Aave V3 Variable Deposit Pool Fork Tests", () => {
         const playerInfo = await pool.players(accounts[0].address);
         let totalPrincipal = await pool.totalGamePrincipal();
         totalPrincipal = totalPrincipal.sub(playerInfo.amountPaid);
+        let totaNetlPrincipal = await pool.netTotalGamePrincipal();
+        totaNetlPrincipal = totaNetlPrincipal.sub(playerInfo.netAmountPaid);
         const feeAmount = ethers.BigNumber.from(playerInfo.amountPaid)
           .mul(ethers.BigNumber.from(earlyWithdrawFee))
           .div(ethers.BigNumber.from(100)); // fee is set as an integer, so needs to be converted to a percentage
         await expect(pool.connect(accounts[0]).earlyWithdraw(0))
           .to.emit(pool, "EarlyWithdrawal")
-          .withArgs(accounts[0].address, playerInfo.amountPaid.sub(feeAmount), totalPrincipal);
+          .withArgs(accounts[0].address, playerInfo.amountPaid.sub(feeAmount), totalPrincipal, totaNetlPrincipal);
       }
       const currentSegment = await pool.getCurrentSegment();
       for (let j = 1; j < 5; j++) {
         if (j == 1) {
           await expect(pool.connect(accounts[j]).makeDeposit(0, ethers.utils.parseEther("25")))
             .to.emit(pool, "Deposit")
-            .withArgs(accounts[j].address, currentSegment, ethers.utils.parseEther("25"));
+            .withArgs(
+              accounts[j].address,
+              currentSegment,
+              ethers.utils.parseEther("25"),
+              ethers.utils.parseEther("25"),
+            );
         } else {
           await expect(pool.connect(accounts[j]).makeDeposit(0, ethers.utils.parseEther("5")))
             .to.emit(pool, "Deposit")
-            .withArgs(accounts[j].address, currentSegment, ethers.utils.parseEther("5"));
+            .withArgs(accounts[j].address, currentSegment, ethers.utils.parseEther("5"), ethers.utils.parseEther("5"));
         }
       }
     }

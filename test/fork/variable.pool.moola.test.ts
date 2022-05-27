@@ -8,10 +8,8 @@ const providerConfig = require("../../providers.config");
 contract("Variable Deposit Pool with Moola Strategy", accounts => {
   // Only executes this test file for local network fork
   if (
-    !(
-      ["local-variable-celo"].includes(process.env.NETWORK ? process.env.NETWORK : "") &&
-      configs.deployConfigs.strategy === "moola"
-    )
+    !["local-variable-celo"].includes(process.env.NETWORK ? process.env.NETWORK : "") ||
+    configs.deployConfigs.strategy !== "moola"
   )
     return;
 

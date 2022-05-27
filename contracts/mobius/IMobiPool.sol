@@ -1,5 +1,6 @@
 pragma solidity ^0.8.7;
 
+import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 interface IMobiPool {
     function addLiquidity(
         uint256[] calldata amounts,
@@ -27,4 +28,6 @@ interface IMobiPool {
         uint256 tokenAmount,
         uint8 tokenIndex
     ) external view returns (uint256 availableTokenAmount);
+
+    function getToken(uint8 index) external view returns (IERC20);
 }

@@ -8,14 +8,12 @@ const mobiusGauge = require("../../artifacts/contracts/mobius/IMobiGauge.sol/IMo
 const configs = require("../../deploy.config");
 const providerConfig = require("../../providers.config");
 
-contract("Pool with Mobius Strategy when admin enables early game completion", accounts => {
+contract("Variable Deposit Pool with Mobius Strategy when admin enables early game completion", accounts => {
   // Only executes this test file for local network fork
   if (
-    !(
-      (["local-variable-celo"].includes(process.env.NETWORK ? process.env.NETWORK : "") &&
-        configs.deployConfigs.strategy === "mobius-cUSD-DAI") ||
-      configs.deployConfigs.strategy === "mobius-cUSD-USDC"
-    )
+    !["local-variable-celo"].includes(process.env.NETWORK ? process.env.NETWORK : "") &&
+    configs.deployConfigs.strategy !== "mobius-cUSD-DAI" &&
+    configs.deployConfigs.strategy !== "mobius-cUSD-USD"
   )
     return;
 
