@@ -646,13 +646,13 @@ contract Pool is Ownable, Pausable, ReentrancyGuard {
 
     /// @dev Checks if player is a winner.
     /// @return "true" if player is a winner; otherwise, return "false".
-    function _isWinner(Player storage player, uint64 depositCountMemory) internal view returns (bool) {
+    function _isWinner(Player storage _player, uint64 _depositCountMemory) internal view returns (bool) {
         return
-            player.isWinner ||
+            _player.isWinner ||
             ((
-                depositCountMemory == 0
-                    ? player.mostRecentSegmentPaid >= depositCountMemory
-                    : player.mostRecentSegmentPaid >= depositCountMemory.sub(1)
+                _depositCountMemory == 0
+                    ? _player.mostRecentSegmentPaid >= _depositCountMemory
+                    : _player.mostRecentSegmentPaid >= _depositCountMemory.sub(1)
             ) && emergencyWithdraw);
     }
 
