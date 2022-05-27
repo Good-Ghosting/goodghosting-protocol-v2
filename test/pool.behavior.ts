@@ -2779,6 +2779,34 @@ export const shouldBehaveLikePlayersWithdrawingFromGGPool = async (strategyType:
     });
   }
 
+  it("should return that player is a winner after completing the game successfully", async () => {
+    const accounts = await ethers.getSigners();
+    const player1 = accounts[2];
+
+    await joinGamePaySegmentsAndComplete(
+      contracts.inboundToken,
+      player1,
+      segmentPayment,
+      depositCount,
+      segmentLength,
+      contracts.goodGhosting,
+      segmentPayment,
+    );
+    const isWinner = await contracts.goodGhosting.isWinner(player1.address);
+    expect(isWinner).to.be.true;
+  });
+
+  it("should return that player is a winner if they have deposited and admin enables early game completion", async () => {
+    const accounts = await ethers.getSigners();
+    const player1 = accounts[2];
+    await joinGame(contracts.goodGhosting, contracts.inboundToken, player1, segmentPayment, segmentPayment);
+
+    await contracts.goodGhosting.enableEmergencyWithdraw();
+
+    const isWinner = await contracts.goodGhosting.isWinner(player1.address);
+    expect(isWinner).to.be.true;
+  });
+
   context("when incentive token is defined", async () => {
     beforeEach(async () => {
       contracts = await deployPool(
