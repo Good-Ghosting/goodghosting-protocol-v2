@@ -1,14 +1,7 @@
 pragma solidity ^0.8.7;
 
 import "./IStrategy.sol";
-import "../aave/ILendingPoolAddressesProvider.sol";
-import "../aave/ILendingPool.sol";
-import "../aave/AToken.sol";
-import "../aave/IWETHGateway.sol";
-import "../aave/IncentiveController.sol";
-import "../polygon/WMatic.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
-import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
 //*********************************************************************//
@@ -44,7 +37,8 @@ contract NoExternalStrategy is Ownable, IStrategy {
 
     /** 
     @notice
-    Returns the total accumulated amount i.e principal + interest stored in aave, only used in case of variable deposit pools.
+    Returns the total accumulated amount i.e principal + interest stored in the contract.
+    @dev This is only used in case of variable deposit pools.
     @return Total accumulated amount.
     */
     function getTotalAmount() external view override returns (uint256) {
@@ -159,10 +153,10 @@ contract NoExternalStrategy is Ownable, IStrategy {
         uint256 _minAmount,
         bool disableRewardTokenClaim
     ) external override onlyOwner {
-        uint256 fixedDepositAmount = _inboundCurrency == address(0)
+        uint256 _balance = _inboundCurrency == address(0)
             ? address(this).balance
             : IERC20(_inboundCurrency).balanceOf(address(this));
-        uint256 redeemAmount = variableDeposits ? _amount : fixedDepositAmount;
+        uint256 redeemAmount = variableDeposits ? _amount : _balance;
         if (!disableRewardTokenClaim) {
             for (uint256 i = 0; i < rewardTokens.length; i++) {
                 bool success = IERC20(rewardTokens[i]).transfer(
