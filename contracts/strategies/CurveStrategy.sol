@@ -1,7 +1,6 @@
 pragma solidity ^0.8.7;
 
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "../curve/ICurvePool.sol";
 import "../curve/ICurveGauge.sol";
@@ -21,7 +20,7 @@ error TOKEN_TRANSFER_FAILURE();
   @notice
   Interacts with curve protocol to generate interest & additional rewards for the goodghosting pool it is used in, so it's responsible for deposits, staking lp tokens, withdrawals and getting rewards and sending these back to the pool.
 */
-contract CurveStrategy is Ownable, ReentrancyGuard, IStrategy {
+contract CurveStrategy is Ownable, IStrategy {
     /// @notice reward token address for eg wmatic in case of polygon deployment
     IERC20 public immutable rewardToken;
 
@@ -175,7 +174,7 @@ contract CurveStrategy is Ownable, ReentrancyGuard, IStrategy {
     @param _inboundCurrency Address of the inbound token.
     @param _minAmount Slippage based amount to cover for impermanent loss scenario.
     */
-    function invest(address _inboundCurrency, uint256 _minAmount) external payable override nonReentrant onlyOwner {
+    function invest(address _inboundCurrency, uint256 _minAmount) external payable override onlyOwner {
         if (pool.underlying_coins(uint256(uint128(inboundTokenIndex))) != _inboundCurrency) {
             revert INVALID_DEPOSIT_TOKEN();
         }
@@ -214,7 +213,7 @@ contract CurveStrategy is Ownable, ReentrancyGuard, IStrategy {
         address _inboundCurrency,
         uint256 _amount,
         uint256 _minAmount
-    ) external override nonReentrant onlyOwner {
+    ) external override onlyOwner {
         // not checking for validity of deposit token here since with pool contract as the owner of the strategy the only way to transfer pool funds is by invest method so the check there is sufficient
         uint256 gaugeBalance = gauge.balanceOf(address(this));
         if (poolType == AAVE_POOL) {
@@ -285,7 +284,7 @@ contract CurveStrategy is Ownable, ReentrancyGuard, IStrategy {
         bool variableDeposits,
         uint256 _minAmount,
         bool disableRewardTokenClaim
-    ) external override nonReentrant onlyOwner {
+    ) external override onlyOwner {
         // not checking for validity of deposit token here since with pool contract as the owner of the strategy the only way to transfer pool funds is by invest method so the check there is sufficient
         bool claimRewards = true;
         if (disableRewardTokenClaim) {

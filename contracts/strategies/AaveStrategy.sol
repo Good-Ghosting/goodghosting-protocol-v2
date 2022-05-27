@@ -8,7 +8,6 @@ import "../aave/IWETHGateway.sol";
 import "../aave/IncentiveController.sol";
 import "../polygon/WMatic.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
-import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
 //*********************************************************************//
@@ -23,7 +22,7 @@ error TRANSACTIONAL_TOKEN_TRANSFER_FAILURE();
   @notice
   Interacts with aave v2 & moola protocol to generate interest for the goodghosting pool it is used in, so it's responsible for deposits, withdrawals and getting rewards and sending these back to the pool.
 */
-contract AaveStrategy is Ownable, ReentrancyGuard, IStrategy {
+contract AaveStrategy is Ownable, IStrategy {
     /// @notice Address of the Aave V2 incentive controller contract
     IncentiveController public immutable incentiveController;
 
@@ -147,7 +146,7 @@ contract AaveStrategy is Ownable, ReentrancyGuard, IStrategy {
     @param _minAmount Used for aam strategies, since every strategy overrides from the same strategy interface hence it is defined here.
     _minAmount isn't needed in this strategy but since all strategies override from the same interface and the amm strategies need it hence it is used here.
     */
-    function invest(address _inboundCurrency, uint256 _minAmount) external payable override nonReentrant onlyOwner {
+    function invest(address _inboundCurrency, uint256 _minAmount) external payable override onlyOwner {
         if (_inboundCurrency == address(0) || _inboundCurrency == address(rewardToken)) {
             if (_inboundCurrency == address(rewardToken)) {
                 // unwraps WMATIC back into MATIC
@@ -174,7 +173,7 @@ contract AaveStrategy is Ownable, ReentrancyGuard, IStrategy {
         address _inboundCurrency,
         uint256 _amount,
         uint256 _minAmount
-    ) external override nonReentrant onlyOwner {
+    ) external override onlyOwner {
         if (_inboundCurrency == address(0) || _inboundCurrency == address(rewardToken)) {
             adaiToken.approve(address(wethGateway), _amount);
 
@@ -218,7 +217,7 @@ contract AaveStrategy is Ownable, ReentrancyGuard, IStrategy {
         bool variableDeposits,
         uint256 _minAmount,
         bool disableRewardTokenClaim
-    ) external override nonReentrant onlyOwner {
+    ) external override onlyOwner {
         uint256 redeemAmount = variableDeposits ? _amount : type(uint256).max;
         // Withdraws funds (principal + interest + rewards) from external pool
         if (_inboundCurrency == address(0) || _inboundCurrency == address(rewardToken)) {

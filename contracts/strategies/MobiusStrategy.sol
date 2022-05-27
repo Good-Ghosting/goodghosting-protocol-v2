@@ -1,7 +1,6 @@
 pragma solidity ^0.8.7;
 
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "../mobius/IMobiPool.sol";
 import "../mobius/IMobiGauge.sol";
@@ -23,7 +22,7 @@ error TOKEN_TRANSFER_FAILURE();
   @notice
   Interacts with mobius protocol to generate interest & additional rewards for the goodghosting pool it is used in, so it's responsible for deposits, staking lp tokens, withdrawals and getting rewards and sending these back to the pool.
 */
-contract MobiusStrategy is Ownable, ReentrancyGuard, IStrategy {
+contract MobiusStrategy is Ownable, IStrategy {
     /// @notice gauge address
     IMobiGauge public immutable gauge;
 
@@ -145,7 +144,7 @@ contract MobiusStrategy is Ownable, ReentrancyGuard, IStrategy {
     @param _inboundCurrency Address of the inbound token.
     @param _minAmount Slippage based amount to cover for impermanent loss scenario.
     */
-    function invest(address _inboundCurrency, uint256 _minAmount) external payable override nonReentrant onlyOwner {
+    function invest(address _inboundCurrency, uint256 _minAmount) external payable override onlyOwner {
         if (address(pool.getToken(0)) != _inboundCurrency) {
             revert INVALID_DEPOSIT_TOKEN();
         }
@@ -172,7 +171,7 @@ contract MobiusStrategy is Ownable, ReentrancyGuard, IStrategy {
         address _inboundCurrency,
         uint256 _amount,
         uint256 _minAmount
-    ) external override nonReentrant onlyOwner {
+    ) external override onlyOwner {
         // not checking for validity of deposit token here since with pool contract as the owner of the strategy the only way to transfer pool funds is by invest method so the check there is sufficient
         uint256[] memory amounts = new uint256[](2);
         amounts[0] = _amount;
@@ -216,7 +215,7 @@ contract MobiusStrategy is Ownable, ReentrancyGuard, IStrategy {
         bool variableDeposits,
         uint256 _minAmount,
         bool disableRewardTokenClaim
-    ) external override nonReentrant onlyOwner {
+    ) external override onlyOwner {
         // not checking for validity of deposit token here since with pool contract as the owner of the strategy the only way to transfer pool funds is by invest method so the check there is sufficient
         bool claimRewards = true;
         if (disableRewardTokenClaim) {

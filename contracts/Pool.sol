@@ -558,7 +558,7 @@ contract Pool is Ownable, Pausable, ReentrancyGuard {
         uint256 _minAmount,
         uint256 _depositAmount,
         uint256 _netDepositAmount
-    ) internal virtual nonReentrant {
+    ) internal virtual {
         uint64 currentSegment = getCurrentSegment();
         players[msg.sender].mostRecentSegmentPaid = currentSegment;
 
@@ -605,7 +605,7 @@ contract Pool is Ownable, Pausable, ReentrancyGuard {
 
     /// @dev Sets the game stats without redeeming the funds from the strategy.
     /// Can only be called after the game is completed when each player withdraws.
-    function _setGlobalPoolParamsForFlexibleDepositPool() internal virtual nonReentrant whenGameIsCompleted {
+    function _setGlobalPoolParamsForFlexibleDepositPool() internal virtual whenGameIsCompleted {
         // Since this is only called in the case of variable deposit & it is called everytime a player decides to withdraw,
         // so totalBalance keeps a track of the ucrrent balance & the accumulated principal + interest stored in the strategy protocol.
         uint256 totalBalance = isTransactionalToken
@@ -663,18 +663,18 @@ contract Pool is Ownable, Pausable, ReentrancyGuard {
     function setIncentiveToken(IERC20 _incentiveToken) public onlyOwner whenGameIsNotCompleted {
         if (address(incentiveToken) != address(0)) {
             revert INCENTIVE_TOKEN_ALREADY_SET();
-        } else {
-            if ((inboundToken != address(0) && inboundToken == address(_incentiveToken))) {
+        }
+        if ((inboundToken != address(0) && inboundToken == address(_incentiveToken))) {
+            revert INVALID_INCENTIVE_TOKEN();
+        }
+        // incentiveToken cannot be the same as one of the reward tokens.
+        IERC20[] memory _rewardTokens = strategy.getRewardTokens();
+        for (uint256 i = 0; i < _rewardTokens.length; i++) {
+            if (
+                (address(_rewardTokens[i]) != address(0) &&
+                address(_rewardTokens[i]) == address(_incentiveToken))
+            ) {
                 revert INVALID_INCENTIVE_TOKEN();
-            }
-            IERC20[] memory _rewardTokens = strategy.getRewardTokens();
-            for (uint256 i = 0; i < _rewardTokens.length; i++) {
-                // If there's an incentive token address defined, sets the total incentive amount to be distributed among winners.
-                if (
-                    ((address(_rewardTokens[i]) != address(0) && address(_rewardTokens[i]) == address(_incentiveToken)))
-                ) {
-                    revert INVALID_INCENTIVE_TOKEN();
-                }
             }
         }
         incentiveToken = _incentiveToken;
@@ -804,6 +804,7 @@ contract Pool is Ownable, Pausable, ReentrancyGuard {
         whenGameIsInitialized
         whenNotPaused
         whenGameIsNotCompleted
+        nonReentrant
     {
         _joinGame(_minAmount, _depositAmount);
     }
@@ -1042,7 +1043,7 @@ contract Pool is Ownable, Pausable, ReentrancyGuard {
     @param _minAmount Slippage based amount to cover for impermanent loss scenario.
     @param _depositAmount Variable Deposit Amount in case of a variable deposit pool.
     */
-    function makeDeposit(uint256 _minAmount, uint256 _depositAmount) external payable whenNotPaused {
+    function makeDeposit(uint256 _minAmount, uint256 _depositAmount) external payable whenNotPaused nonReentrant {
         if (players[msg.sender].withdrawn) {
             revert PLAYER_ALREADY_WITHDREW_EARLY();
         }
