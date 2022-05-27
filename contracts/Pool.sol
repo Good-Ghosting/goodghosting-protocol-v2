@@ -228,9 +228,7 @@ contract Pool is Ownable, Pausable, ReentrancyGuard {
         uint256 impermanentLossShare
     );
 
-    event AdminFee(
-       uint256[] adminFeeAmounts 
-    );
+    event AdminFee(uint256[] adminFeeAmounts);
 
     //*********************************************************************//
     // ------------------------- modifiers -------------------------- //
@@ -434,7 +432,14 @@ contract Pool is Ownable, Pausable, ReentrancyGuard {
         }
         // this condition is added because emit is to only be emitted when redeemed flag is false but this mehtod is called for every player withdrawal in variable deposit pool.
         if (!redeemed) {
-            emit EndGameStats(_totalBalance, totalGamePrincipal, netTotalGamePrincipal, _grossInterest, totalIncentiveAmount, impermanentLossShare);
+            emit EndGameStats(
+                _totalBalance,
+                totalGamePrincipal,
+                netTotalGamePrincipal,
+                _grossInterest,
+                totalIncentiveAmount,
+                impermanentLossShare
+            );
         }
         return _grossInterest;
     }
@@ -599,9 +604,7 @@ contract Pool is Ownable, Pausable, ReentrancyGuard {
         uint256 totalBalance = isTransactionalToken
             ? address(this).balance.add(strategy.getTotalAmount())
             : IERC20(inboundToken).balanceOf(address(this)).add(strategy.getTotalAmount());
-
         uint256 grossInterest = _calculateAndUpdateGameAccounting(totalBalance);
-
         uint256[] memory grossRewardTokenAmount = new uint256[](rewardTokens.length);
 
         for (uint256 i = 0; i < rewardTokens.length; i++) {
@@ -898,6 +901,7 @@ contract Pool is Ownable, Pausable, ReentrancyGuard {
         } else {
             _setGlobalPoolParamsForFlexibleDepositPool();
         }
+
         uint256 payout = player.netAmountPaid;
         uint256 playerIncentive = 0;
         uint256 playerInterestShare = 0;
@@ -1115,7 +1119,7 @@ contract Pool is Ownable, Pausable, ReentrancyGuard {
         }
 
         _calculateAndSetAdminAccounting(grossInterest, grossRewardTokenAmount);
-        
+
         emit FundsRedeemedFromExternalPool(
             isTransactionalToken ? address(this).balance : IERC20(inboundToken).balanceOf(address(this)),
             netTotalGamePrincipal,
