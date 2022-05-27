@@ -20,7 +20,9 @@ error TOKEN_TRANSFER_FAILURE();
 
 /**
   @notice
-  Interacts with mobius protocol to generate interest & additional rewards for the goodghosting pool it is used in, so it's responsible for deposits, staking lp tokens, withdrawals and getting rewards and sending these back to the pool.
+  Interacts with Mobius protocol (or forks) to generate interest for the pool.
+  This contract it's responsible for deposits and withdrawals to the external pool
+  as well as getting the generated rewards and sending them back to the pool.
 */
 contract MobiusStrategy is Ownable, IStrategy {
     /// @notice gauge address
@@ -32,7 +34,7 @@ contract MobiusStrategy is Ownable, IStrategy {
     /// @notice mobi token
     IERC20 public immutable mobi;
 
-    /// @notice mobi token
+    /// @notice celo token
     IERC20 public immutable celo;
 
     /// @notice mobi lp token
@@ -55,13 +57,14 @@ contract MobiusStrategy is Ownable, IStrategy {
 
     /** 
     @notice
-    Returns the total accumulated amount i.e principal + interest stored in mobius, only used in case of variable deposit pools.
+    Returns the total accumulated amount (i.e., principal + interest) stored in curve.
+    Intended for usage by external clients and in case of variable deposit pools.
     @return Total accumulated amount.
     */
     function getTotalAmount() external view override returns (uint256) {
         uint256 gaugeBalance = gauge.balanceOf(address(this));
-        uint256 totalAccumalatedAmount = pool.calculateRemoveLiquidityOneToken(address(this), gaugeBalance, 0);
-        return totalAccumalatedAmount;
+        uint256 totalAccumulatedAmount = pool.calculateRemoveLiquidityOneToken(address(this), gaugeBalance, 0);
+        return totalAccumulatedAmount;
     }
 
     /** 

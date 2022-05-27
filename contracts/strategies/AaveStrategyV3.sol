@@ -21,8 +21,10 @@ error TRANSACTIONAL_TOKEN_TRANSFER_FAILURE();
 
 /**
   @notice
-  Interacts with aave & moola protocol to generate interest for the goodghosting pool it is used in, so it's responsible for deposits, withdrawals and getting rewards and sending these back to the pool.
-*/
+  Interacts with Aave V3 protocol (or forks) to generate interest for the pool.
+  This contract it's responsible for deposits and withdrawals to the external pool
+  as well as getting the generated rewards and sending them back to the pool.
+  */
 contract AaveStrategyV3 is Ownable, IStrategy {
     /// @notice Address of the Aave V2 weth gateway contract
     IWETHGateway public immutable wethGateway;
@@ -63,7 +65,8 @@ contract AaveStrategyV3 is Ownable, IStrategy {
 
     /** 
     @notice
-    Returns the total accumulated amount i.e principal + interest stored in aave, only used in case of variable deposit pools.
+    Returns the total accumulated amount (i.e., principal + interest) stored in curve.
+    Intended for usage by external clients and in case of variable deposit pools.
     @return Total accumulated amount.
     */
     function getTotalAmount() external view override returns (uint256) {

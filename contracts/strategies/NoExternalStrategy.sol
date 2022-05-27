@@ -37,8 +37,8 @@ contract NoExternalStrategy is Ownable, IStrategy {
 
     /** 
     @notice
-    Returns the total accumulated amount i.e principal + interest stored in the contract.
-    @dev This is only used in case of variable deposit pools.
+    Returns the total accumulated amount (i.e., principal + interest) stored in curve.
+    Intended for usage by external clients and in case of variable deposit pools.
     @return Total accumulated amount.
     */
     function getTotalAmount() external view override returns (uint256) {
