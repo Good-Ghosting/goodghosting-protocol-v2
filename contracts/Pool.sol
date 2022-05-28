@@ -273,6 +273,17 @@ contract Pool is Ownable, Pausable, ReentrancyGuard {
         return getCurrentSegment() > depositCount || emergencyWithdraw;
     }
 
+    /// @dev Checks if player is a winner.
+    /// @param _player player address
+    /// @return "true" if player is a winner; otherwise, return "false".
+    function isWinner(address _player) public view returns (bool) {
+        if (players[_player].amountPaid == 0) {
+            return false;
+        }
+
+        return _isWinner(players[_player], depositCount);
+    }
+
     /// @dev gets the number of players in the game.
     /// @return number of players.
     function getNumberOfPlayers() external view returns (uint256) {
@@ -637,6 +648,21 @@ contract Pool is Ownable, Pausable, ReentrancyGuard {
         );
     }
 
+    /// @dev Checks if player is a winner.
+    /// @dev this function assumes that the player has already joined the game.
+    ///      We should always check if the player is a participant in the pool before using this function.
+    /// @return "true" if player is a winner; otherwise, return "false".
+    function _isWinner(Player storage _player, uint64 _depositCountMemory) internal view returns (bool) {
+        return
+            _player.isWinner ||
+            (emergencyWithdraw &&
+                (
+                    _depositCountMemory == 0
+                        ? _player.mostRecentSegmentPaid >= _depositCountMemory
+                        : _player.mostRecentSegmentPaid >= _depositCountMemory.sub(1)
+                ));
+    }
+
     //*********************************************************************//
     // ------------------------- external/public methods -------------------------- //
     //*********************************************************************//
@@ -914,14 +940,7 @@ contract Pool is Ownable, Pausable, ReentrancyGuard {
         uint256[] memory playerReward = new uint256[](rewardTokens.length);
         // to avoid SLOAD multiple times
         uint64 depositCountMemory = depositCount;
-        if (
-            player.isWinner ||
-            ((
-                depositCountMemory == 0
-                    ? players[msg.sender].mostRecentSegmentPaid >= depositCountMemory
-                    : players[msg.sender].mostRecentSegmentPaid >= depositCountMemory.sub(1)
-            ) && emergencyWithdraw)
-        ) {
+        if (_isWinner(player, depositCountMemory)) {
             // Calculate Cummalative index for each player
             uint256 playerIndexSum = 0;
 
