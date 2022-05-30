@@ -8,7 +8,6 @@ import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 // --------------------------- custom errors ------------------------- //
 //*********************************************************************//
 error INVALID_REWARD_TOKEN();
-error NOT_ENOUGHT_FUNDS();
 error TOKEN_TRANSFER_FAILURE();
 error TRANSACTIONAL_TOKEN_TRANSFER_FAILURE();
 
@@ -159,11 +158,11 @@ contract NoExternalStrategy is Ownable, IStrategy {
             : IERC20(_inboundCurrency).balanceOf(address(this));
         uint256 redeemAmount = variableDeposits ? _amount : _balance;
         // safety check since funds don't get transferred to a extrnal protocol
-        if (_balance >= redeemAmount) {
-            _transferInboundTokenToPool(_inboundCurrency, redeemAmount);
-        } else {
-            revert NOT_ENOUGHT_FUNDS();
+        if (redeemAmount > _balance) {
+            redeemAmount = _balance;
         }
+
+        _transferInboundTokenToPool(_inboundCurrency, redeemAmount);
 
         if (!disableRewardTokenClaim) {
             for (uint256 i = 0; i < rewardTokens.length; i++) {
