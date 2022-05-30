@@ -890,7 +890,6 @@ contract Pool is Ownable, Pausable, ReentrancyGuard {
             segmentCounter[currentSegment] -= 1;
         }
 
-        emit EarlyWithdrawal(msg.sender, withdrawAmount, totalGamePrincipal, netTotalGamePrincipal);
         strategy.earlyWithdraw(inboundToken, withdrawAmount, _minAmount);
         if (isTransactionalToken) {
             // safety check
@@ -913,6 +912,11 @@ contract Pool is Ownable, Pausable, ReentrancyGuard {
                 revert TOKEN_TRANSFER_FAILURE();
             }
         }
+        // We have to ignore the "check-effects-interactions" pattern here and emit the event
+        // only at the end of the function, in order to emit it w/ the correct withdrawal amount.
+        // In case the safety checks above are evaluated to true, withdrawAmount is updated,
+        // so we need the event to be emitted with the correct info.
+        emit EarlyWithdrawal(msg.sender, withdrawAmount, totalGamePrincipal, netTotalGamePrincipal);
     }
 
     /**
@@ -992,7 +996,6 @@ contract Pool is Ownable, Pausable, ReentrancyGuard {
                 totalIncentiveAmount = totalIncentiveAmount.sub(playerIncentive);
             }
         }
-        emit Withdrawal(msg.sender, payout, playerIncentive, playerReward);
         // Updating total principal as well after each player withdraws this is separate since we have to do this for non-players
         if (flexibleSegmentPayment) {
             if (netTotalGamePrincipal < player.netAmountPaid) {
@@ -1055,6 +1058,11 @@ contract Pool is Ownable, Pausable, ReentrancyGuard {
                 }
             }
         }
+        // We have to ignore the "check-effects-interactions" pattern here and emit the event
+        // only at the end of the function, in order to emit it w/ the correct withdrawal amount.
+        // In case the safety checks above are evaluated to true, payout, playerIncentiv and playerReward
+        // are updated, so we need the event to be emitted with the correct info.
+        emit Withdrawal(msg.sender, payout, playerIncentive, playerReward);
     }
 
     /**
