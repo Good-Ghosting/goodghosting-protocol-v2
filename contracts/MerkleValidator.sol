@@ -1,13 +1,13 @@
-// SPDX-License-Identifier: UNLICENSED
+// SPDX-License-Identifier: MIT
 pragma solidity ^0.8.7;
 
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/utils/cryptography/MerkleProof.sol";
-import "./merkle/IMerkleDistributor.sol";
+import "./merkle/IMerkleValidator.sol";
 
 /// @title Contract responsible for player's merkle proof validation
 /// @author Francis Odisi & Viraz Malhotra
-contract MerkleDistributor is IMerkleDistributor {
+contract MerkleValidator is IMerkleValidator {
     error INVALID_PROOF();
 
     /// @notice Merkle Root.
@@ -23,7 +23,7 @@ contract MerkleDistributor is IMerkleDistributor {
     /// @param account Player Address
     /// @param isValid Bool Flag
     /// @param merkleProof Merkle proof of the player
-    function claim(
+    function validate(
         uint256 index,
         address account,
         bool isValid,
