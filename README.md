@@ -255,16 +255,18 @@ slither . --filter-path "aave|Migrations.sol|merkle|mock|openzeppelin|polygon|aa
 
 - Update the `strategy` value and the `inboundCurrencySymbol` value according to the type of strategy you want to deploy in the deployment config.
 
+- All Deployment Info would be written in the [deployment log file](https://github.com/Good-Ghosting/goodghosting-protocol-v1/blob/master/deployment-result.json).
+
 ## Polygon
 
-- **Aave V3 Strategy Based Pool** Start by setting the `MNEMONIC` var (which is the 12 word seed phrase in your wallet) & the `RPC` var in the .env file & then make sure you have the [right deployment configs set](https://github.com/Good-Ghosting/goodghosting-protocol-v1/blob/master/deploy.config.ts)(if a **whitelisted pool** needs to be deployed make sure the merkle root is set and the [isWhitelisted var](https://github.com/Good-Ghosting/goodghosting-protocol-v1/blob/master/deploy.config.ts#L135) is true), then just run `yarn deploy:polygon`.
+- **Aave V3 Strategy Based Pool** After setting the prerequisite config mentioned above, start by setting the `MNEMONIC` var (which is the 12 word seed phrase in your wallet) & the `RPC` var in the .env file & then make sure you have the [right deployment configs set](https://github.com/Good-Ghosting/goodghosting-protocol-v1/blob/master/deploy.config.ts)(if a **whitelisted pool** needs to be deployed make sure the merkle root is set and the [isWhitelisted var](https://github.com/Good-Ghosting/goodghosting-protocol-v1/blob/master/deploy.config.ts#L135) is true), then just run `yarn deploy:polygon`.
 
 You will see something like this:
 
 ```
 Starting migrations...
 ======================
-> Network name:    'polygon-aave-v3'
+> Network name:    'polygon'
 > Network id:      137
 > Block gas limit: 30000000 (0x1c9c380)
 
@@ -327,40 +329,6 @@ Starting migrations...
    > confirmation number: 2 (block: 26186461)
 
 
-
-----------------------------------------------------
-GoodGhosting Holding Pool deployed with the following arguments:
-----------------------------------------------------
-
-Network Name: polygon-aave-v3
-Contract's Owner: 0xf88b0247e611eE5af8Cf98f5303769Cba8e7177C
-Inbound Currency: 0x8f3Cf7ad23Cd3CaDbD9735AFf958023239c6A063
-Maximum Flexible Segment Payment Amount: 0
-Segment Count: 3
-Segment Length: 604800 seconds
-Waiting Segment Length: 604800 seconds
-Segment Payment: 3 dai (3000000000000000000 wei)
-Early Withdrawal Fee: 1%
-Custom Pool Fee: 1%
-Max Quantity of Players: 115792089237316195423570985008687907853269984665640564039457584007913129639935
-Flexible Deposit Pool: false
-Transactional Token Deposit Pool: false
-Strategy: 0x7f8bA69d2D7bD4490AB0aa35B92e29B845aaB7fA
-Lending Pool Provider: 0xa97684ead0e402dC232d5A977953DF7ECBaB3CDb
-WETHGateway: 0x9BdB5fcc80A49640c7872ac089Cc0e00A98451B6
-Data Provider: 0x69FA688f1Dc47d4B5d8029D5a35FB7a548310654
-IncentiveController: 0x929EC64c34a17401F460460D4B9390518E5B473e
-Reward Token: 0x0000000000000000000000000000000000000000
-Moola Strategy Encoded Params:  000000000000000000000000d05e3e715d945b59290df0ae8ef85c1bdb684744000000000000000000000000beadf48d62acc944a06eeae0a9054a90e5a7dc970000000000000000000000007551b5d2763519d4e37e8b81929d336de671d46d000000000000000000000000357d51124f59836ded84c8a1730d72b749d8bc230000000000000000000000000000000000000000000000000000000000000000
-
-
-Constructor Arguments ABI-Encoded:
-0000000000000000000000008f3cf7ad23cd3cadbd9735aff958023239c6a063000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000030000000000000000000000000000000000000000000000000000000000093a800000000000000000000000000000000000000000000000000000000000093a8000000000000000000000000000000000000000000000000029a2241af62c000000000000000000000000000000000000000000000000000000000000000000010000000000000000000000000000000000000000000000000000000000000001ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff00000000000000000000000000000000000000000000000000000000000000000000000000000000000000007f8ba69d2d7bd4490ab0aa35b92e29b845aab7fa0000000000000000000000000000000000000000000000000000000000000000
-
-
-
-
-
    > Saving artifacts
    -------------------------------------
    > Total cost:         0.213315808 ETH
@@ -372,14 +340,14 @@ Summary
 > Final cost:          0.213315808 ETH
 ```
 
-- **Aave V2 Strategy Based Pool** Start by setting the `MNEMONIC` var (which is the 12 word seed phrase in your wallet) & the `RPC` var in the .env file & then make sure you have the [right deployment configs set](https://github.com/Good-Ghosting/goodghosting-protocol-v1/blob/master/deploy.config.ts)(if a **whitelisted pool** needs to be deployed make sure the merkle root is set and the [isWhitelisted var](https://github.com/Good-Ghosting/goodghosting-protocol-v1/blob/master/deploy.config.ts#L135) is true), then just run `yarn deploy:polygon`.
+- **Aave V2 Strategy Based Pool** After setting the prerequisite config mentioned above, start by setting the `MNEMONIC` var (which is the 12 word seed phrase in your wallet) & the `RPC` var in the .env file & then make sure you have the [right deployment configs set](https://github.com/Good-Ghosting/goodghosting-protocol-v1/blob/master/deploy.config.ts)(if a **whitelisted pool** needs to be deployed make sure the merkle root is set and the [isWhitelisted var](https://github.com/Good-Ghosting/goodghosting-protocol-v1/blob/master/deploy.config.ts#L135) is true), then just run `yarn deploy:polygon`.
 
 You will see something like this:
 
 ```
 Starting migrations...
 ======================
-> Network name:    'polygon-aave-v2'
+> Network name:    'polygon'
 > Network id:      137
 > Block gas limit: 30000000 (0x1c9c380)
 
@@ -442,40 +410,6 @@ Starting migrations...
    > confirmation number: 2 (block: 26186461)
 
 
-
-----------------------------------------------------
-GoodGhosting Holding Pool deployed with the following arguments:
-----------------------------------------------------
-
-Network Name: polygon-aave-v2
-Contract's Owner: 0xf88b0247e611eE5af8Cf98f5303769Cba8e7177C
-Inbound Currency: 0x8f3Cf7ad23Cd3CaDbD9735AFf958023239c6A063
-Maximum Flexible Segment Payment Amount: 0
-Segment Count: 3
-Segment Length: 604800 seconds
-Waiting Segment Length: 604800 seconds
-Segment Payment: 3 dai (3000000000000000000 wei)
-Early Withdrawal Fee: 1%
-Custom Pool Fee: 1%
-Max Quantity of Players: 115792089237316195423570985008687907853269984665640564039457584007913129639935
-Flexible Deposit Pool: false
-Transactional Token Deposit Pool: false
-Strategy: 0x7f8bA69d2D7bD4490AB0aa35B92e29B845aaB7fA
-Lending Pool Provider: 0xd05e3E715d945B59290df0ae8eF85c1BdB684744
-WETHGateway: 0xbEadf48d62aCC944a06EEaE0A9054A90E5A7dc97
-Data Provider: 0x7551b5D2763519d4e37e8B81929D336De671d46d
-IncentiveController: 0x357D51124f59836DeD84c8a1730D72B749d8BC23
-Reward Token: 0x0000000000000000000000000000000000000000
-Moola Strategy Encoded Params:  000000000000000000000000d05e3e715d945b59290df0ae8ef85c1bdb684744000000000000000000000000beadf48d62acc944a06eeae0a9054a90e5a7dc970000000000000000000000007551b5d2763519d4e37e8b81929d336de671d46d000000000000000000000000357d51124f59836ded84c8a1730d72b749d8bc230000000000000000000000000000000000000000000000000000000000000000
-
-
-Constructor Arguments ABI-Encoded:
-0000000000000000000000008f3cf7ad23cd3cadbd9735aff958023239c6a063000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000030000000000000000000000000000000000000000000000000000000000093a800000000000000000000000000000000000000000000000000000000000093a8000000000000000000000000000000000000000000000000029a2241af62c000000000000000000000000000000000000000000000000000000000000000000010000000000000000000000000000000000000000000000000000000000000001ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff00000000000000000000000000000000000000000000000000000000000000000000000000000000000000007f8ba69d2d7bd4490ab0aa35b92e29b845aab7fa0000000000000000000000000000000000000000000000000000000000000000
-
-
-
-
-
    > Saving artifacts
    -------------------------------------
    > Total cost:         0.213315808 ETH
@@ -486,14 +420,14 @@ Summary
 > Final cost:          0.213315808 ETH
 ```
 
-- **Curve Strategy Based Pool** Start by setting the `MNEMONIC` var (which is the 12 word seed phrase in your wallet) & the `RPC` var in the .env file & then make sure you have the [right deployment configs set](https://github.com/Good-Ghosting/goodghosting-protocol-v1/blob/master/deploy.config.ts)(if a **whitelisted pool** needs to be deployed make sure the merkle root is set and the [isWhitelisted var](https://github.com/Good-Ghosting/goodghosting-protocol-v1/blob/master/deploy.config.ts#L135) is true), then just run `yarn deploy:polygon`.
+- **Curve Strategy Based Pool** After setting the prerequisite config mentioned above, start by setting the `MNEMONIC` var (which is the 12 word seed phrase in your wallet) & the `RPC` var in the .env file & then make sure you have the [right deployment configs set](https://github.com/Good-Ghosting/goodghosting-protocol-v1/blob/master/deploy.config.ts)(if a **whitelisted pool** needs to be deployed make sure the merkle root is set and the [isWhitelisted var](https://github.com/Good-Ghosting/goodghosting-protocol-v1/blob/master/deploy.config.ts#L135) is true), then just run `yarn deploy:polygon`.
 
 You will see something like this:
 
 ```
 Starting migrations...
 ======================
-> Network name:    'polygon-curve'
+> Network name:    'polygon'
 > Network id:      137
 > Block gas limit: 30000000 (0x1c9c380)
 
@@ -556,41 +490,6 @@ Starting migrations...
    > confirmation number: 3 (block: 26184488)
 
 
-
-----------------------------------------------------
-GoodGhosting Holding Pool deployed with the following arguments:
-----------------------------------------------------
-
-Network Name: polygon-curve
-Contract's Owner: 0xf88b0247e611eE5af8Cf98f5303769Cba8e7177C
-Inbound Currency: 0x8f3Cf7ad23Cd3CaDbD9735AFf958023239c6A063
-Maximum Flexible Segment Payment Amount: 0
-Segment Count: 3
-Segment Length: 604800 seconds
-Waiting Segment Length: 604800 seconds
-Segment Payment: 3 dai (3000000000000000000 wei)
-Early Withdrawal Fee: 1%
-Custom Pool Fee: 1%
-Max Quantity of Players: 115792089237316195423570985008687907853269984665640564039457584007913129639935
-Flexible Deposit Pool: false
-Transactional Token Deposit Pool: false
-Strategy: 0x96083906aAD9dC0860e5B05a919f190213701Fae
-Curve Pool: 0x1d8b86e3d88cdb2d34688e87e72f388cb541b7c8
-Curve Gauge: 0x3b6b158a76fd8ccc297538f454ce7b4787778c7c
-Token index: 0
-Pool Type: 1
-Reward Token: 0x0d500B1d8E8eF31E21C99d1Db9A6444d3ADf1270
-Curve Token: 0x172370d5cd63279efa6d502dab29171933a610af
-Curve Strategy Encoded Params:  0000000000000000000000001d8b86e3d88cdb2d34688e87e72f388cb541b7c8000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000010000000000000000000000003b6b158a76fd8ccc297538f454ce7b4787778c7c0000000000000000000000000d500b1d8e8ef31e21c99d1db9a6444d3adf1270000000000000000000000000172370d5cd63279efa6d502dab29171933a610af
-
-
-Constructor Arguments ABI-Encoded:
-0000000000000000000000008f3cf7ad23cd3cadbd9735aff958023239c6a063000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000030000000000000000000000000000000000000000000000000000000000093a800000000000000000000000000000000000000000000000000000000000093a8000000000000000000000000000000000000000000000000029a2241af62c000000000000000000000000000000000000000000000000000000000000000000010000000000000000000000000000000000000000000000000000000000000001ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff000000000000000000000000000000000000000000000000000000000000000000000000000000000000000096083906aad9dc0860e5b05a919f190213701fae0000000000000000000000000000000000000000000000000000000000000000
-
-
-
-
-
    > Saving artifacts
    -------------------------------------
    > Total cost:         0.224520672 ETH
@@ -603,14 +502,14 @@ Summary
 
 ## Celo
 
-Start by setting the `CELO_PRIVATE_KEY` var which is the private key of your celo wallet & then make sure you have the [right deployment configs set](https://github.com/Good-Ghosting/goodghosting-protocol-v1/blob/master/deploy.config.ts)(if a **whitelisted pool** needs to be deployed make sure the merkle root is set and the [isWhitelisted var](https://github.com/Good-Ghosting/goodghosting-protocol-v1/blob/master/deploy.config.ts#L135) is true). Open the terminal window and run `yarn deploy:celo`.
+- **Mobius Strategy Based Pool** After setting the prerequisite config mentioned above, start by setting the `CELO_PRIVATE_KEY` var which is the private key of your celo wallet & then make sure you have the [right deployment configs set](https://github.com/Good-Ghosting/goodghosting-protocol-v1/blob/master/deploy.config.ts)(if a **whitelisted pool** needs to be deployed make sure the merkle root is set and the [isWhitelisted var](https://github.com/Good-Ghosting/goodghosting-protocol-v1/blob/master/deploy.config.ts#L135) is true). Open the terminal window and run `yarn deploy:celo`.
 
 You will see something like this:
 
 ```
 Starting migrations...
 ======================
-> Network name:    'celo-mobius'
+> Network name:    'celo'
 > Network id:      42220
 > Block gas limit: 0 (0x0)
 
@@ -663,39 +562,75 @@ Replacing 'Pool'
 > total cost:          0.002288112 ETH
 
 
+> Saving artifacts
+-------------------------------------
+> Total cost:        0.0032526155 ETH
 
 
-----------------------------------------------------
-GoodGhosting Holding Pool deployed with the following arguments:
-----------------------------------------------------
+Summary
+=======
+> Total deployments:   3
+> Final cost:          0.0032526155 ETH
+```
 
-Network Name: celo-mobius
-Contract's Owner: 0xf88b0247e611eE5af8Cf98f5303769Cba8e7177C
-Inbound Currency: 0x765DE816845861e75A25fCA122bb6898B8B1282a
-Maximum Flexible Segment Payment Amount: 0
-Segment Count: 3
-Segment Length: 604800 seconds
-Waiting Segment Length: 604800 seconds
-Segment Payment: 3 dai (3000000000000000000 wei)
-Early Withdrawal Fee: 1%
-Custom Pool Fee: 1%
-Max Quantity of Players: 115792089237316195423570985008687907853269984665640564039457584007913129639935
-Flexible Deposit Pool: false
-Transactional Token Deposit Pool: false
-Strategy: 0x422Bf01090c47E0A5222A740433Eb6D7AEA4c328
-Mobius Pool: 0x9906589Ea8fd27504974b7e8201DF5bBdE986b03
-Mobius Gauge: 0xc96AeeaFF32129da934149F6134Aa7bf291a754E
-Mobius Minter: 0x5F0200CA03196D5b817E2044a0Bb0D837e0A7823
-Mobi Token: 0x73a210637f6F6B7005512677Ba6B3C96bb4AA44B
-Celo Token: 0x471EcE3750Da237f93B8E339c536989b8978a438
-Mobius Strategy Encoded Params:  0000000000000000000000009906589ea8fd27504974b7e8201df5bbde986b03000000000000000000000000c96aeeaff32129da934149f6134aa7bf291a754e0000000000000000000000005f0200ca03196d5b817e2044a0bb0d837e0a782300000000000000000000000073a210637f6f6b7005512677ba6b3c96bb4aa44b000000000000000000000000471ece3750da237f93b8e339c536989b8978a438
+- **Moola Strategy Based Pool** After setting the prerequisite config mentioned above, start by setting the `CELO_PRIVATE_KEY` var which is the private key of your celo wallet & then make sure you have the [right deployment configs set](https://github.com/Good-Ghosting/goodghosting-protocol-v1/blob/master/deploy.config.ts)(if a **whitelisted pool** needs to be deployed make sure the merkle root is set and the [isWhitelisted var](https://github.com/Good-Ghosting/goodghosting-protocol-v1/blob/master/deploy.config.ts#L135) is true). Open the terminal window and run `yarn deploy:celo`.
+
+You will see something like this:
+
+```
+Starting migrations...
+======================
+> Network name:    'celo'
+> Network id:      42220
+> Block gas limit: 0 (0x0)
 
 
-Constructor Arguments ABI-Encoded:
-000000000000000000000000765de816845861e75a25fca122bb6898b8b1282a000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000030000000000000000000000000000000000000000000000000000000000093a800000000000000000000000000000000000000000000000000000000000093a8000000000000000000000000000000000000000000000000029a2241af62c000000000000000000000000000000000000000000000000000000000000000000010000000000000000000000000000000000000000000000000000000000000001ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000422bf01090c47e0a5222a740433eb6d7aea4c3280000000000000000000000000000000000000000000000000000000000000000
+2_deploy_contracts.js
+=====================
+
+Replacing 'AaveStrategy'
+--------------------------
+> transaction hash:    0x258fd6b7586f385c8c9b0506a0a38b31411a88a9d5377375addb171399215093
+> Blocks: 1            Seconds: 4
+> contract address:    0x422Bf01090c47E0A5222A740433Eb6D7AEA4c328
+> block number:        11985352
+> block timestamp:     1647505428
+> account:             0xf88b0247e611eE5af8Cf98f5303769Cba8e7177C
+> balance:             2.110748391676738485
+> gas used:            1856790 (0x1c5516)
+> gas price:           0.5 gwei
+> value sent:          0 ETH
+> total cost:          0.000928395 ETH
 
 
+Replacing 'SafeMath'
+--------------------
+> transaction hash:    0xdc5acfd4e69d3b5de2b6012af3cfa6fa057576b13d8bc83541c649ac97391198
+> Blocks: 0            Seconds: 0
+> contract address:    0xb2C98f7f573bbf653972F030766e36138C82F4A2
+> block number:        11985353
+> block timestamp:     1647505433
+> account:             0xf88b0247e611eE5af8Cf98f5303769Cba8e7177C
+> balance:             2.110712283176738485
+> gas used:            72217 (0x11a19)
+> gas price:           0.5 gwei
+> value sent:          0 ETH
+> total cost:          0.0000361085 ETH
 
+
+Replacing 'Pool'
+----------------
+> transaction hash:    0x16194fe3dda5f6fe40f98a36a4bbca24656c38853e7210fb57c2551e1e26df7f
+> Blocks: 0            Seconds: 0
+> contract address:    0x99E91F09991966aBe0DC59555a5C1e25a78E08B7
+> block number:        11985354
+> block timestamp:     1647505438
+> account:             0xf88b0247e611eE5af8Cf98f5303769Cba8e7177C
+> balance:             2.108424171176738485
+> gas used:            4576224 (0x45d3e0)
+> gas price:           0.5 gwei
+> value sent:          0 ETH
+> total cost:          0.002288112 ETH
 
 
 > Saving artifacts
