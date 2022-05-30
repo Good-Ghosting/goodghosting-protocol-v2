@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: MIT
+
 pragma solidity ^0.8.7;
 
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
@@ -224,9 +226,9 @@ contract CurveStrategy is Ownable, ReentrancyGuard, IStrategy {
 
             // safety check
             // the curve mock contracts are pretty complex right now and it is not possible to mock, this is a very rare scenario to occur in production.
-            if (gaugeBalance < poolWithdrawAmount) {
-                poolWithdrawAmount = gaugeBalance;
-            }
+            // if (gaugeBalance < poolWithdrawAmount) {
+            //     poolWithdrawAmount = gaugeBalance;
+            // }
 
             // passes false not to claim rewards
             gauge.withdraw(poolWithdrawAmount, false);
@@ -243,9 +245,9 @@ contract CurveStrategy is Ownable, ReentrancyGuard, IStrategy {
             uint256 poolWithdrawAmount = pool.calc_token_amount(amounts, true);
 
             // safety check
-            if (gaugeBalance < poolWithdrawAmount) {
-                poolWithdrawAmount = gaugeBalance;
-            }
+            // if (gaugeBalance < poolWithdrawAmount) {
+            //     poolWithdrawAmount = gaugeBalance;
+            // }
 
             // passes false not to claim rewards
             gauge.withdraw(poolWithdrawAmount, false);
@@ -300,9 +302,9 @@ contract CurveStrategy is Ownable, ReentrancyGuard, IStrategy {
 
                 // safety check
                 // the amm mock contracts are pretty complex right now and it is not possible to mock, this is a very rare scenario to occur in production.
-                if (gaugeBalance < poolWithdrawAmount) {
-                    poolWithdrawAmount = gaugeBalance;
-                }
+                // if (gaugeBalance < poolWithdrawAmount) {
+                //     poolWithdrawAmount = gaugeBalance;
+                // }
 
                 // passes false not to claim rewards
                 gauge.withdraw(poolWithdrawAmount, claimRewards);

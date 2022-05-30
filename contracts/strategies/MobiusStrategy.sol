@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: MIT
+
 pragma solidity ^0.8.7;
 
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
@@ -180,10 +182,10 @@ contract MobiusStrategy is Ownable, ReentrancyGuard, IStrategy {
         uint256 gaugeBalance = gauge.balanceOf(address(this));
         uint256 poolWithdrawAmount = pool.calculateTokenAmount(address(this), amounts, true);
 
-        // safety check
-        if (gaugeBalance < poolWithdrawAmount) {
-            poolWithdrawAmount = gaugeBalance;
-        }
+        // // safety check
+        // if (gaugeBalance < poolWithdrawAmount) {
+        //     poolWithdrawAmount = gaugeBalance;
+        // }
 
         gauge.withdraw(poolWithdrawAmount, false);
         lpToken.approve(address(pool), poolWithdrawAmount);
@@ -230,10 +232,10 @@ contract MobiusStrategy is Ownable, ReentrancyGuard, IStrategy {
             amounts[0] = _amount;
             uint256 poolWithdrawAmount = pool.calculateTokenAmount(address(this), amounts, true);
 
-            // safety check
-            if (gaugeBalance < poolWithdrawAmount) {
-                poolWithdrawAmount = gaugeBalance;
-            }
+            // // safety check
+            // if (gaugeBalance < poolWithdrawAmount) {
+            //     poolWithdrawAmount = gaugeBalance;
+            // }
 
             gauge.withdraw(poolWithdrawAmount, claimRewards);
             lpToken.approve(address(pool), poolWithdrawAmount);
