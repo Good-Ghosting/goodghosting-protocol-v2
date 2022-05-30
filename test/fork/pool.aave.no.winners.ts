@@ -182,7 +182,7 @@ describe("Aave Pool Fork Tests where no player wins", () => {
     console.log("totalInterest", totalInterest.toString());
 
     assert(inboundTokenBalance.gt(totalPrincipal));
-    assert(totalInterest.eq(ethers.BigNumber.from(0)));
+    assert(totalInterest.gt(ethers.BigNumber.from(0)));
   });
 
   it("players are able to withdraw from the pool", async () => {
