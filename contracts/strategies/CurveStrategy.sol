@@ -225,10 +225,10 @@ contract CurveStrategy is Ownable, ReentrancyGuard, IStrategy {
             uint256 poolWithdrawAmount = pool.calc_token_amount(amounts, true);
 
             // safety check
-            // the curve mock contracts are pretty complex right now and it is not possible to mock, this is a very rare scenario to occur in production.
-            // if (gaugeBalance < poolWithdrawAmount) {
-            //     poolWithdrawAmount = gaugeBalance;
-            // }
+            // the amm mock contracts are common for all kinds of scenariuo's and it is not possible to mock this particular scenario, this is a very rare scenario to occur in production and hasn't been observed in the fork tests.
+            if (gaugeBalance < poolWithdrawAmount) {
+                poolWithdrawAmount = gaugeBalance;
+            }
 
             // passes false not to claim rewards
             gauge.withdraw(poolWithdrawAmount, false);
@@ -245,9 +245,10 @@ contract CurveStrategy is Ownable, ReentrancyGuard, IStrategy {
             uint256 poolWithdrawAmount = pool.calc_token_amount(amounts, true);
 
             // safety check
-            // if (gaugeBalance < poolWithdrawAmount) {
-            //     poolWithdrawAmount = gaugeBalance;
-            // }
+            // the amm mock contracts are common for all kinds of scenariuo's and it is not possible to mock this particular scenario, this is a very rare scenario to occur in production and hasn't been observed in the fork tests.
+            if (gaugeBalance < poolWithdrawAmount) {
+                poolWithdrawAmount = gaugeBalance;
+            }
 
             // passes false not to claim rewards
             gauge.withdraw(poolWithdrawAmount, false);
@@ -301,10 +302,10 @@ contract CurveStrategy is Ownable, ReentrancyGuard, IStrategy {
                 uint256 poolWithdrawAmount = pool.calc_token_amount(amounts, true);
 
                 // safety check
-                // the amm mock contracts are pretty complex right now and it is not possible to mock, this is a very rare scenario to occur in production.
-                // if (gaugeBalance < poolWithdrawAmount) {
-                //     poolWithdrawAmount = gaugeBalance;
-                // }
+                // the amm mock contracts are common for all kinds of scenariuo's and it is not possible to mock this particular scenario, this is a very rare scenario to occur in production and hasn't been observed in the fork tests.
+                if (gaugeBalance < poolWithdrawAmount) {
+                    poolWithdrawAmount = gaugeBalance;
+                }
 
                 // passes false not to claim rewards
                 gauge.withdraw(poolWithdrawAmount, claimRewards);
@@ -321,6 +322,7 @@ contract CurveStrategy is Ownable, ReentrancyGuard, IStrategy {
                 uint256 poolWithdrawAmount = pool.calc_token_amount(amounts, true);
 
                 // safety check
+                // the amm mock contracts are common for all kinds of scenariuo's and it is not possible to mock this particular scenario, this is a very rare scenario to occur in production and hasn't been observed in the fork tests.                
                 if (gaugeBalance < poolWithdrawAmount) {
                     poolWithdrawAmount = gaugeBalance;
                 }

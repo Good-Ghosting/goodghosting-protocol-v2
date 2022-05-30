@@ -182,10 +182,11 @@ contract MobiusStrategy is Ownable, ReentrancyGuard, IStrategy {
         uint256 gaugeBalance = gauge.balanceOf(address(this));
         uint256 poolWithdrawAmount = pool.calculateTokenAmount(address(this), amounts, true);
 
-        // // safety check
-        // if (gaugeBalance < poolWithdrawAmount) {
-        //     poolWithdrawAmount = gaugeBalance;
-        // }
+        // safety check
+        // the amm mock contracts are common for all kinds of scenariuo's and it is not possible to mock this particular scenario, this is a very rare scenario to occur in production and hasn't been observed in the fork tests.
+        if (gaugeBalance < poolWithdrawAmount) {
+            poolWithdrawAmount = gaugeBalance;
+        }
 
         gauge.withdraw(poolWithdrawAmount, false);
         lpToken.approve(address(pool), poolWithdrawAmount);
@@ -232,10 +233,11 @@ contract MobiusStrategy is Ownable, ReentrancyGuard, IStrategy {
             amounts[0] = _amount;
             uint256 poolWithdrawAmount = pool.calculateTokenAmount(address(this), amounts, true);
 
-            // // safety check
-            // if (gaugeBalance < poolWithdrawAmount) {
-            //     poolWithdrawAmount = gaugeBalance;
-            // }
+            // safety check
+            // the amm mock contracts are common for all kinds of scenariuo's and it is not possible to mock this particular scenario, this is a very rare scenario to occur in production and hasn't been observed in the fork tests.
+            if (gaugeBalance < poolWithdrawAmount) {
+                poolWithdrawAmount = gaugeBalance;
+            }
 
             gauge.withdraw(poolWithdrawAmount, claimRewards);
             lpToken.approve(address(pool), poolWithdrawAmount);
