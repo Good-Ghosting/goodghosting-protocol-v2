@@ -1333,6 +1333,40 @@ export const shouldBehaveLikeEarlyWithdrawingGGPool = async (strategyType: strin
     }
   });
 
+  it("user is able to early withdraw in the waiting round", async () => {
+    const accounts = await ethers.getSigners();
+    const player1 = accounts[2];
+    // fee is set as an integer, so needs to be converted to a percentage
+
+    await joinGame(contracts.goodGhosting, contracts.inboundToken, player1, segmentPayment, segmentPayment);
+    for (let index = 1; index < depositCount; index++) {
+      await ethers.provider.send("evm_increaseTime", [segmentLength]);
+      await ethers.provider.send("evm_mine", []);
+
+      // protocol deposit of the prev. deposit
+      await approveToken(contracts.inboundToken, player1, contracts.goodGhosting.address, segmentPayment);
+      await contracts.goodGhosting.connect(player1).makeDeposit(0, segmentPayment);
+    }
+    await ethers.provider.send("evm_increaseTime", [segmentLength]);
+    await ethers.provider.send("evm_mine", []);
+    await ethers.provider.send("evm_increaseTime", [segmentLength]);
+    await ethers.provider.send("evm_mine", []);
+
+    const playerInfo = await contracts.goodGhosting.players(player1.address);
+
+    const feeAmount = ethers.BigNumber.from(playerInfo.amountPaid)
+      .mul(ethers.BigNumber.from(1))
+      .div(ethers.BigNumber.from(100));
+    await expect(contracts.goodGhosting.connect(player1).earlyWithdraw(0))
+      .to.emit(contracts.goodGhosting, "EarlyWithdrawal")
+      .withArgs(
+        player1.address,
+        playerInfo.amountPaid.sub(feeAmount),
+        ethers.BigNumber.from(0),
+        ethers.BigNumber.from(0),
+      );
+  });
+
   if (strategyType === "curve" || strategyType === "mobius") {
     it("user is able to do an early withdraw if there is an impermanent loss", async () => {
       const accounts = await ethers.getSigners();
