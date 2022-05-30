@@ -118,6 +118,8 @@ The mechanism for fixed and variable deposit pool still applies i.e for fixed de
 
 - **[MobiusStrategy](https://github.com/Good-Ghosting/goodghosting-protocol-v1/blob/master/contracts/strategies/MobiusStrategy.sol)**: is responsible for depositing funds that it gets from the pool contract to any mobius liquidity pool and withdraw the funds from that mobius liquidity pool and send back to the pool contract, current pools that were tested with are cUSD / DAI Pool `0xF3f65dFe0c8c8f2986da0FEc159ABE6fd4E700B4` & cUSD / USDC Pool `0x9906589Ea8fd27504974b7e8201DF5bBdE986b03`
 
+- **[NoExternalStrategy](https://github.com/Good-Ghosting/goodghosting-protocol-v1/blob/master/contracts/strategies/MobiusStrategy.sol)**: works like an escrow for pool funds like the name suggests the funds do not get invested anywhere and it supports multiple reward tokens.
+
 # Development
 
 The repository uses both hardhat and truffle.
