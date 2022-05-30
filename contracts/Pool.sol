@@ -59,7 +59,7 @@ contract Pool is Ownable, Pausable, ReentrancyGuard {
     using SafeMath for uint64;
 
     /// @notice Multiplier used for calculating playerIndex to avoid precision issues.
-    uint256 public constant MULTIPLIER = 10**3;
+    uint256 public constant MULTIPLIER = 10**6;
 
     /// @notice Maximum Flexible Deposit Amount in case of flexible pools.
     uint256 public immutable maxFlexibleSegmentPaymentAmount;
@@ -275,7 +275,7 @@ contract Pool is Ownable, Pausable, ReentrancyGuard {
     /// @dev Checks if player is a winner.
     /// @param _player player address
     /// @return "true" if player is a winner; otherwise, return "false".
-    function isWinner(address _player) public view returns (bool) {
+    function isWinner(address _player) external view returns (bool) {
         if (players[_player].amountPaid == 0) {
             return false;
         }
