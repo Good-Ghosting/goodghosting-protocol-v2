@@ -17,6 +17,7 @@ async function awaitWrapper() {
   }
   return kit.connection.web3.currentProvider;
 }
+
 awaitWrapper();
 
 module.exports = {
