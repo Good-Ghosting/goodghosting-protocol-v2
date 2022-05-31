@@ -1,12 +1,8 @@
+// SPDX-License-Identifier: UNLICENSED
+
 pragma solidity ^0.8.7;
 
 import "./IStrategy.sol";
-import "../aave/ILendingPoolAddressesProvider.sol";
-import "../aave/ILendingPool.sol";
-import "../aave/AToken.sol";
-import "../aave/IWETHGateway.sol";
-import "../aave/IncentiveController.sol";
-import "../polygon/WMatic.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
@@ -21,6 +17,7 @@ error TRANSACTIONAL_TOKEN_TRANSFER_FAILURE();
 /**
   @notice
   This strategy holds the deposited funds without transferring them to an external protocol.
+  @author Francis Odisi & Viraz Malhotra.
 */
 contract NoExternalStrategy is Ownable, IStrategy {
     /// @notice inbound token (deposit token) address

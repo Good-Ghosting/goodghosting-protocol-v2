@@ -260,12 +260,18 @@ contract("Pool with Curve Strategy with no winners", accounts => {
         (ev: any) => {
           console.log("totalContractAmount", ev.totalAmount.toString());
           console.log("totalGamePrincipal", ev.totalGamePrincipal.toString());
+          console.log("totalGameInterest", ev.totalGameInterest.toString());
+          console.log("interestPerPlayer", ev.totalGameInterest.div(web3.utils.toBN(players.length - 1)).toString());
           const adminFee = web3.utils.toBN(ev.totalAmount).sub(web3.utils.toBN(ev.totalGamePrincipal));
           eventAmount = web3.utils.toBN(ev.totalAmount.toString());
+          console.log(adminFee.toString());
+          console.log(web3.utils.toBN(ev.totalAmount).sub(web3.utils.toBN(ev.totalGamePrincipal)).toString());
 
           return (
-            web3.utils.toBN(ev.totalGameInterest).eq(web3.utils.toBN(0)),
-            eventAmount.eq(contractsDaiBalance) && adminFee.gt(ev.totalGameInterest)
+            web3.utils
+              .toBN(ev.totalGameInterest)
+              .eq(web3.utils.toBN(ev.totalAmount).sub(web3.utils.toBN(ev.totalGamePrincipal))),
+            eventAmount.eq(contractsDaiBalance) && adminFee.eq(ev.totalGameInterest)
           );
         },
         `FundsRedeemedFromExternalPool error - event amount: ${eventAmount.toString()}; expectAmount: ${contractsDaiBalance.toString()}`,
@@ -297,8 +303,6 @@ contract("Pool with Curve Strategy with no winners", accounts => {
         wmaticRewardBalanceAfter = web3.utils.toBN(await wmatic.methods.balanceOf(player).call({ from: admin }));
         inboundBalanceAfter = web3.utils.toBN(await token.methods.balanceOf(player).call({ from: admin }));
         const difference = inboundBalanceAfter.sub(inboundBalanceBefore);
-        console.log(difference.toString());
-        console.log(netAmountPaid.toString());
 
         assert(difference.eq(netAmountPaid), "expected balance diff to be equal to the paid amount");
 

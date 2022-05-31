@@ -14,7 +14,6 @@ import "./strategies/IStrategy.sol";
 error ADMIN_FEE_WITHDRAWN();
 error DEPOSIT_NOT_ALLOWED();
 error EARLY_EXIT_NOT_POSSIBLE();
-error FLEXIBLE_DEPOSIT_GAME();
 error FUNDS_NOT_REDEEMED_FROM_EXTERNAL_POOL();
 error FUNDS_REDEEMED_FROM_EXTERNAL_POOL();
 error GAME_ALREADY_INITIALIZED();
@@ -52,6 +51,7 @@ error RENOUNCE_OWNERSHIP_NOT_ALLOWED();
 /**
 @title GoodGhosting V2 Hodl Contract
 @notice Allows users to join a pool with a yield bearing strategy, the winners get interest and rewards, losers get their principal back.
+@author Francis Odisi & Viraz Malhotra.
 */
 contract Pool is Ownable, Pausable, ReentrancyGuard {
     /// using for better readability.
@@ -60,7 +60,7 @@ contract Pool is Ownable, Pausable, ReentrancyGuard {
     using SafeMath for uint64;
 
     /// @notice Multiplier used for calculating playerIndex to avoid precision issues.
-    uint256 public constant MULTIPLIER = 10**3;
+    uint256 public constant MULTIPLIER = 10**6;
 
     /// @notice Maximum Flexible Deposit Amount in case of flexible pools.
     uint256 public immutable maxFlexibleSegmentPaymentAmount;
@@ -276,7 +276,7 @@ contract Pool is Ownable, Pausable, ReentrancyGuard {
     /// @dev Checks if player is a winner.
     /// @param _player player address
     /// @return "true" if player is a winner; otherwise, return "false".
-    function isWinner(address _player) public view returns (bool) {
+    function isWinner(address _player) external view returns (bool) {
         if (players[_player].amountPaid == 0) {
             return false;
         }

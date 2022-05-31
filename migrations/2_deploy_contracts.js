@@ -137,7 +137,6 @@ module.exports = function (deployer, network, accounts) {
         ? await ggInstance.initializePool(config.deployConfigs.merkleroot, ZERO_ADDRESS)
         : await ggInstance.initialize(ZERO_ADDRESS);
     }
-
     const poolTxInfo = await web3.eth.getTransaction(poolTx.transactionHash);
     const strategyTxInfo = await web3.eth.getTransaction(strategyTx.transactionHash);
 
@@ -147,6 +146,7 @@ module.exports = function (deployer, network, accounts) {
     } else {
       deploymentResult.network = "polygon";
     }
+
     deploymentResult.poolOwner = accounts[0];
     deploymentResult.poolAddress = ggInstance.address;
     deploymentResult.poolDeploymentHash = poolTx.transactionHash;
@@ -236,7 +236,7 @@ module.exports = function (deployer, network, accounts) {
         deploymentResult.dataProviderMoolaAddress,
         deploymentResult.incentiveControllerMoolaAddress,
         deploymentResult.rewardTokenMoolaAddress,
-        deploymentResult.inboundCurrencyAddress
+        deploymentResult.inboundCurrencyAddress,
       ];
       deploymentResult.strategyEncodedParameters = abi
         .rawEncode(moolaStrategyParameterTypes, moolaStrategyValues)
@@ -254,7 +254,7 @@ module.exports = function (deployer, network, accounts) {
         deploymentResult.dataProviderAaveAddress,
         deploymentResult.incentiveControllerAaveAddress,
         deploymentResult.rewardTokenAaveAddress,
-        deploymentResult.inboundCurrencyAddress
+        deploymentResult.inboundCurrencyAddress,
       ];
       deploymentResult.strategyEncodedParameters = abi
         .rawEncode(aaveStrategyParameterTypes, aaveStrategyValues)
@@ -287,7 +287,7 @@ module.exports = function (deployer, network, accounts) {
         .toString("hex");
     }
 
-    fs.writeFile("./deployment-result.json", JSON.stringify(deploymentResult, null, 4), err => {
+    fs.writeFileSync("./deployment-result.json", JSON.stringify(deploymentResult, null, 4), err => {
       if (err) {
         console.error(err);
         throw new Error(`Error while writing deployment logs to file: ${err}`);

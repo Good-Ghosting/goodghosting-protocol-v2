@@ -6,7 +6,7 @@ require("ts-node/register");
 const ContractKit = require("@celo/contractkit");
 const getAccount = require("./getAccount").getAccount;
 // use mainnet rpc as default
-const web3 = new Web3(process.env.CELO_RPC || "https://forno.celo.org/");
+const web3 = new Web3("https://forno.celo.org/");
 
 const kit = ContractKit.newKitFromWeb3(web3);
 
@@ -17,6 +17,7 @@ async function awaitWrapper() {
   }
   return kit.connection.web3.currentProvider;
 }
+
 awaitWrapper();
 
 module.exports = {
@@ -78,7 +79,7 @@ module.exports = {
         ),
       network_id: 137, // Polygon mainnet id
       networkCheckTimeout: 60000,
-      gasPrice: 60000000000, // 32 Gwei
+      gasPrice: 200000000000, // 200 Gwei
       confirmations: 2, // # of confs to wait between deployments. (default: 0)
       timeoutBlocks: 50, // # of blocks before a deployment times out  (minimum/default: 50)
       skipDryRun: false, // Skip dry run before migrations? (default: false for public nets )
@@ -102,6 +103,7 @@ module.exports = {
   },
   api_keys: {
     etherscan: process.env.ETHERSCAN_API_KEY,
+    polygonscan: process.env.POLYGONSCAN_API_KEY,
   },
   etherscan: {
     apiKey: process.env.ETHERSCAN_API_KEY,

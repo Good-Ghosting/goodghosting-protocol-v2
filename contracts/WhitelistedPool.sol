@@ -2,9 +2,13 @@
 pragma solidity ^0.8.7;
 
 import "./Pool.sol";
-import "./MerkleDistributor.sol";
+import "./MerkleValidator.sol";
 
-contract WhitelistedPool is Pool, MerkleDistributor {
+/**
+@notice Whitelisted version of the Pool Contract.
+@author Francis Odisi & Viraz Malhotra.
+*/
+contract WhitelistedPool is Pool, MerkleValidator {
     /**
         Creates a new instance of GoodGhosting game
         @param _inboundCurrency Smart contract address of inbound currency used for the game.
@@ -93,7 +97,7 @@ contract WhitelistedPool is Pool, MerkleDistributor {
         uint256 _minAmount,
         uint256 _depositAmount
     ) external payable whenNotPaused {
-        claim(index, msg.sender, true, merkleProof);
+        validate(index, msg.sender, true, merkleProof);
         _joinGame(_minAmount, _depositAmount);
     }
 }

@@ -10,12 +10,13 @@ const providerConfig = require("../../providers.config");
 
 contract("Pool with Mobius Strategy with no winners", accounts => {
   // Only executes this test file for local network fork
-  if (
-    !["local-celo"].includes(process.env.NETWORK ? process.env.NETWORK : "") &&
-    configs.deployConfigs.strategy !== "mobius-cUSD-DAI" &&
-    configs.deployConfigs.strategy !== "mobius-cUSD-USD"
-  )
+  if (process.env.NETWORK !== "local-celo") {
     return;
+  }
+
+  if (configs.deployConfigs.strategy !== "mobius-cUSD-DAI" && configs.deployConfigs.strategy !== "mobius-cUSD-USD") {
+    return;
+  }
 
   const unlockedDaiAccount = process.env.WHALE_ADDRESS_FORKED_NETWORK;
   let providersConfigs: any;
@@ -300,8 +301,10 @@ contract("Pool with Mobius Strategy with no winners", accounts => {
           eventAmount = web3.utils.toBN(ev.totalAmount.toString());
 
           return (
-            web3.utils.toBN(ev.totalGameInterest).eq(web3.utils.toBN(0)),
-            eventAmount.eq(contractsDaiBalance) && adminFee.gt(ev.totalGameInterest)
+            web3.utils
+              .toBN(ev.totalGameInterest)
+              .eq(web3.utils.toBN(ev.totalAmount).sub(web3.utils.toBN(ev.totalGamePrincipal))),
+            eventAmount.eq(contractsDaiBalance) && adminFee.eq(ev.totalGameInterest)
           );
         },
         `FundsRedeemedFromExternalPool error - event amount: ${eventAmount.toString()}; expectAmount: ${contractsDaiBalance.toString()}`,
