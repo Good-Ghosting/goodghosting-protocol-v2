@@ -22,6 +22,7 @@ error TOKEN_TRANSFER_FAILURE();
 /**
   @notice
   Interacts with curve protocol to generate interest & additional rewards for the goodghosting pool it is used in, so it's responsible for deposits, staking lp tokens, withdrawals and getting rewards and sending these back to the pool.
+  @author Francis Odisi & Viraz Malhotra.
 */
 contract CurveStrategy is Ownable, ReentrancyGuard, IStrategy {
     /// @notice reward token address for eg wmatic in case of polygon deployment

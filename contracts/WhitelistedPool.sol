@@ -4,6 +4,10 @@ pragma solidity ^0.8.7;
 import "./Pool.sol";
 import "./MerkleValidator.sol";
 
+/**
+@notice Whitelisted version of the Pool Contract.
+@author Francis Odisi & Viraz Malhotra.
+*/
 contract WhitelistedPool is Pool, MerkleValidator {
     /**
         Creates a new instance of GoodGhosting game

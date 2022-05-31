@@ -25,6 +25,7 @@ error TRANSACTIONAL_TOKEN_TRANSFER_FAILURE();
 /**
   @notice
   Interacts with aave v3 protocol to generate interest for the goodghosting pool it is used in, so it's responsible for deposits, withdrawals and getting rewards and sending these back to the pool.
+  @author Francis Odisi & Viraz Malhotra.
 */
 contract AaveStrategyV3 is Ownable, ReentrancyGuard, IStrategy {
     /// @notice Address of the Aave V2 weth gateway contract
