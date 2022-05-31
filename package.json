@@ -1,11 +1,7 @@
 {
-  "name": "@paulrberg/solidity-template",
-  "description": "Template for writing Solidity smart contracts",
-  "version": "1.0.0",
-  "author": {
-    "name": "Paul Razvan Berg",
-    "url": "https://paulrberg.com"
-  },
+  "name": "goodghosting-protocol-v2",
+  "description": "Good Ghosting V2 Contracts",
+  "version": "2.0.0",
   "devDependencies": {
     "@codechecks/client": "^0.1.12",
     "@commitlint/cli": "^14.1.0",
@@ -82,6 +78,7 @@
     "verify:polygon:curve": "truffle run verify Pool CurveStrategy --network polygon --debug",
     "verify:polygon:aaveV2": "truffle run verify Pool AaveStrategy  --network polygon --debug",
     "verify:polygon:aaveV3": "truffle run verify Pool AaveStrategyV3 --network polygon --debug",
+    "verify:polygon:no-external-strategy": "truffle run verify Pool NoExternalStrategy --network polygon --debug",
     "lint": "yarn lint:sol && yarn lint:ts && yarn prettier:check",
     "lint:sol": "solhint --config ./.solhint.json --max-warnings 0 \"contracts/**/*.sol\"",
     "lint:ts": "eslint --config ./.eslintrc.yaml --ignore-path ./.eslintignore --ext .js,.ts .",
