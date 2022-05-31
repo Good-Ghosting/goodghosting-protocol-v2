@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: UNLICENSED
+
 pragma solidity ^0.8.7;
 
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
@@ -19,10 +21,11 @@ error TOKEN_TRANSFER_FAILURE();
 
 /**
   @notice
-  Interacts with Aave V2 protocol (or forks) to generate interest for the pool.
+  Interacts with Aave V2 protocol (or forks) to generate interest and additional rewards for the pool.
   This contract it's responsible for deposits and withdrawals to the external pool
   as well as getting the generated rewards and sending them back to the pool.
   Supports Curve's Aave Pool and AtriCrypto pools (v3).
+  @author Francis Odisi & Viraz Malhotra.
 */
 contract CurveStrategy is Ownable, IStrategy {
     /// @notice reward token address - i.e. wmatic in case of polygon deployment
@@ -237,7 +240,7 @@ contract CurveStrategy is Ownable, IStrategy {
             uint256 poolWithdrawAmount = pool.calc_token_amount(amounts, true);
 
             // safety check
-            // the curve mock contracts are pretty complex right now and it is not possible to mock, this is a very rare scenario to occur in production.
+            // the amm mock contracts are common for all kinds of scenariuo's and it is not possible to mock this particular scenario, this is a very rare scenario to occur in production and hasn't been observed in the fork tests.
             if (gaugeBalance < poolWithdrawAmount) {
                 poolWithdrawAmount = gaugeBalance;
             }
@@ -257,6 +260,7 @@ contract CurveStrategy is Ownable, IStrategy {
             uint256 poolWithdrawAmount = pool.calc_token_amount(amounts, true);
 
             // safety check
+            // the amm mock contracts are common for all kinds of scenariuo's and it is not possible to mock this particular scenario, this is a very rare scenario to occur in production and hasn't been observed in the fork tests.
             if (gaugeBalance < poolWithdrawAmount) {
                 poolWithdrawAmount = gaugeBalance;
             }
@@ -313,7 +317,7 @@ contract CurveStrategy is Ownable, IStrategy {
                 uint256 poolWithdrawAmount = pool.calc_token_amount(amounts, true);
 
                 // safety check
-                // the amm mock contracts are pretty complex right now and it is not possible to mock, this is a very rare scenario to occur in production.
+                // the amm mock contracts are common for all kinds of scenariuo's and it is not possible to mock this particular scenario, this is a very rare scenario to occur in production and hasn't been observed in the fork tests.
                 if (gaugeBalance < poolWithdrawAmount) {
                     poolWithdrawAmount = gaugeBalance;
                 }
@@ -333,6 +337,7 @@ contract CurveStrategy is Ownable, IStrategy {
                 uint256 poolWithdrawAmount = pool.calc_token_amount(amounts, true);
 
                 // safety check
+                // the amm mock contracts are common for all kinds of scenariuo's and it is not possible to mock this particular scenario, this is a very rare scenario to occur in production and hasn't been observed in the fork tests.                
                 if (gaugeBalance < poolWithdrawAmount) {
                     poolWithdrawAmount = gaugeBalance;
                 }

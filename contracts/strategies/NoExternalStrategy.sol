@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: UNLICENSED
+
 pragma solidity ^0.8.7;
 
 import "./IStrategy.sol";
@@ -14,6 +16,7 @@ error TRANSACTIONAL_TOKEN_TRANSFER_FAILURE();
 /**
   @notice
   This strategy holds the deposited funds without transferring them to an external protocol.
+  @author Francis Odisi & Viraz Malhotra.
 */
 contract NoExternalStrategy is Ownable, IStrategy {
     /// @notice inbound token (deposit token) address

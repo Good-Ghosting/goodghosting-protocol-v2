@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: UNLICENSED
+
 pragma solidity ^0.8.7;
 
 import "./IStrategy.sol";
@@ -24,7 +26,8 @@ error TRANSACTIONAL_TOKEN_TRANSFER_FAILURE();
   Interacts with Aave V3 protocol (or forks) to generate interest for the pool.
   This contract it's responsible for deposits and withdrawals to the external pool
   as well as getting the generated rewards and sending them back to the pool.
-  */
+  @author Francis Odisi & Viraz Malhotra.
+*/
 contract AaveStrategyV3 is Ownable, IStrategy {
     /// @notice Address of the Aave V2 weth gateway contract
     IWETHGateway public immutable wethGateway;

@@ -341,8 +341,8 @@ export const deployPool = async (
       strategy = await noExternalStrategyDeployer.deploy(isInboundToken ? inboundToken.address : inboundToken, [
         rewardToken.address,
       ]);
-      await rewardToken.deposit({ value: ethers.utils.parseEther("30") });
-      await rewardToken.transfer(strategy.address, ethers.utils.parseEther("30"));
+      await rewardToken.deposit({ value: ethers.utils.parseEther("15") });
+      await rewardToken.transfer(strategy.address, ethers.utils.parseEther("15"));
     }
   }
   if (isSameAsRewardToken) {
