@@ -282,7 +282,7 @@ contract CurveStrategy is Ownable, IStrategy {
             _amount = IERC20(_inboundCurrency).balanceOf(address(this));
         }
         // msg.sender will always be the pool contract (new owner)
-        bool success = IERC20(_inboundCurrency).transfer(msg.sender, IERC20(_inboundCurrency).balanceOf(address(this)));
+        bool success = IERC20(_inboundCurrency).transfer(msg.sender, _amount);
         if (!success) {
             revert TOKEN_TRANSFER_FAILURE();
         }

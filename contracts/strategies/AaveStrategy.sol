@@ -192,15 +192,12 @@ contract AaveStrategy is Ownable, IStrategy {
             lendingPool.withdraw(_inboundCurrency, _amount, address(this));
         }
         if (_inboundCurrency == address(0)) {
-            (bool success, ) = msg.sender.call{ value: address(this).balance }("");
+            (bool success, ) = msg.sender.call{ value: _amount }("");
             if (!success) {
                 revert TRANSACTIONAL_TOKEN_TRANSFER_FAILURE();
             }
         } else {
-            bool success = IERC20(_inboundCurrency).transfer(
-                msg.sender,
-                IERC20(_inboundCurrency).balanceOf(address(this))
-            );
+            bool success = IERC20(_inboundCurrency).transfer(msg.sender, _amount);
             if (!success) {
                 revert TOKEN_TRANSFER_FAILURE();
             }
