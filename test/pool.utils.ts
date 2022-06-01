@@ -234,6 +234,28 @@ export const deployPool = async (
       const curveStrategyDeployer = new CurveStrategy__factory(deployer);
       await expect(
         curveStrategyDeployer.deploy(
+          curvePool.address,
+          -1,
+          curvePoolType,
+          curveGauge.address,
+          rewardToken.address,
+          curve.address,
+        ),
+      ).to.be.revertedWith("INVALID_INBOUND_TOKEN_INDEX()");
+
+      await expect(
+        curveStrategyDeployer.deploy(
+          curvePool.address,
+          6,
+          curvePoolType,
+          curveGauge.address,
+          rewardToken.address,
+          curve.address,
+        ),
+      ).to.be.revertedWith("INVALID_INBOUND_TOKEN_INDEX()");
+
+      await expect(
+        curveStrategyDeployer.deploy(
           ZERO_ADDRESS,
           0,
           curvePoolType,
