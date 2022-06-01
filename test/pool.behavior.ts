@@ -1388,17 +1388,11 @@ export const shouldBehaveLikeEarlyWithdrawingGGPool = async (strategyType: strin
       }
       const player1Info = await contracts.goodGhosting.players(player1.address);
 
-      const feeAmount = player1Info.amountPaid.mul(ethers.BigNumber.from(1)).div(ethers.BigNumber.from(100));
-
-      const player2Info = await contracts.goodGhosting.players(player2.address);
+      // impermanent loss amount defined in mock contracts
+      const impermanentLossAmount = "6000000000000000000";
       await expect(contracts.goodGhosting.connect(player1).earlyWithdraw("900000000000000000"))
         .to.emit(contracts.goodGhosting, "EarlyWithdrawal")
-        .withArgs(
-          player1.address,
-          player1Info.amountPaid.sub(feeAmount),
-          player2Info.amountPaid,
-          player2Info.netAmountPaid,
-        );
+        .withArgs(player1.address, impermanentLossAmount, player1Info.amountPaid, player1Info.netAmountPaid);
     });
   }
 
