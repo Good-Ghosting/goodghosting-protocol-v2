@@ -11,6 +11,7 @@ import "./IStrategy.sol";
 //*********************************************************************//
 // --------------------------- custom errors ------------------------- //
 //*********************************************************************//
+error CANNOT_ACCEPT_TRANSACTIONAL_TOKEN();
 error INVALID_CURVE_TOKEN();
 error INVALID_DEPOSIT_TOKEN();
 error INVALID_GAUGE();
@@ -193,6 +194,10 @@ contract CurveStrategy is Ownable, IStrategy {
     @param _minAmount Slippage based amount to cover for impermanent loss scenario.
     */
     function invest(address _inboundCurrency, uint256 _minAmount) external payable override onlyOwner {
+        // the function is only payable because the other strategies have tx token deposits and every strategy overrides the IStrategy Interface.
+        if (msg.value != 0) {
+            revert CANNOT_ACCEPT_TRANSACTIONAL_TOKEN();
+        }
         if (pool.underlying_coins(uint256(uint128(inboundTokenIndex))) != _inboundCurrency) {
             revert INVALID_DEPOSIT_TOKEN();
         }
