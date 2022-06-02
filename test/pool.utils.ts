@@ -234,6 +234,28 @@ export const deployPool = async (
       const curveStrategyDeployer = new CurveStrategy__factory(deployer);
       await expect(
         curveStrategyDeployer.deploy(
+          curvePool.address,
+          -1,
+          curvePoolType,
+          curveGauge.address,
+          rewardToken.address,
+          curve.address,
+        ),
+      ).to.be.revertedWith("INVALID_INBOUND_TOKEN_INDEX()");
+
+      await expect(
+        curveStrategyDeployer.deploy(
+          curvePool.address,
+          6,
+          curvePoolType,
+          curveGauge.address,
+          rewardToken.address,
+          curve.address,
+        ),
+      ).to.be.revertedWith("INVALID_INBOUND_TOKEN_INDEX()");
+
+      await expect(
+        curveStrategyDeployer.deploy(
           ZERO_ADDRESS,
           0,
           curvePoolType,
@@ -284,6 +306,11 @@ export const deployPool = async (
         rewardToken.address,
         curve.address,
       );
+      if (isInboundToken) {
+        await expect(strategy.invest(inboundToken.address, 0, { value: (1e18).toString() })).to.be.revertedWith(
+          "CANNOT_ACCEPT_TRANSACTIONAL_TOKEN()",
+        );
+      }
     }
   } else if (strategyType === "mobius") {
     const mockMobiTokenDeployer = new MintableERC20__factory(deployer);
@@ -325,6 +352,12 @@ export const deployPool = async (
         mobi.address,
         minter.address,
       );
+
+      if (isInboundToken) {
+        await expect(strategy.invest(inboundToken.address, 0, { value: (1e18).toString() })).to.be.revertedWith(
+          "CANNOT_ACCEPT_TRANSACTIONAL_TOKEN()",
+        );
+      }
     }
   } else {
     const rewardTokenDeployer = new MockWMatic__factory(deployer);

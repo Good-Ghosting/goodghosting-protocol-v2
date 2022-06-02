@@ -14,7 +14,7 @@ contract("Pool with Mobius Strategy", accounts => {
     return;
   }
 
-  if (configs.deployConfigs.strategy !== "mobius-cUSD-DAI" && configs.deployConfigs.strategy !== "mobius-cUSD-USD") {
+  if (configs.deployConfigs.strategy !== "mobius-cUSD-DAI" && configs.deployConfigs.strategy !== "mobius-cUSD-USDC") {
     return;
   }
 
@@ -414,7 +414,7 @@ contract("Pool with Mobius Strategy", accounts => {
         mobiRewardBalanceBefore = web3.utils.toBN(await mobi.methods.balanceOf(admin).call({ from: admin }));
         celoRewardBalanceBefore = web3.utils.toBN(await celo.methods.balanceOf(admin).call({ from: admin }));
 
-        await goodGhosting.adminFeeWithdraw({
+        await goodGhosting.adminFeeWithdraw(0, {
           from: admin,
         });
 

@@ -3,7 +3,6 @@
 pragma solidity ^0.8.7;
 
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "../mobius/IMobiPool.sol";
 import "../mobius/IMobiGauge.sol";
@@ -13,6 +12,7 @@ import "./IStrategy.sol";
 //*********************************************************************//
 // --------------------------- custom errors ------------------------- //
 //*********************************************************************//
+error CANNOT_ACCEPT_TRANSACTIONAL_TOKEN();
 error INVALID_CELO_TOKEN();
 error INVALID_DEPOSIT_TOKEN();
 error INVALID_GAUGE();
@@ -23,10 +23,12 @@ error TOKEN_TRANSFER_FAILURE();
 
 /**
   @notice
-  Interacts with mobius protocol to generate interest & additional rewards for the goodghosting pool it is used in, so it's responsible for deposits, staking lp tokens, withdrawals and getting rewards and sending these back to the pool.
+  Interacts with Mobius protocol (or forks) to generate interest and additional rewards for the pool.
+  This contract it's responsible for deposits and withdrawals to the external pool
+  as well as getting the generated rewards and sending them back to the pool.
   @author Francis Odisi & Viraz Malhotra.
 */
-contract MobiusStrategy is Ownable, ReentrancyGuard, IStrategy {
+contract MobiusStrategy is Ownable, IStrategy {
     /// @notice gauge address
     IMobiGauge public immutable gauge;
 
@@ -36,7 +38,7 @@ contract MobiusStrategy is Ownable, ReentrancyGuard, IStrategy {
     /// @notice mobi token
     IERC20 public immutable mobi;
 
-    /// @notice mobi token
+    /// @notice celo token
     IERC20 public immutable celo;
 
     /// @notice mobi lp token
@@ -59,13 +61,14 @@ contract MobiusStrategy is Ownable, ReentrancyGuard, IStrategy {
 
     /** 
     @notice
-    Returns the total accumulated amount i.e principal + interest stored in mobius, only used in case of variable deposit pools.
+    Returns the total accumulated amount (i.e., principal + interest) stored in curve.
+    Intended for usage by external clients and in case of variable deposit pools.
     @return Total accumulated amount.
     */
     function getTotalAmount() external view override returns (uint256) {
         uint256 gaugeBalance = gauge.balanceOf(address(this));
-        uint256 totalAccumalatedAmount = pool.calculateRemoveLiquidityOneToken(address(this), gaugeBalance, 0);
-        return totalAccumalatedAmount;
+        uint256 totalAccumulatedAmount = pool.calculateRemoveLiquidityOneToken(address(this), gaugeBalance, 0);
+        return totalAccumulatedAmount;
     }
 
     /** 
@@ -148,7 +151,11 @@ contract MobiusStrategy is Ownable, ReentrancyGuard, IStrategy {
     @param _inboundCurrency Address of the inbound token.
     @param _minAmount Slippage based amount to cover for impermanent loss scenario.
     */
-    function invest(address _inboundCurrency, uint256 _minAmount) external payable override nonReentrant onlyOwner {
+    function invest(address _inboundCurrency, uint256 _minAmount) external payable override onlyOwner {
+        // the function is only payable because the other strategies have tx token deposits and every strategy overrides the IStrategy Interface.
+        if (msg.value != 0) {
+            revert CANNOT_ACCEPT_TRANSACTIONAL_TOKEN();
+        }
         if (address(pool.getToken(0)) != _inboundCurrency) {
             revert INVALID_DEPOSIT_TOKEN();
         }
@@ -175,7 +182,7 @@ contract MobiusStrategy is Ownable, ReentrancyGuard, IStrategy {
         address _inboundCurrency,
         uint256 _amount,
         uint256 _minAmount
-    ) external override nonReentrant onlyOwner {
+    ) external override onlyOwner {
         // not checking for validity of deposit token here since with pool contract as the owner of the strategy the only way to transfer pool funds is by invest method so the check there is sufficient
         uint256[] memory amounts = new uint256[](2);
         amounts[0] = _amount;
@@ -199,7 +206,7 @@ contract MobiusStrategy is Ownable, ReentrancyGuard, IStrategy {
             _amount = IERC20(_inboundCurrency).balanceOf(address(this));
         }
         // msg.sender will always be the pool contract (new owner)
-        bool success = IERC20(_inboundCurrency).transfer(msg.sender, IERC20(_inboundCurrency).balanceOf(address(this)));
+        bool success = IERC20(_inboundCurrency).transfer(msg.sender, _amount);
         if (!success) {
             revert TOKEN_TRANSFER_FAILURE();
         }
@@ -220,7 +227,7 @@ contract MobiusStrategy is Ownable, ReentrancyGuard, IStrategy {
         bool variableDeposits,
         uint256 _minAmount,
         bool disableRewardTokenClaim
-    ) external override nonReentrant onlyOwner {
+    ) external override onlyOwner {
         // not checking for validity of deposit token here since with pool contract as the owner of the strategy the only way to transfer pool funds is by invest method so the check there is sufficient
         bool claimRewards = true;
         if (disableRewardTokenClaim) {

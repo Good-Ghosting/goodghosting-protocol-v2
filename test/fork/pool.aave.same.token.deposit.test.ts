@@ -182,7 +182,7 @@ describe("Aave Pool Fork Tests with the deposit token same as reward token", () 
 
   it("admin is able to withdraw from the pool", async () => {
     const inboundTokenBalanceBeforeWithdraw = await wmaticInstance.balanceOf(accounts[0].address);
-    await pool.connect(accounts[0]).adminFeeWithdraw();
+    await pool.connect(accounts[0]).adminFeeWithdraw(0);
     const inboundTokenBalanceAfterWithdraw = await wmaticInstance.balanceOf(accounts[0].address);
     assert(inboundTokenBalanceAfterWithdraw.gt(inboundTokenBalanceBeforeWithdraw));
   });

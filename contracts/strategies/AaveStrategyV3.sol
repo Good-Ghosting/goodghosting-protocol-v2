@@ -11,7 +11,6 @@ import "../aave/IWETHGateway.sol";
 import "../aaveV3/IRewardsController.sol";
 import "../polygon/WMatic.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
-import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
 //*********************************************************************//
@@ -24,10 +23,12 @@ error TRANSACTIONAL_TOKEN_TRANSFER_FAILURE();
 
 /**
   @notice
-  Interacts with aave v3 protocol to generate interest for the goodghosting pool it is used in, so it's responsible for deposits, withdrawals and getting rewards and sending these back to the pool.
+  Interacts with Aave V3 protocol (or forks) to generate interest for the pool.
+  This contract it's responsible for deposits and withdrawals to the external pool
+  as well as getting the generated rewards and sending them back to the pool.
   @author Francis Odisi & Viraz Malhotra.
 */
-contract AaveStrategyV3 is Ownable, ReentrancyGuard, IStrategy {
+contract AaveStrategyV3 is Ownable, IStrategy {
     /// @notice Address of the Aave V2 weth gateway contract
     IWETHGateway public immutable wethGateway;
 
@@ -41,7 +42,7 @@ contract AaveStrategyV3 is Ownable, ReentrancyGuard, IStrategy {
     IERC20 public immutable wrappedTxToken;
 
     /// @notice Atoken address
-    AToken public immutable adaiToken;
+    AToken public immutable aToken;
 
     /// @notice AaveProtocolDataProvider address
     AaveProtocolDataProvider public dataProvider;
@@ -67,11 +68,12 @@ contract AaveStrategyV3 is Ownable, ReentrancyGuard, IStrategy {
 
     /** 
     @notice
-    Returns the total accumulated amount i.e principal + interest stored in aave, only used in case of variable deposit pools.
+    Returns the total accumulated amount (i.e., principal + interest) stored in curve.
+    Intended for usage by external clients and in case of variable deposit pools.
     @return Total accumulated amount.
     */
     function getTotalAmount() external view override returns (uint256) {
-        return adaiToken.balanceOf(address(this));
+        return aToken.balanceOf(address(this));
     }
 
     /** 
@@ -89,7 +91,7 @@ contract AaveStrategyV3 is Ownable, ReentrancyGuard, IStrategy {
     @return Underlying token address.
     */
     function getUnderlyingAsset() external view override returns (address) {
-        return adaiToken.UNDERLYING_ASSET_ADDRESS();
+        return aToken.UNDERLYING_ASSET_ADDRESS();
     }
 
     /** 
@@ -140,14 +142,14 @@ contract AaveStrategyV3 is Ownable, ReentrancyGuard, IStrategy {
         lendingPool = ILendingPoolV3(_poolAddressesProvider.getPool());
         wethGateway = _wethGateway;
         wrappedTxToken = _wrappedTxToken;
-        address adaiTokenAddress;
+        address aTokenAddress;
         if (_inboundCurrency == address(0)) {
-            (adaiTokenAddress, , ) = dataProvider.getReserveTokensAddresses(address(_wrappedTxToken));
+            (aTokenAddress, , ) = dataProvider.getReserveTokensAddresses(address(_wrappedTxToken));
         } else {
-            (adaiTokenAddress, , ) = dataProvider.getReserveTokensAddresses(_inboundCurrency);
+            (aTokenAddress, , ) = dataProvider.getReserveTokensAddresses(_inboundCurrency);
         }
-        adaiToken = AToken(adaiTokenAddress);
-        rewardTokens = rewardsController.getRewardsByAsset(adaiTokenAddress);
+        aToken = AToken(aTokenAddress);
+        rewardTokens = rewardsController.getRewardsByAsset(aTokenAddress);
     }
 
     /**
@@ -157,7 +159,7 @@ contract AaveStrategyV3 is Ownable, ReentrancyGuard, IStrategy {
     @param _minAmount Used for aam strategies, since every strategy overrides from the same strategy interface hence it is defined here.
     _minAmount isn't needed in this strategy but since all strategies override from the same interface and the amm strategies need it hence it is used here.
     */
-    function invest(address _inboundCurrency, uint256 _minAmount) external payable override nonReentrant onlyOwner {
+    function invest(address _inboundCurrency, uint256 _minAmount) external payable override onlyOwner {
         if (_inboundCurrency == address(0) || _inboundCurrency == address(wrappedTxToken)) {
             if (_inboundCurrency == address(wrappedTxToken) && address(wrappedTxToken) != address(0)) {
                 // unwraps WMATIC back into MATIC
@@ -184,9 +186,9 @@ contract AaveStrategyV3 is Ownable, ReentrancyGuard, IStrategy {
         address _inboundCurrency,
         uint256 _amount,
         uint256 _minAmount
-    ) external override nonReentrant onlyOwner {
+    ) external override onlyOwner {
         if (_inboundCurrency == address(0) || _inboundCurrency == address(wrappedTxToken)) {
-            adaiToken.approve(address(wethGateway), _amount);
+            aToken.approve(address(wethGateway), _amount);
 
             wethGateway.withdrawETH(address(lendingPool), _amount, address(this));
             if (_inboundCurrency == address(wrappedTxToken) && address(wrappedTxToken) != address(0)) {
@@ -197,15 +199,12 @@ contract AaveStrategyV3 is Ownable, ReentrancyGuard, IStrategy {
             lendingPool.withdraw(_inboundCurrency, _amount, address(this));
         }
         if (_inboundCurrency == address(0)) {
-            (bool success, ) = msg.sender.call{ value: address(this).balance }("");
+            (bool success, ) = msg.sender.call{ value: _amount }("");
             if (!success) {
                 revert TRANSACTIONAL_TOKEN_TRANSFER_FAILURE();
             }
         } else {
-            bool success = IERC20(_inboundCurrency).transfer(
-                msg.sender,
-                IERC20(_inboundCurrency).balanceOf(address(this))
-            );
+            bool success = IERC20(_inboundCurrency).transfer(msg.sender, _amount);
             if (!success) {
                 revert TOKEN_TRANSFER_FAILURE();
             }
@@ -228,11 +227,11 @@ contract AaveStrategyV3 is Ownable, ReentrancyGuard, IStrategy {
         bool variableDeposits,
         uint256 _minAmount,
         bool disableRewardTokenClaim
-    ) external override nonReentrant onlyOwner {
+    ) external override onlyOwner {
         uint256 redeemAmount = variableDeposits ? _amount : type(uint256).max;
         // Withdraws funds (principal + interest + rewards) from external pool
         if (_inboundCurrency == address(0) || _inboundCurrency == address(wrappedTxToken)) {
-            adaiToken.approve(address(wethGateway), redeemAmount);
+            aToken.approve(address(wethGateway), redeemAmount);
 
             wethGateway.withdrawETH(address(lendingPool), redeemAmount, address(this));
             if (_inboundCurrency == address(wrappedTxToken) && address(wrappedTxToken) != address(0)) {
@@ -245,7 +244,7 @@ contract AaveStrategyV3 is Ownable, ReentrancyGuard, IStrategy {
         if (!disableRewardTokenClaim) {
             // Claims the rewards from the external pool
             address[] memory assets = new address[](1);
-            assets[0] = address(adaiToken);
+            assets[0] = address(aToken);
 
             rewardsController.claimAllRewardsToSelf(assets);
             for (uint256 i = 0; i < rewardTokens.length; i++) {
@@ -291,7 +290,7 @@ contract AaveStrategyV3 is Ownable, ReentrancyGuard, IStrategy {
         if (!disableRewardTokenClaim) {
             // Claims the rewards from the external pool
             address[] memory assets = new address[](1);
-            assets[0] = address(adaiToken);
+            assets[0] = address(aToken);
             (, uint256[] memory unclaimedAmounts) = rewardsController.getAllUserRewards(assets, address(this));
             return unclaimedAmounts;
         } else {

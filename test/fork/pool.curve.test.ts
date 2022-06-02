@@ -427,7 +427,7 @@ contract("Pool with Curve Strategy", accounts => {
         curveRewardBalanceBefore = web3.utils.toBN(await curve.methods.balanceOf(admin).call({ from: admin }));
         wmaticRewardBalanceBefore = web3.utils.toBN(await wmatic.methods.balanceOf(admin).call({ from: admin }));
 
-        await goodGhosting.adminFeeWithdraw({
+        await goodGhosting.adminFeeWithdraw(0, {
           from: admin,
         });
         curveRewardBalanceAfter = web3.utils.toBN(await curve.methods.balanceOf(admin).call({ from: admin }));

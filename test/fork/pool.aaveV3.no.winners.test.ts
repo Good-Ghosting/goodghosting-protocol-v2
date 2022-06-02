@@ -197,7 +197,7 @@ describe("Aave V3 Pool Fork Tests where no player wins", () => {
 
   it("admin is able to withdraw from the pool", async () => {
     const inboundTokenBalanceBeforeWithdraw = await daiInstance.balanceOf(accounts[0].address);
-    await pool.connect(accounts[0]).adminFeeWithdraw();
+    await pool.connect(accounts[0]).adminFeeWithdraw(0);
     const inboundTokenBalanceAfterWithdraw = await daiInstance.balanceOf(accounts[0].address);
     assert(inboundTokenBalanceAfterWithdraw.gt(inboundTokenBalanceBeforeWithdraw));
   });

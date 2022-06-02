@@ -14,7 +14,7 @@ contract("Pool with Mobius Strategy when admin enables early game completion", a
     return;
   }
 
-  if (configs.deployConfigs.strategy !== "mobius-cUSD-DAI" && configs.deployConfigs.strategy !== "mobius-cUSD-USD") {
+  if (configs.deployConfigs.strategy !== "mobius-cUSD-DAI" && configs.deployConfigs.strategy !== "mobius-cUSD-USDC") {
     return;
   }
 
@@ -222,7 +222,7 @@ contract("Pool with Mobius Strategy when admin enables early game completion", a
         mobiRewardBalanceBefore = web3.utils.toBN(await mobi.methods.balanceOf(admin).call({ from: admin }));
         celoRewardBalanceBefore = web3.utils.toBN(await celo.methods.balanceOf(admin).call({ from: admin }));
 
-        await goodGhosting.adminFeeWithdraw({
+        await goodGhosting.adminFeeWithdraw(0, {
           from: admin,
         });
 

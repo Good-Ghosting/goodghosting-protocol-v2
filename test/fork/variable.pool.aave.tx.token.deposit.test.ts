@@ -204,7 +204,7 @@ describe("Aave Variable Deposit Pool Fork Tests with the deposit token as transs
 
   it("admin is able to withdraw from the pool", async () => {
     const inboundTokenBalanceBeforeWithdraw = await ethers.provider.getBalance(accounts[0].address);
-    await pool.connect(accounts[0]).adminFeeWithdraw();
+    await pool.connect(accounts[0]).adminFeeWithdraw(0);
     const inboundTokenBalanceAfterWithdraw = await ethers.provider.getBalance(accounts[0].address);
     assert(inboundTokenBalanceAfterWithdraw.gt(inboundTokenBalanceBeforeWithdraw));
   });
