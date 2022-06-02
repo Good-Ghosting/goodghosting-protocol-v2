@@ -306,6 +306,11 @@ export const deployPool = async (
         rewardToken.address,
         curve.address,
       );
+      if (isInboundToken) {
+        await expect(strategy.invest(inboundToken.address, 0, { value: (1e18).toString() })).to.be.revertedWith(
+          "CANNOT_ACCEPT_TRANSACTIONAL_TOKEN()",
+        );
+      }
     }
   } else if (strategyType === "mobius") {
     const mockMobiTokenDeployer = new MintableERC20__factory(deployer);
@@ -347,6 +352,12 @@ export const deployPool = async (
         mobi.address,
         minter.address,
       );
+
+      if (isInboundToken) {
+        await expect(strategy.invest(inboundToken.address, 0, { value: (1e18).toString() })).to.be.revertedWith(
+          "CANNOT_ACCEPT_TRANSACTIONAL_TOKEN()",
+        );
+      }
     }
   } else {
     const rewardTokenDeployer = new MockWMatic__factory(deployer);
