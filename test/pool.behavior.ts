@@ -50,6 +50,10 @@ export const shouldBehaveLikeGGPool = async (strategyType: string) => {
     );
   });
 
+  it("reverts if admin passes a invalid early withdraw fee while lowering it", async () => {
+    await expect(contracts.goodGhosting.lowerEarlyWithdrawFees(90)).to.be.revertedWith("INVALID_EARLY_WITHDRAW_FEE");
+  });
+
   it("admin is able to reduce early withdrawal fees", async () => {
     await contracts.goodGhosting.lowerEarlyWithdrawFees(0);
     const earlyWithdrawalFee = await contracts.goodGhosting.earlyWithdrawalFee();
