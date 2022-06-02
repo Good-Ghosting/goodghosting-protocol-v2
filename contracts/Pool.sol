@@ -942,6 +942,11 @@ contract Pool is Ownable, Pausable, ReentrancyGuard {
             _setGlobalPoolParamsForFlexibleDepositPool();
         }
         uint256 payout = player.netAmountPaid;
+        // checking both due to the presence of variable deposits
+        if (impermanentLossShare != 0 && totalGameInterest == 0) {
+            // new payput in case of impermanent loss
+            payout = player.netAmountPaid.mul(impermanentLossShare).div(100);
+        } 
         uint256 playerIncentive = 0;
         uint256 playerInterestShare = 0;
         uint256 playerSharePercentage = 0;
@@ -963,10 +968,8 @@ contract Pool is Ownable, Pausable, ReentrancyGuard {
             // calculate playerSharePercentage for each player
             playerSharePercentage = (playerIndexSum.mul(100)).div(cumulativePlayerIndexSum[segment]);
 
-            if (impermanentLossShare != 0 && totalGameInterest == 0) {
-                // new payput in case of impermanent loss
-                payout = player.netAmountPaid.mul(impermanentLossShare).div(100);
-            } else {
+            // checking both due to the presence of variable deposits
+            if (impermanentLossShare == 0 || totalGameInterest > 0) {
                 // Player is a winner and gets a bonus!
                 // the player share of interest is calculated from player index
                 // player share % = playerIndex / cumulativePlayerIndexSum of player indexes of all winners * 100
