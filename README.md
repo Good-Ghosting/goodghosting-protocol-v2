@@ -8,117 +8,132 @@ With the GoodGhosting V2 Pool, we aim to improve on the protocol and make it mor
 
 ## Notable Features in V2 Pool
 
-- **Different segment and waiting round length** as the word "hodl" the hodl pool aims to reduce the player's interaction with smart contract so the hodl pools can have just 1 deposit segment and 3/6 month waiting period.
+- **Different deposit and waiting round length:** this feature allows deposit segments/rounds to have a different duration than the waiting round. This allows to have "hodl pools", where users can make a few deposits regularly, and then hodl the funds for a longer period of time (the waiting round). The hodl pool aims to reduce the player's interaction with smart contract, and for example, it can have just 1 deposit segment and 3/6 (or more) month waiting period.
 
-- **Flexible Amount Deposit Pools** yes you heard it correct, this option will enabled while deployment of pool contract, there will be a max. amount limit but players can choose any valid amount but once you choose the amount you have to deposit the same amount in each segment.
+- **Flexible Amount Deposit Pools:** this option is enabled/disabled at pool's contract deployment, where each individual player may choose how much they want to deposit regularly in that pool. There's a maximum deposit amount (also set during pool deployment) that limits the maximum a player can deposit, but players can choose any valid amount greater than zero and less or equal to the maximum deposit amount. Once the player chooses the amount and joins the pool, all subsequent deposits made by the player in the pool will have to be of the same amount.
 
-- **Accounting of the interest and rewards distributed to winners** To introduce fairness unlike v1, the share of interest and rewards for winners will be decided by how much you deposit (in case of a flexible deposit pool) and how early you deposit in each segment.
+- **Accounting of the interest and rewards distributed to winners considers time and amount of deposit:** To introduce fairness, unlike v1, the share of interest and rewards for winners will be decided by how much the player deposits (in case of a flexible deposit pool) and how early the players deposits in each segment.
 
-- **Multiple Yield Strategies** the new hodl pool smart contract architecture allows to have multiple sources for yield strategies other than aave and moola like curve, mobius etc and many more in the future.
+- **Multiple Yield Strategies:** the v2 smart contract architecture uses a strategy pattern that allows to have multiple sources for yield strategies, chosen during deployment time. At the moment, v2 offers strategies for AaveV2/Moola, AaveV3, Curve (Aave and Atricrypto pools), Mobius, NoExternalPool strategies. And many more in the future.
 
 ## Types of Pools
 
-- **Fixed Deposit Pool with same waiting segment duration** Native Pool where the deposit amount is fixed for each player and the waiting round duration is fixed too.
+- **Fixed Deposit Pool with same waiting segment duration:** deposit amount is fixed and equal for each player, and the waiting round duration is equal to the duration of the deposit rounds. This type of pool follows the same principal of V1 Pools.
 
-- **Fixed Deposit Pool with waiting round duration more than payment segment duration** Fixed Deposit Hodl Pool basically which will have less player interaction in terms of sending transactions i.e a pool with 1 deposit segment of 1 week and 3 months of waiting round.
+- **Fixed Deposit Pool with waiting round duration more than deposit rounds duration:** the deposit amount is fixed and equal for each player, but the waiting round length is greater (longer) than the regular deposit rounds. It may require less interactions from the players, in terms of sending transactions, because we may have pools with 1 deposit round of 1 week and a waiting round of 3 months, for example.
 
-- **Flexible Deposit Pool with same waiting segment duration** Flexible Deposit Amount Pool where the deposit amount is decided by the player while joining and the waiting round duration is fixed too.
+- **Flexible Deposit Pool with same waiting segment duration:** the deposit amount is decided by each player while joining the pool. Subsequent deposits for that player will be equal to the amount chosen upon joining. Finally, the duration of the waiting round is the same as the duration of the deposit rounds.
 
-- **Flexible Deposit Pool with waiting round duration more than payment segment duration** Flexible Deposit Amount Hodl Pool basically which will have less player interaction in terms of sending transactions i.e a pool with 1 deposit segment of 1 week and 3 months of waiting round.
+- **Flexible Deposit Pool with waiting round duration more than deposit round duration:** the deposit amount is decided by each player while joining the pool. Subsequent deposits for that player will be equal to the amount chosen upon joining. Finally, the duration of the waiting round is greater than the duration of the deposit rounds - i.e., 1 deposit round with duration of 1 week and a waiting round with duration of 3 months.
 
-- **Transactional Token Pool** Fixed or Flexible Deposit pool with transactional token as deposit for example a pool with matic as deposit token.
+- **Transactional Token Pool:** A variation of any of the 4 types of pools mentioned above, where the deposits are made using the network's native token (i.e., MATIC for Polygon network; celo for Celo network), instead of a ERC20 token.
 
-- **Deposit Token same as reward Token** Fixed or Flexible Deposit pool with deposit token and reward token same for example a pool with wmatic as deposit token.
+- **Deposit Token same as reward Token:** A variation of any of the 4 types of pools mentioned above, where the deposits are made using the token that is also used for handing out rewards (deposit token is the same as one of the reward tokens). Example: an Aave v2 pool that rewards WMATIC, but also requires deposits in WMATIC.
 
 ## Pool Interest Accounting Math
 
-As mentioned above with this new version of the GoodGhosting Protocol we aim to introduce fairness in terms of interest and reward generation for winners, and we are doing this by computing player share % which is computed based on the deposit amount made by each player and how early does a player pay in each segment, so below is an explanation of the math behind this feature.
+GoodGhosting Protocol v2 introduces better fairness in terms of interest and reward generation for winners, and we are doing this by computing the deposit amount made by each player and how early does a player pay in each segment (player share % in the pool). Below, there's a brief explanation of the math behind this feature.
 
-In the new version of the [Pool Smart Contract](https://github.com/Good-Ghosting/goodghosting-protocol-v2/blob/master/contracts/Pool.sol) we have a couple of mappings defined `playerIndex[player_address][segment_number] & cumulativePlayerIndexSum[segment_number]`
+In the new version of the [Pool Smart Contract](https://github.com/Good-Ghosting/goodghosting-protocol-v2/blob/master/contracts/Pool.sol) we have a couple of mappings defined: `playerIndex[player_address][segment_number] & cumulativePlayerIndexSum[segment_number]`
+
+As each player starts making the deposits, the mappings are updated as follows:
 
 ```
-Now as each player starts making deposits the mappings are updated as follows:
 playerIndex = deposit_amount * (MULTIPLIER_CONSTANT) / block.timestamp
 
 for (each segment paid by the player) {
-cumulativePlayerIndexSum[current_segment] += playerIndex
+  cumulativePlayerIndexSum[current_segment] += playerIndex
 }
-
-cumulativePlayerIndexSum as you see is updated for every new deposit for each segment (reason for updating it in each segment is explained in the next section)
-
-here MULTIPLIER_CONSTANT is used since solidity cannot handle decimal values it is a very large constant 10**8
-
-so the playerIndex updates for each player during each deposit.
 ```
 
-So once the game get's over when the players withdraw the interest & reward share is calculated as:
+`playerIndex` updates for each player during each deposit.
+
+The MULTIPLIER_CONSTANT is used to mitigate loss of precision during division operations, since solidity cannot handle decimal values. It is defined as a very large constant: `10**6`.
+
+`cumulativePlayerIndexSum` is updated for every new deposit for each segment (reason for updating it in each segment is explained in the next section).
+
+
+
+Once the game is completed, the distribution share (per player) of interest, rewards and incentives is calculated as:
 
 ```
 uint playerIndexSum = 0;
 for (each segment paid by the player) {
-playerIndexSum += playerIndex
+  playerIndexSum += playerIndex
 }
 
 playerSharePercentage = playerIndexSum * 100 / cumulativePlayerIndexSum[last_segment]
+```
 
 playerSharePercentage is the % of funds the winners get from the total game interest and total rewards generated by the game.
+
+
+
+**Couple of examples**
+
+_Scenario 1: A Game with 2 winners who deposited different amounts and at different times_
+
+There are 2 players in the game with only 1 deposit required. It's a flexible deposit pool, so players can deposit different amounts. Player1 deposits 10 DAI and player2 deposits 100 DAI, but player1 deposits earlier than player2 (player1 deposit happens at time unit 5, while player2 deposit happens at time unit 20).
+
+
+```
+player1Index = 10 / 5 = 2
+player2Index = 100 / 20 = 5
 ```
 
-Couple of examples
+In this scenario, `cumulativePlayerIndexSum` will be `7` and even though player2 deposits late but the amount is 10x more than player1. At the end get, so player2 gets about 72% of the rewards and player1 gets the remaining 28%.
 
-- A Game with 2 winners who deposited different amounts and at different times
+
+_Scenario 2: A Game with 2 players, 1 early withdrawal_
+
+There are 2 players in the game with only 1 deposit required. It's a flexible deposit pool, where player1 deposits 10 DAI and player2 deposits 100 DAI. Player1 deposits early than player2 (player1 deposit happens at time unit 5, while player2 deposit happens at time unit 20). However, player2 early withdraws (before the game ends).
+
 
 ```
-There are 2 players in the game with only 1 segment and it's a flexible deposit pool, player1 deposits 10 DAI & player 2 deposits 100 DAI, but player 1 deposits early than player 2.
-
 player1Index = 10 / 5 = 2
 player2Index = 100 / 20 = 5
 
-so hence cumulativePlayerIndexSum will be 7 and even though player 2 deposits late but the amount is 10x more than player 1 so player2 in the end get's about 72 % of the rewards and player1 get's the remaining 28 %.
-```
-
-- A Game with 2 players, 1 early withdrawal
-
-```
-There are 2 players in the game with only 1 segment and it's a flexible deposit pool, player1 deposits 10 DAI & player 2 deposits 100 DAI, but player 1 deposits early than player 2
-
-player1Index = 10 / 5 = 2
-player2Index = 100 / 20 = 5
-
-so hence cumulativePlayerIndexSum will be 7, now the twist is that player 2 early withdraw's so cumulativePlayerIndexSum then becomes 2, and hence player 1 get's all the interest and rewards earned.
+In this scenario, `cumulativePlayerIndexSum` will be `7`. The twist is that player2 early withdrew so `cumulativePlayerIndexSum` became `2`. This means that player 1 gets all the interest and rewards earned by the pool.
 ```
 
 ## Emergency Scenario
 
-With V2 Pools especially there comes a risk of funds being locked in the external protocol in case something happens or if an external protocol utilized by one of the goodghosting pools migrates to a new contract in the middle of a game. So to handle these scenario's we have a introduced a new function in the smart contract [enableEmergencyWithdraw](https://github.com/Good-Ghosting/goodghosting-protocol-v2/blob/master/contracts/Pool.sol#L676) which can only be called by the contract deployer AKA the admin.
+By transferring funds to an external protocol pool (depending on the strategy used the pool) as part of the interest generation strategy, there's always a risk of funds being locked in the external protocol in case something happens or if the external protocol used by the ongoing pool migrates to a new contract in the middle of a game. To handle this scenario, the v2 smart contracts introduced a new function named [enableEmergencyWithdraw](https://github.com/Good-Ghosting/goodghosting-protocol-v2/blob/master/contracts/Pool.sol#L676) which can only be called by the contract deployer, a.k.a the admin.
 
-Once this function is called, it updates the last segment value to current segment & makes the emergency flag true in the smart contract, players then who have deposited in the prev. segment i.e current segment - 1 are all considered as winners and they can withdraw their funds immediately once the emergency flag is enabled.
+Once this function is called, it updates the last segment value to current segment and sets the emergency flag to `true` in the smart contract. Players who have deposited in the prev. segment, i.e `current segment - 1`, are all considered as winners and they can withdraw their funds immediately after the emergency flag is enabled.
 
-The mechanism for fixed and variable deposit pool still applies i.e for fixed deposit pools complete funds are redeemed at once but for variable deposit pools each winner would only redeem their own funds(principal + interest + rewards).
+The mechanisms for fixed and variable deposit pools still applies. This means that for fixed deposit pools, the total amount of funds are redeemed at once from the external pool. For variable deposit pools, each player withdrawal only redeem their portion of the funds (principal, and the interest, rewards & incentives in case of winners).
 
-**NOTE** - Handling this emergency early exit is the reason `cumulativePlayerIndexSum` is a mapping.
+**NOTE** - Handling this emergency exit scenario is the reason why `cumulativePlayerIndexSum` is a mapping.
 
 # Smart Contract Overview
 
 <img width="1368" alt="Screenshot 2022-03-10 at 9 34 58 AM" src="https://user-images.githubusercontent.com/26670962/157606809-2df36e2f-9c71-4bed-b291-d37377095ef2.png">
 
-> As you can see in order to make our contracts modular we have divided the contracts into two types, the pool contract which holds all the core game/pool logic and the yield strategy contracts so in a way the pool contract is the parent contract and players cannot directly interact with the strategy contracts, only the pool contract can, so while deploying the pool we set the address of the strategy we want to use for that pool, below is an in depth explanation of each contract.
+In order to make the contracts modular, the contracts are divided into two types: (i) the pool contract that holds all the core game/pool logic; and (ii) the yield strategy contracts that holds the logic to integrate with the external protocols. The pool contract, during the execution of the deployment script, is set as the owner of the strategy contract. Players (or any other external actors) cannot directly interact with the strategy contracts, only the pool contract. During the deployment of the pool + strategy, the following steps are executed:
+
+1. deploy the strategy contract
+2 deploy the pool contract
+3. transfer strategy's contract ownership to the pool contract
+4. initialize the pool contract. At this moment, a validation is made to make sure the pool contract is the owner of the strategy. If not, the pool contract cannot be initialized.
+
+An in depth explanation of each contract is provided below.
 
 <br/>
 
-- **[Pool](https://github.com/Good-Ghosting/goodghosting-protocol-v2/blob/master/contracts/Pool.sol)** is the core contract with only the game logic in it, it's the parent contract through which players are able to make deposits into various yield strategy contracts and withdraw funds.
+- **[Pool](https://github.com/Good-Ghosting/goodghosting-protocol-v2/blob/master/contracts/Pool.sol)** is the core contract with only the game logic in it. It's the main contract through which players are able to make deposits into the underlying yield strategy contract and withdraw funds.
 
-- **[IStrategy](https://github.com/Good-Ghosting/goodghosting-protocol-v2/blob/master/contracts/strategies/IStrategy.sol)** is the interface that all strategy contracts inherit so that it becomes straightforward to plug and play any strategy in the pool contract.
+- **[IStrategy](https://github.com/Good-Ghosting/goodghosting-protocol-v2/blob/master/contracts/strategies/IStrategy.sol)** is the interface that all strategy contracts inherit from, so it becomes straightforward to plug and play any strategy in the pool contract.
 
-- **[AaveStrategyV3](https://github.com/Good-Ghosting/goodghosting-protocol-v2/blob/master/contracts/strategies/AaveStrategyV3.sol)** is responsible for depositing funds that it gets from the pool contract to aave v3 and withdraw the funds from there and send back to the pool contract.
+- **[AaveStrategyV3](https://github.com/Good-Ghosting/goodghosting-protocol-v2/blob/master/contracts/strategies/AaveStrategyV3.sol)** is responsible for depositing funds from the pool contract into aave v3 contracts, and withdraw the funds from the external protocol and send them back to the pool contract.
 
-- **[AaveStrategy](https://github.com/Good-Ghosting/goodghosting-protocol-v2/blob/master/contracts/strategies/AaveStrategy.sol)** is responsible for depositing funds that it gets from the pool contract to aave v2/moola and withdraw the funds from aave/moola and send back to the pool contract.
+- **[AaveStrategy](https://github.com/Good-Ghosting/goodghosting-protocol-v2/blob/master/contracts/strategies/AaveStrategy.sol)** is responsible for depositing funds from the pool contract into aave v2/moola, and withdraw the funds from the external protocol and send them back to the pool contract.
 
-- **[CurveStrategy](https://github.com/Good-Ghosting/goodghosting-protocol-v2/blob/master/contracts/strategies/CurveStrategy.sol)** is responsible for depositing funds that it gets from the pool contract to curve stable/volatile pools and withdraw the funds from curve stable/volatile pools and send back to the pool contract, current pools supported are AAVE Stable Pool `0x445FE580eF8d70FF569aB36e80c647af338db351` & Atricrypto Volatile Pool `0x1d8b86e3d88cdb2d34688e87e72f388cb541b7c8`.
+- **[CurveStrategy](https://github.com/Good-Ghosting/goodghosting-protocol-v2/blob/master/contracts/strategies/CurveStrategy.sol)** is responsible for depositing funds from the pool contract into curve stable/volatile pools, and withdraw the funds from curve stable/volatile pools and send them back to the pool contract. Current pools supported are AAVE Stable Pool `0x445FE580eF8d70FF569aB36e80c647af338db351` and Atricrypto Volatile Pool `0x1d8b86e3d88cdb2d34688e87e72f388cb541b7c8`.
 
-- **[MobiusStrategy](https://github.com/Good-Ghosting/goodghosting-protocol-v2/blob/master/contracts/strategies/MobiusStrategy.sol)**: is responsible for depositing funds that it gets from the pool contract to any mobius liquidity pool and withdraw the funds from that mobius liquidity pool and send back to the pool contract, current pools that were tested with are cUSD / DAI Pool `0xF3f65dFe0c8c8f2986da0FEc159ABE6fd4E700B4` & cUSD / USDC Pool `0x9906589Ea8fd27504974b7e8201DF5bBdE986b03`
+- **[MobiusStrategy](https://github.com/Good-Ghosting/goodghosting-protocol-v2/blob/master/contracts/strategies/MobiusStrategy.sol)**: is responsible for depositing funds from the pool contract into any mobius liquidity pool, and withdraw the funds from mobius liquidity pool and send them back to the pool contract. Current pools that were tested with are cUSD/DAI Pool `0xF3f65dFe0c8c8f2986da0FEc159ABE6fd4E700B4` and cUSD/USDC Pool `0x9906589Ea8fd27504974b7e8201DF5bBdE986b03`
 
-- **[NoExternalStrategy](https://github.com/Good-Ghosting/goodghosting-protocol-v2/blob/master/contracts/strategies/NoExternalStrategy.sol)**: works like an escrow for pool funds like the name suggests the funds do not get invested anywhere and it supports multiple reward tokens.
+- **[NoExternalStrategy](https://github.com/Good-Ghosting/goodghosting-protocol-v2/blob/master/contracts/strategies/NoExternalStrategy.sol)**: works like an escrow for pool funds. Funds deposited into the strategy do not get invested anywhere externally, but just sit in the contract. It does supports multiple reward tokens that can be used to reward users.
 
 # Development
 
@@ -131,7 +146,7 @@ The repository uses both hardhat and truffle.
 **Truffle**
 
 - Curve, Mobius and Moola Fork Tests
-- All mainnet deployments
+- All deployments
 
 ## Setup
 
@@ -175,15 +190,16 @@ yarn compile
 
 **Requirements** :
 
-- Make sure the `FORKING` var in .env is set false before running the unit test suite.
-- Make sure the `MNEMONIC` var in .env is set as "here is where your twelve words mnemonic should be put my friend" before running the unit test suite.
+- Make sure the `FORKING` var in .env is set `false` before running the unit test suite.
+- Make sure the `MNEMONIC` var in .env is set as "here is where your twelve words mnemonic should be put my friend" (this is the real mnemonic that should be used - not a placeholder) before running the unit test suite.
 
-To run the unit tests use either
+To run the unit tests use:
 `yarn test`
 
-To run test coverage: `yarn coverage`
+To run test coverage use:
+`yarn coverage`
 
-NOTE - If you run any test command after `yarn coverage` you will see an error
+NOTE - If you run any test command after `yarn coverage` you will see an error similar to:
 
 ```
 An unexpected error occurred:
@@ -213,27 +229,27 @@ test/fork/pool.aave.emergency.withdraw.test.ts:8:31 - error TS2307: Cannot find 
 
 To run the integrated test scenarios forking from Mainnet (Polygon or Celo) you'll have to:
 
-- Configure `WHALE_ADDRESS_FORKED_NETWORK` in your `.env` file, as you see the .env.example file the whale address is `0x075e72a5edf65f0a5f44699c7654c1a76941ddc8` for polygon & `0x5776b4893faca32A9224F18950406c9599f3B013` for celo.
+- Configure `WHALE_ADDRESS_FORKED_NETWORK` in your `.env` file. The file [.env.example](./.env.example) have sample whale addresses that can be used: `0x075e72a5edf65f0a5f44699c7654c1a76941ddc8` for polygon and `0x5776b4893faca32A9224F18950406c9599f3B013` for celo.
 
 - Update the strategy type in the deployment config and the inboundCurrencySymbol value according to the type of strategy you want to deploy.
 
 - Review the deployment configs ([deploy-config.js file](./deploy-config.js)) prior to executing the test on the forked network.
 
-- You'll also need a rpc provider the best option for polygon is infura for celo you can use their public rpc `https://forno.celo.org/`
+- You'll also need a rpc provider. The best option for polygon is infura and for celo you can use their public rpc `https://forno.celo.org/`
 
 ### Steps
 
 #### Polygon
 
-- **Aave V2/V3 Strategy Based Pool** As mentioned above we use hardhat for this, after doing the setup mentioned above, the next step is to set the `FORKING` var in your .env file as `true`, next in your [hardhat config](https://github.com/Good-Ghosting/goodghosting-protocol-v2/blob/master/hardhat.config.ts#L63) you set your desired rpc url, currently a public rpc is set. Then you just run `yarn test`.
+- **Aave V2/V3 Strategy Based Pool** As mentioned above, we use hardhat for these tests. After doing the setup mentioned above, the next step is to set the `FORKING` var in your .env file to `true`. Next, in your [hardhat.config.ts](https://github.com/Good-Ghosting/goodghosting-protocol-v2/blob/master/hardhat.config.ts#L63) file, you have to set your desired rpc url - currently a public rpc is set. Then you have to run `yarn test`.
 
-- **Curve Strategy Based Pool** As mentioned above we use truffle for this, so open a new terminal window and run `ganache-cli -f <Your Polygon RPC> -m "clutchaptain shoe salt awake harvest setup primary inmate ugly among become" -i 999 --unlock {WHALE_ADDRESS_FORKED_NETWORK}` and in the second window run `yarn test:fork:polygon` for fixed deposit pool & `yarn test:fork:variable:polygon` for variable deposit pool.
+- **Curve Strategy Based Pool** As mentioned above, we use truffle for these tests. Open a new terminal window and run `ganache-cli -f <Your Polygon RPC> -m "clutchaptain shoe salt awake harvest setup primary inmate ugly among become" -i 999 --unlock {WHALE_ADDRESS_FORKED_NETWORK}`. Then, in the second window, run `yarn test:fork:polygon` for fixed deposit pool & `yarn test:fork:variable:polygon` for variable deposit pools.
 
 #### Celo
 
-Since hardhat currently does not support celo, so we use truffle for celo fork tests. To start open another terminal window and run
-`ganache-cli -f https://forno.celo.org/ -m "clutchaptain shoe salt awake harvest setup primary inmate ugly among become" -i 999 --unlock {WHALE_ADDRESS_FORKED_NETWORK}` and in the second window run
-`yarn test:fork:celo` for fixed deposit pool, `yarn test:fork:variable:celo` for variable deposit pool/
+Since hardhat currently does not support celo, we use truffle for celo fork tests. To start open a terminal window and run
+`ganache-cli -f https://forno.celo.org/ -m "clutchaptain shoe salt awake harvest setup primary inmate ugly among become" -i 999 --unlock {WHALE_ADDRESS_FORKED_NETWORK}`. In a second terminal window run
+`yarn test:fork:celo` for fixed deposit pool or `yarn test:fork:variable:celo` for variable deposit pool/
 
 # Security Tools
 
@@ -251,15 +267,15 @@ slither . --filter-path "aave|Migrations.sol|merkle|mock|openzeppelin|polygon|aa
 
 # Contract Deployment
 
-- You'll need a rpc provider the best option for polygon is infura for celo you can use their public rpc `https://forno.celo.org/`
+- You'll need a rpc provider. The best option for polygon is infura and for celo you can use their public rpc `https://forno.celo.org/`
 
 - Update the `strategy` value and the `inboundCurrencySymbol` value according to the type of strategy you want to deploy in the deployment config.
 
-- All Deployment Info would be written in the [deployment log file](https://github.com/Good-Ghosting/goodghosting-protocol-v2/blob/master/deployment-result.json).
+- The results of the deployment (output) willbe written in the [deployment-result.json](https://github.com/Good-Ghosting/goodghosting-protocol-v2/blob/master/deployment-result.json) log file.
 
 ## Polygon
 
-After setting the prerequisite config mentioned above, start by setting the `MNEMONIC` var (which is the 12 word seed phrase in your wallet) & the `RPC` var in the .env file & then make sure you have the [right deployment configs set](https://github.com/Good-Ghosting/goodghosting-protocol-v2/blob/master/deploy.config.ts)(if a **whitelisted pool** needs to be deployed make sure the merkle root is set and the [isWhitelisted var](https://github.com/Good-Ghosting/goodghosting-protocol-v2/blob/master/deploy.config.ts#L20) is true), then just run `yarn deploy:polygon`.
+After setting the required configs mentioned above, start by setting the `MNEMONIC` var (which is the 12 word seed phrase in your wallet) and the `RPC` var in the `.env` file. Then, make sure you have the correct [deployment configs ](https://github.com/Good-Ghosting/goodghosting-protocol-v2/blob/master/deploy.config.ts) are set. If a **whitelisted pool** needs to be deployed, make sure the merkle root is set and the [isWhitelisted var](https://github.com/Good-Ghosting/goodghosting-protocol-v2/blob/master/deploy.config.ts#L20) is `true`. If everything is ok, then just run `yarn deploy:polygon`.
 
 The [strategy value](https://github.com/Good-Ghosting/goodghosting-protocol-v2/blob/master/deploy.config.ts#L6) options in deploy config are: ```"aaveV2", "aaveV3", "polygon-curve-aave", "polygon-curve-atricrypto" & "no-external-strategy"```.
 
@@ -344,7 +360,7 @@ Summary
 
 ## Celo
 
-After setting the prerequisite config mentioned above, start by setting the `MNEMONIC` var (which is the 12 word seed phrase in your wallet) & the `RPC` var in the .env file & then make sure you have the [right deployment configs set](https://github.com/Good-Ghosting/goodghosting-protocol-v2/blob/master/deploy.config.ts)(if a **whitelisted pool** needs to be deployed make sure the merkle root is set and the [isWhitelisted var](https://github.com/Good-Ghosting/goodghosting-protocol-v2/blob/master/deploy.config.ts#L20) is true), then just run `yarn deploy:polygon`.
+After setting the required configs mentioned above, start by setting the `MNEMONIC` var (which is the 12 word seed phrase in your wallet) & the `RPC` var in the `.env` file. Then, make sure you have the correct [deployment configs](./deploy.config.ts) set. If a **whitelisted pool** needs to be deployed, make sure the `merkle root` is properly set, and the [isWhitelisted var](https://github.com/Good-Ghosting/goodghosting-protocol-v2/blob/master/deploy.config.ts#L20) is `true`. Then, just run `yarn deploy:polygon`.
 
 The [strategy value](https://github.com/Good-Ghosting/goodghosting-protocol-v2/blob/master/deploy.config.ts#L6) options in deploy config are: "aaveV2", "moola", "mobius-cUSD-DAI", "mobius-cUSD-USDC" & "no-external-strategy".
 
@@ -421,12 +437,12 @@ Summary
 
 ## Polygon
 
-To verify contracts on polygon we use the [truffle-plugin-verify](https://github.com/rkalis/truffle-plugin-verify#usage) so the only requirement is your Polygonscan API Key which can be created on polygonscan, once created created set that in your .env file and based on the strategy that was deployed run any of these commands
+To verify contracts on polygon we use the [truffle-plugin-verify](https://github.com/rkalis/truffle-plugin-verify#usage) package. The only requirement is to have a Polygonscan API Key, which can be created on polygonscan. Once created, set the API KEY value to the key `POLYGONSCAN_API_KEY` in your `.env` file. Based on the strategy that was deployed, run any of these commands:
 `yarn verify:polygon:curve` or `yarn verify:polygon:aaveV2` or `yarn verify:polygon:aaveV3` or `yarn verify:polygon:no-external-strategy`.
 
 ## Celo
 
-Due to the ipfs provider rate limitations for verifying through sourcify the celo contracts currently need to be verified manually on celo explorer.
+Due to the ipfs provider rate limitations to verifying the smart contracts through sourcify, contracts deployed to celo have to be verified manually on celo explorer.
 
 # Merkle Root Generation for Whitelisted Contracts
 
@@ -444,4 +460,4 @@ You should see an output similar to this:
 
 `{ "merkleRoot": "0xc65049d2040e43b130c923276515ed14d241ac88d28f0c03384d5b5f7197be82", "claims": { "0xBE73748446811eBC2a4DDdDcd55867d013D6136e": { "index": 0, "exists": "true", "proof": ["0x1f122d8c45929e68268031d8ce59ea362ab716d6b93f3b226c4cdcf459c766b3"] }, "0xb9a28ce32dcA69AD25E17212bC6D3D753E795aAe": { "index": 1, "exists": "true", "proof": ["0xdbab8c7f829217c06dc0a73baaefdbfd9e15c463a255e1b3947b27f7792462de"] } } }`
 
-Copy the value of the `merkleRoot` field, and replace the merkle root parameter in the [deploy.config.js](https://github.com/Good-Ghosting/goodghosting-protocol-v2/blob/master/deploy.config.ts) file. Once this step is done, the contract can be deployed using the deployment instructions provided above.
+Copy the value of the `merkleRoot` field, and replace the merkle root parameter in the [deploy.config.ts](./deploy.config.ts) file. Once this step is done, the contract can be deployed using the deployment instructions provided above.
