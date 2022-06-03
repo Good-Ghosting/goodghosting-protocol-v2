@@ -48,7 +48,7 @@ module.exports = {
       provider: kit.connection.web3.currentProvider, // CeloProvider
       network_id: 42220,
     },
-    "test-celo": {
+    "test-celo": { // alfajores
       provider: kit.connection.web3.currentProvider, // CeloProvider
       network_id: 44787,
     },
