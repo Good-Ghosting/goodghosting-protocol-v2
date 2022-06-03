@@ -48,6 +48,52 @@ exports.providers = {
       },
     },
   },
+  mumbai: {
+    tokens: {
+      dai: {
+        address: "0x9A753f0F7886C9fbF63cF59D0D4423C5eFaCE95B",
+        decimals: 18,
+      },
+      wmatic: {
+        address: "0xb685400156cF3CBE8725958DeAA61436727A30c3",
+        decimals: 18,
+      },
+      curve: {
+        address: "0x3e4b51076d7e9B844B92F8c6377087f9cf8C8696",
+        decimals: 18,
+      },
+    },
+    strategies: {
+      aaveV3: {
+        lendingPoolAddressProvider: "0x5343b5bA672Ae99d627A1C87866b8E53F47Db2E6",
+        dataProvider: "0x8f57153F18b7273f9A814b93b31Cb3f9b035e7C2",
+        incentiveController: "0xa982Aef90A37675C0E321e3e2f3aDC959fB89351",
+        wethGateway: "0x2a58E9bbb5434FdA7FF78051a4B82cb0EF669C17",
+      },
+    },
+  },
+  alfajores: {
+    tokens: {
+      cusd: {
+        address: "0x874069Fa1Eb16D44d622F2e0Ca25eeA172369bC1",
+        decimals: 18,
+      },
+      celo: {
+        address: "0xF194afDf50B03e69Bd7D057c1Aa9e10c9954E4C9",
+        decimals: 18,
+      },
+      mobi: {
+        address: "0x4B0BdD00F9b944fdaaAa3938647E3a9166B4532c",
+        decimals: 18,
+      },
+    },
+    strategies: {
+      moola: {
+        lendingPoolAddressProvider: "0xb3072f5F0d5e8B9036aEC29F37baB70E86EA0018",
+        dataProvider: "0x31ccB9dC068058672D96E92BAf96B1607855822E",
+      },
+    },
+  },
   celo: {
     tokens: {
       cusd: {

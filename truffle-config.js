@@ -48,6 +48,10 @@ module.exports = {
       provider: kit.connection.web3.currentProvider, // CeloProvider
       network_id: 42220,
     },
+    "test-celo": { // alfajores
+      provider: kit.connection.web3.currentProvider, // CeloProvider
+      network_id: 44787,
+    },
     "local-polygon": {
       host: "127.0.0.1",
       port: 8545,
@@ -80,6 +84,22 @@ module.exports = {
       network_id: 137, // Polygon mainnet id
       networkCheckTimeout: 60000,
       gasPrice: 200000000000, // 200 Gwei
+      confirmations: 2, // # of confs to wait between deployments. (default: 0)
+      timeoutBlocks: 50, // # of blocks before a deployment times out  (minimum/default: 50)
+      skipDryRun: false, // Skip dry run before migrations? (default: false for public nets )
+    },
+    "test-polygon": { // mumbai
+      provider: () =>
+        new HDWalletProvider(
+          process.env.MNEMONIC,
+          process.env.RPC,
+          0, //address_index
+          10, // num_addresses
+          true, // shareNonce
+        ),
+      network_id: 80001, // Polygon testnet id
+      networkCheckTimeout: 60000,
+      gasPrice: 60000000000, // 200 Gwei
       confirmations: 2, // # of confs to wait between deployments. (default: 0)
       timeoutBlocks: 50, // # of blocks before a deployment times out  (minimum/default: 50)
       skipDryRun: false, // Skip dry run before migrations? (default: false for public nets )

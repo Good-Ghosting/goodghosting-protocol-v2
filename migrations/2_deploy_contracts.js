@@ -31,13 +31,29 @@ module.exports = function (deployer, network, accounts) {
     }
 
     const strategyConfig =
-      providerConfig.providers[network.includes("celo") ? "celo" : "polygon"].strategies[config.deployConfigs.strategy];
+      providerConfig.providers[
+        network.includes("celo")
+          ? network.includes("test-celo")
+            ? "alfajores"
+            : "celo"
+          : network.includes("test-polygon")
+          ? "mumbai"
+          : "polygon"
+      ].strategies[config.deployConfigs.strategy];
 
     const inboundCurrencyAddress = network.includes("celo")
-      ? providerConfig.providers["celo"].tokens[config.deployConfigs.inboundCurrencySymbol].address
+      ? network.includes("test-celo")
+        ? providerConfig.providers["alfajores"].tokens[config.deployConfigs.inboundCurrencySymbol].address
+        : providerConfig.providers["celo"].tokens[config.deployConfigs.inboundCurrencySymbol].address
+      : network.includes("test-polygon")
+      ? providerConfig.providers["mumbai"].tokens[config.deployConfigs.inboundCurrencySymbol].address
       : providerConfig.providers["polygon"].tokens[config.deployConfigs.inboundCurrencySymbol].address;
     const inboundCurrencyDecimals = network.includes("celo")
-      ? providerConfig.providers["celo"].tokens[config.deployConfigs.inboundCurrencySymbol].decimals
+      ? network.includes("test-celo")
+        ? providerConfig.providers["alfajores"].tokens[config.deployConfigs.inboundCurrencySymbol].decimals
+        : providerConfig.providers["celo"].tokens[config.deployConfigs.inboundCurrencySymbol].decimals
+      : network.includes("test-polygon")
+      ? providerConfig.providers["mumbai"].tokens[config.deployConfigs.inboundCurrencySymbol].decimals
       : providerConfig.providers["polygon"].tokens[config.deployConfigs.inboundCurrencySymbol].decimals;
     const segmentPaymentWei = (config.deployConfigs.segmentPayment * 10 ** inboundCurrencyDecimals).toString();
 
@@ -71,7 +87,9 @@ module.exports = function (deployer, network, accounts) {
         strategyConfig.wethGateway,
         strategyConfig.dataProvider,
         strategyConfig.incentiveController,
-        providerConfig.providers["polygon"].tokens["wmatic"].address,
+        network.includes("test-polygon")
+          ? providerConfig.providers["mumbai"].tokens["wmatic"].address
+          : providerConfig.providers["polygon"].tokens["wmatic"].address,
         inboundCurrencyAddress,
       ];
     } else if (config.deployConfigs.strategy === "no-external-strategy") {
