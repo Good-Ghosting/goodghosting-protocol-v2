@@ -72,7 +72,7 @@
     "clean": "shx rm -rf ./artifacts ./cache ./coverage ./types ./coverage.json",
     "commit": "git-cz",
     "compile": "cross-env TS_NODE_TRANSPILE_ONLY=true hardhat compile",
-    "coverage": "yarn typechain && hardhat coverage --solcoverjs ./.solcover.js --temp artifacts --testfiles \"./test/**/*.ts\"",
+    "coverage": "NODE_OPTIONS=\"--max-old-space-size=4096\" && yarn typechain && hardhat coverage --solcoverjs ./.solcover.js --temp artifacts --testfiles \"./test/**/*.ts\"",
     "deploy:celo": "truffle deploy -f 2 --network celo --reset",
     "deploy:polygon": "truffle deploy -f 2 --network polygon --reset",
     "deploy:test:celo": "truffle deploy -f 2 --network test-celo --reset",
