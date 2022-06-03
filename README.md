@@ -90,7 +90,7 @@ so hence cumulativePlayerIndexSum will be 7, now the twist is that player 2 earl
 
 ## Emergency Scenario
 
-With V2 Pools especially there comes a risk of funds being locked in the external protocol in case something happens or if an external protocol utilized by one of the goodghosting pools migrates to a new contract in the middle of a game. So to handle these scenario's we have a introduced a new function in the smart contract (enableEmergencyWithdraw)[https://github.com/Good-Ghosting/goodghosting-protocol-v2/blob/master/contracts/Pool.sol#L572] which can only be called by the contract deployer aka the admin.
+With V2 Pools especially there comes a risk of funds being locked in the external protocol in case something happens or if an external protocol utilized by one of the goodghosting pools migrates to a new contract in the middle of a game. So to handle these scenario's we have a introduced a new function in the smart contract [enableEmergencyWithdraw](https://github.com/Good-Ghosting/goodghosting-protocol-v2/blob/master/contracts/Pool.sol#L676) which can only be called by the contract deployer AKA the admin.
 
 Once this function is called, it updates the last segment value to current segment & makes the emergency flag true in the smart contract, players then who have deposited in the prev. segment i.e current segment - 1 are all considered as winners and they can withdraw their funds immediately once the emergency flag is enabled.
 
@@ -225,7 +225,7 @@ To run the integrated test scenarios forking from Mainnet (Polygon or Celo) you'
 
 #### Polygon
 
-- **Aave V2/V3 Strategy Based Pool** As mentioned above we use hardhat for this, after doing the setup mentioned above, the next step is to set the `FORKING` var in your .env file as `true`, next in your [config](https://github.com/Good-Ghosting/goodghosting-protocol-v2/blob/master/hardhat.config.ts#L62) you set your desired rpc url, currently a public rpc is set. Then you just run `yarn test`.
+- **Aave V2/V3 Strategy Based Pool** As mentioned above we use hardhat for this, after doing the setup mentioned above, the next step is to set the `FORKING` var in your .env file as `true`, next in your [hardhat config](https://github.com/Good-Ghosting/goodghosting-protocol-v2/blob/master/hardhat.config.ts#L63) you set your desired rpc url, currently a public rpc is set. Then you just run `yarn test`.
 
 - **Curve Strategy Based Pool** As mentioned above we use truffle for this, so open a new terminal window and run `ganache-cli -f <Your Polygon RPC> -m "clutchaptain shoe salt awake harvest setup primary inmate ugly among become" -i 999 --unlock {WHALE_ADDRESS_FORKED_NETWORK}` and in the second window run `yarn test:fork:polygon` for fixed deposit pool & `yarn test:fork:variable:polygon` for variable deposit pool.
 
@@ -259,9 +259,9 @@ slither . --filter-path "aave|Migrations.sol|merkle|mock|openzeppelin|polygon|aa
 
 ## Polygon
 
-After setting the prerequisite config mentioned above, start by setting the `MNEMONIC` var (which is the 12 word seed phrase in your wallet) & the `RPC` var in the .env file & then make sure you have the [right deployment configs set](https://github.com/Good-Ghosting/goodghosting-protocol-v2/blob/master/deploy.config.ts)(if a **whitelisted pool** needs to be deployed make sure the merkle root is set and the [isWhitelisted var](https://github.com/Good-Ghosting/goodghosting-protocol-v2/blob/master/deploy.config.ts#L135) is true), then just run `yarn deploy:polygon`.
+After setting the prerequisite config mentioned above, start by setting the `MNEMONIC` var (which is the 12 word seed phrase in your wallet) & the `RPC` var in the .env file & then make sure you have the [right deployment configs set](https://github.com/Good-Ghosting/goodghosting-protocol-v2/blob/master/deploy.config.ts)(if a **whitelisted pool** needs to be deployed make sure the merkle root is set and the [isWhitelisted var](https://github.com/Good-Ghosting/goodghosting-protocol-v2/blob/master/deploy.config.ts#L20) is true), then just run `yarn deploy:polygon`.
 
-The [strategy value](https://github.com/Good-Ghosting/goodghosting-protocol-v2/blob/master/deploy.config.ts#L6) options in deploy config are: "aaveV2", "aaveV3", "polygon-curve-aave", "polygon-curve-atricrypto" & "no-external-strategy".
+The [strategy value](https://github.com/Good-Ghosting/goodghosting-protocol-v2/blob/master/deploy.config.ts#L6) options in deploy config are: ```"aaveV2", "aaveV3", "polygon-curve-aave", "polygon-curve-atricrypto" & "no-external-strategy"```.
 
 Here is a sample deployment log:
 
@@ -344,7 +344,7 @@ Summary
 
 ## Celo
 
-After setting the prerequisite config mentioned above, start by setting the `MNEMONIC` var (which is the 12 word seed phrase in your wallet) & the `RPC` var in the .env file & then make sure you have the [right deployment configs set](https://github.com/Good-Ghosting/goodghosting-protocol-v2/blob/master/deploy.config.ts)(if a **whitelisted pool** needs to be deployed make sure the merkle root is set and the [isWhitelisted var](https://github.com/Good-Ghosting/goodghosting-protocol-v2/blob/master/deploy.config.ts#L135) is true), then just run `yarn deploy:polygon`.
+After setting the prerequisite config mentioned above, start by setting the `MNEMONIC` var (which is the 12 word seed phrase in your wallet) & the `RPC` var in the .env file & then make sure you have the [right deployment configs set](https://github.com/Good-Ghosting/goodghosting-protocol-v2/blob/master/deploy.config.ts)(if a **whitelisted pool** needs to be deployed make sure the merkle root is set and the [isWhitelisted var](https://github.com/Good-Ghosting/goodghosting-protocol-v2/blob/master/deploy.config.ts#L20) is true), then just run `yarn deploy:polygon`.
 
 The [strategy value](https://github.com/Good-Ghosting/goodghosting-protocol-v2/blob/master/deploy.config.ts#L6) options in deploy config are: "aaveV2", "moola", "mobius-cUSD-DAI", "mobius-cUSD-USDC" & "no-external-strategy".
 
@@ -426,7 +426,7 @@ To verify contracts on polygon we use the [truffle-plugin-verify](https://github
 
 ## Celo
 
-Due to the ipfs provider rate limitations for verfifying through sourcify the celo contracts currently need to be verified manually on celoexplorer.
+Due to the ipfs provider rate limitations for verifying through sourcify the celo contracts currently need to be verified manually on celo explorer.
 
 # Merkle Root Generation for Whitelisted Contracts
 
