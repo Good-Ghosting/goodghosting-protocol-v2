@@ -183,7 +183,7 @@ contract Pool is Ownable, Pausable, ReentrancyGuard {
     //*********************************************************************//
     // ------------------------- events -------------------------- //
     //*********************************************************************//
-    event JoinedGame(address indexed player, uint256 amount);
+    event JoinedGame(address indexed player, uint256 amount, uint256 netAmount);
 
     event Deposit(address indexed player, uint256 indexed segment, uint256 amount, uint256 netAmount);
 
@@ -192,14 +192,15 @@ contract Pool is Ownable, Pausable, ReentrancyGuard {
     event FundsRedeemedFromExternalPool(
         uint256 totalAmount,
         uint256 totalGamePrincipal,
+        uint256 netTotalGamePrincipal,
         uint256 totalGameInterest,
         uint256 totalIncentiveAmount,
         uint256[] totalRewardAmounts
     );
 
     event VariablePoolParamsSet(
-        uint256 totalAmount,
         uint256 totalGamePrincipal,
+        uint256 netTotalGamePrincipal,
         uint256 totalGameInterest,
         uint256 totalIncentiveAmount,
         uint256[] totalRewardAmounts
@@ -555,7 +556,7 @@ contract Pool is Ownable, Pausable, ReentrancyGuard {
             iterablePlayers.push(msg.sender);
         }
 
-        emit JoinedGame(msg.sender, amount);
+        emit JoinedGame(msg.sender, amount, netAmount);
         _transferInboundTokenToContract(_minAmount, amount, netAmount);
     }
 
@@ -578,7 +579,7 @@ contract Pool is Ownable, Pausable, ReentrancyGuard {
 
         // PLAYER INDEX CALCULATION TO DETERMINE INTEREST SHARE
         // player index = prev. segment player index + segment amount deposited / time stamp of deposit
-        uint256 currentSegmentplayerIndex = _netDepositAmount.mul(MULTIPLIER).div(block.timestamp);
+        uint256 currentSegmentplayerIndex = _netDepositAmount.mul(MULTIPLIER).div(segmentLength + block.timestamp - (firstSegmentStart + (currentSegment * segmentLength)));
         playerIndex[msg.sender][currentSegment] = currentSegmentplayerIndex;
 
         uint256 cummalativePlayerIndexSumInMemory = cumulativePlayerIndexSum[currentSegment];
@@ -640,7 +641,6 @@ contract Pool is Ownable, Pausable, ReentrancyGuard {
             _calculateAndSetAdminAccounting(grossInterest, grossRewardTokenAmount);
             redeemed = true;
         }
-
         emit VariablePoolParamsSet(
             totalBalance,
             netTotalGamePrincipal,
@@ -1009,6 +1009,7 @@ contract Pool is Ownable, Pausable, ReentrancyGuard {
 
             // Withdraws funds (principal + interest + rewards) from external pool
             strategy.redeem(inboundToken, payout, flexibleSegmentPayment, _minAmount, disableRewardTokenClaim);
+
         }
 
         // sending the inbound token amount i.e principal + interest to the winners and just the principal in case of players
@@ -1166,6 +1167,7 @@ contract Pool is Ownable, Pausable, ReentrancyGuard {
 
         emit FundsRedeemedFromExternalPool(
             isTransactionalToken ? address(this).balance : IERC20(inboundToken).balanceOf(address(this)),
+            totalGamePrincipal,
             netTotalGamePrincipal,
             totalGameInterest,
             totalIncentiveAmount,
