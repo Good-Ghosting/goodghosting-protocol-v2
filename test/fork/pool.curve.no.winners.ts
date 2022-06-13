@@ -259,14 +259,13 @@ contract("Pool with Curve Strategy with no winners", accounts => {
         "FundsRedeemedFromExternalPool",
         (ev: any) => {
           console.log("totalContractAmount", ev.totalAmount.toString());
-          console.log("totalGamePrincipal", ev.totalGamePrincipal.toString());
+          console.log("totalGamePrincipal", ev.netTotalGamePrincipal.toString());
           console.log("totalGameInterest", ev.totalGameInterest.toString());
-          console.log("interestPerPlayer", ev.totalGameInterest.div(web3.utils.toBN(players.length - 1)).toString());
-          const adminFee = web3.utils.toBN(ev.totalAmount).sub(web3.utils.toBN(ev.totalGamePrincipal));
+
+          const adminFee = web3.utils.toBN(ev.totalAmount).sub(web3.utils.toBN(ev.netTotalGamePrincipal));
           eventAmount = web3.utils.toBN(ev.totalAmount.toString());
           console.log(adminFee.toString());
-          console.log(web3.utils.toBN(ev.totalAmount).sub(web3.utils.toBN(ev.totalGamePrincipal)).toString());
-
+          console.log(web3.utils.toBN(ev.totalAmount).sub(web3.utils.toBN(ev.netTotalGamePrincipal)).toString());
           return (
             web3.utils
               .toBN(ev.totalGameInterest)
