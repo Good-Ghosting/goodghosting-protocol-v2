@@ -22,7 +22,7 @@ chai.use(solidity);
 
 const { expect } = chai;
 const depositCount = 3;
-const segmentLength = 600;
+const segmentLength = 604800;
 const ZERO_ADDRESS = "0x0000000000000000000000000000000000000000";
 const segmentPayment = "10000000000000000000";
 const maxPlayersCount = "115792089237316195423570985008687907853269984665640564039457584007913129639935";
@@ -823,7 +823,7 @@ export const shouldBehaveLikeJoiningGGPool = async (strategyType: string) => {
     await approveToken(contracts.inboundToken, player1, contracts.goodGhosting.address, segmentPayment);
     await expect(contracts.goodGhosting.connect(player1).joinGame(0, segmentPayment))
       .to.emit(contracts.goodGhosting, "JoinedGame")
-      .withArgs(player1.address, ethers.BigNumber.from(segmentPayment));
+      .withArgs(player1.address, ethers.BigNumber.from(segmentPayment), ethers.BigNumber.from(segmentPayment));
   });
 };
 
@@ -1537,6 +1537,7 @@ export const shouldBehaveLikeRedeemingFromGGPool = async (strategyType: string) 
       false,
     );
   });
+
   it("reverts if game is not completed", async () => {
     const accounts = await ethers.getSigners();
     const player1 = accounts[2];
@@ -1709,6 +1710,7 @@ export const shouldBehaveLikeRedeemingFromGGPool = async (strategyType: string) 
       .to.emit(contracts.goodGhosting, "FundsRedeemedFromExternalPool")
       .withArgs(
         ethers.BigNumber.from(contractsDaiBalance),
+        totalPrincipal,
         totalPrincipal,
         expectedInterestValue,
         ethers.BigNumber.from(0),
@@ -2057,7 +2059,7 @@ export const shouldBehaveLikeGGPoolWithNoWinners = async (strategyType: string) 
 
     await expect(result)
       .to.emit(contracts.goodGhosting, "FundsRedeemedFromExternalPool")
-      .withArgs(totalBalance, principalAmount, adminBalance, ethers.BigNumber.from(0), rewardAmounts);
+      .withArgs(totalBalance, principalAmount, principalAmount, adminBalance, ethers.BigNumber.from(0), rewardAmounts);
   });
 
   it("user is able to withdraw in case no one wins", async () => {
@@ -2604,9 +2606,18 @@ export const shouldBehaveLikePlayersWithdrawingFromGGPool = async (strategyType:
     await joinGame(contracts.goodGhosting, contracts.inboundToken, player1, segmentPayment, segmentPayment);
 
     for (let index = 1; index < depositCount; index++) {
-      await ethers.provider.send("evm_increaseTime", [segmentLength]);
-      await ethers.provider.send("evm_mine", []);
+      if (index == 2) {
+        await ethers.provider.send("evm_increaseTime", [302400]);
+        await ethers.provider.send("evm_mine", []);
+      } else {
+        await ethers.provider.send("evm_increaseTime", [segmentLength]);
+        await ethers.provider.send("evm_mine", []);
+      }
       await makeDeposit(contracts.goodGhosting, contracts.inboundToken, player2, segmentPayment, segmentPayment);
+      if (index == 1) {
+        await ethers.provider.send("evm_increaseTime", [302400]);
+        await ethers.provider.send("evm_mine", []);
+      }
       await makeDeposit(contracts.goodGhosting, contracts.inboundToken, player1, segmentPayment, segmentPayment);
     }
     // above, it accounted for 1st deposit window, and then the loop runs till depositCount - 1.
@@ -2643,6 +2654,21 @@ export const shouldBehaveLikePlayersWithdrawingFromGGPool = async (strategyType:
       await contracts.mobiPool.connect(deployer).addLiquidity([ethers.utils.parseEther("1000"), "0"], 0, 1000);
 
       await contracts.mobiPool.transfer(contracts.strategy.address, ethers.utils.parseEther("1000"));
+    }
+
+    const player1Info = await contracts.goodGhosting.players(player1.address);
+    const player2Info = await contracts.goodGhosting.players(player2.address);
+
+    for (let i = 0; i <= player1Info.mostRecentSegmentPaid; i++) {
+      let index1 = await contracts.goodGhosting.playerIndex(player1.address, i);
+      console.log("player1");
+      console.log(index1.toString());
+    }
+
+    for (let i = 0; i <= player2Info.mostRecentSegmentPaid; i++) {
+      let index2 = await contracts.goodGhosting.playerIndex(player2.address, i);
+      console.log("player2");
+      console.log(index2.toString());
     }
 
     const player1BeforeWithdrawBalance = await contracts.inboundToken.balanceOf(player1.address);
@@ -5869,6 +5895,7 @@ export const shouldBehaveLikeGGPoolWithTransactionalToken = async (strategyType:
       .to.emit(contracts.goodGhosting, "FundsRedeemedFromExternalPool")
       .withArgs(
         ethers.BigNumber.from(transactionalTokenBalanceAfterWithdraw),
+        totalPrincipal,
         totalPrincipal,
         expectedInterestValue,
         ethers.BigNumber.from(0),
