@@ -105,7 +105,7 @@ describe("Aave Variable Deposit Pool Fork Tests with the deposit token as transs
           pool.connect(accounts[i]).joinGame(0, ethers.utils.parseEther("5"), { value: ethers.utils.parseEther("5") }),
         )
           .to.emit(pool, "JoinedGame")
-          .withArgs(accounts[i].address, ethers.utils.parseEther("5"));
+          .withArgs(accounts[i].address, ethers.utils.parseEther("5"), ethers.utils.parseEther("5"));
       }
     }
   });

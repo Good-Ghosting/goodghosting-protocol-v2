@@ -102,7 +102,7 @@ describe("Aave V3 Pool Fork Tests with the deposit token as transsactional token
         await pool.connect(accounts[i]).earlyWithdraw(0);
         await expect(pool.connect(accounts[i]).joinGame(0, 0, { value: segmentPayment }))
           .to.emit(pool, "JoinedGame")
-          .withArgs(accounts[i].address, ethers.BigNumber.from(segmentPayment));
+          .withArgs(accounts[i].address, ethers.BigNumber.from(segmentPayment), ethers.BigNumber.from(segmentPayment));
       }
     }
   });

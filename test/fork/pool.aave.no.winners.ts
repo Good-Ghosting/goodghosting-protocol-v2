@@ -121,7 +121,7 @@ describe("Aave Pool Fork Tests where no player wins", () => {
         await pool.connect(accounts[i]).earlyWithdraw(0);
         await expect(pool.connect(accounts[i]).joinGame(0, 0))
           .to.emit(pool, "JoinedGame")
-          .withArgs(accounts[i].address, ethers.BigNumber.from(segmentPayment));
+          .withArgs(accounts[i].address, ethers.BigNumber.from(segmentPayment), ethers.BigNumber.from(segmentPayment));
       }
     }
   });

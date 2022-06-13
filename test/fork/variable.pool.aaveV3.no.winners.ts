@@ -117,7 +117,7 @@ describe("Aave V3 Variable Deposit Pool Fork Tests with no winners", () => {
         await pool.connect(accounts[i]).earlyWithdraw(0);
         await expect(pool.connect(accounts[i]).joinGame(0, ethers.utils.parseEther("5")))
           .to.emit(pool, "JoinedGame")
-          .withArgs(accounts[i].address, ethers.utils.parseEther("5"));
+          .withArgs(accounts[i].address, ethers.utils.parseEther("5"), ethers.utils.parseEther("5"));
       }
     }
   });
