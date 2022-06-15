@@ -2659,30 +2659,39 @@ export const shouldBehaveLikePlayersWithdrawingFromGGPool = async (strategyType:
     const player1Info = await contracts.goodGhosting.players(player1.address);
     const player2Info = await contracts.goodGhosting.players(player2.address);
 
+    let sumPlayer1: number = 0;
+    let sumPlayer2: number = 0;
+
     for (let i = 0; i <= player1Info.mostRecentSegmentPaid; i++) {
       let index1 = await contracts.goodGhosting.playerIndex(player1.address, i);
+      sumPlayer1 += parseInt(index1.toString());
       console.log("player1");
       console.log(index1.toString());
+      console.log("sum1", sumPlayer1.toString());
     }
 
     for (let i = 0; i <= player2Info.mostRecentSegmentPaid; i++) {
       let index2 = await contracts.goodGhosting.playerIndex(player2.address, i);
+      sumPlayer2 += parseInt(index2.toString());
       console.log("player2");
       console.log(index2.toString());
+      console.log("sum2", sumPlayer2.toString());
     }
 
     const player1BeforeWithdrawBalance = await contracts.inboundToken.balanceOf(player1.address);
     await contracts.goodGhosting.connect(player1).withdraw("90");
     const player1PostWithdrawBalance = await contracts.inboundToken.balanceOf(player1.address);
     const player1WithdrawAmount = player1PostWithdrawBalance.sub(player1BeforeWithdrawBalance);
+    console.log(player1WithdrawAmount.toString());
 
     const player2BeforeWithdrawBalance = await contracts.inboundToken.balanceOf(player2.address);
     await contracts.goodGhosting.connect(player2).withdraw(0);
     const player2PostWithdrawBalance = await contracts.inboundToken.balanceOf(player2.address);
     const player2WithdrawAmount = player2PostWithdrawBalance.sub(player2BeforeWithdrawBalance);
+    console.log(player2WithdrawAmount.toString());
 
     // both players are winners, but player 2 made deposits before player 1 so it gets slightly higher interest.
-    assert(player2WithdrawAmount.gte(player1WithdrawAmount));
+    assert(player2WithdrawAmount.gt(player1WithdrawAmount));
   });
 
   it("emits Withdrawal event when user withdraws", async () => {
