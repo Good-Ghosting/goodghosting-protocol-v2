@@ -297,19 +297,15 @@ contract Pool is Ownable, Pausable, ReentrancyGuard {
     /// @return current game segment.
     function getCurrentSegment() public view whenGameIsInitialized returns (uint64) {
         uint256 currentSegment;
+        uint256 endOfWaitingRound = waitingRoundSegmentStart.add(waitingRoundSegmentLength);
         // logic for getting the current segment while the game is on waiting round
         if (
             waitingRoundSegmentStart <= block.timestamp &&
-            block.timestamp <= (waitingRoundSegmentStart.add(waitingRoundSegmentLength))
-        ) {
-            uint256 waitingRoundSegment = block.timestamp.sub(waitingRoundSegmentStart).div(waitingRoundSegmentLength);
-            currentSegment = depositCount.add(waitingRoundSegment);
-        } else if (block.timestamp > (waitingRoundSegmentStart.add(waitingRoundSegmentLength))) {
+            block.timestamp < endOfWaitingRound) {
+            currentSegment = depositCount;
+        } else if (block.timestamp > endOfWaitingRound) {
             // logic for getting the current segment after the game completes (waiting round is over)
-            currentSegment =
-                waitingRoundSegmentStart.sub(firstSegmentStart).div(segmentLength) +
-                block.timestamp.sub((waitingRoundSegmentStart.add(waitingRoundSegmentLength))).div(segmentLength) +
-                1;
+            currentSegment = depositCount + 1 + block.timestamp.sub(endOfWaitingRound).div(segmentLength);
         } else {
             // logic for getting the current segment during segments that allows depositing (before waiting round)
             currentSegment = block.timestamp.sub(firstSegmentStart).div(segmentLength);
@@ -844,7 +840,7 @@ contract Pool is Ownable, Pausable, ReentrancyGuard {
     @dev Allows a player to withdraw funds before the game ends. An early withdrawal fee is charged.
     @param _minAmount Slippage based amount to cover for impermanent loss scenario in case of a amm strategy like curve or mobius.
     */
-    function earlyWithdraw(uint256 _minAmount) external whenNotPaused whenGameIsNotCompleted nonReentrant {
+    function earlyWithdraw(uint256 _minAmount) external whenNotPaused whenGameIsNotCompleted {
         Player storage player = players[msg.sender];
         if (player.amountPaid == 0) {
             revert PLAYER_DOES_NOT_EXIST();
@@ -928,7 +924,7 @@ contract Pool is Ownable, Pausable, ReentrancyGuard {
     @dev Allows player to withdraw their funds after the game ends with no loss (fee). Winners get a share of the interest earned & additional rewards based on the player index.
     @param _minAmount Slippage based amount to cover for impermanent loss scenario in case of a amm strategy like curve or mobius.
     */
-    function withdraw(uint256 _minAmount) external virtual nonReentrant {
+    function withdraw(uint256 _minAmount) external virtual {
         Player storage player = players[msg.sender];
         if (player.amountPaid == 0) {
             revert PLAYER_DOES_NOT_EXIST();
