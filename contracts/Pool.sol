@@ -29,6 +29,7 @@ error INVALID_INBOUND_TOKEN();
 error INVALID_INCENTIVE_TOKEN();
 error INVALID_MAX_FLEXIBLE_AMOUNT();
 error INVALID_MAX_PLAYER_COUNT();
+error INVALID_NET_DEPOSIT_AMOUNT();
 error INVALID_OWNER();
 error INVALID_SEGMENT_LENGTH();
 error INVALID_SEGMENT_PAYMENT();
@@ -539,7 +540,10 @@ contract Pool is Ownable, Pausable, ReentrancyGuard {
         }
 
         uint256 netAmount = strategy.getNetDepositAmount(amount);
-
+        // this scenario given the inputs to the mock contract methods isn't possible to mock locally
+        if (netAmount > amount) {
+            revert INVALID_NET_DEPOSIT_AMOUNT();
+        }
         Player memory newPlayer = Player({
             addr: msg.sender,
             withdrawalSegment: 0,
@@ -1120,6 +1124,10 @@ contract Pool is Ownable, Pausable, ReentrancyGuard {
             }
         }
         uint256 netAmount = strategy.getNetDepositAmount(amount);
+        // this scenario given the inputs to the mock contract methods isn't possible to mock locally
+        if (netAmount > amount) {
+            revert INVALID_NET_DEPOSIT_AMOUNT();
+        }
         emit Deposit(msg.sender, currentSegment, amount, netAmount);
         _transferInboundTokenToContract(_minAmount, amount, netAmount);
     }
