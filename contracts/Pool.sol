@@ -299,9 +299,7 @@ contract Pool is Ownable, Pausable, ReentrancyGuard {
         uint256 currentSegment;
         uint256 endOfWaitingRound = waitingRoundSegmentStart.add(waitingRoundSegmentLength);
         // logic for getting the current segment while the game is on waiting round
-        if (
-            waitingRoundSegmentStart <= block.timestamp &&
-            block.timestamp < endOfWaitingRound) {
+        if (waitingRoundSegmentStart <= block.timestamp && block.timestamp < endOfWaitingRound) {
             currentSegment = depositCount;
         } else if (block.timestamp > endOfWaitingRound) {
             // logic for getting the current segment after the game completes (waiting round is over)
@@ -425,6 +423,35 @@ contract Pool is Ownable, Pausable, ReentrancyGuard {
     //*********************************************************************//
     // ------------------------- internal methods -------------------------- //
     //*********************************************************************//
+
+    /**
+    @notice
+    Transfer funds after balance checks to the players / admin.
+    */
+    function _transferFundsSafely(address _recepient, uint256 _amount) internal {
+        if (isTransactionalToken) {
+            // safety check
+            // this scenario is very tricky to mock
+            // and our mock contracts are pretty complex currently so haven't tested this line with unit tests
+            if (_amount > address(this).balance) {
+                _amount = address(this).balance;
+            }
+            (bool success, ) = _recepient.call{ value: _amount }("");
+            if (!success) {
+                revert TRANSACTIONAL_TOKEN_TRANSFER_FAILURE();
+            }
+        } else {
+            // safety check
+            if (_amount > IERC20(inboundToken).balanceOf(address(this))) {
+                _amount = IERC20(inboundToken).balanceOf(address(this));
+            }
+            bool success = IERC20(inboundToken).transfer(_recepient, _amount);
+            if (!success) {
+                revert TOKEN_TRANSFER_FAILURE();
+            }
+        }
+    }
+
     /**
     @notice
     Calculates and updates's game accounting called by methods _setGlobalPoolParamsForFlexibleDepositPool & redeemFromExternalPoolForFixedDepositPool.
@@ -580,7 +607,9 @@ contract Pool is Ownable, Pausable, ReentrancyGuard {
 
         // PLAYER INDEX CALCULATION TO DETERMINE INTEREST SHARE
         // player index = prev. segment player index + segment amount deposited / time stamp of deposit
-        uint256 currentSegmentplayerIndex = _netDepositAmount.mul(MULTIPLIER).div(segmentLength + block.timestamp - (firstSegmentStart + (currentSegment * segmentLength)));
+        uint256 currentSegmentplayerIndex = _netDepositAmount.mul(MULTIPLIER).div(
+            segmentLength + block.timestamp - (firstSegmentStart + (currentSegment * segmentLength))
+        );
         playerIndex[msg.sender][currentSegment] = currentSegmentplayerIndex;
 
         uint256 cummalativePlayerIndexSumInMemory = cumulativePlayerIndexSum[currentSegment];
@@ -697,10 +726,7 @@ contract Pool is Ownable, Pausable, ReentrancyGuard {
         // incentiveToken cannot be the same as one of the reward tokens.
         IERC20[] memory _rewardTokens = strategy.getRewardTokens();
         for (uint256 i = 0; i < _rewardTokens.length; i++) {
-            if (
-                (address(_rewardTokens[i]) != address(0) &&
-                address(_rewardTokens[i]) == address(_incentiveToken))
-            ) {
+            if ((address(_rewardTokens[i]) != address(0) && address(_rewardTokens[i]) == address(_incentiveToken))) {
                 revert INVALID_INCENTIVE_TOKEN();
             }
         }
@@ -770,29 +796,16 @@ contract Pool is Ownable, Pausable, ReentrancyGuard {
         uint256 adminInterestShare = adminFeeAmount[0];
         if (adminInterestShare != 0) {
             if (flexibleSegmentPayment) {
-                strategy.redeem(inboundToken, adminInterestShare, flexibleSegmentPayment, _minAmount, disableRewardTokenClaim);
+                strategy.redeem(
+                    inboundToken,
+                    adminInterestShare,
+                    flexibleSegmentPayment,
+                    _minAmount,
+                    disableRewardTokenClaim
+                );
             }
-            if (isTransactionalToken) {
-                // safety check
-                // this scenario is very tricky to mock
-                // and our mock contracts are pretty complex currently so haven't tested this line with unit tests
-                if (adminInterestShare > address(this).balance) {
-                    adminInterestShare = address(this).balance;
-                }
-                (bool success, ) = msg.sender.call{ value: adminInterestShare }("");
-                if (!success) {
-                    revert TRANSACTIONAL_TOKEN_TRANSFER_FAILURE();
-                }
-            } else {
-                // safety check
-                if (adminInterestShare > IERC20(inboundToken).balanceOf(address(this))) {
-                    adminInterestShare = IERC20(inboundToken).balanceOf(address(this));
-                }
-                bool success = IERC20(inboundToken).transfer(owner(), adminInterestShare);
-                if (!success) {
-                    revert TOKEN_TRANSFER_FAILURE();
-                }
-            }
+
+            _transferFundsSafely(owner(), adminInterestShare);
         }
 
         for (uint256 i = 0; i < rewardTokens.length; i++) {
@@ -892,27 +905,9 @@ contract Pool is Ownable, Pausable, ReentrancyGuard {
         }
 
         strategy.earlyWithdraw(inboundToken, withdrawAmount, _minAmount);
-        if (isTransactionalToken) {
-            // safety check
-            // this scenario is very tricky to mock
-            // and our mock contracts are pretty complex currently so haven't tested this line with unit tests
-            if (address(this).balance < withdrawAmount) {
-                withdrawAmount = address(this).balance;
-            }
-            (bool success, ) = msg.sender.call{ value: withdrawAmount }("");
-            if (!success) {
-                revert TRANSACTIONAL_TOKEN_TRANSFER_FAILURE();
-            }
-        } else {
-            // safety check
-            if (IERC20(inboundToken).balanceOf(address(this)) < withdrawAmount) {
-                withdrawAmount = IERC20(inboundToken).balanceOf(address(this));
-            }
-            bool success = IERC20(inboundToken).transfer(msg.sender, withdrawAmount);
-            if (!success) {
-                revert TOKEN_TRANSFER_FAILURE();
-            }
-        }
+
+         _transferFundsSafely(msg.sender, withdrawAmount);
+
         // We have to ignore the "check-effects-interactions" pattern here and emit the event
         // only at the end of the function, in order to emit it w/ the correct withdrawal amount.
         // In case the safety checks above are evaluated to true, withdrawAmount is updated,
@@ -947,7 +942,7 @@ contract Pool is Ownable, Pausable, ReentrancyGuard {
         if (impermanentLossShare != 0 && totalGameInterest == 0) {
             // new payput in case of impermanent loss
             payout = player.netAmountPaid.mul(impermanentLossShare).div(100);
-        } 
+        }
         uint256 playerIncentive = 0;
         uint256 playerInterestShare = 0;
         uint256 playerSharePercentage = 0;
@@ -1009,32 +1004,12 @@ contract Pool is Ownable, Pausable, ReentrancyGuard {
 
             // Withdraws funds (principal + interest + rewards) from external pool
             strategy.redeem(inboundToken, payout, flexibleSegmentPayment, _minAmount, disableRewardTokenClaim);
-
         }
 
         // sending the inbound token amount i.e principal + interest to the winners and just the principal in case of players
         // adding a balance safety check to ensure the tx does not revert in case of impermanent loss
-        if (isTransactionalToken) {
-            // this scenario is very tricky to mock
-            // and our mock contracts are pretty complex currently so haven't tested this line with unit tests
-            if (payout > address(this).balance) {
-                payout = address(this).balance;
-            }
-            (bool success, ) = msg.sender.call{ value: payout }("");
-            if (!success) {
-                revert TRANSACTIONAL_TOKEN_TRANSFER_FAILURE();
-            }
-        } else {
-            // this scenario is very tricky to mock
-            // and our mock contracts are pretty complex currently so haven't tested this line with unit tests
-            if (payout > IERC20(inboundToken).balanceOf(address(this))) {
-                payout = IERC20(inboundToken).balanceOf(address(this));
-            }
-            bool success = IERC20(inboundToken).transfer(msg.sender, payout);
-            if (!success) {
-                revert TOKEN_TRANSFER_FAILURE();
-            }
-        }
+         _transferFundsSafely(msg.sender, payout);
+
 
         // sending the rewards & incentives to the winners
         if (playerIncentive != 0) {
