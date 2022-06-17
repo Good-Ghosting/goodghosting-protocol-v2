@@ -7,6 +7,7 @@ import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/utils/math/SafeMath.sol";
 import "./strategies/IStrategy.sol";
+import "hardhat/console.sol";
 
 //*********************************************************************//
 // --------------------------- custom errors ------------------------- //
@@ -843,7 +844,7 @@ contract Pool is Ownable, Pausable, ReentrancyGuard {
     @dev Allows a player to withdraw funds before the game ends. An early withdrawal fee is charged.
     @param _minAmount Slippage based amount to cover for impermanent loss scenario in case of a amm strategy like curve or mobius.
     */
-    function earlyWithdraw(uint256 _minAmount) external whenNotPaused whenGameIsNotCompleted {
+    function earlyWithdraw(uint256 _minAmount) external whenNotPaused whenGameIsNotCompleted nonReentrant {
         Player storage player = players[msg.sender];
         if (player.amountPaid == 0) {
             revert PLAYER_DOES_NOT_EXIST();
@@ -927,7 +928,7 @@ contract Pool is Ownable, Pausable, ReentrancyGuard {
     @dev Allows player to withdraw their funds after the game ends with no loss (fee). Winners get a share of the interest earned & additional rewards based on the player index.
     @param _minAmount Slippage based amount to cover for impermanent loss scenario in case of a amm strategy like curve or mobius.
     */
-    function withdraw(uint256 _minAmount) external virtual {
+    function withdraw(uint256 _minAmount) external virtual nonReentrant {
         Player storage player = players[msg.sender];
         if (player.amountPaid == 0) {
             revert PLAYER_DOES_NOT_EXIST();
@@ -970,25 +971,24 @@ contract Pool is Ownable, Pausable, ReentrancyGuard {
             }
             player.withdrawalSegment = uint64(segmentPaid.add(1));
             // calculate playerSharePercentage for each player
-            playerSharePercentage = (playerIndexSum.mul(100)).div(cumulativePlayerIndexSum[segment]);
-
+            playerSharePercentage = (playerIndexSum.mul(1000000)).div(cumulativePlayerIndexSum[segment]);
             // checking both due to the presence of variable deposits
             if (impermanentLossShare == 0 || totalGameInterest > 0) {
                 // Player is a winner and gets a bonus!
                 // the player share of interest is calculated from player index
                 // player share % = playerIndex / cumulativePlayerIndexSum of player indexes of all winners * 100
                 // so, interest share = player share % * total game interest
-                playerInterestShare = totalGameInterest.mul(playerSharePercentage).div(100);
+                playerInterestShare = totalGameInterest.mul(playerSharePercentage).div(1000000);
                 payout = payout.add(playerInterestShare);
             }
 
             // Calculates winner's share of the additional rewards & incentives
             if (totalIncentiveAmount != 0) {
-                playerIncentive = totalIncentiveAmount.mul(playerSharePercentage).div(100);
+                playerIncentive = totalIncentiveAmount.mul(playerSharePercentage).div(1000000);
             }
             for (uint256 i = 0; i < rewardTokens.length; i++) {
                 if (address(rewardTokens[i]) != address(0) && rewardTokenAmounts[i] != 0) {
-                    playerReward[i] = rewardTokenAmounts[i].mul(playerSharePercentage).div(100);
+                    playerReward[i] = rewardTokenAmounts[i].mul(playerSharePercentage).div(1000000);
                 }
             }
 
