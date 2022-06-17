@@ -809,8 +809,8 @@ contract Pool is Ownable, Pausable, ReentrancyGuard {
                 }
             }
         }
-
-        if (winnerCount == 0) {
+        // if emergency withdraw the no of winners will surely be more then 0 otherwise the tx enabling the emergency withdraw is reverted by EARLY_EXIT_NOT_POSSIBLE
+        if (winnerCount == 0 && !emergencyWithdraw) {
             if (totalIncentiveAmount != 0) {
                 bool success = IERC20(incentiveToken).transfer(owner(), totalIncentiveAmount);
                 if (!success) {
