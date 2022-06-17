@@ -88,8 +88,8 @@ contract MobiusStrategy is Ownable, IStrategy {
     Returns the underlying inbound (deposit) token address.
     @return Underlying token address.
     */
-    function getUnderlyingAsset() external pure override returns (address) {
-        return address(0);
+    function getUnderlyingAsset() external view override returns (address) {
+        return address(pool.getToken(0));
     }
 
     /** 

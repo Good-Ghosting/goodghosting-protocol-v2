@@ -115,8 +115,8 @@ contract CurveStrategy is Ownable, IStrategy {
     Returns the underlying inbound (deposit) token address.
     @return Underlying token address.
     */
-    function getUnderlyingAsset() external pure override returns (address) {
-        return address(0);
+    function getUnderlyingAsset() external view override returns (address) {
+        return pool.underlying_coins(uint256(uint128(inboundTokenIndex)));
     }
 
     /** 
