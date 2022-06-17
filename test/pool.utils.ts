@@ -533,6 +533,7 @@ export const deployPool = async (
       isInvestmentStrategy ? strategy.address : strategy,
       isTransactionalToken,
     );
+
     let incentiveTokenAddress = ZERO_ADDRESS;
     if (isIncentiveToken) {
       incentiveTokenAddress = incentiveToken.address;
@@ -637,7 +638,7 @@ export const deployPool = async (
   if (!isTransactionalToken) {
     await expect(
       deployer.sendTransaction({ to: goodGhosting.address, value: ethers.utils.parseEther("1.0") }),
-    ).to.be.revertedWith("INVALID_TRANSACTIONAL_TOKEN_AMOUNT()");
+    ).to.be.revertedWith("INVALID_TRANSACTIONAL_TOKEN_SENDER()");
   }
 
   return {

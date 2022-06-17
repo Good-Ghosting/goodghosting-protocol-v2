@@ -31,6 +31,7 @@ error INVALID_INCENTIVE_TOKEN();
 error INVALID_MAX_FLEXIBLE_AMOUNT();
 error INVALID_MAX_PLAYER_COUNT();
 error INVALID_NET_DEPOSIT_AMOUNT();
+error INVALID_TRANSACTIONAL_TOKEN_SENDER();
 error INVALID_OWNER();
 error INVALID_SEGMENT_LENGTH();
 error INVALID_SEGMENT_PAYMENT();
@@ -1156,6 +1157,9 @@ contract Pool is Ownable, Pausable, ReentrancyGuard {
 
     // Fallback Functions for calldata and reciever for handling only ether transfer
     receive() external payable {
+        if (msg.sender != address(strategy)) {
+            revert INVALID_TRANSACTIONAL_TOKEN_SENDER();
+        }
         if (!isTransactionalToken) {
             revert INVALID_TRANSACTIONAL_TOKEN_AMOUNT();
         }

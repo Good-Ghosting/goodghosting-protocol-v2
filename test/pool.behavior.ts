@@ -6095,12 +6095,7 @@ export const shouldBehaveLikeGGPoolWithTransactionalToken = async (strategyType:
     const waitingRoundLength = await contracts.goodGhosting.waitingRoundSegmentLength();
     await ethers.provider.send("evm_increaseTime", [parseInt(waitingRoundLength.toString())]);
     await ethers.provider.send("evm_mine", []);
-    // generating mock interest
-    await deployer.sendTransaction({
-      from: deployer.address,
-      to: contracts.goodGhosting.address,
-      value: ethers.utils.parseEther("25"),
-    });
+
     await contracts.goodGhosting.connect(player1).redeemFromExternalPoolForFixedDepositPool(0);
     const rewardTokenBalanceBeforeWithdraw = await contracts.rewardToken.balanceOf(deployer.address);
     const transactionalTokenBalanceBeforeWithdraw = await ethers.provider.getBalance(deployer.address);
@@ -6108,9 +6103,9 @@ export const shouldBehaveLikeGGPoolWithTransactionalToken = async (strategyType:
 
     const transactionalTokenBalanceAfterWithdraw = await ethers.provider.getBalance(deployer.address);
     const rewardTokenBalanceAfterWithdraw = await contracts.rewardToken.balanceOf(deployer.address);
-
     assert(rewardTokenBalanceAfterWithdraw.gt(rewardTokenBalanceBeforeWithdraw));
-    assert(transactionalTokenBalanceAfterWithdraw.gt(transactionalTokenBalanceBeforeWithdraw));
+    // no interest generated some funds spent on gas
+    assert(transactionalTokenBalanceAfterWithdraw.lte(transactionalTokenBalanceBeforeWithdraw));
   });
 };
 
