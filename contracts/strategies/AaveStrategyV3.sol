@@ -29,6 +29,9 @@ error TRANSACTIONAL_TOKEN_TRANSFER_FAILURE();
   @author Francis Odisi & Viraz Malhotra.
 */
 contract AaveStrategyV3 is Ownable, IStrategy {
+    /// @notice Aave referral code
+    uint16 constant REFERRAL_CODE = 0;
+
     /// @notice Address of the Aave V2 weth gateway contract
     IWETHGateway public immutable wethGateway;
 
@@ -166,11 +169,11 @@ contract AaveStrategyV3 is Ownable, IStrategy {
                 WMatic(address(wrappedTxToken)).withdraw(IERC20(_inboundCurrency).balanceOf(address(this)));
             }
             // Deposits MATIC into the pool
-            wethGateway.depositETH{ value: address(this).balance }(address(lendingPool), address(this), 155);
+            wethGateway.depositETH{ value: address(this).balance }(address(lendingPool), address(this), REFERRAL_CODE);
         } else {
             uint256 balance = IERC20(_inboundCurrency).balanceOf(address(this));
             IERC20(_inboundCurrency).approve(address(lendingPool), balance);
-            lendingPool.supply(_inboundCurrency, balance, address(this), 155);
+            lendingPool.supply(_inboundCurrency, balance, address(this), REFERRAL_CODE);
         }
     }
 
