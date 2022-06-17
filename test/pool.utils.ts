@@ -501,32 +501,22 @@ export const deployPool = async (
           minter.address,
         );
       }
-      const goodGhostingNew = await goodGhostingV2Deployer.deploy(
-        newInboundToken.address,
-        ethers.utils.parseEther(maxFlexibleSegmentAmount.toString()),
-        depositCount,
-        segmentLength,
-        segmentLength * 2,
-        segmentPayment,
-        earlyWithdrawFee,
-        adminFee,
-        playerCount,
-        isVariableAmount,
-        newStrategy.address,
-        isTransactionalToken,
-      );
-      await newStrategy.transferOwnership(goodGhostingNew.address);
-      await goodGhostingNew.initialize(ZERO_ADDRESS);
-
-      await newInboundToken
-        .connect(player1)
-        .approve(
-          goodGhostingNew.address,
-          ethers.BigNumber.from(segmentPayment).mul(ethers.BigNumber.from("2")).toString(),
-        );
       await expect(
-        goodGhostingNew.connect(player1).joinGame(0, ethers.BigNumber.from(segmentPayment)),
-      ).to.be.revertedWith("INVALID_DEPOSIT_TOKEN()");
+        goodGhostingV2Deployer.deploy(
+          newInboundToken.address,
+          ethers.utils.parseEther(maxFlexibleSegmentAmount.toString()),
+          depositCount,
+          segmentLength,
+          segmentLength * 2,
+          segmentPayment,
+          earlyWithdrawFee,
+          adminFee,
+          playerCount,
+          isVariableAmount,
+          newStrategy.address,
+          isTransactionalToken,
+        ),
+      ).to.be.revertedWith("INVALID_INBOUND_TOKEN()");
     }
 
     goodGhosting = await goodGhostingV2Deployer.deploy(

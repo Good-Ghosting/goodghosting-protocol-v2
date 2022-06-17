@@ -384,9 +384,9 @@ contract Pool is Ownable, Pausable, ReentrancyGuard {
         if (_flexibleSegmentPayment && _maxFlexibleSegmentPaymentAmount == 0) {
             revert INVALID_MAX_FLEXIBLE_AMOUNT();
         }
-
         address _underlyingAsset = _strategy.getUnderlyingAsset();
-        if (_underlyingAsset != address(0) && _underlyingAsset != _inboundCurrency && !_isTransactionalToken) {
+
+        if (_underlyingAsset != _inboundCurrency && !_isTransactionalToken) {
             revert INVALID_INBOUND_TOKEN();
         }
 
