@@ -18,6 +18,7 @@ import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 //*********************************************************************//
 error INVALID_DATA_PROVIDER();
 error INVALID_LENDING_POOL_ADDRESS_PROVIDER();
+error INVALID_TRANSACTIONAL_TOKEN_SENDER();
 error TOKEN_TRANSFER_FAILURE();
 error TRANSACTIONAL_TOKEN_TRANSFER_FAILURE();
 
@@ -304,5 +305,9 @@ contract AaveStrategyV3 is Ownable, IStrategy {
     }
 
     // Fallback Functions for calldata and reciever for handling only ether transfer
-    receive() external payable {}
+    receive() external payable {
+        if (msg.sender != address(wrappedTxToken) && msg.sender != address(wethGateway)) {
+            revert INVALID_TRANSACTIONAL_TOKEN_SENDER();
+        } 
+    }
 }
