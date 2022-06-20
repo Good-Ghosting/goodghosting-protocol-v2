@@ -512,7 +512,7 @@ contract Pool is Ownable, Pausable, ReentrancyGuard {
         // to avoid SLOAD multiple times
         IERC20[] memory _rewardTokens = rewardTokens;
 
-        if (winnerCount == 0 && !emergencyWithdraw) {
+        if (winnerCount == 0) {
             adminFeeAmount[0] = _grossInterest;
             // just setting these for consistency since if there are no winners then for accounting both these vars aren't used
             totalGameInterest = _grossInterest;
@@ -722,8 +722,10 @@ contract Pool is Ownable, Pausable, ReentrancyGuard {
         if (totalGamePrincipal == 0) {
             revert EARLY_EXIT_NOT_POSSIBLE();
         }
+        uint64 currentSegment = getCurrentSegment();
+        winnerCount = currentSegment > 0 ? segmentCounter[currentSegment].add(segmentCounter[currentSegment.sub(1)]) : segmentCounter[currentSegment];
         // setting depositCount as current segment to manage all scenario's to handle emergency withdraw
-        depositCount = getCurrentSegment();
+        depositCount = currentSegment;
         emergencyWithdraw = true;
     }
 
@@ -840,7 +842,7 @@ contract Pool is Ownable, Pausable, ReentrancyGuard {
             }
         }
         // if emergency withdraw the no of winners will surely be more then 0 otherwise the tx enabling the emergency withdraw is reverted by EARLY_EXIT_NOT_POSSIBLE
-        if (winnerCount == 0 && !emergencyWithdraw) {
+        if (winnerCount == 0) {
             if (totalIncentiveAmount != 0) {
                 bool success = IERC20(incentiveToken).transfer(owner(), totalIncentiveAmount);
                 if (!success) {
