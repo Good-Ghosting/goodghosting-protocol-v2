@@ -1660,7 +1660,7 @@ export const shouldBehaveLikeRedeemingFromGGPool = async (strategyType: string) 
         .connect(deployer)
         .approve(contracts.curvePool.address, ethers.utils.parseEther("100000"));
 
-        await contracts.curvePool.connect(deployer).send_liquidity(ethers.utils.parseEther("1000"));
+      await contracts.curvePool.connect(deployer).send_liquidity(ethers.utils.parseEther("1000"));
 
       const poolTokenBalance = await contracts.curvePool.balanceOf(deployer.address);
 
@@ -1752,7 +1752,7 @@ export const shouldBehaveLikeRedeemingFromGGPool = async (strategyType: string) 
         .connect(deployer)
         .approve(contracts.curvePool.address, ethers.utils.parseEther("100000"));
 
-        await contracts.curvePool.connect(deployer).send_liquidity(ethers.utils.parseEther("1000"));
+      await contracts.curvePool.connect(deployer).send_liquidity(ethers.utils.parseEther("1000"));
 
       const poolTokenBalance = await contracts.curvePool.balanceOf(deployer.address);
 
@@ -1876,7 +1876,7 @@ export const shouldBehaveLikeRedeemingFromGGPool = async (strategyType: string) 
         .connect(deployer)
         .approve(contracts.curvePool.address, ethers.utils.parseEther("100000"));
 
-        await contracts.curvePool.connect(deployer).send_liquidity(ethers.utils.parseEther("1000"));
+      await contracts.curvePool.connect(deployer).send_liquidity(ethers.utils.parseEther("1000"));
 
       const poolTokenBalance = await contracts.curvePool.balanceOf(deployer.address);
 
@@ -2498,7 +2498,7 @@ export const shouldBehaveLikePlayersWithdrawingFromGGPool = async (strategyType:
       await contracts.inboundToken
         .connect(deployer)
         .approve(contracts.curvePool.address, ethers.utils.parseEther("100000"));
-        await contracts.curvePool.connect(deployer).send_liquidity(ethers.utils.parseEther("1000"));
+      await contracts.curvePool.connect(deployer).send_liquidity(ethers.utils.parseEther("1000"));
 
       const poolTokenBalance = await contracts.curvePool.balanceOf(deployer.address);
 
@@ -2761,11 +2761,10 @@ export const shouldBehaveLikePlayersWithdrawingFromGGPool = async (strategyType:
         .connect(deployer)
         .approve(contracts.curvePool.address, ethers.utils.parseEther("100000"));
 
-        await contracts.curvePool.connect(deployer).send_liquidity(ethers.utils.parseEther("1000"));
-        const poolTokenBalance = await contracts.curvePool.balanceOf(deployer.address);
-  
-        await contracts.curvePool.connect(deployer).transfer(contracts.strategy.address, poolTokenBalance.toString());
+      await contracts.curvePool.connect(deployer).send_liquidity(ethers.utils.parseEther("1000"));
+      const poolTokenBalance = await contracts.curvePool.balanceOf(deployer.address);
 
+      await contracts.curvePool.connect(deployer).transfer(contracts.strategy.address, poolTokenBalance.toString());
     } else if (strategyType === "mobius") {
       await contracts.inboundToken
         .connect(deployer)
@@ -2846,7 +2845,7 @@ export const shouldBehaveLikePlayersWithdrawingFromGGPool = async (strategyType:
       await contracts.inboundToken
         .connect(deployer)
         .approve(contracts.curvePool.address, ethers.utils.parseEther("100000"));
-        await contracts.curvePool.connect(deployer).send_liquidity(ethers.utils.parseEther("1000"));
+      await contracts.curvePool.connect(deployer).send_liquidity(ethers.utils.parseEther("1000"));
 
       const poolTokenBalance = await contracts.curvePool.balanceOf(deployer.address);
 
@@ -3305,7 +3304,7 @@ export const shouldBehaveLikeAdminWithdrawingFeesFromGGPoolWithFeePercentMoreTha
         .connect(deployer)
         .approve(contracts.curvePool.address, ethers.utils.parseEther("100000"));
 
-        await contracts.curvePool.connect(deployer).send_liquidity(ethers.utils.parseEther("1000"));
+      await contracts.curvePool.connect(deployer).send_liquidity(ethers.utils.parseEther("1000"));
 
       const poolTokenBalance = await contracts.curvePool.balanceOf(deployer.address);
 
@@ -3419,7 +3418,7 @@ export const shouldBehaveLikeAdminWithdrawingFeesFromGGPoolWithFeePercentMoreTha
           .connect(deployer)
           .approve(contracts.curvePool.address, ethers.utils.parseEther("100000"));
 
-          await contracts.curvePool.connect(deployer).send_liquidity(ethers.utils.parseEther("1000"));
+        await contracts.curvePool.connect(deployer).send_liquidity(ethers.utils.parseEther("1000"));
 
         const poolTokenBalance = await contracts.curvePool.balanceOf(deployer.address);
 
@@ -3486,7 +3485,7 @@ export const shouldBehaveLikeAdminWithdrawingFeesFromGGPoolWithFeePercentMoreTha
           .connect(deployer)
           .approve(contracts.curvePool.address, ethers.utils.parseEther("100000"));
 
-          await contracts.curvePool.connect(deployer).send_liquidity(ethers.utils.parseEther("1000"));
+        await contracts.curvePool.connect(deployer).send_liquidity(ethers.utils.parseEther("1000"));
 
         const poolTokenBalance = await contracts.curvePool.balanceOf(deployer.address);
 
@@ -3646,7 +3645,7 @@ export const shouldBehaveLikeAdminWithdrawingFeesFromGGPoolWithFeePercentMoreTha
           .connect(deployer)
           .approve(contracts.curvePool.address, ethers.utils.parseEther("100000"));
 
-          await contracts.curvePool.connect(deployer).send_liquidity(ethers.utils.parseEther("1000"));
+        await contracts.curvePool.connect(deployer).send_liquidity(ethers.utils.parseEther("1000"));
 
         const poolTokenBalance = await contracts.curvePool.balanceOf(deployer.address);
 
@@ -3723,7 +3722,7 @@ export const shouldBehaveLikeAdminWithdrawingFeesFromGGPoolWithFeePercentMoreTha
           .connect(deployer)
           .approve(contracts.curvePool.address, ethers.utils.parseEther("100000"));
 
-          await contracts.curvePool.connect(deployer).send_liquidity(ethers.utils.parseEther("1000"));
+        await contracts.curvePool.connect(deployer).send_liquidity(ethers.utils.parseEther("1000"));
 
         const poolTokenBalance = await contracts.curvePool.balanceOf(deployer.address);
 
@@ -6128,12 +6127,7 @@ export const shouldBehaveLikeGGPoolWithTransactionalToken = async (strategyType:
     const waitingRoundLength = await contracts.goodGhosting.waitingRoundSegmentLength();
     await ethers.provider.send("evm_increaseTime", [parseInt(waitingRoundLength.toString())]);
     await ethers.provider.send("evm_mine", []);
-    // generating mock interest
-    await deployer.sendTransaction({
-      from: deployer.address,
-      to: contracts.goodGhosting.address,
-      value: ethers.utils.parseEther("25"),
-    });
+
     await contracts.goodGhosting.connect(player1).redeemFromExternalPoolForFixedDepositPool(0);
     const rewardTokenBalanceBeforeWithdraw = await contracts.rewardToken.balanceOf(deployer.address);
     const transactionalTokenBalanceBeforeWithdraw = await ethers.provider.getBalance(deployer.address);
@@ -6143,7 +6137,8 @@ export const shouldBehaveLikeGGPoolWithTransactionalToken = async (strategyType:
     const rewardTokenBalanceAfterWithdraw = await contracts.rewardToken.balanceOf(deployer.address);
 
     assert(rewardTokenBalanceAfterWithdraw.gt(rewardTokenBalanceBeforeWithdraw));
-    assert(transactionalTokenBalanceAfterWithdraw.gt(transactionalTokenBalanceBeforeWithdraw));
+    // no interest some funds lost in gas
+    assert(transactionalTokenBalanceAfterWithdraw.lte(transactionalTokenBalanceBeforeWithdraw));
   });
 };
 
