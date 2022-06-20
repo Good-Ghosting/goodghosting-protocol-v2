@@ -120,6 +120,11 @@ export const deployPool = async (
         rewardToken.address,
         isInboundToken ? inboundToken.address : inboundToken,
       );
+
+      await expect(
+        deployer.sendTransaction({ to: strategy.address, value: ethers.utils.parseEther("1.0") }),
+      ).to.be.revertedWith("INVALID_TRANSACTIONAL_TOKEN_SENDER()");
+
       await rewardToken.deposit({ value: ethers.utils.parseEther("8") });
       await rewardToken.transfer(incentiveController.address, ethers.utils.parseEther("8"));
       if (isInboundToken) {
@@ -186,6 +191,10 @@ export const deployPool = async (
         rewardToken.address,
         isInboundToken ? inboundToken.address : inboundToken,
       );
+
+      await expect(
+        deployer.sendTransaction({ to: strategy.address, value: ethers.utils.parseEther("1.0") }),
+      ).to.be.revertedWith("INVALID_TRANSACTIONAL_TOKEN_SENDER()");
 
       await rewardToken.deposit({ value: ethers.utils.parseEther("8") });
 
