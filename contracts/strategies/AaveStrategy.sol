@@ -8,7 +8,7 @@ import "../aave/ILendingPool.sol";
 import "../aave/AToken.sol";
 import "../aave/IWETHGateway.sol";
 import "../aave/IncentiveController.sol";
-import "../polygon/WMatic.sol";
+import "../polygon/WrappedToken.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
@@ -160,7 +160,7 @@ contract AaveStrategy is Ownable, IStrategy {
         if (_inboundCurrency == address(0) || _inboundCurrency == address(rewardToken)) {
             if (_inboundCurrency == address(rewardToken)) {
                 // unwraps WMATIC back into MATIC
-                WMatic(address(rewardToken)).withdraw(IERC20(_inboundCurrency).balanceOf(address(this)));
+                WrappedToken(address(rewardToken)).withdraw(IERC20(_inboundCurrency).balanceOf(address(this)));
             }
             // Deposits MATIC into the pool
             wethGateway.depositETH{ value: address(this).balance }(address(lendingPool), address(this), REFERRAL_CODE);
@@ -190,7 +190,7 @@ contract AaveStrategy is Ownable, IStrategy {
             wethGateway.withdrawETH(address(lendingPool), _amount, address(this));
             if (_inboundCurrency == address(rewardToken)) {
                 // Wraps MATIC back into WMATIC
-                WMatic(address(rewardToken)).deposit{ value: _amount }();
+                WrappedToken(address(rewardToken)).deposit{ value: _amount }();
             }
         } else {
             lendingPool.withdraw(_inboundCurrency, _amount, address(this));
@@ -233,7 +233,7 @@ contract AaveStrategy is Ownable, IStrategy {
             wethGateway.withdrawETH(address(lendingPool), redeemAmount, address(this));
             if (_inboundCurrency == address(rewardToken)) {
                 // Wraps MATIC back into WMATIC
-                WMatic(address(rewardToken)).deposit{ value: address(this).balance }();
+                WrappedToken(address(rewardToken)).deposit{ value: address(this).balance }();
             }
         } else {
             lendingPool.withdraw(_inboundCurrency, redeemAmount, address(this));

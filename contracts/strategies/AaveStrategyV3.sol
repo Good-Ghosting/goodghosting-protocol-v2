@@ -9,7 +9,7 @@ import "../aave/ILendingPool.sol";
 import "../aave/AToken.sol";
 import "../aave/IWETHGateway.sol";
 import "../aaveV3/IRewardsController.sol";
-import "../polygon/WMatic.sol";
+import "../polygon/WrappedToken.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
@@ -167,7 +167,7 @@ contract AaveStrategyV3 is Ownable, IStrategy {
         if (_inboundCurrency == address(0) || _inboundCurrency == address(wrappedTxToken)) {
             if (_inboundCurrency == address(wrappedTxToken) && address(wrappedTxToken) != address(0)) {
                 // unwraps WMATIC back into MATIC
-                WMatic(address(wrappedTxToken)).withdraw(IERC20(_inboundCurrency).balanceOf(address(this)));
+                WrappedToken(address(wrappedTxToken)).withdraw(IERC20(_inboundCurrency).balanceOf(address(this)));
             }
             // Deposits MATIC into the pool
             wethGateway.depositETH{ value: address(this).balance }(address(lendingPool), address(this), REFERRAL_CODE);
@@ -197,7 +197,7 @@ contract AaveStrategyV3 is Ownable, IStrategy {
             wethGateway.withdrawETH(address(lendingPool), _amount, address(this));
             if (_inboundCurrency == address(wrappedTxToken) && address(wrappedTxToken) != address(0)) {
                 // Wraps MATIC back into WMATIC
-                WMatic(address(wrappedTxToken)).deposit{ value: _amount }();
+                WrappedToken(address(wrappedTxToken)).deposit{ value: _amount }();
             }
         } else {
             lendingPool.withdraw(_inboundCurrency, _amount, address(this));
@@ -240,7 +240,7 @@ contract AaveStrategyV3 is Ownable, IStrategy {
             wethGateway.withdrawETH(address(lendingPool), redeemAmount, address(this));
             if (_inboundCurrency == address(wrappedTxToken) && address(wrappedTxToken) != address(0)) {
                 // Wraps MATIC back into WMATIC
-                WMatic(address(wrappedTxToken)).deposit{ value: address(this).balance }();
+                WrappedToken(address(wrappedTxToken)).deposit{ value: address(this).balance }();
             }
         } else {
             lendingPool.withdraw(_inboundCurrency, redeemAmount, address(this));
