@@ -235,6 +235,8 @@ contract Pool is Ownable, Pausable, ReentrancyGuard {
 
     event AdminFee(uint256[] adminFeeAmounts);
 
+    event Error(bytes reason);
+
     //*********************************************************************//
     // ------------------------- modifiers -------------------------- //
     //*********************************************************************//
@@ -1044,12 +1046,16 @@ contract Pool is Ownable, Pausable, ReentrancyGuard {
         if (playerIncentive != 0) {
             // this scenario is very tricky to mock
             // and our mock contracts are pretty complex currently so haven't tested this line with unit tests
-            if (playerIncentive > IERC20(incentiveToken).balanceOf(address(this))) {
-                playerIncentive = IERC20(incentiveToken).balanceOf(address(this));
+            try IERC20(incentiveToken).balanceOf(address(this)) returns (uint incentiveTokenBalance) {
+            if (playerIncentive > incentiveTokenBalance) {
+                playerIncentive = incentiveTokenBalance;
             }
-            bool success = IERC20(incentiveToken).transfer(msg.sender, playerIncentive);
-            if (!success) {
-                revert TOKEN_TRANSFER_FAILURE();
+            try IERC20(incentiveToken).transfer(msg.sender, playerIncentive) {
+            }  catch (bytes memory reason) {
+                emit Error(reason);
+            }
+            } catch (bytes memory reason) {
+                emit Error(reason);
             }
         }
 
