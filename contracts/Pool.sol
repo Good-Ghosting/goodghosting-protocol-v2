@@ -879,7 +879,7 @@ contract Pool is Ownable, Pausable, ReentrancyGuard {
     @dev Allows a player to withdraw funds before the game ends. An early withdrawal fee is charged.
     @param _minAmount Slippage based amount to cover for impermanent loss scenario in case of a amm strategy like curve or mobius.
     */
-    function earlyWithdraw(uint256 _minAmount) external whenNotPaused whenGameIsNotCompleted {
+    function earlyWithdraw(uint256 _minAmount) external whenNotPaused whenGameIsNotCompleted nonReentrant {
         Player storage player = players[msg.sender];
         if (player.amountPaid == 0) {
             revert PLAYER_DOES_NOT_EXIST();
