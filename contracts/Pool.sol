@@ -1024,6 +1024,8 @@ contract Pool is Ownable, Pausable, ReentrancyGuard {
                 }
 
                 totalIncentiveAmount = totalIncentiveAmount.sub(playerIncentive);
+                // resetting I.Loss Share % after every withdrawal to be consistent
+                impermanentLossShare = 0;
             }
         }
         // Updating total principal as well after each player withdraws this is separate since we have to do this for non-players
@@ -1046,6 +1048,7 @@ contract Pool is Ownable, Pausable, ReentrancyGuard {
         if (playerIncentive != 0) {
             // this scenario is very tricky to mock
             // and our mock contracts are pretty complex currently so haven't tested this line with unit tests
+            // using try-catch to make sure a incentive token transfer failure does not affect the withdrawal
             try IERC20(incentiveToken).balanceOf(address(this)) returns (uint256 incentiveTokenBalance) {
                 if (playerIncentive > incentiveTokenBalance) {
                     playerIncentive = incentiveTokenBalance;
