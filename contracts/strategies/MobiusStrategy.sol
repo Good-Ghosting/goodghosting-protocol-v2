@@ -217,14 +217,12 @@ contract MobiusStrategy is Ownable, IStrategy {
     Redeems funds from mobius after unstaking when the waiting round for the good ghosting pool is over.
     @param _inboundCurrency Address of the inbound token.
     @param _amount Amount to withdraw.
-    @param variableDeposits Bool Flag which determines whether the deposit is to be made in context of a variable deposit pool or not.
     @param _minAmount Slippage based amount to cover for impermanent loss scenario.
     @param disableRewardTokenClaim Reward claim disable flag.
     */
     function redeem(
         address _inboundCurrency,
         uint256 _amount,
-        bool variableDeposits,
         uint256 _minAmount,
         bool disableRewardTokenClaim
     ) external override onlyOwner {
@@ -236,7 +234,7 @@ contract MobiusStrategy is Ownable, IStrategy {
             minter.mint(address(gauge));
         }
         uint256 gaugeBalance = gauge.balanceOf(address(this));
-        if (variableDeposits) {
+        // if (variableDeposits) {
             uint256[] memory amounts = new uint256[](2);
             amounts[0] = _amount;
             uint256 poolWithdrawAmount = pool.calculateTokenAmount(address(this), amounts, true);
@@ -251,12 +249,13 @@ contract MobiusStrategy is Ownable, IStrategy {
             lpToken.approve(address(pool), poolWithdrawAmount);
 
             pool.removeLiquidityOneToken(poolWithdrawAmount, 0, _minAmount, block.timestamp + 1000);
-        } else {
-            gauge.withdraw(gaugeBalance, claimRewards);
+        //} 
+        // else {
+        //     gauge.withdraw(gaugeBalance, claimRewards);
 
-            lpToken.approve(address(pool), lpToken.balanceOf(address(this)));
-            pool.removeLiquidityOneToken(lpToken.balanceOf(address(this)), 0, _minAmount, block.timestamp + 1000);
-        }
+        //     lpToken.approve(address(pool), lpToken.balanceOf(address(this)));
+        //     pool.removeLiquidityOneToken(lpToken.balanceOf(address(this)), 0, _minAmount, block.timestamp + 1000);
+        // }
 
         bool success = mobi.transfer(msg.sender, mobi.balanceOf(address(this)));
         if (!success) {

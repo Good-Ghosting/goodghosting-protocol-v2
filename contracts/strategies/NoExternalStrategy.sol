@@ -144,7 +144,6 @@ contract NoExternalStrategy is Ownable, IStrategy {
     Redeems funds from this strategy when the waiting round for the good ghosting pool is over.
     @param _inboundCurrency Address of the inbound token.
     @param _amount Amount to withdraw.
-    @param variableDeposits Bool Flag which determines whether the deposit is to be made in context of a variable deposit pool or not.
     @param _minAmount Used for aam strategies, since every strategy overrides from the same strategy interface hence it is defined here.
     _minAmount isn't needed in this strategy but since all strategies override from the same interface and the amm strategies need it hence it is used here.
     @param disableRewardTokenClaim Reward claim disable flag.
@@ -152,20 +151,18 @@ contract NoExternalStrategy is Ownable, IStrategy {
     function redeem(
         address _inboundCurrency,
         uint256 _amount,
-        bool variableDeposits,
         uint256 _minAmount,
         bool disableRewardTokenClaim
     ) external override onlyOwner {
         uint256 _balance = _inboundCurrency == address(0)
             ? address(this).balance
             : IERC20(_inboundCurrency).balanceOf(address(this));
-        uint256 redeemAmount = variableDeposits ? _amount : _balance;
         // safety check since funds don't get transferred to a extrnal protocol
-        if (redeemAmount > _balance) {
-            redeemAmount = _balance;
+        if (_amount > _balance) {
+            _amount = _balance;
         }
 
-        _transferInboundTokenToPool(_inboundCurrency, redeemAmount);
+        _transferInboundTokenToPool(_inboundCurrency, _amount);
 
         if (!disableRewardTokenClaim) {
             for (uint256 i = 0; i < rewardTokens.length; i++) {

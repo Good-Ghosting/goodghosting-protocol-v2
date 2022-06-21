@@ -160,6 +160,7 @@ contract AaveStrategy is Ownable, IStrategy {
         if (_inboundCurrency == address(0) || _inboundCurrency == address(rewardToken)) {
             if (_inboundCurrency == address(rewardToken)) {
                 // unwraps WMATIC back into MATIC
+                // UPDATE - A6 Audit Report
                 WrappedToken(address(rewardToken)).withdraw(IERC20(_inboundCurrency).balanceOf(address(this)));
             }
             // Deposits MATIC into the pool
@@ -213,7 +214,6 @@ contract AaveStrategy is Ownable, IStrategy {
     Redeems funds from aave when the waiting round for the good ghosting pool is over.
     @param _inboundCurrency Address of the inbound token.
     @param _amount Amount to withdraw.
-    @param variableDeposits Bool Flag which determines whether the deposit is to be made in context of a variable deposit pool or not.
     @param _minAmount Used for aam strategies, since every strategy overrides from the same strategy interface hence it is defined here.
     _minAmount isn't needed in this strategy but since all strategies override from the same interface and the amm strategies need it hence it is used here.
     @param disableRewardTokenClaim Reward claim disable flag.
@@ -221,22 +221,20 @@ contract AaveStrategy is Ownable, IStrategy {
     function redeem(
         address _inboundCurrency,
         uint256 _amount,
-        bool variableDeposits,
         uint256 _minAmount,
         bool disableRewardTokenClaim
     ) external override onlyOwner {
-        uint256 redeemAmount = variableDeposits ? _amount : type(uint256).max;
         // Withdraws funds (principal + interest + rewards) from external pool
         if (_inboundCurrency == address(0) || _inboundCurrency == address(rewardToken)) {
-            aToken.approve(address(wethGateway), redeemAmount);
+            aToken.approve(address(wethGateway), _amount);
 
-            wethGateway.withdrawETH(address(lendingPool), redeemAmount, address(this));
+            wethGateway.withdrawETH(address(lendingPool), _amount, address(this));
             if (_inboundCurrency == address(rewardToken)) {
                 // Wraps MATIC back into WMATIC
                 WrappedToken(address(rewardToken)).deposit{ value: address(this).balance }();
             }
         } else {
-            lendingPool.withdraw(_inboundCurrency, redeemAmount, address(this));
+            lendingPool.withdraw(_inboundCurrency, _amount, address(this));
         }
         if (!disableRewardTokenClaim) {
             // Claims the rewards from the external pool
@@ -300,6 +298,7 @@ contract AaveStrategy is Ownable, IStrategy {
     }
 
     // Fallback Functions for calldata and reciever for handling only ether transfer
+    // UPDATE - A7 Audit Report
     receive() external payable {
         if (msg.sender != address(rewardToken) && msg.sender != address(wethGateway)) {
             revert INVALID_TRANSACTIONAL_TOKEN_SENDER();

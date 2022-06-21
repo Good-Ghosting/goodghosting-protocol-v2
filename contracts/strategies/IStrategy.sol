@@ -14,7 +14,6 @@ interface IStrategy {
     function redeem(
         address _inboundCurrency,
         uint256 _amount,
-        bool variableDeposits,
         uint256 _minAmount,
         bool disableRewardTokenClaim
     ) external;

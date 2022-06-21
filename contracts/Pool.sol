@@ -298,6 +298,7 @@ contract Pool is Ownable, Pausable, ReentrancyGuard {
 
     /// @dev Calculates the current segment of the game.
     /// @return current game segment.
+    // UPDATE - A1 Audit Report
     function getCurrentSegment() public view whenGameIsInitialized returns (uint64) {
         uint256 currentSegment;
         // to avoid SLOAD multiple times
@@ -391,6 +392,7 @@ contract Pool is Ownable, Pausable, ReentrancyGuard {
         }
         address _underlyingAsset = _strategy.getUnderlyingAsset();
 
+        // UPDATE - A4 Audit Report
         if (_underlyingAsset != _inboundCurrency && !_isTransactionalToken) {
             revert INVALID_INBOUND_TOKEN();
         }
@@ -433,6 +435,7 @@ contract Pool is Ownable, Pausable, ReentrancyGuard {
     @notice
     Transfer funds after balance checks to the players / admin.
     */
+    // UPDATE - A3 Audit Report
     function _transferFundsSafely(address _recepient, uint256 _amount) internal returns (uint256) {
         if (isTransactionalToken) {
             // safety check
@@ -470,6 +473,9 @@ contract Pool is Ownable, Pausable, ReentrancyGuard {
     {
         uint256 _grossInterest = 0;
         if (_totalBalance >= netTotalGamePrincipal) {
+            console.log("total bal 23", _totalBalance);
+            console.log("net principal", netTotalGamePrincipal);
+
             _grossInterest = _totalBalance.sub(netTotalGamePrincipal);
         } else {
             // handling impermanent loss case
@@ -608,6 +614,7 @@ contract Pool is Ownable, Pausable, ReentrancyGuard {
         uint256 _netDepositAmount
     ) internal virtual {
         // this scenario given the inputs to the mock contract methods isn't possible to mock locally
+        // UPDATE - H1 Audit Report
         if (_netDepositAmount > _depositAmount) {
             revert INVALID_NET_DEPOSIT_AMOUNT();
         }
@@ -618,7 +625,8 @@ contract Pool is Ownable, Pausable, ReentrancyGuard {
         players[msg.sender].netAmountPaid = players[msg.sender].netAmountPaid.add(_netDepositAmount);
 
         // PLAYER INDEX CALCULATION TO DETERMINE INTEREST SHARE
-        // player index = prev. segment player index + segment amount deposited / time stamp of deposit
+        // player index = prev. segment player index + segment amount deposited / difference in time of deposit from the current segment starting time
+        // UPDATE - H2 Audit Report
         uint256 currentSegmentplayerIndex = _netDepositAmount.mul(MULTIPLIER).div(
             segmentLength + block.timestamp - (firstSegmentStart + (currentSegment * segmentLength))
         );
@@ -803,15 +811,18 @@ contract Pool is Ownable, Pausable, ReentrancyGuard {
         }
         adminWithdraw = true;
 
-        if (!flexibleSegmentPayment) {
-            if (!redeemed) {
-                revert FUNDS_NOT_REDEEMED_FROM_EXTERNAL_POOL();
-            }
-        } else {
-            _setGlobalPoolParamsForFlexibleDepositPool();
-        }
+        _setGlobalPoolParamsForFlexibleDepositPool();
+
+        // if (!flexibleSegmentPayment) {
+        //     if (!redeemed) {
+        //         revert FUNDS_NOT_REDEEMED_FROM_EXTERNAL_POOL();
+        //     }
+        // } else {
+        //     _setGlobalPoolParamsForFlexibleDepositPool();
+        // }
 
         // to avoid SLOAD multiple times
+        // UPDATE - A5 Audit Report
         uint256[] memory _adminFeeAmount = adminFeeAmount;
         IERC20[] memory _rewardTokens = rewardTokens;
 
@@ -820,7 +831,6 @@ contract Pool is Ownable, Pausable, ReentrancyGuard {
                 strategy.redeem(
                     inboundToken,
                     _adminFeeAmount[0],
-                    flexibleSegmentPayment,
                     _minAmount,
                     disableRewardTokenClaim
                 );
@@ -877,6 +887,7 @@ contract Pool is Ownable, Pausable, ReentrancyGuard {
     @dev Allows a player to withdraw funds before the game ends. An early withdrawal fee is charged.
     @param _minAmount Slippage based amount to cover for impermanent loss scenario in case of a amm strategy like curve or mobius.
     */
+    // UPDATE - L1 Audit Report
     function earlyWithdraw(uint256 _minAmount) external whenNotPaused whenGameIsNotCompleted nonReentrant {
         Player storage player = players[msg.sender];
         if (player.amountPaid == 0) {
@@ -905,7 +916,7 @@ contract Pool is Ownable, Pausable, ReentrancyGuard {
         for (uint256 i = 0; i <= segmentPaid; i++) {
             playerIndexSum = playerIndexSum.add(playerIndex[msg.sender][i]);
         }
-
+        // FIX - C3 Audit Report
         cumulativePlayerIndexSum[players[msg.sender].mostRecentSegmentPaid] = cumulativePlayerIndexSum[players[msg.sender].mostRecentSegmentPaid].sub(playerIndexSum);
 
         // Users that early withdraw during the first segment, are allowed to rejoin.
@@ -940,7 +951,8 @@ contract Pool is Ownable, Pausable, ReentrancyGuard {
     @dev Allows player to withdraw their funds after the game ends with no loss (fee). Winners get a share of the interest earned & additional rewards based on the player index.
     @param _minAmount Slippage based amount to cover for impermanent loss scenario in case of a amm strategy like curve or mobius.
     */
-    function withdraw(uint256 _minAmount) external virtual {
+    // UPDATE - L1 Audit Report
+    function withdraw(uint256 _minAmount) external virtual nonReentrant {
         Player storage player = players[msg.sender];
         if (player.amountPaid == 0) {
             revert PLAYER_DOES_NOT_EXIST();
@@ -950,14 +962,16 @@ contract Pool is Ownable, Pausable, ReentrancyGuard {
         }
         player.withdrawn = true;
 
-        if (!flexibleSegmentPayment) {
-            // First player to withdraw redeems everyone's funds
-            if (!redeemed) {
-                redeemFromExternalPoolForFixedDepositPool(_minAmount);
-            }
-        } else {
-            _setGlobalPoolParamsForFlexibleDepositPool();
-        }
+        _setGlobalPoolParamsForFlexibleDepositPool();
+
+        // if (!flexibleSegmentPayment) {
+        //     // First player to withdraw redeems everyone's funds
+        //     if (!redeemed) {
+        //         redeemFromExternalPoolForFixedDepositPool(_minAmount);
+        //     }
+        // } else {
+        //     _setGlobalPoolParamsForFlexibleDepositPool();
+        // }
 
         // to avoid SLOAD multiple times
         uint64 depositCountMemory = depositCount;
@@ -988,6 +1002,7 @@ contract Pool is Ownable, Pausable, ReentrancyGuard {
             }
             player.withdrawalSegment = uint64(segmentPaid.add(1));
             // calculate playerSharePercentage for each player
+            // UPDATE - H3 Audit Report
             playerSharePercentage = (playerIndexSum.mul(MULTIPLIER)).div(cumulativePlayerIndexSum[segment]);
             // checking both due to the presence of variable deposits
             if (_impermanentLossShare == 0 || totalGameInterest > 0) {
@@ -995,6 +1010,8 @@ contract Pool is Ownable, Pausable, ReentrancyGuard {
                 // the player share of interest is calculated from player index
                 // player share % = playerIndex / cumulativePlayerIndexSum of player indexes of all winners * 100
                 // so, interest share = player share % * total game interest
+                console.log("interest", totalGameInterest);
+                console.log("player share %", playerSharePercentage);
                 playerInterestShare = totalGameInterest.mul(playerSharePercentage).div(MULTIPLIER);
                 payout = payout.add(playerInterestShare);
             }
@@ -1011,20 +1028,17 @@ contract Pool is Ownable, Pausable, ReentrancyGuard {
             }
 
             // subtract global params to make sure they are updated in case of flexible segment payment
-            if (flexibleSegmentPayment) {
-                totalGameInterest = totalGameInterest.sub(playerInterestShare);
-                cumulativePlayerIndexSum[segment] = cumulativePlayerIndexSum[segment].sub(playerIndexSum);
-                for (uint256 i = 0; i < _rewardTokens.length; i++) {
-                    rewardTokenAmounts[i] = rewardTokenAmounts[i].sub(playerReward[i]);
-                }
-
-                totalIncentiveAmount = totalIncentiveAmount.sub(playerIncentive);
-                // resetting I.Loss Share % after every withdrawal to be consistent
-                impermanentLossShare = 0;
+            totalGameInterest = totalGameInterest.sub(playerInterestShare);
+            cumulativePlayerIndexSum[segment] = cumulativePlayerIndexSum[segment].sub(playerIndexSum);
+            for (uint256 i = 0; i < _rewardTokens.length; i++) {
+                rewardTokenAmounts[i] = rewardTokenAmounts[i].sub(playerReward[i]);
             }
+
+            totalIncentiveAmount = totalIncentiveAmount.sub(playerIncentive);
+            // resetting I.Loss Share % after every withdrawal to be consistent
+            impermanentLossShare = 0;
         }
         // Updating total principal as well after each player withdraws this is separate since we have to do this for non-players
-        if (flexibleSegmentPayment) {
             if (netTotalGamePrincipal < player.netAmountPaid) {
                 netTotalGamePrincipal = 0;
             } else {
@@ -1032,8 +1046,7 @@ contract Pool is Ownable, Pausable, ReentrancyGuard {
             }
 
             // Withdraws funds (principal + interest + rewards) from external pool
-            strategy.redeem(inboundToken, payout, flexibleSegmentPayment, _minAmount, disableRewardTokenClaim);
-        }
+            strategy.redeem(inboundToken, payout, _minAmount, disableRewardTokenClaim);
 
         // sending the inbound token amount i.e principal + interest to the winners and just the principal in case of players
         // adding a balance safety check to ensure the tx does not revert in case of impermanent loss
@@ -1132,62 +1145,63 @@ contract Pool is Ownable, Pausable, ReentrancyGuard {
         _transferInboundTokenToContract(_minAmount, amount, netAmount);
     }
 
-    /**
-    @dev Redeems funds from the external pool and updates the game stats.
-    @param _minAmount Slippage based amount to cover for impermanent loss scenario.
-    */
-    function redeemFromExternalPoolForFixedDepositPool(uint256 _minAmount)
-        public
-        virtual
-        whenGameIsCompleted
-        nonReentrant
-    {
-        uint256 totalBalance = 0;
+    // /**
+    // @dev Redeems funds from the external pool and updates the game stats.
+    // @param _minAmount Slippage based amount to cover for impermanent loss scenario.
+    // */
+    // function redeemFromExternalPoolForFixedDepositPool(uint256 _minAmount)
+    //     public
+    //     virtual
+    //     whenGameIsCompleted
+    //     nonReentrant
+    // {
+    //     uint256 totalBalance = 0;
 
-        // Withdraws funds (principal + interest + rewards) from external pool
-        strategy.redeem(inboundToken, 0, flexibleSegmentPayment, _minAmount, disableRewardTokenClaim);
+    //     // Withdraws funds (principal + interest + rewards) from external pool
+    //     strategy.redeem(inboundToken, 0, flexibleSegmentPayment, _minAmount, disableRewardTokenClaim);
 
-        if (isTransactionalToken) {
-            totalBalance = address(this).balance;
-        } else {
-            totalBalance = IERC20(inboundToken).balanceOf(address(this));
-        }
+    //     if (isTransactionalToken) {
+    //         totalBalance = address(this).balance;
+    //     } else {
+    //         totalBalance = IERC20(inboundToken).balanceOf(address(this));
+    //     }
 
-        rewardTokens = strategy.getRewardTokens();
+    //     rewardTokens = strategy.getRewardTokens();
 
-        // to avoid SLOAD multiple times
-        IERC20[] memory _rewardTokens = rewardTokens;
+    //     // to avoid SLOAD multiple times
+    //     IERC20[] memory _rewardTokens = rewardTokens;
 
-        uint256[] memory grossRewardTokenAmount = new uint256[](_rewardTokens.length);
+    //     uint256[] memory grossRewardTokenAmount = new uint256[](_rewardTokens.length);
 
-        for (uint256 i = 0; i < _rewardTokens.length; i++) {
-            // the reward calculation is the sum of the current reward amount the remaining rewards being accumulated in the strategy protocols.
-            // the reason being like totalBalance for every player this is updated and prev. value is used to add any left over value
-            if (address(_rewardTokens[i]) != address(0) && inboundToken != address(_rewardTokens[i])) {
-                grossRewardTokenAmount[i] = _rewardTokens[i].balanceOf(address(this));
-            }
-        }
+    //     for (uint256 i = 0; i < _rewardTokens.length; i++) {
+    //         // the reward calculation is the sum of the current reward amount the remaining rewards being accumulated in the strategy protocols.
+    //         // the reason being like totalBalance for every player this is updated and prev. value is used to add any left over value
+    //         if (address(_rewardTokens[i]) != address(0) && inboundToken != address(_rewardTokens[i])) {
+    //             grossRewardTokenAmount[i] = _rewardTokens[i].balanceOf(address(this));
+    //         }
+    //     }
 
-        uint256 grossInterest = _calculateAndUpdateGameAccounting(totalBalance, grossRewardTokenAmount);
-        // shifting this after the game accounting since we need to emit a accounting event
-        if (redeemed) {
-            revert FUNDS_REDEEMED_FROM_EXTERNAL_POOL();
-        }
-        redeemed = true;
+    //     uint256 grossInterest = _calculateAndUpdateGameAccounting(totalBalance, grossRewardTokenAmount);
+    //     // shifting this after the game accounting since we need to emit a accounting event
+    //     if (redeemed) {
+    //         revert FUNDS_REDEEMED_FROM_EXTERNAL_POOL();
+    //     }
+    //     redeemed = true;
 
-        _calculateAndSetAdminAccounting(grossInterest, grossRewardTokenAmount);
+    //     _calculateAndSetAdminAccounting(grossInterest, grossRewardTokenAmount);
 
-        emit FundsRedeemedFromExternalPool(
-            isTransactionalToken ? address(this).balance : IERC20(inboundToken).balanceOf(address(this)),
-            totalGamePrincipal,
-            netTotalGamePrincipal,
-            totalGameInterest,
-            totalIncentiveAmount,
-            rewardTokenAmounts
-        );
-    }
+    //     emit FundsRedeemedFromExternalPool(
+    //         isTransactionalToken ? address(this).balance : IERC20(inboundToken).balanceOf(address(this)),
+    //         totalGamePrincipal,
+    //         netTotalGamePrincipal,
+    //         totalGameInterest,
+    //         totalIncentiveAmount,
+    //         rewardTokenAmounts
+    //     );
+    // }
 
     // Fallback Functions for calldata and reciever for handling only ether transfer
+    // UPDATE - A7 Audit Report
     receive() external payable {
         if (msg.sender != address(strategy)) {
             revert INVALID_TRANSACTIONAL_TOKEN_SENDER();
