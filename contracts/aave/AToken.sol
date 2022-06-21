@@ -11,5 +11,4 @@ interface AToken {
     function approve(address spender, uint256 amount) external returns (bool);
 
     function UNDERLYING_ASSET_ADDRESS() external view returns (address);
-
 }

@@ -97,17 +97,17 @@ contract CurveStrategy is Ownable, IStrategy {
     @return net amount.
     */
     function getNetDepositAmount(uint256 _amount) external view override returns (uint256) {
-          if (poolType == AAVE_POOL) {
+        if (poolType == AAVE_POOL) {
             uint256[NUM_AAVE_TOKENS] memory amounts; // fixed-sized array is initialized w/ [0, 0, 0]
             amounts[uint256(uint128(inboundTokenIndex))] = _amount;
             uint256 poolWithdrawAmount = pool.calc_token_amount(amounts, true);
             return pool.calc_withdraw_one_coin(poolWithdrawAmount, inboundTokenIndex);
-          } else {
+        } else {
             uint256[NUM_ATRI_CRYPTO_TOKENS] memory amounts; // fixed-sized array is initialized w/ [0, 0, 0, 0, 0]
             amounts[uint256(uint128(inboundTokenIndex))] = _amount;
             uint256 poolWithdrawAmount = pool.calc_token_amount(amounts, true);
             return pool.calc_withdraw_one_coin(poolWithdrawAmount, uint256(uint128(inboundTokenIndex)));
-          }
+        }
     }
 
     /** 
@@ -342,7 +342,7 @@ contract CurveStrategy is Ownable, IStrategy {
                 uint256 poolWithdrawAmount = pool.calc_token_amount(amounts, true);
 
                 // safety check
-                // the amm mock contracts are common for all kinds of scenariuo's and it is not possible to mock this particular scenario, this is a very rare scenario to occur in production and hasn't been observed in the fork tests.                
+                // the amm mock contracts are common for all kinds of scenariuo's and it is not possible to mock this particular scenario, this is a very rare scenario to occur in production and hasn't been observed in the fork tests.
                 if (gaugeBalance < poolWithdrawAmount) {
                     poolWithdrawAmount = gaugeBalance;
                 }

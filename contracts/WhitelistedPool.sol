@@ -58,7 +58,12 @@ contract WhitelistedPool is Pool, MerkleValidator {
     @param _merkleRoot Merkle Root for whitelisted players.
     @param _incentiveToken Incentive token address
     */
-    function initializePool(bytes32 _merkleRoot, IERC20 _incentiveToken) external onlyOwner whenGameIsNotInitialized whenNotPaused {
+    function initializePool(bytes32 _merkleRoot, IERC20 _incentiveToken)
+        external
+        onlyOwner
+        whenGameIsNotInitialized
+        whenNotPaused
+    {
         setMerkleRoot(_merkleRoot);
         super.initialize(_incentiveToken);
     }

@@ -308,6 +308,6 @@ contract AaveStrategyV3 is Ownable, IStrategy {
     receive() external payable {
         if (msg.sender != address(wrappedTxToken) && msg.sender != address(wethGateway)) {
             revert INVALID_TRANSACTIONAL_TOKEN_SENDER();
-        } 
+        }
     }
 }

@@ -301,7 +301,7 @@ contract Pool is Ownable, Pausable, ReentrancyGuard {
     function getCurrentSegment() public view whenGameIsInitialized returns (uint64) {
         uint256 currentSegment;
         // to avoid SLOAD multiple times
-        uint _waitingRoundSegmentStart = waitingRoundSegmentStart;
+        uint256 _waitingRoundSegmentStart = waitingRoundSegmentStart;
         uint256 endOfWaitingRound = _waitingRoundSegmentStart.add(waitingRoundSegmentLength);
         // logic for getting the current segment while the game is on waiting round
         if (_waitingRoundSegmentStart <= block.timestamp && block.timestamp < endOfWaitingRound) {
@@ -446,7 +446,7 @@ contract Pool is Ownable, Pausable, ReentrancyGuard {
                 revert TRANSACTIONAL_TOKEN_TRANSFER_FAILURE();
             }
         } else {
-            console.log("bal",  IERC20(inboundToken).balanceOf(address(this)));
+            console.log("bal", IERC20(inboundToken).balanceOf(address(this)));
             console.log("actual", _amount);
             // safety check
             if (_amount > IERC20(inboundToken).balanceOf(address(this))) {
@@ -725,7 +725,9 @@ contract Pool is Ownable, Pausable, ReentrancyGuard {
             revert EARLY_EXIT_NOT_POSSIBLE();
         }
         uint64 currentSegment = getCurrentSegment();
-        winnerCount = currentSegment > 0 ? segmentCounter[currentSegment].add(segmentCounter[currentSegment.sub(1)]) : segmentCounter[currentSegment];
+        winnerCount = currentSegment > 0
+            ? segmentCounter[currentSegment].add(segmentCounter[currentSegment.sub(1)])
+            : segmentCounter[currentSegment];
         // setting depositCount as current segment to manage all scenario's to handle emergency withdraw
         depositCount = currentSegment;
         emergencyWithdraw = true;
@@ -826,13 +828,12 @@ contract Pool is Ownable, Pausable, ReentrancyGuard {
                 );
             }
 
-            uint actualTransferredAmount = _transferFundsSafely(owner(), _adminFeeAmount[0]);
+            uint256 actualTransferredAmount = _transferFundsSafely(owner(), _adminFeeAmount[0]);
             // need the updated value for the event
             // we can probably think about updating the event args rather than MSTORE
             _adminFeeAmount[0] = actualTransferredAmount;
         }
 
-        
         for (uint256 i = 0; i < _rewardTokens.length; i++) {
             if (address(_rewardTokens[i]) != address(0)) {
                 if (_adminFeeAmount[i + 1] != 0) {
@@ -931,7 +932,7 @@ contract Pool is Ownable, Pausable, ReentrancyGuard {
 
         strategy.earlyWithdraw(inboundToken, withdrawAmount, _minAmount);
 
-        uint actualTransferredAmount = _transferFundsSafely(msg.sender, withdrawAmount);
+        uint256 actualTransferredAmount = _transferFundsSafely(msg.sender, withdrawAmount);
 
         // We have to ignore the "check-effects-interactions" pattern here and emit the event
         // only at the end of the function, in order to emit it w/ the correct withdrawal amount.
@@ -962,7 +963,7 @@ contract Pool is Ownable, Pausable, ReentrancyGuard {
         } else {
             _setGlobalPoolParamsForFlexibleDepositPool();
         }
-        
+
         // to avoid SLOAD multiple times
         uint64 depositCountMemory = depositCount;
         uint256 _impermanentLossShare = impermanentLossShare;
@@ -1006,8 +1007,8 @@ contract Pool is Ownable, Pausable, ReentrancyGuard {
             // Calculates winner's share of the additional rewards & incentives
             if (totalIncentiveAmount != 0) {
                 playerIncentive = totalIncentiveAmount.mul(playerSharePercentage).div(MULTIPLIER);
-            }            
-            
+            }
+
             for (uint256 i = 0; i < _rewardTokens.length; i++) {
                 if (address(_rewardTokens[i]) != address(0) && rewardTokenAmounts[i] != 0) {
                     playerReward[i] = rewardTokenAmounts[i].mul(playerSharePercentage).div(MULTIPLIER);
@@ -1039,21 +1040,19 @@ contract Pool is Ownable, Pausable, ReentrancyGuard {
 
         // sending the inbound token amount i.e principal + interest to the winners and just the principal in case of players
         // adding a balance safety check to ensure the tx does not revert in case of impermanent loss
-        uint actualTransferredAmount = _transferFundsSafely(msg.sender, payout);
-
+        uint256 actualTransferredAmount = _transferFundsSafely(msg.sender, payout);
 
         // sending the rewards & incentives to the winners
         if (playerIncentive != 0) {
             // this scenario is very tricky to mock
             // and our mock contracts are pretty complex currently so haven't tested this line with unit tests
-            try IERC20(incentiveToken).balanceOf(address(this)) returns (uint incentiveTokenBalance) {
-            if (playerIncentive > incentiveTokenBalance) {
-                playerIncentive = incentiveTokenBalance;
-            }
-            try IERC20(incentiveToken).transfer(msg.sender, playerIncentive) {
-            }  catch (bytes memory reason) {
-                emit Error(reason);
-            }
+            try IERC20(incentiveToken).balanceOf(address(this)) returns (uint256 incentiveTokenBalance) {
+                if (playerIncentive > incentiveTokenBalance) {
+                    playerIncentive = incentiveTokenBalance;
+                }
+                try IERC20(incentiveToken).transfer(msg.sender, playerIncentive) {} catch (bytes memory reason) {
+                    emit Error(reason);
+                }
             } catch (bytes memory reason) {
                 emit Error(reason);
             }
