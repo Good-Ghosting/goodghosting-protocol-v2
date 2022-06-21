@@ -446,8 +446,6 @@ contract Pool is Ownable, Pausable, ReentrancyGuard {
                 revert TRANSACTIONAL_TOKEN_TRANSFER_FAILURE();
             }
         } else {
-            console.log("bal", IERC20(inboundToken).balanceOf(address(this)));
-            console.log("actual", _amount);
             // safety check
             if (_amount > IERC20(inboundToken).balanceOf(address(this))) {
                 _amount = IERC20(inboundToken).balanceOf(address(this));
@@ -898,26 +896,23 @@ contract Pool is Ownable, Pausable, ReentrancyGuard {
 
         uint64 currentSegment = getCurrentSegment();
         player.withdrawalSegment = currentSegment;
+
+        uint64 segment = depositCount == 0 ? 0 : uint64(depositCount.sub(1));
+        uint64 segmentPaid = emergencyWithdraw ? segment : players[msg.sender].mostRecentSegmentPaid;
+
+        uint playerIndexSum;
+        // calculate playerIndexSum for each player
+        for (uint256 i = 0; i <= segmentPaid; i++) {
+            playerIndexSum = playerIndexSum.add(playerIndex[msg.sender][i]);
+        }
+
+        cumulativePlayerIndexSum[players[msg.sender].mostRecentSegmentPaid] = cumulativePlayerIndexSum[players[msg.sender].mostRecentSegmentPaid].sub(playerIndexSum);
+
         // Users that early withdraw during the first segment, are allowed to rejoin.
         if (currentSegment == 0) {
             player.canRejoin = true;
             playerIndex[msg.sender][currentSegment] = 0;
         }
-
-        // since there is complexity of 2 vars here with if else logic so not using 2 memory vars here only 1.
-        uint256 cumulativePlayerIndexSumForCurrentSegment = cumulativePlayerIndexSum[currentSegment];
-        for (uint256 i = 0; i <= players[msg.sender].mostRecentSegmentPaid; i++) {
-            if (cumulativePlayerIndexSumForCurrentSegment != 0) {
-                cumulativePlayerIndexSumForCurrentSegment = cumulativePlayerIndexSumForCurrentSegment.sub(
-                    playerIndex[msg.sender][i]
-                );
-            } else {
-                cumulativePlayerIndexSum[currentSegment - 1] = cumulativePlayerIndexSum[currentSegment - 1].sub(
-                    playerIndex[msg.sender][i]
-                );
-            }
-        }
-        cumulativePlayerIndexSum[currentSegment] = cumulativePlayerIndexSumForCurrentSegment;
 
         // update winner count
         if (winnerCount != 0 && player.isWinner) {
