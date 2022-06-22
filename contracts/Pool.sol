@@ -7,7 +7,6 @@ import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/utils/math/SafeMath.sol";
 import "./strategies/IStrategy.sol";
-import "hardhat/console.sol";
 
 //*********************************************************************//
 // --------------------------- custom errors ------------------------- //
@@ -430,6 +429,18 @@ contract Pool is Ownable, Pausable, ReentrancyGuard {
     //*********************************************************************//
     // ------------------------- internal methods -------------------------- //
     //*********************************************************************//
+    /**
+    @notice
+    check if there are any rewards to claim for the admin.
+    */
+    function _checkIfRewardAmountValid() internal view returns (bool) {
+        for (uint256 i = 0; i < rewardTokens.length; i++) {
+            if (rewardTokenAmounts[i] != 0) {
+                return true;
+            }
+        }
+        return false;
+    }
 
     /**
     @notice
@@ -473,9 +484,6 @@ contract Pool is Ownable, Pausable, ReentrancyGuard {
     {
         uint256 _grossInterest = 0;
         if (_totalBalance >= netTotalGamePrincipal) {
-            console.log("total bal 23", _totalBalance);
-            console.log("net principal", netTotalGamePrincipal);
-
             _grossInterest = _totalBalance.sub(netTotalGamePrincipal);
         } else {
             // handling impermanent loss case
@@ -517,7 +525,6 @@ contract Pool is Ownable, Pausable, ReentrancyGuard {
 
         // to avoid SLOAD multiple times
         IERC20[] memory _rewardTokens = rewardTokens;
-
         if (winnerCount == 0) {
             adminFeeAmount[0] = _grossInterest;
             // just setting these for consistency since if there are no winners then for accounting both these vars aren't used
@@ -529,7 +536,7 @@ contract Pool is Ownable, Pausable, ReentrancyGuard {
             for (uint256 i = 0; i < _rewardTokens.length; i++) {
                 adminFeeAmount[i + 1] = _grossRewardTokenAmount[i];
             }
-        } else if (adminFee > 0) {
+        } else if (adminFee != 0) {
             adminFeeAmount[0] = (_grossInterest.mul(adminFee)).div(100);
             totalGameInterest = _grossInterest.sub(adminFeeAmount[0]);
 
@@ -689,7 +696,6 @@ contract Pool is Ownable, Pausable, ReentrancyGuard {
             }
         }
         uint256 grossInterest = _calculateAndUpdateGameAccounting(totalBalance, grossRewardTokenAmount);
-
         if (!redeemed) {
             _calculateAndSetAdminAccounting(grossInterest, grossRewardTokenAmount);
             redeemed = true;
@@ -731,7 +737,7 @@ contract Pool is Ownable, Pausable, ReentrancyGuard {
             revert EARLY_EXIT_NOT_POSSIBLE();
         }
         uint64 currentSegment = getCurrentSegment();
-        winnerCount = currentSegment > 0
+        winnerCount = currentSegment != 0
             ? segmentCounter[currentSegment].add(segmentCounter[currentSegment.sub(1)])
             : segmentCounter[currentSegment];
         // setting depositCount as current segment to manage all scenario's to handle emergency withdraw
@@ -812,7 +818,6 @@ contract Pool is Ownable, Pausable, ReentrancyGuard {
         adminWithdraw = true;
 
         _setGlobalPoolParamsForFlexibleDepositPool();
-
         // if (!flexibleSegmentPayment) {
         //     if (!redeemed) {
         //         revert FUNDS_NOT_REDEEMED_FROM_EXTERNAL_POOL();
@@ -826,15 +831,10 @@ contract Pool is Ownable, Pausable, ReentrancyGuard {
         uint256[] memory _adminFeeAmount = adminFeeAmount;
         IERC20[] memory _rewardTokens = rewardTokens;
 
-        if (_adminFeeAmount[0] != 0) {
-            if (flexibleSegmentPayment) {
-                strategy.redeem(
-                    inboundToken,
-                    _adminFeeAmount[0],
-                    _minAmount,
-                    disableRewardTokenClaim
-                );
-            }
+        if (_adminFeeAmount[0] != 0 || _checkIfRewardAmountValid()) {
+            //if (flexibleSegmentPayment) {
+            strategy.redeem(inboundToken, _adminFeeAmount[0], _minAmount, disableRewardTokenClaim);
+            //}
 
             uint256 actualTransferredAmount = _transferFundsSafely(owner(), _adminFeeAmount[0]);
             // need the updated value for the event
@@ -911,13 +911,15 @@ contract Pool is Ownable, Pausable, ReentrancyGuard {
         uint64 segment = depositCount == 0 ? 0 : uint64(depositCount.sub(1));
         uint64 segmentPaid = emergencyWithdraw ? segment : players[msg.sender].mostRecentSegmentPaid;
 
-        uint playerIndexSum;
+        uint256 playerIndexSum;
         // calculate playerIndexSum for each player
         for (uint256 i = 0; i <= segmentPaid; i++) {
             playerIndexSum = playerIndexSum.add(playerIndex[msg.sender][i]);
         }
         // FIX - C3 Audit Report
-        cumulativePlayerIndexSum[players[msg.sender].mostRecentSegmentPaid] = cumulativePlayerIndexSum[players[msg.sender].mostRecentSegmentPaid].sub(playerIndexSum);
+        cumulativePlayerIndexSum[players[msg.sender].mostRecentSegmentPaid] = cumulativePlayerIndexSum[
+            players[msg.sender].mostRecentSegmentPaid
+        ].sub(playerIndexSum);
 
         // Users that early withdraw during the first segment, are allowed to rejoin.
         if (currentSegment == 0) {
@@ -1005,13 +1007,11 @@ contract Pool is Ownable, Pausable, ReentrancyGuard {
             // UPDATE - H3 Audit Report
             playerSharePercentage = (playerIndexSum.mul(MULTIPLIER)).div(cumulativePlayerIndexSum[segment]);
             // checking both due to the presence of variable deposits
-            if (_impermanentLossShare == 0 || totalGameInterest > 0) {
+            if (_impermanentLossShare == 0 || totalGameInterest != 0) {
                 // Player is a winner and gets a bonus!
                 // the player share of interest is calculated from player index
                 // player share % = playerIndex / cumulativePlayerIndexSum of player indexes of all winners * 100
                 // so, interest share = player share % * total game interest
-                console.log("interest", totalGameInterest);
-                console.log("player share %", playerSharePercentage);
                 playerInterestShare = totalGameInterest.mul(playerSharePercentage).div(MULTIPLIER);
                 payout = payout.add(playerInterestShare);
             }
@@ -1039,14 +1039,14 @@ contract Pool is Ownable, Pausable, ReentrancyGuard {
             impermanentLossShare = 0;
         }
         // Updating total principal as well after each player withdraws this is separate since we have to do this for non-players
-            if (netTotalGamePrincipal < player.netAmountPaid) {
-                netTotalGamePrincipal = 0;
-            } else {
-                netTotalGamePrincipal = netTotalGamePrincipal.sub(player.netAmountPaid);
-            }
+        if (netTotalGamePrincipal < player.netAmountPaid) {
+            netTotalGamePrincipal = 0;
+        } else {
+            netTotalGamePrincipal = netTotalGamePrincipal.sub(player.netAmountPaid);
+        }
 
-            // Withdraws funds (principal + interest + rewards) from external pool
-            strategy.redeem(inboundToken, payout, _minAmount, disableRewardTokenClaim);
+        // Withdraws funds (principal + interest + rewards) from external pool
+        strategy.redeem(inboundToken, payout, _minAmount, disableRewardTokenClaim);
 
         // sending the inbound token amount i.e principal + interest to the winners and just the principal in case of players
         // adding a balance safety check to ensure the tx does not revert in case of impermanent loss
@@ -1146,6 +1146,7 @@ contract Pool is Ownable, Pausable, ReentrancyGuard {
     }
 
     // /**
+    // WE WILL NOT BE USING THE REDEEM METHOD FOR V2 SO IT IS COMMENTD OUT
     // @dev Redeems funds from the external pool and updates the game stats.
     // @param _minAmount Slippage based amount to cover for impermanent loss scenario.
     // */
