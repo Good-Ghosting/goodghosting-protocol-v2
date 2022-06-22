@@ -10,7 +10,6 @@ import {
   shouldBehaveLikeReJoiningGGPool,
   shouldBehaveLikeDepositingGGPool,
   shouldBehaveLikeEarlyWithdrawingGGPool,
-  shouldBehaveLikeRedeemingFromGGPool,
   shouldBehaveLikeGGPoolWithNoWinners,
   shouldBehaveLikePlayersWithdrawingFromGGPool,
   shouldBehaveLikeAdminWithdrawingFeesFromGGPoolWithFeePercentMoreThan0,
@@ -218,10 +217,6 @@ describe("Pool using Aave strategy", () => {
         "PLAYER_ALREADY_WITHDREW_EARLY()",
       );
     });
-  });
-
-  describe("when an user tries to redeem from the external pool", async () => {
-    await shouldBehaveLikeRedeemingFromGGPool("aave");
   });
 
   describe("when no one wins the game", async () => {

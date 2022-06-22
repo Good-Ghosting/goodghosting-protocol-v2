@@ -155,8 +155,6 @@ describe("Whitelisted Pool Tests", () => {
       rewardTokenPlayer1BalanceBeforeWithdraw = await contracts.rewardToken.balanceOf(player1.address);
       rewardTokenPlayer2BalanceBeforeWithdraw = await contracts.rewardToken.balanceOf(player2.address);
 
-      await contracts.goodGhosting.redeemFromExternalPoolForFixedDepositPool(0);
-
       await contracts.goodGhosting.connect(player1).withdraw(0);
       await contracts.goodGhosting.connect(player2).withdraw(0);
 

@@ -126,7 +126,13 @@ export const deployPool = async (
       ).to.be.revertedWith("INVALID_TRANSACTIONAL_TOKEN_SENDER()");
 
       await rewardToken.deposit({ value: ethers.utils.parseEther("8") });
-      await rewardToken.transfer(incentiveController.address, ethers.utils.parseEther("8"));
+      // rewards
+      if (isSameAsRewardToken) {
+        await rewardToken.transfer(strategy.address, ethers.utils.parseEther("8"));
+      } else {
+        await rewardToken.transfer(incentiveController.address, ethers.utils.parseEther("8"));
+      }
+
       if (isInboundToken) {
         const goodGhostingV2Deployer = new Pool__factory(deployer);
         await expect(
@@ -198,7 +204,12 @@ export const deployPool = async (
 
       await rewardToken.deposit({ value: ethers.utils.parseEther("8") });
 
-      await rewardToken.transfer(rewardController.address, ethers.utils.parseEther("8"));
+      // rewards
+      if (isSameAsRewardToken) {
+        await rewardToken.transfer(strategy.address, ethers.utils.parseEther("8"));
+      } else {
+        await rewardToken.transfer(rewardController.address, ethers.utils.parseEther("8"));
+      }
       if (isInboundToken) {
         const goodGhostingV2Deployer = new Pool__factory(deployer);
         await expect(
@@ -847,14 +858,14 @@ export const redeem = async (
   segmentLength: number,
   depositAmount: string,
 ) => {
-  await joinGamePaySegmentsAndComplete(
-    inboundToken,
-    player,
-    amount,
-    depositCount,
-    segmentLength,
-    goodGhosting,
-    depositAmount,
-  );
-  await goodGhosting.connect(player).redeemFromExternalPoolForFixedDepositPool(0);
+  // await joinGamePaySegmentsAndComplete(
+  //   inboundToken,
+  //   player,
+  //   amount,
+  //   depositCount,
+  //   segmentLength,
+  //   goodGhosting,
+  //   depositAmount,
+  // );
+  // await goodGhosting.connect(player).redeemFromExternalPoolForFixedDepositPool(0);
 };
