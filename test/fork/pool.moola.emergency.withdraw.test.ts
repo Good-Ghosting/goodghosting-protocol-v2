@@ -99,9 +99,9 @@ contract("Pool with Moola Strategy when admin enables early game completion", ac
       for (let segmentIndex = 1; segmentIndex < depositCount; segmentIndex++) {
         await timeMachine.advanceTime(segmentLength);
       }
-      await goodGhosting.redeemFromExternalPoolForFixedDepositPool(0, {
-        from: admin,
-      });
+      // await goodGhosting.redeemFromExternalPoolForFixedDepositPool(0, {
+      //   from: admin,
+      // });
     });
 
     it("players withdraw from contract", async () => {

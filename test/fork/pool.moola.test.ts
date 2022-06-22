@@ -143,41 +143,41 @@ contract("Pool with Moola Strategy", accounts => {
       await timeMachine.advanceTime(parseInt(waitingRoundLength.toString()));
     });
 
-    it("redeems funds from external pool", async () => {
-      let eventAmount = web3.utils.toBN(0);
-      let result;
-      result = await goodGhosting.redeemFromExternalPoolForFixedDepositPool(0, {
-        from: admin,
-      });
+    // it("redeems funds from external pool", async () => {
+    //   let eventAmount = web3.utils.toBN(0);
+    //   let result;
+    //   result = await goodGhosting.redeemFromExternalPoolForFixedDepositPool(0, {
+    //     from: admin,
+    //   });
 
-      const contractsDaiBalance = web3.utils.toBN(
-        await token.methods.balanceOf(goodGhosting.address).call({ from: admin }),
-      );
-      console.log("contractsDaiBalance", contractsDaiBalance.toString());
-      truffleAssert.eventEmitted(
-        result,
-        "FundsRedeemedFromExternalPool",
-        (ev: any) => {
-          console.log("totalContractAmount", ev.totalAmount.toString());
-          console.log("totalGamePrincipal", ev.totalGamePrincipal.toString());
-          console.log("totalGameInterest", ev.totalGameInterest.toString());
-          console.log("interestPerPlayer", ev.totalGameInterest.div(web3.utils.toBN(players.length - 1)).toString());
-          const adminFee = web3.utils
-            .toBN(configs.deployConfigs.adminFee)
-            .mul(ev.totalGameInterest)
-            .div(web3.utils.toBN("100"));
-          eventAmount = web3.utils.toBN(ev.totalAmount.toString());
+    //   const contractsDaiBalance = web3.utils.toBN(
+    //     await token.methods.balanceOf(goodGhosting.address).call({ from: admin }),
+    //   );
+    //   console.log("contractsDaiBalance", contractsDaiBalance.toString());
+    //   truffleAssert.eventEmitted(
+    //     result,
+    //     "FundsRedeemedFromExternalPool",
+    //     (ev: any) => {
+    //       console.log("totalContractAmount", ev.totalAmount.toString());
+    //       console.log("totalGamePrincipal", ev.totalGamePrincipal.toString());
+    //       console.log("totalGameInterest", ev.totalGameInterest.toString());
+    //       console.log("interestPerPlayer", ev.totalGameInterest.div(web3.utils.toBN(players.length - 1)).toString());
+    //       const adminFee = web3.utils
+    //         .toBN(configs.deployConfigs.adminFee)
+    //         .mul(ev.totalGameInterest)
+    //         .div(web3.utils.toBN("100"));
+    //       eventAmount = web3.utils.toBN(ev.totalAmount.toString());
 
-          return (
-            web3.utils
-              .toBN(ev.totalGameInterest)
-              .eq(web3.utils.toBN(ev.totalAmount).sub(web3.utils.toBN(ev.totalGamePrincipal))),
-            eventAmount.eq(contractsDaiBalance) && adminFee.lt(ev.totalGameInterest)
-          );
-        },
-        `FundsRedeemedFromExternalPool error - event amount: ${eventAmount.toString()}; expectAmount: ${contractsDaiBalance.toString()}`,
-      );
-    });
+    //       return (
+    //         web3.utils
+    //           .toBN(ev.totalGameInterest)
+    //           .eq(web3.utils.toBN(ev.totalAmount).sub(web3.utils.toBN(ev.totalGamePrincipal))),
+    //         eventAmount.eq(contractsDaiBalance) && adminFee.lt(ev.totalGameInterest)
+    //       );
+    //     },
+    //     `FundsRedeemedFromExternalPool error - event amount: ${eventAmount.toString()}; expectAmount: ${contractsDaiBalance.toString()}`,
+    //   );
+    // });
 
     it("players withdraw from contract", async () => {
       // starts from 2, since player1 (loser), requested an early withdraw and player 2 withdrew after the last segment
