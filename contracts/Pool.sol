@@ -909,7 +909,7 @@ contract Pool is Ownable, Pausable, ReentrancyGuard {
         player.withdrawalSegment = currentSegment;
 
         uint64 segment = depositCount == 0 ? 0 : uint64(depositCount.sub(1));
-        uint64 segmentPaid = emergencyWithdraw ? segment : players[msg.sender].mostRecentSegmentPaid;
+        uint64 segmentPaid = emergencyWithdraw ? segment : player.mostRecentSegmentPaid;
 
         uint256 playerIndexSum;
         // calculate playerIndexSum for each player
@@ -917,8 +917,8 @@ contract Pool is Ownable, Pausable, ReentrancyGuard {
             playerIndexSum = playerIndexSum.add(playerIndex[msg.sender][i]);
         }
         // FIX - C3 Audit Report
-        cumulativePlayerIndexSum[players[msg.sender].mostRecentSegmentPaid] = cumulativePlayerIndexSum[
-            players[msg.sender].mostRecentSegmentPaid
+        cumulativePlayerIndexSum[player.mostRecentSegmentPaid] = cumulativePlayerIndexSum[
+            player.mostRecentSegmentPaid
         ].sub(playerIndexSum);
 
         // Users that early withdraw during the first segment, are allowed to rejoin.
@@ -989,14 +989,14 @@ contract Pool is Ownable, Pausable, ReentrancyGuard {
         uint256 playerIncentive = 0;
         uint256 playerInterestShare = 0;
         uint256 playerSharePercentage = 0;
-        uint256[] memory playerReward = new uint256[](rewardTokens.length);
+        uint256[] memory playerReward = new uint256[](_rewardTokens.length);
 
         if (_isWinner(player, depositCountMemory)) {
             // Calculate Cummalative index for each player
             uint256 playerIndexSum = 0;
 
             uint64 segment = depositCountMemory == 0 ? 0 : uint64(depositCountMemory.sub(1));
-            uint64 segmentPaid = emergencyWithdraw ? segment : players[msg.sender].mostRecentSegmentPaid;
+            uint64 segmentPaid = emergencyWithdraw ? segment : player.mostRecentSegmentPaid;
 
             // calculate playerIndexSum for each player
             for (uint256 i = 0; i <= segmentPaid; i++) {
