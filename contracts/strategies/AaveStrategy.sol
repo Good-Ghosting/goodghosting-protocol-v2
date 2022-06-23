@@ -30,7 +30,7 @@ error TRANSACTIONAL_TOKEN_TRANSFER_FAILURE();
 */
 contract AaveStrategy is Ownable, IStrategy {
     /// @notice Aave referral code
-    uint16 constant REFERRAL_CODE = 0;
+    uint16 constant REFERRAL_CODE = 155;
 
     /// @notice Address of the Aave V2 incentive controller contract
     IncentiveController public immutable incentiveController;

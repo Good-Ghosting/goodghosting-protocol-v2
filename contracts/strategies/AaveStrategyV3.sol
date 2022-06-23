@@ -31,7 +31,7 @@ error TRANSACTIONAL_TOKEN_TRANSFER_FAILURE();
 */
 contract AaveStrategyV3 is Ownable, IStrategy {
     /// @notice Aave referral code
-    uint16 constant REFERRAL_CODE = 0;
+    uint16 constant REFERRAL_CODE = 155;
 
     /// @notice Address of the Aave V2 weth gateway contract
     IWETHGateway public immutable wethGateway;
