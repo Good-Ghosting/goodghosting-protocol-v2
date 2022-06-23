@@ -191,15 +191,6 @@ contract Pool is Ownable, Pausable, ReentrancyGuard {
 
     event Withdrawal(address indexed player, uint256 amount, uint256 playerIncentive, uint256[] playerRewardAmounts);
 
-    event FundsRedeemedFromExternalPool(
-        uint256 totalAmount,
-        uint256 totalGamePrincipal,
-        uint256 netTotalGamePrincipal,
-        uint256 totalGameInterest,
-        uint256 totalIncentiveAmount,
-        uint256[] totalRewardAmounts
-    );
-
     event VariablePoolParamsSet(
         uint256 totalGamePrincipal,
         uint256 netTotalGamePrincipal,
@@ -818,13 +809,6 @@ contract Pool is Ownable, Pausable, ReentrancyGuard {
         adminWithdraw = true;
 
         _setGlobalPoolParamsForFlexibleDepositPool();
-        // if (!flexibleSegmentPayment) {
-        //     if (!redeemed) {
-        //         revert FUNDS_NOT_REDEEMED_FROM_EXTERNAL_POOL();
-        //     }
-        // } else {
-        //     _setGlobalPoolParamsForFlexibleDepositPool();
-        // }
 
         // to avoid SLOAD multiple times
         // UPDATE - A5 Audit Report
@@ -832,9 +816,7 @@ contract Pool is Ownable, Pausable, ReentrancyGuard {
         IERC20[] memory _rewardTokens = rewardTokens;
 
         if (_adminFeeAmount[0] != 0 || _checkIfRewardAmountValid()) {
-            //if (flexibleSegmentPayment) {
             strategy.redeem(inboundToken, _adminFeeAmount[0], _minAmount, disableRewardTokenClaim);
-            //}
 
             uint256 actualTransferredAmount = _transferFundsSafely(owner(), _adminFeeAmount[0]);
             // need the updated value for the event
@@ -965,15 +947,6 @@ contract Pool is Ownable, Pausable, ReentrancyGuard {
         player.withdrawn = true;
 
         _setGlobalPoolParamsForFlexibleDepositPool();
-
-        // if (!flexibleSegmentPayment) {
-        //     // First player to withdraw redeems everyone's funds
-        //     if (!redeemed) {
-        //         redeemFromExternalPoolForFixedDepositPool(_minAmount);
-        //     }
-        // } else {
-        //     _setGlobalPoolParamsForFlexibleDepositPool();
-        // }
 
         // to avoid SLOAD multiple times
         uint64 depositCountMemory = depositCount;
@@ -1144,62 +1117,6 @@ contract Pool is Ownable, Pausable, ReentrancyGuard {
         emit Deposit(msg.sender, currentSegment, amount, netAmount);
         _transferInboundTokenToContract(_minAmount, amount, netAmount);
     }
-
-    // /**
-    // WE WILL NOT BE USING THE REDEEM METHOD FOR V2 SO IT IS COMMENTD OUT
-    // @dev Redeems funds from the external pool and updates the game stats.
-    // @param _minAmount Slippage based amount to cover for impermanent loss scenario.
-    // */
-    // function redeemFromExternalPoolForFixedDepositPool(uint256 _minAmount)
-    //     public
-    //     virtual
-    //     whenGameIsCompleted
-    //     nonReentrant
-    // {
-    //     uint256 totalBalance = 0;
-
-    //     // Withdraws funds (principal + interest + rewards) from external pool
-    //     strategy.redeem(inboundToken, 0, flexibleSegmentPayment, _minAmount, disableRewardTokenClaim);
-
-    //     if (isTransactionalToken) {
-    //         totalBalance = address(this).balance;
-    //     } else {
-    //         totalBalance = IERC20(inboundToken).balanceOf(address(this));
-    //     }
-
-    //     rewardTokens = strategy.getRewardTokens();
-
-    //     // to avoid SLOAD multiple times
-    //     IERC20[] memory _rewardTokens = rewardTokens;
-
-    //     uint256[] memory grossRewardTokenAmount = new uint256[](_rewardTokens.length);
-
-    //     for (uint256 i = 0; i < _rewardTokens.length; i++) {
-    //         // the reward calculation is the sum of the current reward amount the remaining rewards being accumulated in the strategy protocols.
-    //         // the reason being like totalBalance for every player this is updated and prev. value is used to add any left over value
-    //         if (address(_rewardTokens[i]) != address(0) && inboundToken != address(_rewardTokens[i])) {
-    //             grossRewardTokenAmount[i] = _rewardTokens[i].balanceOf(address(this));
-    //         }
-    //     }
-
-    //     uint256 grossInterest = _calculateAndUpdateGameAccounting(totalBalance, grossRewardTokenAmount);
-    //     // shifting this after the game accounting since we need to emit a accounting event
-    //     if (redeemed) {
-    //         revert FUNDS_REDEEMED_FROM_EXTERNAL_POOL();
-    //     }
-    //     redeemed = true;
-
-    //     _calculateAndSetAdminAccounting(grossInterest, grossRewardTokenAmount);
-
-    //     emit FundsRedeemedFromExternalPool(
-    //         isTransactionalToken ? address(this).balance : IERC20(inboundToken).balanceOf(address(this)),
-    //         totalGamePrincipal,
-    //         netTotalGamePrincipal,
-    //         totalGameInterest,
-    //         totalIncentiveAmount,
-    //         rewardTokenAmounts
-    //     );
-    // }
 
     // Fallback Functions for calldata and reciever for handling only ether transfer
     // UPDATE - A7 Audit Report
