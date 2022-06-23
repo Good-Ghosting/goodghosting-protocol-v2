@@ -1181,6 +1181,16 @@ export const shouldBehaveLikeEarlyWithdrawingGGPool = async (strategyType: strin
     );
   });
 
+  it("reverts if a players tries to do a early withdraw after emergency withdraw is enabled", async () => {
+    const accounts = await ethers.getSigners();
+    const player1 = accounts[2];
+    const player2 = accounts[3];
+
+    await joinGame(contracts.goodGhosting, contracts.inboundToken, player1, segmentPayment, segmentPayment);
+    await contracts.goodGhosting.enableEmergencyWithdraw();
+    await expect(contracts.goodGhosting.connect(player2).earlyWithdraw(0)).to.be.revertedWith("GAME_COMPLETED()");
+  });
+
   it("makes sure the segment counter get's updated correctly when user earlywithdraws", async () => {
     const accounts = await ethers.getSigners();
     const player1 = accounts[2];
