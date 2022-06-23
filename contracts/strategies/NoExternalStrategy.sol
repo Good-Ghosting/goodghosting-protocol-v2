@@ -197,7 +197,4 @@ contract NoExternalStrategy is Ownable, IStrategy {
         }
         return amounts;
     }
-
-    // Fallback Functions for calldata and reciever for handling only ether transfer
-    receive() external payable {}
 }
