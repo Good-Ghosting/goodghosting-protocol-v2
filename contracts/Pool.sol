@@ -516,6 +516,7 @@ contract Pool is Ownable, Pausable, ReentrancyGuard {
 
         // to avoid SLOAD multiple times
         IERC20[] memory _rewardTokens = rewardTokens;
+        // UPDATE - N2 Audit Report
         if (winnerCount == 0) {
             adminFeeAmount[0] = _grossInterest;
             // just setting these for consistency since if there are no winners then for accounting both these vars aren't used
@@ -728,6 +729,7 @@ contract Pool is Ownable, Pausable, ReentrancyGuard {
             revert EARLY_EXIT_NOT_POSSIBLE();
         }
         uint64 currentSegment = getCurrentSegment();
+        // UPDATE - N2 Audit Report
         winnerCount = currentSegment != 0
             ? segmentCounter[currentSegment].add(segmentCounter[currentSegment.sub(1)])
             : segmentCounter[currentSegment];
@@ -808,6 +810,7 @@ contract Pool is Ownable, Pausable, ReentrancyGuard {
         }
         adminWithdraw = true;
 
+        // UPDATE - C2 Audit Report - removing redeem method
         _setGlobalPoolParamsForFlexibleDepositPool();
 
         // to avoid SLOAD multiple times
@@ -818,10 +821,8 @@ contract Pool is Ownable, Pausable, ReentrancyGuard {
         if (_adminFeeAmount[0] != 0 || _checkIfRewardAmountValid()) {
             strategy.redeem(inboundToken, _adminFeeAmount[0], _minAmount, disableRewardTokenClaim);
 
-            uint256 actualTransferredAmount = _transferFundsSafely(owner(), _adminFeeAmount[0]);
             // need the updated value for the event
-            // we can probably think about updating the event args rather than MSTORE
-            _adminFeeAmount[0] = actualTransferredAmount;
+            _adminFeeAmount[0] = _transferFundsSafely(owner(), _adminFeeAmount[0]);
         }
 
         for (uint256 i = 0; i < _rewardTokens.length; i++) {
@@ -834,7 +835,8 @@ contract Pool is Ownable, Pausable, ReentrancyGuard {
                 }
             }
         }
-        // if emergency withdraw the no of winners will surely be more then 0 otherwise the tx enabling the emergency withdraw is reverted by EARLY_EXIT_NOT_POSSIBLE
+        // winnerCount will always have the correct number of winners fetched from segment counter if emergency withdraw is enabled.
+        // UPDATE - N2 Audit Report
         if (winnerCount == 0) {
             if (totalIncentiveAmount != 0) {
                 bool success = IERC20(incentiveToken).transfer(owner(), totalIncentiveAmount);
@@ -946,6 +948,7 @@ contract Pool is Ownable, Pausable, ReentrancyGuard {
         }
         player.withdrawn = true;
 
+        // UPDATE - C2 Audit Report - removing redeem method
         _setGlobalPoolParamsForFlexibleDepositPool();
 
         // to avoid SLOAD multiple times
@@ -1030,6 +1033,7 @@ contract Pool is Ownable, Pausable, ReentrancyGuard {
             // this scenario is very tricky to mock
             // and our mock contracts are pretty complex currently so haven't tested this line with unit tests
             // using try-catch to make sure a incentive token transfer failure does not affect the withdrawal
+            // UPDATE - N1 Audit Report
             try IERC20(incentiveToken).balanceOf(address(this)) returns (uint256 incentiveTokenBalance) {
                 if (playerIncentive > incentiveTokenBalance) {
                     playerIncentive = incentiveTokenBalance;
