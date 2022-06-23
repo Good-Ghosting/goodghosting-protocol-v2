@@ -3527,7 +3527,6 @@ export const shouldBehaveLikeAdminWithdrawingFeesFromGGPoolWithFeePercentMoreTha
         fee[i] = await contracts.goodGhosting.adminFeeAmount(i);
       }
 
-      console.log("kkkkkl", fee);
       await expect(result)
         .to.emit(contracts.goodGhosting, "AdminWithdrawal")
         .withArgs(deployer.address, ethers.BigNumber.from(0), ethers.BigNumber.from(0), fee);
@@ -3808,8 +3807,6 @@ export const shouldBehaveLikeAdminWithdrawingFeesFromGGPoolWithFeePercentMoreTha
       for (let i = 0; i <= rewardTokens.length; i++) {
         fee[i] = await contracts.goodGhosting.adminFeeAmount(i);
       }
-      console.log(fee);
-      console.log(grossInterest.toString());
 
       await expect(result)
         .emit(contracts.goodGhosting, "AdminWithdrawal")
