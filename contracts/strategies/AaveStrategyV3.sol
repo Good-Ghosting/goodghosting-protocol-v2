@@ -104,8 +104,9 @@ contract AaveStrategyV3 is Ownable, IStrategy {
     */
     function getRewardTokens() external view override returns (IERC20[] memory) {
         IERC20[] memory rewardTokenInstances = new IERC20[](rewardTokens.length);
-        for (uint256 i = 0; i < rewardTokens.length; i++) {
+        for (uint256 i = 0; i < rewardTokens.length;) {
             rewardTokenInstances[i] = IERC20(rewardTokens[i]);
+            unchecked { ++i; }
         }
         return rewardTokenInstances;
     }
@@ -249,7 +250,7 @@ contract AaveStrategyV3 is Ownable, IStrategy {
             assets[0] = address(aToken);
 
             rewardsController.claimAllRewardsToSelf(assets);
-            for (uint256 i = 0; i < rewardTokens.length; i++) {
+            for (uint256 i = 0; i < rewardTokens.length;) {
                 if (IERC20(rewardTokens[i]).balanceOf(address(this)) != 0) {
                     bool success = IERC20(rewardTokens[i]).transfer(
                         msg.sender,
@@ -259,6 +260,7 @@ contract AaveStrategyV3 is Ownable, IStrategy {
                         revert TOKEN_TRANSFER_FAILURE();
                     }
                 }
+                unchecked { ++i; }
             }
         }
 
