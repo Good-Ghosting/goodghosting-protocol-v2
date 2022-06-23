@@ -892,12 +892,9 @@ contract Pool is Ownable, Pausable, ReentrancyGuard {
         uint64 currentSegment = getCurrentSegment();
         player.withdrawalSegment = currentSegment;
 
-        uint64 segment = depositCount == 0 ? 0 : uint64(depositCount.sub(1));
-        uint64 segmentPaid = emergencyWithdraw ? segment : player.mostRecentSegmentPaid;
-
         uint256 playerIndexSum;
         // calculate playerIndexSum for each player
-        for (uint256 i = 0; i <= segmentPaid; i++) {
+        for (uint256 i = 0; i <= player.mostRecentSegmentPaid; i++) {
             playerIndexSum = playerIndexSum.add(playerIndex[msg.sender][i]);
         }
         // FIX - C3 Audit Report
