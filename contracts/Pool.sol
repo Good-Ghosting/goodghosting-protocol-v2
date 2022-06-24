@@ -411,7 +411,9 @@ contract Pool is Ownable, Pausable, ReentrancyGuard {
             revert INVALID_OWNER();
         }
         firstSegmentStart = block.timestamp; //gets current time
-        waitingRoundSegmentStart = firstSegmentStart + (segmentLength * depositCount);
+        unchecked {
+            waitingRoundSegmentStart = firstSegmentStart + (segmentLength * depositCount);
+        }
         setIncentiveToken(_incentiveToken);
     }
 
@@ -422,9 +424,13 @@ contract Pool is Ownable, Pausable, ReentrancyGuard {
     @notice
     check if there are any rewards to claim for the admin.
     */
-    function _checkIfRewardAmountValid() internal view returns (bool) {
-        for (uint256 i = 0; i < rewardTokens.length; ) {
-            if (rewardTokenAmounts[i] != 0) {
+    function _checkIfRewardAmountValid(uint256[] memory _adminFeeAmount, IERC20[] memory _rewardTokens)
+        internal
+        pure
+        returns (bool)
+    {
+        for (uint256 i = 0; i < _rewardTokens.length; ) {
+            if (_adminFeeAmount[i + 1] != 0) {
                 return true;
             }
             unchecked {
@@ -656,19 +662,22 @@ contract Pool is Ownable, Pausable, ReentrancyGuard {
         // since both join game and deposit method call this method so having it here
         if (currentSegment == depositCount.sub(1)) {
             // array indexes start from 0
-            winnerCount = winnerCount.add(1);
+            unchecked {
+                winnerCount += 1;
+            }
             players[msg.sender].isWinner = true;
         }
 
         // segment counter calculation needed for ui as backup in case graph goes down
-        segmentCounter[currentSegment] += 1;
-        if (currentSegment != 0 && segmentCounter[currentSegment - 1] != 0) {
-            segmentCounter[currentSegment - 1] -= 1;
+        unchecked {
+            segmentCounter[currentSegment] += 1;
+            if (currentSegment != 0 && segmentCounter[currentSegment - 1] != 0) {
+                segmentCounter[currentSegment - 1] -= 1;
+            }
+            // updating both totalGamePrincipal & netTotalGamePrincipal to maintain consistency
+            totalGamePrincipal += _depositAmount;
+            netTotalGamePrincipal += _netDepositAmount;
         }
-
-        // updating both totalGamePrincipal & netTotalGamePrincipal to maintain consistency
-        totalGamePrincipal = totalGamePrincipal.add(_depositAmount);
-        netTotalGamePrincipal = netTotalGamePrincipal.add(_netDepositAmount);
 
         if (!isTransactionalToken) {
             bool success = IERC20(inboundToken).transferFrom(msg.sender, address(strategy), _depositAmount);
@@ -840,7 +849,7 @@ contract Pool is Ownable, Pausable, ReentrancyGuard {
         uint256[] memory _adminFeeAmount = adminFeeAmount;
         IERC20[] memory _rewardTokens = rewardTokens;
 
-        bool _claimableRewards = _checkIfRewardAmountValid();
+        bool _claimableRewards = _checkIfRewardAmountValid(_adminFeeAmount, _rewardTokens);
 
         if (_adminFeeAmount[0] != 0 || _claimableRewards) {
             strategy.redeem(inboundToken, _adminFeeAmount[0], _minAmount, disableRewardTokenClaim);
@@ -851,11 +860,9 @@ contract Pool is Ownable, Pausable, ReentrancyGuard {
             if (_claimableRewards) {
                 for (uint256 i = 0; i < _rewardTokens.length; ) {
                     if (address(_rewardTokens[i]) != address(0)) {
-                        if (_adminFeeAmount[i + 1] != 0) {
-                            bool success = _rewardTokens[i].transfer(owner(), _adminFeeAmount[i + 1]);
-                            if (!success) {
-                                revert TOKEN_TRANSFER_FAILURE();
-                            }
+                        bool success = _rewardTokens[i].transfer(owner(), _adminFeeAmount[i + 1]);
+                        if (!success) {
+                            revert TOKEN_TRANSFER_FAILURE();
                         }
                     }
                     unchecked {
@@ -930,25 +937,27 @@ contract Pool is Ownable, Pausable, ReentrancyGuard {
                 ++i;
             }
         }
-        // FIX - C3 Audit Report
-        cumulativePlayerIndexSum[player.mostRecentSegmentPaid] = cumulativePlayerIndexSum[player.mostRecentSegmentPaid]
-            .sub(playerIndexSum);
-
         // Users that early withdraw during the first segment, are allowed to rejoin.
         if (currentSegment == 0) {
             player.canRejoin = true;
             playerIndex[msg.sender][currentSegment] = 0;
         }
 
-        // update winner count
-        if (winnerCount != 0 && player.isWinner) {
-            winnerCount = winnerCount.sub(1);
-            player.isWinner = false;
-        }
+        unchecked {
+            // FIX - C3 Audit Report
+            cumulativePlayerIndexSum[player.mostRecentSegmentPaid] =
+                cumulativePlayerIndexSum[player.mostRecentSegmentPaid] -
+                playerIndexSum;
+            // update winner count
+            if (winnerCount != 0 && player.isWinner) {
+                winnerCount -= 1;
+                player.isWinner = false;
+            }
 
-        // segment counter calculation needed for ui as backup in case graph goes down
-        if (segmentCounter[currentSegment] != 0) {
-            segmentCounter[currentSegment] -= 1;
+            // segment counter calculation needed for ui as backup in case graph goes down
+            if (segmentCounter[currentSegment] != 0) {
+                segmentCounter[currentSegment] -= 1;
+            }
         }
 
         strategy.earlyWithdraw(inboundToken, withdrawAmount, _minAmount);
