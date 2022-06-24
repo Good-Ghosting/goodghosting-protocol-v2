@@ -83,11 +83,13 @@ contract NoExternalStrategy is Ownable, IStrategy {
     */
     constructor(address _inboundCurrency, IERC20[] memory _rewardTokens) {
         inboundToken = IERC20(_inboundCurrency);
-        for (uint256 i = 0; i < _rewardTokens.length;) {
+        for (uint256 i = 0; i < _rewardTokens.length; ) {
             if (address(_rewardTokens[i]) == address(0)) {
                 revert INVALID_REWARD_TOKEN();
             }
-            unchecked { ++i; }
+            unchecked {
+                ++i;
+            }
         }
         rewardTokens = _rewardTokens;
     }
@@ -166,7 +168,7 @@ contract NoExternalStrategy is Ownable, IStrategy {
         _transferInboundTokenToPool(_inboundCurrency, _amount);
 
         if (!disableRewardTokenClaim) {
-            for (uint256 i = 0; i < rewardTokens.length;) {
+            for (uint256 i = 0; i < rewardTokens.length; ) {
                 // safety check since funds don't get transferred to a extrnal protocol
                 if (IERC20(rewardTokens[i]).balanceOf(address(this)) != 0) {
                     bool success = IERC20(rewardTokens[i]).transfer(
@@ -177,7 +179,9 @@ contract NoExternalStrategy is Ownable, IStrategy {
                         revert TOKEN_TRANSFER_FAILURE();
                     }
                 }
-                unchecked { ++i; }
+                unchecked {
+                    ++i;
+                }
             }
         }
     }
@@ -194,9 +198,11 @@ contract NoExternalStrategy is Ownable, IStrategy {
         returns (uint256[] memory)
     {
         uint256[] memory amounts = new uint256[](rewardTokens.length);
-        for (uint256 i = 0; i < rewardTokens.length;) {
+        for (uint256 i = 0; i < rewardTokens.length; ) {
             amounts[i] = rewardTokens[i].balanceOf(address(this));
-            unchecked { ++i; }
+            unchecked {
+                ++i;
+            }
         }
         return amounts;
     }
