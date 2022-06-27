@@ -66,13 +66,13 @@ contract Pool is Ownable, Pausable, ReentrancyGuard {
     uint256 public immutable maxFlexibleSegmentPaymentAmount;
 
     /// @notice The time duration (in seconds) of each segment.
-    uint256 public immutable segmentLength;
+    uint64 public immutable segmentLength;
+
+    /// @notice The performance admin fee (percentage).
+    uint64 public immutable adminFee;
 
     /// @notice The time duration (in seconds) of last segment (waiting round).
     uint256 public immutable waitingRoundSegmentLength;
-
-    /// @notice The performance admin fee (percentage).
-    uint128 public immutable adminFee;
 
     /// @notice Defines the max quantity of players allowed in the game.
     uint256 public immutable maxPlayersCount;
@@ -90,16 +90,28 @@ contract Pool is Ownable, Pausable, ReentrancyGuard {
     bool public immutable isTransactionalToken;
 
     /// @notice When the game started (game initialized timestamp).
-    uint256 public firstSegmentStart;
+    uint64 public firstSegmentStart;
 
     /// @notice Timestamp when the waiting segment starts.
-    uint256 public waitingRoundSegmentStart;
+    uint64 public waitingRoundSegmentStart;
 
     /// @notice The number of segments in the game (segment count).
     uint64 public depositCount;
 
     /// @notice The early withdrawal fee (percentage).
-    uint128 public earlyWithdrawalFee;
+    uint64 public earlyWithdrawalFee;
+
+    /// @notice Controls the amount of active players in the game (ignores players that early withdraw).
+    uint64 public activePlayersCount = 0;
+
+    /// @notice winner counter to track no of winners.
+    uint64 public winnerCount = 0;
+
+    /// @notice the % share of interest accrued during the total deposit round duration.
+    uint64 public depositRoundInterestShare;
+
+    /// @notice the % share of interest accrued during the waiting round duration.
+    uint64 public waitingRoundInterestShare;
 
     /// @notice Stores the total amount of net interest received in the game.
     uint256 public totalGameInterest;
@@ -115,12 +127,6 @@ contract Pool is Ownable, Pausable, ReentrancyGuard {
 
     /// @notice total amount of incentive tokens to be distributed among winners.
     uint256 public totalIncentiveAmount = 0;
-
-    /// @notice Controls the amount of active players in the game (ignores players that early withdraw).
-    uint256 public activePlayersCount = 0;
-
-    /// @notice winner counter to track no of winners.
-    uint256 public winnerCount = 0;
 
     /// @notice share % from impermanent loss.
     uint256 public impermanentLossShare;
@@ -331,11 +337,11 @@ contract Pool is Ownable, Pausable, ReentrancyGuard {
         address _inboundCurrency,
         uint256 _maxFlexibleSegmentPaymentAmount,
         uint64 _depositCount,
-        uint256 _segmentLength,
+        uint64 _segmentLength,
         uint256 _waitingRoundSegmentLength,
         uint256 _segmentPayment,
-        uint128 _earlyWithdrawalFee,
-        uint128 _customFee,
+        uint64 _earlyWithdrawalFee,
+        uint64 _customFee,
         uint256 _maxPlayersCount,
         bool _flexibleSegmentPayment,
         IStrategy _strategy,
@@ -410,7 +416,7 @@ contract Pool is Ownable, Pausable, ReentrancyGuard {
         if (strategy.strategyOwner() != address(this)) {
             revert INVALID_OWNER();
         }
-        firstSegmentStart = block.timestamp; //gets current time
+        firstSegmentStart = uint64(block.timestamp); //gets current time
         unchecked {
             waitingRoundSegmentStart = firstSegmentStart + (segmentLength * depositCount);
         }
@@ -579,7 +585,7 @@ contract Pool is Ownable, Pausable, ReentrancyGuard {
             revert PLAYER_ALREADY_JOINED();
         }
 
-        activePlayersCount = activePlayersCount.add(1);
+        activePlayersCount += 1;
         if (activePlayersCount > maxPlayersCount) {
             revert MAX_PLAYER_COUNT_REACHED();
         }
@@ -759,8 +765,8 @@ contract Pool is Ownable, Pausable, ReentrancyGuard {
         uint64 currentSegment = getCurrentSegment();
         // UPDATE - N2 Audit Report
         winnerCount = currentSegment != 0
-            ? segmentCounter[currentSegment].add(segmentCounter[currentSegment.sub(1)])
-            : segmentCounter[currentSegment];
+            ? uint64(segmentCounter[currentSegment].add(segmentCounter[currentSegment.sub(1)]))
+            : uint64(segmentCounter[currentSegment]);
         // setting depositCount as current segment to manage all scenario's to handle emergency withdraw
         depositCount = currentSegment;
         emergencyWithdraw = true;
@@ -825,7 +831,7 @@ contract Pool is Ownable, Pausable, ReentrancyGuard {
     @dev Allows admin to set a lower early withdrawal fee.
     @param _newEarlyWithdrawFees New earlywithdrawal fee.
     */
-    function lowerEarlyWithdrawFees(uint128 _newEarlyWithdrawFees) external virtual onlyOwner {
+    function lowerEarlyWithdrawFees(uint64 _newEarlyWithdrawFees) external virtual onlyOwner {
         if (_newEarlyWithdrawFees >= earlyWithdrawalFee) {
             revert INVALID_EARLY_WITHDRAW_FEE();
         }
@@ -918,7 +924,7 @@ contract Pool is Ownable, Pausable, ReentrancyGuard {
             revert PLAYER_ALREADY_WITHDREW_EARLY();
         }
         player.withdrawn = true;
-        activePlayersCount = activePlayersCount.sub(1);
+        activePlayersCount -= 1;
 
         // In an early withdraw, users get their principal minus the earlyWithdrawalFee % defined in the constructor.
         uint256 withdrawAmount = player.netAmountPaid.sub(player.netAmountPaid.mul(earlyWithdrawalFee).div(100));
