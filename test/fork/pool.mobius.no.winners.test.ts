@@ -116,17 +116,6 @@ contract("Deposit Pool with Mobius Strategy with no winners", accounts => {
                                       player: expected ${player}; got ${playerEvent}\n
                                       paymentAmount: expected ${segmentPayment.toString()}; got ${paymentEvent.toString()}`,
         );
-        //}
-        // else {
-        //   result = await goodGhosting.joinGame(minAmountWithFees.toString(), web3.utils.toWei("5"), { from: player });
-        //   truffleAssert.eventEmitted(result, "JoinedGame", (ev: any) => {
-        //     playerEvent = ev.player;
-        //     paymentEvent = ev.amount;
-        //     return (
-        //       playerEvent === player && web3.utils.toBN(paymentEvent).toString() == web3.utils.toWei("5").toString()
-        //     );
-        //   });
-        // }
         // player 2 early withdraws in segment 0 and joins again
         if (i == 2) {
           const withdrawAmount = segmentPayment.sub(
@@ -221,16 +210,16 @@ contract("Deposit Pool with Mobius Strategy with no winners", accounts => {
           "expected celo balance after withdrawal to be equal to or less than before withdrawal",
         );
 
-        truffleAssert.eventEmitted(
-          result,
-          "Withdrawal",
-          async (ev: any) => {
-            console.log(`player${i} withdraw amount: ${ev.amount.toString()}`);
+        // truffleAssert.eventEmitted(
+        //   result,
+        //   "Withdrawal",
+        //   async (ev: any) => {
+        //     console.log(`player${i} withdraw amount: ${ev.amount.toString()}`);
 
-            return ev.player === player;
-          },
-          "withdrawal event failure",
-        );
+        //     return ev.player === player;
+        //   },
+        //   "withdrawal event failure",
+        // );
       }
       const mobiRewardBalanceAfter = web3.utils.toBN(
         await mobi.methods.balanceOf(goodGhosting.address).call({ from: admin }),

@@ -120,17 +120,7 @@ contract("Deposit Pool with Curve Strategy with no winners", accounts => {
                                                         player: expected ${player}; got ${playerEvent}\n
                                                         paymentAmount: expected ${segmentPayment.toString()}; got ${paymentEvent.toString()}`,
         );
-        //}
-        // else {
-        //   result = await goodGhosting.joinGame(minAmountWithFees.toString(), web3.utils.toWei("5"), { from: player });
-        //   truffleAssert.eventEmitted(result, "JoinedGame", (ev: any) => {
-        //     playerEvent = ev.player;
-        //     paymentEvent = ev.amount;
-        //     return (
-        //       playerEvent === player && web3.utils.toBN(paymentEvent).toString() == web3.utils.toWei("5").toString()
-        //     );
-        //   });
-        // }
+
         // player 2 early withdraws in segment 0 and joins again
         if (i == 2) {
           const withdrawAmount = segmentPayment.sub(
