@@ -132,18 +132,9 @@ describe("Aave Pool Fork Tests when admin enables early game completion", () => 
       await ethers.provider.send("evm_increaseTime", [segmentLength]);
       await ethers.provider.send("evm_mine", []);
     }
-    // await pool.redeemFromExternalPoolForFixedDepositPool(0);
-    // const inboundTokenBalance = await daiInstance.balanceOf(pool.address);
-    // console.log("inboundTokenBalance", inboundTokenBalance.toString());
-    // const totalPrincipal = await pool.totalGamePrincipal();
-    // console.log("totalPrincipal", totalPrincipal.toString());
-    // const totalInterest = await pool.totalGameInterest();
-    // console.log("totalInterest", totalInterest.toString());
 
-    // assert(inboundTokenBalance.gt(totalPrincipal));
-    // assert(totalInterest.gt(ethers.BigNumber.from(0)));
-    // const gameStatus = await pool.isGameCompleted();
-    // chai.assert(gameStatus);
+    const gameStatus = await pool.isGameCompleted();
+    chai.assert(gameStatus);
   });
 
   it("players are able to withdraw from the pool", async () => {

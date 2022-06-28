@@ -168,19 +168,6 @@ describe("Aave V3 Pool Fork Tests", () => {
     chai.assert(gameStatus);
   });
 
-  // it("funds are redeemed from the pool", async () => {
-  //   await pool.redeemFromExternalPoolForFixedDepositPool(0);
-  //   const inboundTokenBalance = await daiInstance.balanceOf(pool.address);
-  //   console.log("inboundTokenBalance", inboundTokenBalance.toString());
-  //   const totalPrincipal = await pool.totalGamePrincipal();
-  //   console.log("totalPrincipal", totalPrincipal.toString());
-  //   const totalInterest = await pool.totalGameInterest();
-  //   console.log("totalInterest", totalInterest.toString());
-
-  //   assert(inboundTokenBalance.gt(totalPrincipal));
-  //   assert(totalInterest.gt(ethers.BigNumber.from(0)));
-  // });
-
   it("players are able to withdraw from the pool", async () => {
     for (let j = 1; j < 5; j++) {
       const inboundTokenBalanceBeforeWithdraw = await daiInstance.balanceOf(accounts[j].address);
