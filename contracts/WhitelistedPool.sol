@@ -28,7 +28,7 @@ contract WhitelistedPool is Pool, MerkleValidator {
         uint256 _maxFlexibleSegmentPaymentAmount,
         uint64 _depositCount,
         uint64 _segmentLength,
-        uint256 _waitingRoundSegmentLength,
+        uint64 _waitingRoundSegmentLength,
         uint256 _segmentPayment,
         uint64 _earlyWithdrawalFee,
         uint64 _customFee,
