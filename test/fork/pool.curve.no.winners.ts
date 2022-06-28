@@ -185,22 +185,22 @@ contract("Deposit Pool with Curve Strategy with no winners", accounts => {
     });
 
     it("players withdraw from contract", async () => {
-      const largeDepositPlayerInboundTokenBalanceBefore = web3.utils.toBN(
+      const player2InboundTokenBalanceBefore = web3.utils.toBN(
         await token.methods.balanceOf(players[2]).call({ from: admin }),
       );
-      const largeDepositPlayerCurveRewardBalanceBefore = web3.utils.toBN(
+      const player2CurveRewardBalanceBefore = web3.utils.toBN(
         await curve.methods.balanceOf(players[2]).call({ from: admin }),
       );
-      const largeDepositPlayerWmaticRewardBalanceBefore = web3.utils.toBN(
+      const player2WmaticRewardBalanceBefore = web3.utils.toBN(
         await wmatic.methods.balanceOf(players[2]).call({ from: admin }),
       );
-      const smallDepositPlayerCurveRewardBalanceBefore = web3.utils.toBN(
+      const player3CurveRewardBalanceBefore = web3.utils.toBN(
         await curve.methods.balanceOf(players[3]).call({ from: admin }),
       );
-      const smallDepositPlayerWmaticRewardBalanceBefore = web3.utils.toBN(
+      const player3WmaticRewardBalanceBefore = web3.utils.toBN(
         await wmatic.methods.balanceOf(players[3]).call({ from: admin }),
       );
-      const smallDepositPlayerInboundTokenBalanceBefore = web3.utils.toBN(
+      const player3InboundTokenBalanceBefore = web3.utils.toBN(
         await token.methods.balanceOf(players[3]).call({ from: admin }),
       );
 
@@ -250,49 +250,38 @@ contract("Deposit Pool with Curve Strategy with no winners", accounts => {
         await wmatic.methods.balanceOf(goodGhosting.address).call({ from: admin }),
       );
 
-      const largeDepositPlayerInboundTokenBalanceAfter = web3.utils.toBN(
+      const player2InboundTokenBalanceAfter = web3.utils.toBN(
         await token.methods.balanceOf(players[2]).call({ from: admin }),
       );
-      const smallDepositPlayerInboundTokenBalanceAfter = web3.utils.toBN(
+      const player3InboundTokenBalanceAfter = web3.utils.toBN(
         await token.methods.balanceOf(players[3]).call({ from: admin }),
       );
-      const largeDepositPlayerCurveRewardBalanceAfter = web3.utils.toBN(
+      const player2CurveRewardBalanceAfter = web3.utils.toBN(
         await curve.methods.balanceOf(players[2]).call({ from: admin }),
       );
-      const largeDepositPlayerWmaticRewardBalanceAfter = web3.utils.toBN(
+      const player2WmaticRewardBalanceAfter = web3.utils.toBN(
         await wmatic.methods.balanceOf(players[2]).call({ from: admin }),
       );
-      const smallDepositPlayerCurveRewardBalanceAfter = web3.utils.toBN(
+      const player3CurveRewardBalanceAfter = web3.utils.toBN(
         await curve.methods.balanceOf(players[3]).call({ from: admin }),
       );
-      const smallDepositPlayerWmaticRewardBalanceAfter = web3.utils.toBN(
+      const player3WmaticRewardBalanceAfter = web3.utils.toBN(
         await wmatic.methods.balanceOf(players[3]).call({ from: admin }),
       );
 
-      const inboundTokenBalanceDiffForPlayer1 = largeDepositPlayerInboundTokenBalanceAfter.sub(
-        largeDepositPlayerInboundTokenBalanceBefore,
-      );
-      const inboundTokenBalanceDiffForPlayer2 = smallDepositPlayerInboundTokenBalanceAfter.sub(
-        smallDepositPlayerInboundTokenBalanceBefore,
-      );
+      const inboundTokenBalanceDiffForPlayer1 = player2InboundTokenBalanceAfter.sub(player2InboundTokenBalanceBefore);
+      const inboundTokenBalanceDiffForPlayer2 = player3InboundTokenBalanceAfter.sub(player3InboundTokenBalanceBefore);
 
-      const curveBalanceDiffForPlayer1 = largeDepositPlayerCurveRewardBalanceAfter.sub(
-        largeDepositPlayerCurveRewardBalanceBefore,
-      );
-      const wmaticBalanceDiffForPlayer1 = largeDepositPlayerWmaticRewardBalanceAfter.sub(
-        largeDepositPlayerWmaticRewardBalanceBefore,
-      );
-      const curveBalanceDiffForPlayer2 = smallDepositPlayerCurveRewardBalanceAfter.sub(
-        smallDepositPlayerCurveRewardBalanceBefore,
-      );
-      const wmaticBalanceDiffForPlayer2 = smallDepositPlayerWmaticRewardBalanceAfter.sub(
-        smallDepositPlayerWmaticRewardBalanceBefore,
-      );
+      const curveBalanceDiffForPlayer1 = player2CurveRewardBalanceAfter.sub(player2CurveRewardBalanceBefore);
+      const wmaticBalanceDiffForPlayer1 = player2WmaticRewardBalanceAfter.sub(player2WmaticRewardBalanceBefore);
+      const curveBalanceDiffForPlayer2 = player3CurveRewardBalanceAfter.sub(player3CurveRewardBalanceBefore);
+      const wmaticBalanceDiffForPlayer2 = player3WmaticRewardBalanceAfter.sub(player3WmaticRewardBalanceBefore);
+
       assert(inboundTokenBalanceDiffForPlayer2.lte(netAmountPaidForSmallDepositPlayer));
       assert(inboundTokenBalanceDiffForPlayer1.lte(netAmountPaidForLargeDepositPlayer));
       assert(curveBalanceDiffForPlayer1.eq(curveBalanceDiffForPlayer2));
       assert(wmaticBalanceDiffForPlayer1.eq(wmaticBalanceDiffForPlayer2));
-      assert(inboundTokenBalanceDiffForPlayer1.lte(inboundTokenBalanceDiffForPlayer2));
+      assert(inboundTokenBalanceDiffForPlayer1.gte(inboundTokenBalanceDiffForPlayer2));
       assert(inboundTokenPoolBalance.eq(web3.utils.toBN(0)));
       assert(curveRewardTokenPoolBalance.gte(web3.utils.toBN(0)));
       assert(wmaticRewardTokenBalance.gte(web3.utils.toBN(0)));
