@@ -625,6 +625,8 @@ export const shouldBehaveLikeJoiningGGPool = async (strategyType: string) => {
 
     // await contracts.goodGhosting.redeemFromExternalPoolForFixedDepositPool(0);
 
+    await contracts.strategy.getAccumulatedRewardTokenAmounts(false);
+
     await contracts.goodGhosting.connect(player1).withdraw(0);
     await contracts.goodGhosting.connect(player2).withdraw(0);
 
@@ -638,6 +640,9 @@ export const shouldBehaveLikeJoiningGGPool = async (strategyType: string) => {
     }
     rewardTokenPlayer1BalanceAfterWithdraw = await rewardTokenInstance.balanceOf(player1.address);
     rewardTokenPlayer2BalanceAfterWithdraw = await rewardTokenInstance.balanceOf(player2.address);
+
+    console.log(rewardTokenPlayer1BalanceAfterWithdraw);
+    console.log(rewardTokenPlayer1BalanceAfterWithdraw);
 
     assert(
       ethers.BigNumber.from(rewardTokenPlayer1BalanceAfterWithdraw).gt(
@@ -3105,9 +3110,19 @@ export const shouldBehaveLikePlayersWithdrawingFromGGPool = async (strategyType:
         .toString();
     }
 
-    await expect(contracts.goodGhosting.connect(player1).withdraw(0))
-      .to.emit(contracts.goodGhosting, "Withdrawal")
-      .withArgs(player1.address, userDeposit.add(playerShare), ethers.BigNumber.from(0), playerRewardAmounts);
+    const result = await contracts.goodGhosting.connect(player1).withdraw(0);
+
+    await expect(result)
+      .to.emit(contracts.goodGhosting, "WithdrawInboundTokens")
+      .withArgs(player1.address, userDeposit.add(playerShare));
+
+    await expect(result)
+      .to.emit(contracts.goodGhosting, "WithdrawIncentiveToken")
+      .withArgs(player1.address, ethers.BigNumber.from(0));
+
+    await expect(result)
+      .to.emit(contracts.goodGhosting, "WithdrawRewardTokens")
+      .withArgs(player1.address, playerRewardAmounts);
   });
 
   if (strategyType === "curve" || strategyType === "mobius") {
@@ -4790,14 +4805,18 @@ export const shouldBehaveLikeVariableDepositPool = async (strategyType: string) 
       const playerRewardAmounts: any = [];
       playerRewardAmounts[0] = rewardDifferenceForPlayer1.toString();
       playerRewardAmounts[1] = governanceTokenBalanceDifferenceForPlayer1.toString();
+
       await expect(result)
-        .to.emit(contracts.goodGhosting, "Withdrawal")
-        .withArgs(
-          player1.address,
-          player1Deposit.add(interestEarnedByPlayer1),
-          ethers.BigNumber.from(0),
-          playerRewardAmounts,
-        );
+        .to.emit(contracts.goodGhosting, "WithdrawInboundTokens")
+        .withArgs(player1.address, player1Deposit.add(interestEarnedByPlayer1));
+
+      await expect(result)
+        .to.emit(contracts.goodGhosting, "WithdrawIncentiveToken")
+        .withArgs(player1.address, ethers.BigNumber.from(0));
+
+      await expect(result)
+        .to.emit(contracts.goodGhosting, "WithdrawRewardTokens")
+        .withArgs(player1.address, playerRewardAmounts);
 
       const player2Deposit = ethers.BigNumber.from(player2Info.amountPaid);
 
@@ -4826,14 +4845,18 @@ export const shouldBehaveLikeVariableDepositPool = async (strategyType: string) 
       const rewardAmounts: any = [];
       rewardAmounts[0] = rewardDifferenceForPlayer2.toString();
       rewardAmounts[1] = governanceTokenBalanceDifferenceForPlayer2.toString();
+
       await expect(result)
-        .to.emit(contracts.goodGhosting, "Withdrawal")
-        .withArgs(
-          player2.address,
-          player2Deposit.add(interestEarnedByPlayer2),
-          ethers.BigNumber.from(0),
-          rewardAmounts,
-        );
+        .to.emit(contracts.goodGhosting, "WithdrawInboundTokens")
+        .withArgs(player2.address, player2Deposit.add(interestEarnedByPlayer2));
+
+      await expect(result)
+        .to.emit(contracts.goodGhosting, "WithdrawIncentiveToken")
+        .withArgs(player2.address, ethers.BigNumber.from(0));
+
+      await expect(result)
+        .to.emit(contracts.goodGhosting, "WithdrawRewardTokens")
+        .withArgs(player2.address, rewardAmounts);
     });
 
     it("2 players join the game with different amounts and deposit those amounts throughout and get interest accordingly on withdraw with admin fees in a curve strategy atricrypto pool", async () => {
@@ -5314,8 +5337,16 @@ export const shouldBehaveLikeVariableDepositPool = async (strategyType: string) 
     }
 
     await expect(result)
-      .to.emit(contracts.goodGhosting, "Withdrawal")
-      .withArgs(player1.address, player1Deposit.add(interestEarnedByPlayer1), ethers.BigNumber.from(0), rewardAmounts);
+      .to.emit(contracts.goodGhosting, "WithdrawInboundTokens")
+      .withArgs(player1.address, player1Deposit.add(interestEarnedByPlayer1));
+
+    await expect(result)
+      .to.emit(contracts.goodGhosting, "WithdrawIncentiveToken")
+      .withArgs(player1.address, ethers.BigNumber.from(0));
+
+    await expect(result)
+      .to.emit(contracts.goodGhosting, "WithdrawRewardTokens")
+      .withArgs(player1.address, rewardAmounts);
 
     const player2Deposit = ethers.BigNumber.from(player2Info.amountPaid);
 
@@ -5356,14 +5387,18 @@ export const shouldBehaveLikeVariableDepositPool = async (strategyType: string) 
     if (strategyType !== "aave" && strategyType !== "aaveV3" && strategyType !== "no_strategy") {
       playerRewardAmounts[1] = governanceTokenBalanceDifferenceForPlayer2.toString();
     }
+
     await expect(result)
-      .to.emit(contracts.goodGhosting, "Withdrawal")
-      .withArgs(
-        player2.address,
-        player2Deposit.add(interestEarnedByPlayer2),
-        ethers.BigNumber.from(0),
-        playerRewardAmounts,
-      );
+      .to.emit(contracts.goodGhosting, "WithdrawInboundTokens")
+      .withArgs(player2.address, player2Deposit.add(interestEarnedByPlayer2));
+
+    await expect(result)
+      .to.emit(contracts.goodGhosting, "WithdrawIncentiveToken")
+      .withArgs(player2.address, ethers.BigNumber.from(0));
+
+    await expect(result)
+      .to.emit(contracts.goodGhosting, "WithdrawRewardTokens")
+      .withArgs(player2.address, playerRewardAmounts);
   });
 
   it("2 players join the game with different amounts and deposit those amounts throughout and get interest accordingly on withdraw with admin fees", async () => {
@@ -5757,8 +5792,17 @@ export const shouldBehaveLikeVariableDepositPool = async (strategyType: string) 
 
       const playerRewardAmounts: any = [];
       playerRewardAmounts[0] = rewardDifferenceForPlayer1.toString();
+
       // the player1Deposit.add(interestEarnedByPlayer1) is very slightly less than the actual value in event hence just checking for the event emitted
-      await expect(result).to.emit(contracts.goodGhosting, "Withdrawal");
+      await expect(result).to.emit(contracts.goodGhosting, "WithdrawInboundTokens");
+
+      await expect(result)
+        .to.emit(contracts.goodGhosting, "WithdrawIncentiveToken")
+        .withArgs(player1.address, ethers.BigNumber.from(0));
+
+      await expect(result)
+        .to.emit(contracts.goodGhosting, "WithdrawRewardTokens")
+        .withArgs(player1.address, playerRewardAmounts);
 
       const player2BalanceBeforeWithdraw = await ethers.provider.getBalance(player2.address);
       const player2RewardBalanceBeforeWithdraw = await contracts.rewardToken.balanceOf(player2.address);
@@ -5774,11 +5818,19 @@ export const shouldBehaveLikeVariableDepositPool = async (strategyType: string) 
       assert(interestEarnedByPlayer2.gt(interestEarnedByPlayer1));
       assert(rewardDifferenceForPlayer2.gt(rewardDifferenceForPlayer1));
 
+      // the player2Deposit.add(interestEarnedByPlayer1) is very slightly less than the actual value in event hence just checking for the event emitted
       const rewardAmounts: any = [];
       rewardAmounts[0] = rewardDifferenceForPlayer2.toString();
 
-      // the player2Deposit.add(interestEarnedByPlayer1) is very slightly less than the actual value in event hence just checking for the event emitted
-      await expect(result).to.emit(contracts.goodGhosting, "Withdrawal");
+      await expect(result).to.emit(contracts.goodGhosting, "WithdrawInboundTokens");
+
+      await expect(result)
+        .to.emit(contracts.goodGhosting, "WithdrawIncentiveToken")
+        .withArgs(player2.address, ethers.BigNumber.from(0));
+
+      await expect(result)
+        .to.emit(contracts.goodGhosting, "WithdrawRewardTokens")
+        .withArgs(player2.address, rewardAmounts);
     });
 
     it("2 players join a game with transactional token with different amounts and get interest accordingly on withdraw", async () => {
@@ -5896,7 +5948,15 @@ export const shouldBehaveLikeVariableDepositPool = async (strategyType: string) 
       rewardAmounts[0] = rewardDifferenceForPlayer1.toString();
 
       // the player1Deposit.add(interestEarnedByPlayer1) is very slightly less than the actual value in event hence just checking for the event emitted
-      await expect(result).to.emit(contracts.goodGhosting, "Withdrawal");
+      await expect(result).to.emit(contracts.goodGhosting, "WithdrawInboundTokens");
+
+      await expect(result)
+        .to.emit(contracts.goodGhosting, "WithdrawIncentiveToken")
+        .withArgs(player1.address, ethers.BigNumber.from(0));
+
+      await expect(result)
+        .to.emit(contracts.goodGhosting, "WithdrawRewardTokens")
+        .withArgs(player1.address, rewardAmounts);
 
       const player2BalanceBeforeWithdraw = await ethers.provider.getBalance(player2.address);
       const player2RewardBalanceBeforeWithdraw = await contracts.rewardToken.balanceOf(player2.address);
@@ -5913,10 +5973,18 @@ export const shouldBehaveLikeVariableDepositPool = async (strategyType: string) 
       assert(rewardDifferenceForPlayer2.gt(rewardDifferenceForPlayer1));
 
       const playerRewardAmounts: any = [];
-      playerRewardAmounts[0] = rewardDifferenceForPlayer1.toString();
+      playerRewardAmounts[0] = rewardDifferenceForPlayer2.toString();
 
       // the player2Deposit.add(interestEarnedByPlayer1) is very slightly less than the actual value in event hence just checking for the event emitted
-      await expect(result).to.emit(contracts.goodGhosting, "Withdrawal");
+      await expect(result).to.emit(contracts.goodGhosting, "WithdrawInboundTokens");
+
+      await expect(result)
+        .to.emit(contracts.goodGhosting, "WithdrawIncentiveToken")
+        .withArgs(player2.address, ethers.BigNumber.from(0));
+
+      await expect(result)
+        .to.emit(contracts.goodGhosting, "WithdrawRewardTokens")
+        .withArgs(player2.address, playerRewardAmounts);
     });
 
     it("players are able to participate in a pool where reward token is same as deposit token", async () => {
