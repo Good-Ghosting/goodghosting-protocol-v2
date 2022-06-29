@@ -1291,7 +1291,10 @@ contract Pool is Ownable, Pausable, ReentrancyGuard {
             // calculating winners share of the incentive amount
             // move to accounting method
             if (totalIncentiveAmount != 0) {
-                _calculateAndUpdateWinnerIncentivesAccounting(playerDepositAmountSharePercentage, playerIndexSharePercentage);
+                _calculateAndUpdateWinnerIncentivesAccounting(
+                    playerDepositAmountSharePercentage,
+                    playerIndexSharePercentage
+                );
             } else {
                 emit WithdrawIncentiveToken(msg.sender, 0);
             }
@@ -1301,11 +1304,13 @@ contract Pool is Ownable, Pausable, ReentrancyGuard {
             // update storage vars since each winner withdraws only funds entitled to them.
 
             cumulativePlayerIndexSum[segment] = cumulativePlayerIndexSum[segment].sub(playerIndexSum);
-            // update var name 
+            // update var name
             if (totalPlayerDepositsPerSegment[segment] < player.netAmountPaid) {
                 totalPlayerDepositsPerSegment[segment] = 0;
             } else {
-                totalPlayerDepositsPerSegment[segment] = totalPlayerDepositsPerSegment[segment].sub(player.netAmountPaid);
+                totalPlayerDepositsPerSegment[segment] = totalPlayerDepositsPerSegment[segment].sub(
+                    player.netAmountPaid
+                );
             }
         } else {
             payout = _calculateAndUpdateNonWinnerAccounting(_impermanentLossShare, player.netAmountPaid);
