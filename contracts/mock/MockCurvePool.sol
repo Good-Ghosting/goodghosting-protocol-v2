@@ -1,12 +1,15 @@
 pragma solidity ^0.8.7;
 
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import "@openzeppelin/contracts/access/Ownable.sol";
 import "./MintableERC20.sol";
 
-contract MockCurvePool is MintableERC20 {
+contract MockCurvePool is MintableERC20, Ownable {
     IERC20 public reserve;
 
     address gauge;
+
+    bool setImpermanentLoss;
 
     constructor(
         string memory name,
@@ -15,6 +18,10 @@ contract MockCurvePool is MintableERC20 {
     ) MintableERC20(name, symbol) {
         reserve = _reserve;
         _mint(msg.sender, 1000 ether);
+    }
+
+    function setILoss() external onlyOwner {
+        setImpermanentLoss = true;
     }
 
     function setGauge(address _gauge) external {
@@ -86,11 +93,19 @@ contract MockCurvePool is MintableERC20 {
     }
 
     function calc_withdraw_one_coin(uint256 _token_amount, int128 i) external view returns (uint256) {
-        return _token_amount;
+        if (setImpermanentLoss) {
+            return _token_amount / 2;
+        } else {
+            return _token_amount;
+        }
     }
 
     function calc_withdraw_one_coin(uint256 _token_amount, uint256 i) external view returns (uint256) {
-        return _token_amount;
+        if (setImpermanentLoss) {
+            return _token_amount / 2;
+        } else {
+            return _token_amount;
+        }
     }
 
     function calc_token_amount(uint256[3] calldata _amounts, bool is_deposit) external view returns (uint256) {

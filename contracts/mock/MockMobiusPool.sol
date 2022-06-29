@@ -1,12 +1,15 @@
 pragma solidity ^0.8.7;
 
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import "@openzeppelin/contracts/access/Ownable.sol";
 import "./MintableERC20.sol";
 
-contract MockMobiusPool is MintableERC20 {
+contract MockMobiusPool is MintableERC20, Ownable {
     IERC20 public reserve;
 
     address gauge;
+
+    bool setImpermanentLoss;
 
     constructor(
         string memory name,
@@ -18,6 +21,10 @@ contract MockMobiusPool is MintableERC20 {
 
     function setGauge(address _gauge) external {
         gauge = _gauge;
+    }
+
+    function setILoss() external onlyOwner {
+        setImpermanentLoss = true;
     }
 
     function drain(uint256 _value) external {
@@ -67,7 +74,11 @@ contract MockMobiusPool is MintableERC20 {
         uint256 tokenAmount,
         uint8 tokenIndex
     ) external view returns (uint256) {
-        return tokenAmount;
+        if (setImpermanentLoss) {
+            return tokenAmount / 2;
+        } else {
+            return tokenAmount;
+        }
     }
 
     function calculateTokenAmount(
