@@ -284,11 +284,13 @@ contract AaveStrategy is Ownable, IStrategy {
     {
         uint256 amount = 0;
         if (!disableRewardTokenClaim) {
+            if (address(incentiveController) != address(0)) {
             // atoken address in v2 is fetched from data provider contract
             // Claims the rewards from the external pool
             address[] memory assets = new address[](1);
             assets[0] = address(aToken);
             amount = incentiveController.getRewardsBalance(assets, address(this));
+            } 
         }
         uint256[] memory amounts = new uint256[](1);
         amounts[0] = amount;
