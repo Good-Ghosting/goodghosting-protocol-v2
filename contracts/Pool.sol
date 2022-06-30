@@ -549,26 +549,22 @@ contract Pool is Ownable, Pausable, ReentrancyGuard {
         // memory vars to avoid SLOADS & for the player rewards share accounting
         IERC20[] memory _rewardTokens = rewardTokens;
         uint256[] memory playerRewards = new uint256[](_rewardTokens.length);
-        uint256[] memory totalRewardAmountsDuringDepositRounds = new uint256[](_rewardTokens.length);
-        uint256[] memory totalRewardAmountsWaitingRounds = new uint256[](_rewardTokens.length);
-        uint256[] memory playerRewardShareAmountDuringDepositRounds = new uint256[](_rewardTokens.length);
-        uint256[] memory playerRewardShareAmountDuringWaitingRounds = new uint256[](_rewardTokens.length);
         for (uint256 i = 0; i < _rewardTokens.length; ) {
             if (address(_rewardTokens[i]) != address(0) && rewardTokenAmounts[i] != 0) {
                 // calculating the reward token amount split b/w waiting & deposit Rounds.
-                totalRewardAmountsDuringDepositRounds[i] = rewardTokenAmounts[i]
+                uint256 totalRewardAmountsDuringDepositRounds[i] = rewardTokenAmounts[i]
                     .mul(depositRoundInterestSharePercentage)
                     .div(MULTIPLIER);
                 // we calculate totalRewardAmountsWaitingRounds by subtracting the rewardTokenAmounts by totalRewardAmountsDuringDepositRounds
-                totalRewardAmountsWaitingRounds[i] = depositRoundInterestSharePercentage == MULTIPLIER
+                uint256 totalRewardAmountsWaitingRounds[i] = depositRoundInterestSharePercentage == MULTIPLIER
                     ? 0
                     : rewardTokenAmounts[i].sub(totalRewardAmountsDuringDepositRounds[i]);
 
                 // calculating the winner reward token amount share split b/w the waiting & deposit rounds.
-                playerRewardShareAmountDuringDepositRounds[i] = totalRewardAmountsDuringDepositRounds[i]
+                uint256 playerRewardShareAmountDuringDepositRounds[i] = totalRewardAmountsDuringDepositRounds[i]
                     .mul(playerIndexSharePercentage)
                     .div(MULTIPLIER);
-                playerRewardShareAmountDuringWaitingRounds[i] = totalRewardAmountsWaitingRounds[i].mul(playerDepositAmountSharePercentage).div(MULTIPLIER);
+                uint256 playerRewardShareAmountDuringWaitingRounds[i] = totalRewardAmountsWaitingRounds[i].mul(playerDepositAmountSharePercentage).div(MULTIPLIER);
 
                 playerRewards[i] =
                     playerRewardShareAmountDuringDepositRounds[i] +
