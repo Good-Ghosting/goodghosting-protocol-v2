@@ -685,7 +685,8 @@ contract Pool is Ownable, Pausable, ReentrancyGuard {
         pure
         returns (bool)
     {
-        for (uint256 i = 0; i < _rewardTokens.length; ) {
+        // starts loop from 1, because first spot of _adminFeeAmount is reserved for admin interest share.
+        for (uint256 i = 1; i < _rewardTokens.length; ) {
             if (_adminFeeAmount[i + 1] != 0) {
                 return true;
             }
@@ -790,11 +791,6 @@ contract Pool is Ownable, Pausable, ReentrancyGuard {
 
             for (uint256 i = 0; i < _rewardTokens.length; ) {
                 rewardTokenAmounts[i] = _grossRewardTokenAmount[i];
-                unchecked {
-                    ++i;
-                }
-            }
-            for (uint256 i = 0; i < _rewardTokens.length; ) {
                 adminFeeAmount[i + 1] = _grossRewardTokenAmount[i];
                 unchecked {
                     ++i;
