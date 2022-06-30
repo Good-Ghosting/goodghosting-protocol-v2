@@ -605,6 +605,8 @@ contract Pool is Ownable, Pausable, ReentrancyGuard {
         uint256 playerDepositAmountSharePercentage,
         uint256 playerIndexSharePercentage
     ) internal {
+        uint256 playerIncentive;
+        if (totalIncentiveAmount != 0) {
         // calculating the incentive amount split b/w waiting & deposit Rounds.
         uint256 incentiveAmountSharedDuringDepositRounds = totalIncentiveAmount
             .mul(depositRoundInterestSharePercentage)
@@ -623,7 +625,7 @@ contract Pool is Ownable, Pausable, ReentrancyGuard {
             ? 0
             : incentiveAmountShareDuringWaitingRound.mul(playerDepositAmountSharePercentage).div(MULTIPLIER);
 
-        uint256 playerIncentive = playerIncentiveShareDuringDepositRounds + playerIncentiveShareDuringWaitingRounds;
+        playerIncentive = playerIncentiveShareDuringDepositRounds + playerIncentiveShareDuringWaitingRounds;
 
         // update storage var since each winner withdraws only funds entitled to them.
         totalIncentiveAmount = totalIncentiveAmount.sub(playerIncentive);
@@ -638,6 +640,7 @@ contract Pool is Ownable, Pausable, ReentrancyGuard {
             }
         } catch (bytes memory reason) {
             emit IncentiveTokenTransferError(reason);
+        }
         }
         // We have to ignore the "check-effects-interactions" pattern here and emit the event
         // only at the end of the function, in order to emit it w/ the correct withdrawal amount.
@@ -1286,17 +1289,12 @@ contract Pool is Ownable, Pausable, ReentrancyGuard {
             strategy.redeem(inboundToken, payout, _minAmount, disableRewardTokenClaim);
 
             // calculating winners share of the incentive amount
-            // move to accounting method
-            if (totalIncentiveAmount != 0) {
-                _calculateAndUpdateWinnerIncentivesAccounting(playerDepositAmountSharePercentage, playerIndexSharePercentage);
-            } else {
-                emit WithdrawIncentiveToken(msg.sender, 0);
-            }
+            _calculateAndUpdateWinnerIncentivesAccounting(playerDepositAmountSharePercentage, playerIndexSharePercentage);
 
+            // calculating winners share of the reward earned from the external protocol deposits/no_strategy
             _calculateAndUpdateWinnerRewardAccounting(playerDepositAmountSharePercentage, playerIndexSharePercentage);
 
             // update storage vars since each winner withdraws only funds entitled to them.
-
             cumulativePlayerIndexSum[segment] = cumulativePlayerIndexSum[segment].sub(playerIndexSum);
             // update var name 
             if (totalPlayerDepositsPerSegment[segment] < player.netAmountPaid) {
