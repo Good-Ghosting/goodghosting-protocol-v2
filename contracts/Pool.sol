@@ -1221,13 +1221,12 @@ contract Pool is Ownable, Pausable, ReentrancyGuard {
             playerIndex[msg.sender][currentSegment] = 0;
         }
 
-        // reduce the cumulativePlayerIndexSum for the segment where the player doing the early withdraw deposited last
-        // remove unchecked
-        unchecked {
-            // FIX - C3 Audit Report
-            cumulativePlayerIndexSum[player.mostRecentSegmentPaid] -= playerIndexSum;
+        // FIX - C3 Audit Report
+        cumulativePlayerIndexSum[player.mostRecentSegmentPaid] -= playerIndexSum;
+        totalPlayerDepositsPerSegment[player.mostRecentSegmentPaid] -= player.netAmountPaid;
 
-            totalPlayerDepositsPerSegment[player.mostRecentSegmentPaid] -= player.netAmountPaid;
+        // reduce the cumulativePlayerIndexSum for the segment where the player doing the early withdraw deposited last
+        unchecked {
             // update winner count
             if (winnerCount != 0 && player.isWinner) {
                 winnerCount -= 1;
