@@ -657,9 +657,7 @@ contract Pool is Ownable, Pausable, ReentrancyGuard {
             // if emergencyWithdraw is enabled & it got enabled during the waiting round then we re-calculate the waiting round period
             // we then get the total durations of the deposit and waiting round and get the % share out of the total duration
             if (_currentSegment == depositCount) {
-                uint64 endOfWaitingRound = waitingRoundSegmentStart +
-                    (uint64(block.timestamp) - waitingRoundSegmentStart);
-                uint64 totalGameDuration = endOfWaitingRound - firstSegmentStart;
+                uint64 totalGameDuration = uint64(block.timestamp) - firstSegmentStart;
                 depositRoundInterestSharePercentage = uint64(
                     (segmentLength * depositCount * MULTIPLIER) / totalGameDuration
                 );
