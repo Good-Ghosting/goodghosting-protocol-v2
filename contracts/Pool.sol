@@ -502,9 +502,8 @@ contract Pool is Ownable, Pausable, ReentrancyGuard {
                 : totalGameInterest.sub(interestAccruedDuringDepositRounds);
 
             // calculating the player interest share split b/w the waiting & deposit rounds.
-            playerInterestAmountDuringWaitingRounds = interestAccruedDuringWaitingRound == 0
-                ? 0
-                : interestAccruedDuringWaitingRound.mul(_playerDepositAmountSharePercentage).div(MULTIPLIER);
+            playerInterestAmountDuringWaitingRounds = interestAccruedDuringWaitingRound.mul(_playerDepositAmountSharePercentage).div(MULTIPLIER);
+            
             playerInterestAmountDuringDepositRounds = interestAccruedDuringDepositRounds
                 .mul(_playerIndexSharePercentage)
                 .div(MULTIPLIER);
@@ -569,9 +568,7 @@ contract Pool is Ownable, Pausable, ReentrancyGuard {
                 playerRewardShareAmountDuringDepositRounds[i] = totalRewardAmountsDuringDepositRounds[i]
                     .mul(playerIndexSharePercentage)
                     .div(MULTIPLIER);
-                playerRewardShareAmountDuringWaitingRounds[i] = totalRewardAmountsWaitingRounds[i] == 0
-                    ? 0
-                    : totalRewardAmountsWaitingRounds[i].mul(playerDepositAmountSharePercentage).div(MULTIPLIER);
+                playerRewardShareAmountDuringWaitingRounds[i] = totalRewardAmountsWaitingRounds[i].mul(playerDepositAmountSharePercentage).div(MULTIPLIER);
 
                 playerRewards[i] =
                     playerRewardShareAmountDuringDepositRounds[i] +
@@ -621,9 +618,7 @@ contract Pool is Ownable, Pausable, ReentrancyGuard {
             uint256 playerIncentiveAmountDuringDepositRounds = incentiveAmountSharedDuringDepositRounds
                 .mul(playerIndexSharePercentage)
                 .div(MULTIPLIER);
-            uint256 playerIncentiveAmountDuringWaitingRounds = incentiveAmountShareDuringWaitingRound == 0
-                ? 0
-                : incentiveAmountShareDuringWaitingRound.mul(playerDepositAmountSharePercentage).div(MULTIPLIER);
+            uint256 playerIncentiveAmountDuringWaitingRounds = incentiveAmountShareDuringWaitingRound.mul(playerDepositAmountSharePercentage).div(MULTIPLIER);
 
             playerIncentive = playerIncentiveAmountDuringDepositRounds + playerIncentiveAmountDuringWaitingRounds;
 
