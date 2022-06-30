@@ -5,9 +5,8 @@ import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/security/Pausable.sol";
 import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-import "@openzeppelin/contracts/utils/math/SafeMath.sol";
 import "./strategies/IStrategy.sol";
-import "hardhat/console.sol";
+// import "hardhat/console.sol";
 
 //*********************************************************************//
 // --------------------------- custom errors ------------------------- //
@@ -54,11 +53,6 @@ error RENOUNCE_OWNERSHIP_NOT_ALLOWED();
 @author Francis Odisi & Viraz Malhotra.
 */
 contract Pool is Ownable, Pausable, ReentrancyGuard {
-    /// using for better readability.
-    using SafeMath for uint256;
-    using SafeMath for uint128;
-    using SafeMath for uint64;
-
     /// @notice Multiplier used for calculating playerIndex to avoid precision issues.
     uint256 public constant MULTIPLIER = 10**6;
 
@@ -600,7 +594,7 @@ contract Pool is Ownable, Pausable, ReentrancyGuard {
         uint256 playerIncentive;
         if (totalIncentiveAmount != 0) {
             // calculating the incentive amount split b/w waiting & deposit Rounds.
-            uint256 incentiveAmountSharedDuringDepositRounds = (totalIncentiveAmount * depositRoundInterestSharePercentage) * MULTIPLIER;
+            uint256 incentiveAmountSharedDuringDepositRounds = (totalIncentiveAmount * depositRoundInterestSharePercentage) / MULTIPLIER;
             // we calculate incentiveAmountShareDuringWaitingRound by subtracting the totalIncentiveAmount by incentiveAmountSharedDuringDepositRounds
             uint256 incentiveAmountShareDuringWaitingRound = depositRoundInterestSharePercentage == MULTIPLIER
                 ? 0
@@ -658,14 +652,14 @@ contract Pool is Ownable, Pausable, ReentrancyGuard {
     @notice
     check if there are any rewards to claim for the admin.
     */
-    function _checkRewardsClaimableByAdmin(uint256[] memory _adminFeeAmount, IERC20[] memory _rewardTokens)
+    function _checkRewardsClaimableByAdmin(uint256[] memory _adminFeeAmount)
         internal
         pure
         returns (bool)
     {
         // starts loop from 1, because first spot of _adminFeeAmount is reserved for admin interest share.
-        for (uint256 i = 1; i < _rewardTokens.length; ) {
-            if (_adminFeeAmount[i + 1] != 0) {
+        for (uint256 i = 1; i < _adminFeeAmount.length; ) {
+            if (_adminFeeAmount[i] != 0) {
                 return true;
             }
             unchecked {
@@ -779,6 +773,7 @@ contract Pool is Ownable, Pausable, ReentrancyGuard {
                     ++i;
                 }
             }
+
         } else if (adminFee != 0) {
             // if admin fee != 0 then the admin get's a share based on the adminFee %
             adminFeeAmount[0] = (_grossInterest * adminFee) / 100;
@@ -948,7 +943,7 @@ contract Pool is Ownable, Pausable, ReentrancyGuard {
         uint256[] memory _rewardTokenAmounts = rewardTokenAmounts;
         uint256[] memory grossRewardTokenAmount = new uint256[](_rewardTokens.length);
         grossRewardTokenAmount = strategy.getAccumulatedRewardTokenAmounts(disableRewardTokenClaim);
-
+        
         // iterate through the reward token array to set the total reward amounts accumulated
         for (uint256 i = 0; i < _rewardTokens.length; ) {
             // the reward calculation is the sum of the current reward amount the remaining rewards being accumulated in the strategy protocols.
@@ -1095,19 +1090,18 @@ contract Pool is Ownable, Pausable, ReentrancyGuard {
 
         // UPDATE - C2 Audit Report - removing redeem method
         _setGlobalPoolParamsForFlexibleDepositPool();
-
         // to avoid SLOAD multiple times
         // UPDATE - A5 Audit Report
         uint256[] memory _adminFeeAmount = adminFeeAmount;
         IERC20[] memory _rewardTokens = rewardTokens;
 
         // flag that indicates if there are any rewards claimable by the admin
-        bool _claimableRewards = _checkRewardsClaimableByAdmin(_adminFeeAmount, _rewardTokens);
+        bool _claimableRewards = _checkRewardsClaimableByAdmin(_adminFeeAmount);
 
         // have to check for both since the rewards, interest accumulated along with the total deposit is withdrawn in a single redeem call
         if (_adminFeeAmount[0] != 0 || _claimableRewards) {
             strategy.redeem(inboundToken, _adminFeeAmount[0], _minAmount, disableRewardTokenClaim);
-
+            
             // need the updated value for the event
             // balance check before transferring the funds
             _adminFeeAmount[0] = _transferFundsSafely(owner(), _adminFeeAmount[0]);
@@ -1119,6 +1113,7 @@ contract Pool is Ownable, Pausable, ReentrancyGuard {
                         if (!success) {
                             revert TOKEN_TRANSFER_FAILURE();
                         }
+
                     }
                     unchecked {
                         ++i;
@@ -1257,6 +1252,7 @@ contract Pool is Ownable, Pausable, ReentrancyGuard {
         // uint64 segmentPaid = emergencyWithdraw ? segment : player.mostRecentSegmentPaid;
 
         if (_isWinner(player, depositCount)) {
+
             (
                 uint256 playerIndexSharePercentage,
                 uint256 playerDepositAmountSharePercentage,
@@ -1283,6 +1279,7 @@ contract Pool is Ownable, Pausable, ReentrancyGuard {
             } else {
                 totalWinnerDepositsPerSegment[segment] -= player.netAmountPaid;
             }
+
         } else {
             payout = _calculateAndUpdateNonWinnerAccounting(_impermanentLossShare, player.netAmountPaid);
             // Withdraws the principal for non-winners
