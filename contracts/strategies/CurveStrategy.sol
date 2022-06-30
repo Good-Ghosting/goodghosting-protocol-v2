@@ -278,7 +278,7 @@ contract CurveStrategy is Ownable, IStrategy {
                 Curve's Atricrypto pool (pool type 1): this contract integrates with other pools
                 and funds sit in those pools. Hence, an approval transaction is required because
                 it is communicating with external contracts
-                */
+            */
             lpToken.approve(address(pool), poolWithdrawAmount);
             pool.remove_liquidity_one_coin(poolWithdrawAmount, uint256(uint128(inboundTokenIndex)), _minAmount);
         }
@@ -353,37 +353,10 @@ contract CurveStrategy is Ownable, IStrategy {
                     Curve's Atricrypto pool (pool type 1): this contract integrates with other pools
                     and funds sit in those pools. Hence, an approval transaction is required because
                     it is communicating with external contracts
-                    */
+            */
             lpToken.approve(address(pool), poolWithdrawAmount);
             pool.remove_liquidity_one_coin(poolWithdrawAmount, uint256(uint128(inboundTokenIndex)), _minAmount);
         }
-        //}
-        // else {
-        //     // passes true to also claim rewards
-        //     gauge.withdraw(gaugeBalance, claimRewards);
-
-        //     uint256 lpTokenBalance = lpToken.balanceOf(address(this));
-        //     if (lpTokenBalance != 0) {
-        //         if (poolType == AAVE_POOL) {
-        //             pool.remove_liquidity_one_coin(
-        //                 lpTokenBalance,
-        //                 inboundTokenIndex,
-        //                 _minAmount,
-        //                 true // redeems underlying coin (dai, usdc, usdt), instead of aTokens
-        //             );
-        //         } else {
-        //             /*
-        //                 Code of curve's aave and curve's atricrypto pools are completely different.
-        //                 Curve's Aave Pool (pool type 0): in this contract, all funds "sit" in the pool's smart contract.
-        //                 Curve's Atricrypto pool (pool type 1): this contract integrates with other pools
-        //                 and funds sit in those pools. Hence, an approval transaction is required because
-        //                 it is communicating with external contracts
-        //                  */
-        //             lpToken.approve(address(pool), lpTokenBalance);
-        //             pool.remove_liquidity_one_coin(lpTokenBalance, uint256(uint128(inboundTokenIndex)), _minAmount);
-        //         }
-        //     }
-        // }
 
         bool success = rewardToken.transfer(msg.sender, rewardToken.balanceOf(address(this)));
         if (!success) {

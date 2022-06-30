@@ -942,14 +942,14 @@ contract Pool is Ownable, Pausable, ReentrancyGuard {
         IERC20[] memory _rewardTokens = rewardTokens;
         uint256[] memory _rewardTokenAmounts = rewardTokenAmounts;
         uint256[] memory grossRewardTokenAmount = new uint256[](_rewardTokens.length);
-        grossRewardTokenAmount = strategy.getAccumulatedRewardTokenAmounts(disableRewardTokenClaim);
+        uint256[] memory accumulatedRewardTokenAmount = strategy.getAccumulatedRewardTokenAmounts(disableRewardTokenClaim);
         
         // iterate through the reward token array to set the total reward amounts accumulated
         for (uint256 i = 0; i < _rewardTokens.length; ) {
             // the reward calculation is the sum of the current reward amount the remaining rewards being accumulated in the strategy protocols.
             // the reason being like totalBalance for every player this is updated and prev. value is used to add any left over value
             if (address(_rewardTokens[i]) != address(0) && inboundToken != address(_rewardTokens[i])) {
-                grossRewardTokenAmount[i] = _rewardTokenAmounts[i] + grossRewardTokenAmount[i];
+                grossRewardTokenAmount[i] = _rewardTokenAmounts[i] + accumulatedRewardTokenAmount[i];
             }
             unchecked {
                 ++i;
