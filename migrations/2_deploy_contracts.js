@@ -7,7 +7,6 @@ const AaveV3StrategyArtifact = artifacts.require("AaveStrategyV3");
 const CurveStrategyArtifact = artifacts.require("CurveStrategy");
 const NoExternalStrategyArtifact = artifacts.require("NoExternalStrategy");
 
-const SafeMathLib = artifacts.require("SafeMath");
 const fs = require("fs");
 const config = require("../deploy.config");
 const providerConfig = require("../providers.config");
@@ -140,8 +139,6 @@ module.exports = function (deployer, network, accounts) {
     ];
 
     // Deploys the Pool Contract
-    await deployer.deploy(SafeMathLib);
-    await deployer.link(SafeMathLib, goodGhostingContract);
     const poolTx = await deployer.deploy(...deploymentArgs);
     const ggInstance = await goodGhostingContract.deployed();
 
