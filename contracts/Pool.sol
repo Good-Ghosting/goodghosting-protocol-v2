@@ -607,40 +607,40 @@ contract Pool is Ownable, Pausable, ReentrancyGuard {
     ) internal {
         uint256 playerIncentive;
         if (totalIncentiveAmount != 0) {
-        // calculating the incentive amount split b/w waiting & deposit Rounds.
-        uint256 incentiveAmountSharedDuringDepositRounds = totalIncentiveAmount
-            .mul(depositRoundInterestSharePercentage)
-            .div(MULTIPLIER);
-        // we calculate incentiveAmountShareDuringWaitingRound by subtracting the totalIncentiveAmount by incentiveAmountSharedDuringDepositRounds
-        uint256 incentiveAmountShareDuringWaitingRound = depositRoundInterestSharePercentage == MULTIPLIER
-            ? 0
-            : totalIncentiveAmount.sub(incentiveAmountSharedDuringDepositRounds);
+            // calculating the incentive amount split b/w waiting & deposit Rounds.
+            uint256 incentiveAmountSharedDuringDepositRounds = totalIncentiveAmount
+                .mul(depositRoundInterestSharePercentage)
+                .div(MULTIPLIER);
+            // we calculate incentiveAmountShareDuringWaitingRound by subtracting the totalIncentiveAmount by incentiveAmountSharedDuringDepositRounds
+            uint256 incentiveAmountShareDuringWaitingRound = depositRoundInterestSharePercentage == MULTIPLIER
+                ? 0
+                : totalIncentiveAmount.sub(incentiveAmountSharedDuringDepositRounds);
 
-        // calculating the winner incentive amount share split b/w the waiting & deposit rounds.
-        // rename
-        uint256 playerIncentiveAmountDuringDepositRounds = incentiveAmountSharedDuringDepositRounds
-            .mul(playerIndexSharePercentage)
-            .div(MULTIPLIER);
-        uint256 playerIncentiveAmountDuringWaitingRounds = incentiveAmountShareDuringWaitingRound == 0
-            ? 0
-            : incentiveAmountShareDuringWaitingRound.mul(playerDepositAmountSharePercentage).div(MULTIPLIER);
+            // calculating the winner incentive amount share split b/w the waiting & deposit rounds.
+            // rename
+            uint256 playerIncentiveAmountDuringDepositRounds = incentiveAmountSharedDuringDepositRounds
+                .mul(playerIndexSharePercentage)
+                .div(MULTIPLIER);
+            uint256 playerIncentiveAmountDuringWaitingRounds = incentiveAmountShareDuringWaitingRound == 0
+                ? 0
+                : incentiveAmountShareDuringWaitingRound.mul(playerDepositAmountSharePercentage).div(MULTIPLIER);
 
-        playerIncentive = playerIncentiveAmountDuringDepositRounds + playerIncentiveAmountDuringWaitingRounds;
+            playerIncentive = playerIncentiveAmountDuringDepositRounds + playerIncentiveAmountDuringWaitingRounds;
 
-        // update storage var since each winner withdraws only funds entitled to them.
-        totalIncentiveAmount = totalIncentiveAmount.sub(playerIncentive);
+            // update storage var since each winner withdraws only funds entitled to them.
+            totalIncentiveAmount = totalIncentiveAmount.sub(playerIncentive);
 
-        // transferring the incentive share to the winner
-        try IERC20(incentiveToken).balanceOf(address(this)) returns (uint256 incentiveTokenBalance) {
-            if (playerIncentive > incentiveTokenBalance) {
-                playerIncentive = incentiveTokenBalance;
-            }
-            try IERC20(incentiveToken).transfer(msg.sender, playerIncentive) {} catch (bytes memory reason) {
+            // transferring the incentive share to the winner
+            try IERC20(incentiveToken).balanceOf(address(this)) returns (uint256 incentiveTokenBalance) {
+                if (playerIncentive > incentiveTokenBalance) {
+                    playerIncentive = incentiveTokenBalance;
+                }
+                try IERC20(incentiveToken).transfer(msg.sender, playerIncentive) {} catch (bytes memory reason) {
+                    emit IncentiveTokenTransferError(reason);
+                }
+            } catch (bytes memory reason) {
                 emit IncentiveTokenTransferError(reason);
             }
-        } catch (bytes memory reason) {
-            emit IncentiveTokenTransferError(reason);
-        }
         }
         // We have to ignore the "check-effects-interactions" pattern here and emit the event
         // only at the end of the function, in order to emit it w/ the correct withdrawal amount.
@@ -974,9 +974,7 @@ contract Pool is Ownable, Pausable, ReentrancyGuard {
             // the reward calculation is the sum of the current reward amount the remaining rewards being accumulated in the strategy protocols.
             // the reason being like totalBalance for every player this is updated and prev. value is used to add any left over value
             if (address(_rewardTokens[i]) != address(0) && inboundToken != address(_rewardTokens[i])) {
-                grossRewardTokenAmount[i] = _rewardTokenAmounts[i].add(
-                    grossRewardTokenAmount[i]
-                );
+                grossRewardTokenAmount[i] = _rewardTokenAmounts[i].add(grossRewardTokenAmount[i]);
             }
             unchecked {
                 ++i;
@@ -1289,18 +1287,23 @@ contract Pool is Ownable, Pausable, ReentrancyGuard {
             strategy.redeem(inboundToken, payout, _minAmount, disableRewardTokenClaim);
 
             // calculating winners share of the incentive amount
-            _calculateAndUpdateWinnerIncentivesAccounting(playerDepositAmountSharePercentage, playerIndexSharePercentage);
+            _calculateAndUpdateWinnerIncentivesAccounting(
+                playerDepositAmountSharePercentage,
+                playerIndexSharePercentage
+            );
 
             // calculating winners share of the reward earned from the external protocol deposits/no_strategy
             _calculateAndUpdateWinnerRewardAccounting(playerDepositAmountSharePercentage, playerIndexSharePercentage);
 
             // update storage vars since each winner withdraws only funds entitled to them.
             cumulativePlayerIndexSum[segment] = cumulativePlayerIndexSum[segment].sub(playerIndexSum);
-            
+
             if (totalWinnerDepositsPerSegment[segment] < player.netAmountPaid) {
                 totalWinnerDepositsPerSegment[segment] = 0;
             } else {
-                totalWinnerDepositsPerSegment[segment] = totalWinnerDepositsPerSegment[segment].sub(player.netAmountPaid);
+                totalWinnerDepositsPerSegment[segment] = totalWinnerDepositsPerSegment[segment].sub(
+                    player.netAmountPaid
+                );
             }
         } else {
             payout = _calculateAndUpdateNonWinnerAccounting(_impermanentLossShare, player.netAmountPaid);
