@@ -242,7 +242,9 @@ contract Pool is Ownable, Pausable, ReentrancyGuard {
 
     event AdminFee(uint256[] adminFeeAmounts);
 
-    event IncentiveTokenTransferError(bytes reason);
+    event ExternalTokenTransferError(bytes reason);
+
+    event ExternalTokenGetBalanceError(bytes reason);
 
     //*********************************************************************//
     // ------------------------- modifiers -------------------------- //
@@ -441,6 +443,19 @@ contract Pool is Ownable, Pausable, ReentrancyGuard {
     // ------------------------- internal methods -------------------------- //
     //*********************************************************************//
 
+    function _transferExternalTokensSafely(address _token, uint256 _amount) internal {
+        try IERC20(_token).balanceOf(address(this)) returns (uint256 tokenBalance) {
+            if (_amount > tokenBalance) {
+                _amount = tokenBalance;
+            }
+        try IERC20(_token).transfer(msg.sender, _amount) {} catch (bytes memory reason) {
+                    emit ExternalTokenTransferError(reason);
+                }
+        } catch (bytes memory reason) {
+                emit ExternalTokenTransferError(reason);
+        }
+    }
+
     function _calculateAndUpdateWinnerInterestAccounting(uint64 segmentPaid, uint64 _segment)
         internal
         returns (
@@ -574,13 +589,8 @@ contract Pool is Ownable, Pausable, ReentrancyGuard {
                 rewardTokenAmounts[i] = rewardTokenAmounts[i].sub(playerRewards[i]);
 
                 // transferring the reward token share to the winner
-                if (playerRewards[i] > IERC20(_rewardTokens[i]).balanceOf(address(this))) {
-                    playerRewards[i] = IERC20(_rewardTokens[i]).balanceOf(address(this));
-                }
-                bool success = IERC20(_rewardTokens[i]).transfer(msg.sender, playerRewards[i]);
-                if (!success) {
-                    revert TOKEN_TRANSFER_FAILURE();
-                }
+                _transferExternalTokensSafely(address(_rewardTokens[i]), playerRewards[i]);
+
             }
             unchecked {
                 ++i;
@@ -622,16 +632,7 @@ contract Pool is Ownable, Pausable, ReentrancyGuard {
             totalIncentiveAmount = totalIncentiveAmount.sub(playerIncentive);
 
             // transferring the incentive share to the winner
-            try IERC20(incentiveToken).balanceOf(address(this)) returns (uint256 incentiveTokenBalance) {
-                if (playerIncentive > incentiveTokenBalance) {
-                    playerIncentive = incentiveTokenBalance;
-                }
-                try IERC20(incentiveToken).transfer(msg.sender, playerIncentive) {} catch (bytes memory reason) {
-                    emit IncentiveTokenTransferError(reason);
-                }
-            } catch (bytes memory reason) {
-                emit IncentiveTokenTransferError(reason);
-            }
+            _transferExternalTokensSafely(address(incentiveToken), playerIncentive);
         }
         // We have to ignore the "check-effects-interactions" pattern here and emit the event
         // only at the end of the function, in order to emit it w/ the correct withdrawal amount.
@@ -741,7 +742,12 @@ contract Pool is Ownable, Pausable, ReentrancyGuard {
         }
         // sets the totalIncentiveAmount if available
         if (address(incentiveToken) != address(0)) {
-            totalIncentiveAmount = IERC20(incentiveToken).balanceOf(address(this));
+            try IERC20(incentiveToken).balanceOf(address(this))returns (uint256 _totalIncentiveAmount) {
+                totalIncentiveAmount = _totalIncentiveAmount;
+            }
+             catch (bytes memory reason) {
+                emit ExternalTokenGetBalanceError(reason);
+            }
         }
         // this condition is added because emit is to only be emitted when redeemed flag is false but this mehtod is called for every player withdrawal in variable deposit pool.
         if (!redeemed) {
@@ -977,7 +983,7 @@ contract Pool is Ownable, Pausable, ReentrancyGuard {
             redeemed = true;
         }
         emit VariablePoolParamsSet(
-            totalBalance,
+            totalGamePrincipal,
             netTotalGamePrincipal,
             totalGameInterest,
             totalIncentiveAmount,
