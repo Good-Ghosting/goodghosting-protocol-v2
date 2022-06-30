@@ -7,7 +7,7 @@ import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/utils/math/SafeMath.sol";
 import "./strategies/IStrategy.sol";
-// import "hardhat/console.sol";
+import "hardhat/console.sol";
 
 //*********************************************************************//
 // --------------------------- custom errors ------------------------- //
@@ -552,23 +552,23 @@ contract Pool is Ownable, Pausable, ReentrancyGuard {
         for (uint256 i = 0; i < _rewardTokens.length; ) {
             if (address(_rewardTokens[i]) != address(0) && rewardTokenAmounts[i] != 0) {
                 // calculating the reward token amount split b/w waiting & deposit Rounds.
-                uint256 totalRewardAmountsDuringDepositRounds[i] = rewardTokenAmounts[i]
+                uint256 totalRewardAmountsDuringDepositRounds = rewardTokenAmounts[i]
                     .mul(depositRoundInterestSharePercentage)
                     .div(MULTIPLIER);
                 // we calculate totalRewardAmountsWaitingRounds by subtracting the rewardTokenAmounts by totalRewardAmountsDuringDepositRounds
-                uint256 totalRewardAmountsWaitingRounds[i] = depositRoundInterestSharePercentage == MULTIPLIER
+                uint256 totalRewardAmountsWaitingRounds = depositRoundInterestSharePercentage == MULTIPLIER
                     ? 0
-                    : rewardTokenAmounts[i].sub(totalRewardAmountsDuringDepositRounds[i]);
+                    : rewardTokenAmounts[i].sub(totalRewardAmountsDuringDepositRounds);
 
                 // calculating the winner reward token amount share split b/w the waiting & deposit rounds.
-                uint256 playerRewardShareAmountDuringDepositRounds[i] = totalRewardAmountsDuringDepositRounds[i]
+                uint256 playerRewardShareAmountDuringDepositRounds = totalRewardAmountsDuringDepositRounds
                     .mul(playerIndexSharePercentage)
                     .div(MULTIPLIER);
-                uint256 playerRewardShareAmountDuringWaitingRounds[i] = totalRewardAmountsWaitingRounds[i].mul(playerDepositAmountSharePercentage).div(MULTIPLIER);
+                uint256 playerRewardShareAmountDuringWaitingRounds = totalRewardAmountsWaitingRounds.mul(playerDepositAmountSharePercentage).div(MULTIPLIER);
 
                 playerRewards[i] =
-                    playerRewardShareAmountDuringDepositRounds[i] +
-                    playerRewardShareAmountDuringWaitingRounds[i];
+                    playerRewardShareAmountDuringDepositRounds +
+                    playerRewardShareAmountDuringWaitingRounds;
 
                 // update storage var since each winner withdraws only funds entitled to them.
                 rewardTokenAmounts[i] = rewardTokenAmounts[i].sub(playerRewards[i]);
@@ -1034,14 +1034,14 @@ contract Pool is Ownable, Pausable, ReentrancyGuard {
     @param _incentiveToken Incentive token address
     */
     function setIncentiveToken(IERC20 _incentiveToken) public onlyOwner whenGameIsNotCompleted {
-        if (address(incentiveToken) != address(0)) {
-            revert INCENTIVE_TOKEN_ALREADY_SET();
-        }
-        if ((inboundToken != address(0) && inboundToken == address(_incentiveToken))) {
+        if (
+            (address(incentiveToken) != address(0)) ||
+            (inboundToken != address(0) && inboundToken == address(_incentiveToken))
+        ) {
             revert INVALID_INCENTIVE_TOKEN();
         }
         // incentiveToken cannot be the same as one of the reward tokens.
-        IERC20[] memory _rewardTokens = strategy.getRewardTokens();
+        IERC20[] memory _rewardTokens = rewardTokens;
         for (uint256 i = 0; i < _rewardTokens.length; ) {
             if ((address(_rewardTokens[i]) != address(0) && address(_rewardTokens[i]) == address(_incentiveToken))) {
                 revert INVALID_INCENTIVE_TOKEN();
