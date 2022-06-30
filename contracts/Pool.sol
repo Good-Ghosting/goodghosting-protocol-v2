@@ -938,10 +938,11 @@ contract Pool is Ownable, Pausable, ReentrancyGuard {
             if (currentSegment != 0 && segmentCounter[currentSegment - 1] != 0) {
                 segmentCounter[currentSegment - 1] -= 1;
             }
-            // updating both totalGamePrincipal & netTotalGamePrincipal to maintain consistency
-            totalGamePrincipal += _depositAmount;
-            netTotalGamePrincipal += _netDepositAmount;
         }
+
+        // updating both totalGamePrincipal & netTotalGamePrincipal to maintain consistency
+        totalGamePrincipal += _depositAmount;
+        netTotalGamePrincipal += _netDepositAmount;
 
         if (!isTransactionalToken) {
             bool success = IERC20(inboundToken).transferFrom(msg.sender, address(strategy), _depositAmount);
