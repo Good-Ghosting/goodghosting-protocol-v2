@@ -101,8 +101,12 @@ contract Pool is Ownable, Pausable, ReentrancyGuard {
     /// @notice winner counter to track no of winners.
     uint64 public winnerCount = 0;
 
-    /// @notice the % share of interest accrued during the total deposit round duration.
-    /// the interest/rewards/incentive accounting is now divided into 2 phases the total deposit round duration in the game & the total waiting round duration
+    /// @notice the % share of interest accrued during the total duration of deposit rounds.
+    /// @dev the interest/rewards/incentive accounting is divided in two phases:
+    ///     a) the total duration of deposit rounds in the game
+    ///     b) the total duration of the waiting round in the game
+    /// These are compared against the total game duration to calculate the weight
+    // of each phase in the interest/rewards/incentive distribution.
     uint64 public depositRoundInterestSharePercentage;
 
     /// @notice Stores the total amount of net interest received in the game.
@@ -184,8 +188,9 @@ contract Pool is Ownable, Pausable, ReentrancyGuard {
     /// @notice Stores info of cumulativePlayerIndexSum for each segment for early exit scenario.
     mapping(uint256 => uint256) public cumulativePlayerIndexSum;
 
-    /// @notice Stores the total deposit by winners in each segment
-    /// we need this for calculating the waiting round share amount of the winners depending on their size of deposir for variable deposit pools
+    /// @notice Stores the total deposited amount by winners in each segment.
+    /// @dev we need this for calculating the waiting round share amount of the
+    /// winners depending on their total deposit size (individual ratio compared to all winners).
     mapping(uint256 => uint256) public totalWinnerDepositsPerSegment;
 
     /// @notice list of players.
@@ -204,12 +209,14 @@ contract Pool is Ownable, Pausable, ReentrancyGuard {
 
     event WithdrawRewardTokens(address indexed player, uint256[] amounts);
 
-    event VariablePoolParamsSet(
+    event UpdateGameStats(
+        uint256 totalBalance,
         uint256 totalGamePrincipal,
         uint256 netTotalGamePrincipal,
         uint256 totalGameInterest,
         uint256 totalIncentiveAmount,
-        uint256[] totalRewardAmounts
+        uint256[] totalRewardAmounts,
+        uint256 impermanentLossShare
     );
 
     event EarlyWithdrawal(
@@ -230,7 +237,7 @@ contract Pool is Ownable, Pausable, ReentrancyGuard {
         uint256 totalBalance,
         uint256 totalGamePrincipal,
         uint256 netTotalGamePricipal,
-        uint256 grossInterest,
+        uint256 totalGameInterest,
         uint256[] grossRewardTokenAmount,
         uint256 totalIncentiveAmount,
         uint256 impermanentLossShare
@@ -238,9 +245,9 @@ contract Pool is Ownable, Pausable, ReentrancyGuard {
 
     event AdminFee(uint256[] adminFeeAmounts);
 
-    event ExternalTokenTransferError(bytes reason);
+    event ExternalTokenTransferError(address indexed token, bytes reason);
 
-    event ExternalTokenGetBalanceError(bytes reason);
+    event ExternalTokenGetBalanceError(address indexed token, bytes reason);
 
     //*********************************************************************//
     // ------------------------- modifiers -------------------------- //
@@ -439,17 +446,26 @@ contract Pool is Ownable, Pausable, ReentrancyGuard {
     // ------------------------- internal methods -------------------------- //
     //*********************************************************************//
 
-    function _transferExternalTokensSafely(address _token, uint256 _amount) internal {
+    function _transferTokenOrContinueOnFailure(address _token, address _to, uint256 _amount) internal returns (uint256) {
         try IERC20(_token).balanceOf(address(this)) returns (uint256 tokenBalance) {
             if (_amount > tokenBalance) {
                 _amount = tokenBalance;
             }
-            try IERC20(_token).transfer(msg.sender, _amount) {} catch (bytes memory reason) {
-                emit ExternalTokenTransferError(reason);
-            }
         } catch (bytes memory reason) {
-            emit ExternalTokenTransferError(reason);
+            _amount = 0;
+            emit ExternalTokenGetBalanceError(_token, reason);
         }
+        if (_amount != 0) {
+            try IERC20(_token).transfer(_to, _amount) returns (bool success) {
+                    if (!success) {
+                        // forces error event to be emitted in case false is returned from ERC20.transfer.
+                        revert TOKEN_TRANSFER_FAILURE();
+                    }
+            } catch (bytes memory reason) {
+                emit ExternalTokenTransferError(_token, reason);
+            }
+        }
+        return _amount;
     }
 
     function _calculateAndUpdateWinnerInterestAccounting(uint64 _segment)
@@ -584,7 +600,12 @@ contract Pool is Ownable, Pausable, ReentrancyGuard {
                 rewardTokenAmounts[i] -= playerRewards[i];
 
                 // transferring the reward token share to the winner
-                _transferExternalTokensSafely(address(_rewardTokens[i]), playerRewards[i]);
+                // updates variable value to make sure on a failure, event is emitted w/ correct value.
+                playerRewards[i] = _transferTokenOrContinueOnFailure(
+                    address(_rewardTokens[i]),
+                    msg.sender,
+                    playerRewards[i]
+                );
             }
             unchecked {
                 ++i;
@@ -625,7 +646,8 @@ contract Pool is Ownable, Pausable, ReentrancyGuard {
             totalIncentiveAmount -= playerIncentive;
 
             // transferring the incentive share to the winner
-            _transferExternalTokensSafely(address(incentiveToken), playerIncentive);
+            // updates variable value to make sure on a failure, event is emitted w/ correct value.
+            playerIncentive = _transferTokenOrContinueOnFailure(address(incentiveToken), msg.sender, playerIncentive);
         }
         // We have to ignore the "check-effects-interactions" pattern here and emit the event
         // only at the end of the function, in order to emit it w/ the correct withdrawal amount.
@@ -684,7 +706,7 @@ contract Pool is Ownable, Pausable, ReentrancyGuard {
     Transfer funds after balance checks to the players / admin.
     */
     // UPDATE - A3 Audit Report
-    function _transferFundsSafely(address _recepient, uint256 _amount) internal returns (uint256) {
+    function _transferFundsSafelyOrFail(address _recepient, uint256 _amount) internal returns (uint256) {
         if (isTransactionalToken) {
             // safety check
             // this scenario is very tricky to mock
@@ -734,7 +756,7 @@ contract Pool is Ownable, Pausable, ReentrancyGuard {
             try IERC20(incentiveToken).balanceOf(address(this)) returns (uint256 _totalIncentiveAmount) {
                 totalIncentiveAmount = _totalIncentiveAmount;
             } catch (bytes memory reason) {
-                emit ExternalTokenGetBalanceError(reason);
+                emit ExternalTokenGetBalanceError(address(incentiveToken), reason);
             }
         }
         // this condition is added because emit is to only be emitted when redeemed flag is false but this mehtod is called for every player withdrawal in variable deposit pool.
@@ -777,6 +799,7 @@ contract Pool is Ownable, Pausable, ReentrancyGuard {
 
             for (uint256 i = 0; i < _rewardTokens.length; ) {
                 rewardTokenAmounts[i] = _grossRewardTokenAmount[i];
+                // first slot is reserved for admin interest amount, so starts at 1.
                 adminFeeAmount[i + 1] = _grossRewardTokenAmount[i];
                 unchecked {
                     ++i;
@@ -971,12 +994,14 @@ contract Pool is Ownable, Pausable, ReentrancyGuard {
             _calculateAndSetAdminAccounting(grossInterest, grossRewardTokenAmount);
             redeemed = true;
         }
-        emit VariablePoolParamsSet(
+        emit UpdateGameStats(
+            totalBalance,
             totalGamePrincipal,
             netTotalGamePrincipal,
             totalGameInterest,
             totalIncentiveAmount,
-            _rewardTokenAmounts
+            _rewardTokenAmounts,
+            impermanentLossShare
         );
     }
 
@@ -1113,15 +1138,17 @@ contract Pool is Ownable, Pausable, ReentrancyGuard {
 
             // need the updated value for the event
             // balance check before transferring the funds
-            _adminFeeAmount[0] = _transferFundsSafely(owner(), _adminFeeAmount[0]);
+            _adminFeeAmount[0] = _transferFundsSafelyOrFail(owner(), _adminFeeAmount[0]);
 
             if (_claimableRewards) {
                 for (uint256 i = 0; i < _rewardTokens.length; ) {
                     if (address(_rewardTokens[i]) != address(0)) {
-                        bool success = _rewardTokens[i].transfer(owner(), _adminFeeAmount[i + 1]);
-                        if (!success) {
-                            revert TOKEN_TRANSFER_FAILURE();
-                        }
+                        // updates variable value to make sure on a failure, event is emitted w/ correct value.
+                        _adminFeeAmount[i + 1] = _transferTokenOrContinueOnFailure(
+                            address(_rewardTokens[i]),
+                            owner(),
+                            _adminFeeAmount[i + 1]
+                        );
                     }
                     unchecked {
                         ++i;
@@ -1130,19 +1157,22 @@ contract Pool is Ownable, Pausable, ReentrancyGuard {
             }
         }
 
+        uint256 _adminIncentiveAmount;
         // winnerCount will always have the correct number of winners fetched from segment counter if emergency withdraw is enabled.
         // UPDATE - N2 Audit Report
         if (winnerCount == 0) {
             if (totalIncentiveAmount != 0) {
-                bool success = IERC20(incentiveToken).transfer(owner(), totalIncentiveAmount);
-                if (!success) {
-                    revert TOKEN_TRANSFER_FAILURE();
-                }
+                // updates variable value to make sure on a failure, event is emitted w/ correct value.
+                _adminIncentiveAmount = _transferTokenOrContinueOnFailure(
+                    address(incentiveToken),
+                    owner(),
+                    totalIncentiveAmount
+                );
             }
         }
 
         // emitting it here since to avoid duplication made the if block common for incentive and reward tokens
-        emit AdminWithdrawal(owner(), totalGameInterest, totalIncentiveAmount, _adminFeeAmount);
+        emit AdminWithdrawal(owner(), totalGameInterest, _adminIncentiveAmount, _adminFeeAmount);
     }
 
     /**
@@ -1202,10 +1232,10 @@ contract Pool is Ownable, Pausable, ReentrancyGuard {
         }
 
         // FIX - C3 Audit Report
+        // reduce the cumulativePlayerIndexSum for the segment where the player doing the early withdraw deposited last
         cumulativePlayerIndexSum[player.mostRecentSegmentPaid] -= playerIndexSum;
         totalWinnerDepositsPerSegment[player.mostRecentSegmentPaid] -= player.netAmountPaid;
 
-        // reduce the cumulativePlayerIndexSum for the segment where the player doing the early withdraw deposited last
         unchecked {
             // update winner count
             if (winnerCount != 0 && player.isWinner) {
@@ -1222,7 +1252,7 @@ contract Pool is Ownable, Pausable, ReentrancyGuard {
         strategy.earlyWithdraw(inboundToken, withdrawAmount, _minAmount);
 
         // balance check before transferring the funds
-        uint256 actualTransferredAmount = _transferFundsSafely(msg.sender, withdrawAmount);
+        uint256 actualTransferredAmount = _transferFundsSafelyOrFail(msg.sender, withdrawAmount);
 
         // We have to ignore the "check-effects-interactions" pattern here and emit the event
         // only at the end of the function, in order to emit it w/ the correct withdrawal amount.
@@ -1257,7 +1287,6 @@ contract Pool is Ownable, Pausable, ReentrancyGuard {
 
         // determining last game segment considering the possibility of emergencyWithdraw
         uint64 segment = depositCount == 0 ? 0 : uint64(depositCount - 1);
-        // uint64 segmentPaid = emergencyWithdraw ? segment : player.mostRecentSegmentPaid;
 
         if (_isWinner(player, depositCount)) {
             (
@@ -1292,6 +1321,7 @@ contract Pool is Ownable, Pausable, ReentrancyGuard {
             strategy.redeem(inboundToken, payout, _minAmount, disableRewardTokenClaim);
         }
 
+        // sets withdrawalSegment with the value of the "first segment after the game ends".
         player.withdrawalSegment = uint64(segment + 2);
         if (_impermanentLossShare != 0) {
             // resetting I.Loss Share % after every withdrawal to be consistent
@@ -1307,7 +1337,7 @@ contract Pool is Ownable, Pausable, ReentrancyGuard {
 
         // sending the inbound token amount i.e principal + interest to the winners and just the principal in case of players
         // adding a balance safety check to ensure the tx does not revert in case of impermanent loss
-        uint256 actualTransferredAmount = _transferFundsSafely(msg.sender, payout);
+        uint256 actualTransferredAmount = _transferFundsSafelyOrFail(msg.sender, payout);
 
         // We have to ignore the "check-effects-interactions" pattern here and emit the event
         // only at the end of the function, in order to emit it w/ the correct withdrawal amount.
