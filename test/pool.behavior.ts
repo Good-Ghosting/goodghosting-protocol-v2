@@ -2240,6 +2240,187 @@ export const shouldBehaveLikePlayersWithdrawingFromGGPool = async (strategyType:
     assert(redeemed);
   });
 
+  it("makes sure the player that withdraws first before funds are redeemed from external pool gets interest based on their deposit/join timeline (if winner) & the player that withdraws last get's extra funds too", async () => {
+    const accounts = await ethers.getSigners();
+    const deployer = accounts[0];
+
+    const player1 = accounts[2];
+    const player2 = accounts[3];
+
+    await joinGame(contracts.goodGhosting, contracts.inboundToken, player2, segmentPayment, segmentPayment);
+    await joinGame(contracts.goodGhosting, contracts.inboundToken, player1, segmentPayment, segmentPayment);
+
+    for (let index = 1; index < depositCount; index++) {
+      if (index == 2) {
+        await ethers.provider.send("evm_increaseTime", [segmentLength / 2]);
+        await ethers.provider.send("evm_mine", []);
+      } else {
+        await ethers.provider.send("evm_increaseTime", [segmentLength]);
+        await ethers.provider.send("evm_mine", []);
+      }
+      await makeDeposit(contracts.goodGhosting, contracts.inboundToken, player2, segmentPayment, segmentPayment);
+      if (index == 1) {
+        await ethers.provider.send("evm_increaseTime", [segmentLength / 2]);
+        await ethers.provider.send("evm_mine", []);
+      }
+      await makeDeposit(contracts.goodGhosting, contracts.inboundToken, player1, segmentPayment, segmentPayment);
+    }
+    // above, it accounted for 1st deposit window, and then the loop runs till depositCount - 1.
+    // now, we move 2 more segments (depositCount-1 and depositCount) to complete the game.
+    await ethers.provider.send("evm_increaseTime", [segmentLength]);
+    await ethers.provider.send("evm_mine", []);
+
+    const waitingRoundLength = await contracts.goodGhosting.waitingRoundSegmentLength();
+    await ethers.provider.send("evm_increaseTime", [parseInt(waitingRoundLength.toString())]);
+    await ethers.provider.send("evm_mine", []);
+
+    await mintTokens(contracts.inboundToken, deployer.address);
+    await mintTokens(contracts.inboundToken, deployer.address);
+
+    if (strategyType === "aave" || strategyType === "aaveV3") {
+      await contracts.inboundToken
+        .connect(deployer)
+        .approve(contracts.lendingPool.address, ethers.utils.parseEther("100000"));
+      await contracts.lendingPool
+        .connect(deployer)
+        .deposit(contracts.inboundToken.address, ethers.utils.parseEther("100000"), contracts.lendingPool.address, 0);
+      const aToken = new ERC20__factory(deployer).attach(await contracts.lendingPool.getLendingPool());
+
+      await aToken.transfer(contracts.strategy.address, ethers.utils.parseEther("100000"));
+    } else if (strategyType === "curve") {
+      await contracts.inboundToken
+        .connect(deployer)
+        .approve(contracts.curvePool.address, ethers.utils.parseEther("100000"));
+      await contracts.curvePool.connect(deployer).send_liquidity(ethers.utils.parseEther("100000"));
+      await contracts.curvePool
+        .connect(deployer)
+        .approve(contracts.curveGauge.address, ethers.utils.parseEther("100000"));
+      await contracts.curveGauge.connect(deployer).deposit(ethers.utils.parseEther("100000"));
+      await contracts.curveGauge
+        .connect(deployer)
+        .transfer(contracts.strategy.address, ethers.utils.parseEther("100000"));
+    } else if (strategyType === "mobius") {
+      contracts.rewardToken = contracts.minter;
+      await contracts.inboundToken
+        .connect(deployer)
+        .approve(contracts.mobiPool.address, ethers.utils.parseEther("100000"));
+      await contracts.mobiPool.connect(deployer).send_liquidity(ethers.utils.parseEther("100000"));
+      await contracts.mobiPool
+        .connect(deployer)
+        .approve(contracts.mobiGauge.address, ethers.utils.parseEther("100000"));
+      await contracts.mobiGauge.connect(deployer).deposit(ethers.utils.parseEther("100000"));
+      await contracts.mobiGauge
+        .connect(deployer)
+        .transfer(contracts.strategy.address, ethers.utils.parseEther("100000"));
+    }
+
+    const rewardTokenInstance = await getRewardTokenInstance(contracts.strategy, player1);
+    let governanceTokenPlayer1BalanceBeforeWithdraw,
+      governanceTokenPlayer2BalanceBeforeWithdraw,
+      governanceTokenPlayer2BalanceAfterWithdraw,
+      governanceTokenPlayer1BalanceAfterWithdraw;
+    const rewardTokenPlayer1BalanceBeforeWithdraw = await rewardTokenInstance.balanceOf(player1.address);
+    const rewardTokenPlayer2BalanceBeforeWithdraw = await rewardTokenInstance.balanceOf(player2.address);
+
+    if (strategyType === "curve") {
+      governanceTokenPlayer1BalanceBeforeWithdraw = await contracts.curve.balanceOf(player1.address);
+      governanceTokenPlayer2BalanceBeforeWithdraw = await contracts.curve.balanceOf(player2.address);
+    } else if (strategyType === "mobius") {
+      contracts.rewardToken = contracts.minter;
+      governanceTokenPlayer1BalanceBeforeWithdraw = await contracts.mobi.balanceOf(player1.address);
+      governanceTokenPlayer2BalanceBeforeWithdraw = await contracts.mobi.balanceOf(player2.address);
+    }
+
+    const player2BeforeWithdrawBalance = await contracts.inboundToken.balanceOf(player2.address);
+    await contracts.goodGhosting.connect(player2).withdraw(0);
+    const player2PostWithdrawBalance = await contracts.inboundToken.balanceOf(player2.address);
+    const player2WithdrawAmount = player2PostWithdrawBalance.sub(player2BeforeWithdrawBalance);
+    console.log(player2WithdrawAmount.toString());
+    await contracts.goodGhosting.adminFeeWithdraw(0);
+
+    //generate extra rewards
+    if (strategyType === "aave" || strategyType === "aaveV3") {
+      await contracts.inboundToken
+        .connect(deployer)
+        .approve(contracts.lendingPool.address, ethers.utils.parseEther("100000"));
+      await contracts.lendingPool
+        .connect(deployer)
+        .deposit(contracts.inboundToken.address, ethers.utils.parseEther("100000"), contracts.lendingPool.address, 0);
+      const aToken = new ERC20__factory(deployer).attach(await contracts.lendingPool.getLendingPool());
+
+      await aToken.transfer(contracts.strategy.address, ethers.utils.parseEther("100000"));
+    } else if (strategyType === "curve") {
+      await contracts.inboundToken
+        .connect(deployer)
+        .approve(contracts.curvePool.address, ethers.utils.parseEther("100000"));
+      await contracts.curvePool.connect(deployer).send_liquidity(ethers.utils.parseEther("100000"));
+      await contracts.curvePool
+        .connect(deployer)
+        .approve(contracts.curveGauge.address, ethers.utils.parseEther("100000"));
+      await contracts.curveGauge.connect(deployer).deposit(ethers.utils.parseEther("100000"));
+      await contracts.curveGauge
+        .connect(deployer)
+        .transfer(contracts.strategy.address, ethers.utils.parseEther("100000"));
+    } else if (strategyType === "mobius") {
+      contracts.rewardToken = contracts.minter;
+      await contracts.inboundToken
+        .connect(deployer)
+        .approve(contracts.mobiPool.address, ethers.utils.parseEther("100000"));
+      await contracts.mobiPool.connect(deployer).send_liquidity(ethers.utils.parseEther("100000"));
+      await contracts.mobiPool
+        .connect(deployer)
+        .approve(contracts.mobiGauge.address, ethers.utils.parseEther("100000"));
+      await contracts.mobiGauge.connect(deployer).deposit(ethers.utils.parseEther("100000"));
+      await contracts.mobiGauge
+        .connect(deployer)
+        .transfer(contracts.strategy.address, ethers.utils.parseEther("100000"));
+    }
+
+    const player1BeforeWithdrawBalance = await contracts.inboundToken.balanceOf(player1.address);
+    await contracts.goodGhosting.connect(player1).withdraw(0);
+    const player1PostWithdrawBalance = await contracts.inboundToken.balanceOf(player1.address);
+    const player1WithdrawAmount = player1PostWithdrawBalance.sub(player1BeforeWithdrawBalance);
+    console.log(player1WithdrawAmount.toString());
+
+    const rewardTokenPlayer1BalanceAfterWithdraw = await rewardTokenInstance.balanceOf(player1.address);
+    const rewardTokenPlayer2BalanceAfterWithdraw = await rewardTokenInstance.balanceOf(player2.address);
+
+    if (strategyType === "curve") {
+      governanceTokenPlayer1BalanceAfterWithdraw = await contracts.curve.balanceOf(player1.address);
+      governanceTokenPlayer2BalanceAfterWithdraw = await contracts.curve.balanceOf(player2.address);
+    } else if (strategyType === "mobius") {
+      contracts.rewardToken = contracts.minter;
+      governanceTokenPlayer1BalanceAfterWithdraw = await contracts.mobi.balanceOf(player1.address);
+      governanceTokenPlayer2BalanceAfterWithdraw = await contracts.mobi.balanceOf(player2.address);
+    }
+
+    const rewardBalanceDiffFroPlayer1 = rewardTokenPlayer1BalanceAfterWithdraw.sub(
+      rewardTokenPlayer1BalanceBeforeWithdraw,
+    );
+    const rewardBalanceDiffFroPlayer2 = rewardTokenPlayer2BalanceAfterWithdraw.sub(
+      rewardTokenPlayer2BalanceBeforeWithdraw,
+    );
+    if (strategyType == "curve" || strategyType == "mobius") {
+      const governanceTokenBalanceDiffFroPlayer1 = governanceTokenPlayer1BalanceAfterWithdraw.sub(
+        governanceTokenPlayer1BalanceBeforeWithdraw,
+      );
+      const governanceTokenBalanceDiffFroPlayer2 = governanceTokenPlayer2BalanceAfterWithdraw.sub(
+        governanceTokenPlayer2BalanceBeforeWithdraw,
+      );
+      // though player 1 withdraws late but more rewards accrued over time and hence they get more share of the rewards
+      assert(governanceTokenBalanceDiffFroPlayer2.lt(governanceTokenBalanceDiffFroPlayer1));
+    }
+
+    assert(rewardBalanceDiffFroPlayer2.lt(rewardBalanceDiffFroPlayer1));
+
+    // both players are winners, but player 2 made deposits before player 1 so it gets slightly higher interest.
+    if (strategyType !== "no_strategy") {
+      assert(player2WithdrawAmount.gt(player1WithdrawAmount));
+    } else {
+      assert(player2WithdrawAmount.eq(player1WithdrawAmount));
+    }
+  });
+
   it("makes sure the player that withdraws first before funds are redeemed from external pool gets interest based on their deposit/join timeline (if winner)", async () => {
     const accounts = await ethers.getSigners();
     const deployer = accounts[0];
@@ -2315,8 +2496,8 @@ export const shouldBehaveLikePlayersWithdrawingFromGGPool = async (strategyType:
     const player1Info = await contracts.goodGhosting.players(player1.address);
     const player2Info = await contracts.goodGhosting.players(player2.address);
 
-    let sumPlayer1: number = 0;
-    let sumPlayer2: number = 0;
+    let sumPlayer1: any;
+    let sumPlayer2: any;
 
     for (let i = 0; i <= player1Info.mostRecentSegmentPaid; i++) {
       let index1 = await contracts.goodGhosting.playerIndex(player1.address, i);
@@ -2333,6 +2514,8 @@ export const shouldBehaveLikePlayersWithdrawingFromGGPool = async (strategyType:
       console.log(index2.toString());
       console.log("sum2", sumPlayer2.toString());
     }
+
+    assert(ethers.BigNumber.from(sumPlayer2).gt(ethers.BigNumber.from(sumPlayer1)));
 
     const player1BeforeWithdrawBalance = await contracts.inboundToken.balanceOf(player1.address);
     await contracts.goodGhosting.connect(player1).withdraw(0);
