@@ -6,6 +6,8 @@ import "@openzeppelin/contracts/security/Pausable.sol";
 import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "./strategies/IStrategy.sol";
+// import "hardhat/console.sol";
+
 //*********************************************************************//
 // --------------------------- custom errors ------------------------- //
 //*********************************************************************//
@@ -826,13 +828,11 @@ contract Pool is Ownable, Pausable, ReentrancyGuard {
         uint256[] memory _adminFeeAmount = adminFeeAmount;
         // UPDATE - N2 Audit Report
         // since players can
+
         if (adminFeeSet) {
             if (adminWithdraw) {
                     totalGameInterest = _grossInterest;
                     rewardTokenAmounts = _grossRewardTokenAmount;
-                // for (uint256 i = 0; i < _rewardTokens.length; ) {
-                //     rewardTokenAmounts[i] = _grossRewardTokenAmount[i];
-                // }
             } else {
                 if (_grossInterest > _adminFeeAmount[0]) {
                     totalGameInterest = (_grossInterest - _adminFeeAmount[0]);
@@ -842,6 +842,7 @@ contract Pool is Ownable, Pausable, ReentrancyGuard {
                     if (_grossRewardTokenAmount[i] > _adminFeeAmount[i + 1]) {
                         rewardTokenAmounts[i] = _grossRewardTokenAmount[i] - _adminFeeAmount[i + 1];
                     }
+                    unchecked { ++i; }
                 }
             }
         } else {
@@ -1048,6 +1049,7 @@ contract Pool is Ownable, Pausable, ReentrancyGuard {
         }
         // gets the grossInterest after updating the game accounting
         uint256 grossInterest = _calculateAndUpdateGameAccounting(totalBalance, grossRewardTokenAmount);
+
         _calculateAndSetAdminAccounting(grossInterest, grossRewardTokenAmount);
         adminFeeSet = true;
     
