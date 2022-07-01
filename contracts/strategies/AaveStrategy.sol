@@ -247,7 +247,7 @@ contract AaveStrategy is Ownable, IStrategy {
                 uint256 claimableRewards = incentiveController.getRewardsBalance(assets, address(this));
                 // moola the celo version of aave does not have the incentive controller logic
                 if (claimableRewards != 0) {
-                        incentiveController.claimRewards(assets, claimableRewards, address(this));
+                    incentiveController.claimRewards(assets, claimableRewards, address(this));
                 }
                 // moola the celo version of aave does not have the incentive controller logic
                 if (rewardToken.balanceOf(address(this)) != 0) {
