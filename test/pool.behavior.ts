@@ -10,7 +10,6 @@ import {
   unableToJoinGame,
   joinGame,
   makeDeposit,
-  redeem,
   shouldNotBeAbleToDeposit,
   joinGamePaySegmentsAndComplete,
   advanceToEndOfGame,
@@ -1631,7 +1630,7 @@ export const shouldBehaveLikePlayersWithdrawingFromGGPool = async (strategyType:
   });
 
   it("reverts if admin tries to set incentive token same as the reward token", async () => {
-    if (strategyType == "no_strategy") {
+    if (strategyType == "mobius") {
       contracts.rewardToken = contracts.minter;
     }
     await expect(contracts.goodGhosting.setIncentiveToken(contracts.rewardToken.address)).to.be.revertedWith(
@@ -1756,10 +1755,18 @@ export const shouldBehaveLikePlayersWithdrawingFromGGPool = async (strategyType:
         await makeDeposit(contracts.goodGhosting, contracts.inboundToken, player2, segmentPayment, segmentPayment);
       }
     }
+    await contracts.goodGhosting.enableEmergencyWithdraw();
 
-    // Simulate some interest by giving the contract more aDAI
+    // above, it accounted for 1st deposit window, and then the loop runs till depositCount - 1.
+    // now, we move 2 more segments (depositCount-1 and depositCount) to complete the game.
+    await ethers.provider.send("evm_increaseTime", [segmentLength]);
+    await ethers.provider.send("evm_mine", []);
+
+    const waitingRoundLength = await contracts.goodGhosting.waitingRoundSegmentLength();
+    await ethers.provider.send("evm_increaseTime", [parseInt(waitingRoundLength.toString())]);
+    await ethers.provider.send("evm_mine", []);
+
     await mintTokens(contracts.inboundToken, deployer.address);
-
     if (strategyType === "aave" || strategyType === "aaveV3") {
       await contracts.inboundToken
         .connect(deployer)
@@ -1774,14 +1781,16 @@ export const shouldBehaveLikePlayersWithdrawingFromGGPool = async (strategyType:
       await contracts.inboundToken
         .connect(deployer)
         .approve(contracts.curvePool.address, ethers.utils.parseEther("100000"));
-      await contracts.curvePool.connect(deployer).send_liquidity(ethers.utils.parseEther("1000"));
-
-      const poolTokenBalance = await contracts.curvePool.balanceOf(deployer.address);
-
-      await contracts.curvePool.connect(deployer).transfer(contracts.strategy.address, poolTokenBalance.toString());
+      await contracts.curvePool.connect(deployer).send_liquidity(ethers.utils.parseEther("100000"));
+      await contracts.curvePool
+        .connect(deployer)
+        .approve(contracts.curveGauge.address, ethers.utils.parseEther("100000"));
+      await contracts.curveGauge.connect(deployer).deposit(ethers.utils.parseEther("100000"));
+      await contracts.curveGauge
+        .connect(deployer)
+        .transfer(contracts.strategy.address, ethers.utils.parseEther("100000"));
     } else if (strategyType === "mobius") {
       contracts.rewardToken = contracts.minter;
-
       await contracts.inboundToken
         .connect(deployer)
         .approve(contracts.mobiPool.address, ethers.utils.parseEther("100000"));
@@ -1794,13 +1803,6 @@ export const shouldBehaveLikePlayersWithdrawingFromGGPool = async (strategyType:
         .connect(deployer)
         .transfer(contracts.strategy.address, ethers.utils.parseEther("100000"));
     }
-
-    await ethers.provider.send("evm_increaseTime", [segmentLength]);
-    await ethers.provider.send("evm_mine", []);
-    const waitingRoundLength = await contracts.goodGhosting.waitingRoundSegmentLength();
-    await ethers.provider.send("evm_increaseTime", [parseInt(waitingRoundLength.toString()) / 2]);
-    await ethers.provider.send("evm_mine", []);
-    await contracts.goodGhosting.enableEmergencyWithdraw();
 
     if (strategyType === "curve") {
       governanceTokenPlayer1BalanceBeforeWithdraw = await contracts.curve.balanceOf(player1.address);
@@ -2114,9 +2116,7 @@ export const shouldBehaveLikePlayersWithdrawingFromGGPool = async (strategyType:
       segmentPayment,
     );
 
-    // Simulate some interest by giving the contract more aDAI
     await mintTokens(contracts.inboundToken, deployer.address);
-
     if (strategyType === "aave" || strategyType === "aaveV3") {
       await contracts.inboundToken
         .connect(deployer)
@@ -2131,14 +2131,16 @@ export const shouldBehaveLikePlayersWithdrawingFromGGPool = async (strategyType:
       await contracts.inboundToken
         .connect(deployer)
         .approve(contracts.curvePool.address, ethers.utils.parseEther("100000"));
-      await contracts.curvePool.connect(deployer).send_liquidity(ethers.utils.parseEther("1000"));
-
-      const poolTokenBalance = await contracts.curvePool.balanceOf(deployer.address);
-
-      await contracts.curvePool.connect(deployer).transfer(contracts.strategy.address, poolTokenBalance.toString());
+      await contracts.curvePool.connect(deployer).send_liquidity(ethers.utils.parseEther("100000"));
+      await contracts.curvePool
+        .connect(deployer)
+        .approve(contracts.curveGauge.address, ethers.utils.parseEther("100000"));
+      await contracts.curveGauge.connect(deployer).deposit(ethers.utils.parseEther("100000"));
+      await contracts.curveGauge
+        .connect(deployer)
+        .transfer(contracts.strategy.address, ethers.utils.parseEther("100000"));
     } else if (strategyType === "mobius") {
       contracts.rewardToken = contracts.minter;
-
       await contracts.inboundToken
         .connect(deployer)
         .approve(contracts.mobiPool.address, ethers.utils.parseEther("100000"));
@@ -2151,6 +2153,7 @@ export const shouldBehaveLikePlayersWithdrawingFromGGPool = async (strategyType:
         .connect(deployer)
         .transfer(contracts.strategy.address, ethers.utils.parseEther("100000"));
     }
+
     // Expect Player1 to get back the deposited amount
     const player1PreWithdrawBalance = await contracts.inboundToken.balanceOf(player1.address);
     let playerMaticBalanceBeforeWithdraw = await contracts.rewardToken.balanceOf(player1.address);
@@ -2191,15 +2194,6 @@ export const shouldBehaveLikePlayersWithdrawingFromGGPool = async (strategyType:
       contracts.goodGhosting,
       segmentPayment,
     );
-    // await redeem(
-    //   contracts.goodGhosting,
-    //   contracts.inboundToken,
-    //   player1,
-    //   segmentPayment,
-    //   depositCount,
-    //   segmentLength,
-    //   segmentPayment,
-    // );
 
     await contracts.goodGhosting.connect(player1).withdraw(0);
     await expect(contracts.goodGhosting.connect(player1).withdraw(0)).to.be.revertedWith("PLAYER_ALREADY_WITHDREW()");
@@ -2208,31 +2202,12 @@ export const shouldBehaveLikePlayersWithdrawingFromGGPool = async (strategyType:
   it("reverts if a non-player tries to withdraw", async () => {
     const accounts = await ethers.getSigners();
     const deployer = accounts[0];
-    const player1 = accounts[2];
-    // await redeem(
-    //   contracts.goodGhosting,
-    //   contracts.inboundToken,
-    //   player1,
-    //   segmentPayment,
-    //   depositCount,
-    //   segmentLength,
-    //   segmentPayment,
-    // );
     await expect(contracts.goodGhosting.connect(deployer).withdraw(0)).to.be.revertedWith("PLAYER_DOES_NOT_EXIST()");
   });
 
   it("sets withdrawn flag to true after user withdraws", async () => {
     const accounts = await ethers.getSigners();
     const player1 = accounts[2];
-    // await redeem(
-    //   contracts.goodGhosting,
-    //   contracts.inboundToken,
-    //   player1,
-    //   segmentPayment,
-    //   depositCount,
-    //   segmentLength,
-    //   segmentPayment,
-    // );
     await joinGamePaySegmentsAndNotComplete(
       contracts.inboundToken,
       player1,
