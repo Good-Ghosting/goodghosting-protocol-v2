@@ -4314,7 +4314,6 @@ export const shouldBehaveLikeAdminWithdrawingFeesFromGGPoolWithFeePercentis0 = a
     );
 
     const result = await contracts.goodGhosting.adminFeeWithdraw(0);
-    const incentiveAmount = await contracts.goodGhosting.totalIncentiveAmount();
 
     const fee: any = [];
     const rewardTokens = await contracts.strategy.getRewardTokens();
@@ -4322,9 +4321,10 @@ export const shouldBehaveLikeAdminWithdrawingFeesFromGGPoolWithFeePercentis0 = a
       fee[i] = await contracts.goodGhosting.adminFeeAmount(i);
     }
     // reward token balance
+    // there is a winner in the game so there is no incentive to get
     await expect(result)
       .to.emit(contracts.goodGhosting, "AdminWithdrawal")
-      .withArgs(deployer.address, ethers.BigNumber.from(0), ethers.BigNumber.from(incentiveAmount), fee);
+      .withArgs(deployer.address, ethers.BigNumber.from(0), ethers.BigNumber.from(0), fee);
   });
 
   it("extra incentives sent to admin in case of no winners", async () => {
