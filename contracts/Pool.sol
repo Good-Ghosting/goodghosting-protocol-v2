@@ -130,8 +130,8 @@ contract Pool is Ownable, Pausable, ReentrancyGuard {
     /// @notice emaergency withdraw flag.
     bool public emergencyWithdraw;
 
-    /// @notice Controls if tokens were redeemed or not from the pool.
-    bool public redeemed;
+    /// @notice Controls if tokens were adminFeeSet or not from the pool.
+    bool public adminFeeSet;
 
     /// @notice Controls if reward tokens are to be claimed at the time of redeem.
     bool public disableRewardTokenClaim;
@@ -621,7 +621,7 @@ contract Pool is Ownable, Pausable, ReentrancyGuard {
                     playerRewardShareAmountDuringWaitingRounds;
 
                 // update storage var since each winner withdraws only funds entitled to them.
-                rewardTokenAmounts[i] -= playerRewards[i];
+                _rewardTokenAmounts[i] -= playerRewards[i];
 
                 // transferring the reward token share to the winner
                 // updates variable value to make sure on a failure, event is emitted w/ correct value.
@@ -635,6 +635,7 @@ contract Pool is Ownable, Pausable, ReentrancyGuard {
                 ++i;
             }
         }
+        rewardTokenAmounts = _rewardTokenAmounts;
 
         // We have to ignore the "check-effects-interactions" pattern here and emit the event
         // only at the end of the function, in order to emit it w/ the correct withdrawal amount.
@@ -791,8 +792,8 @@ contract Pool is Ownable, Pausable, ReentrancyGuard {
                 emit ExternalTokenGetBalanceError(address(_incentiveToken), reason);
             }
         }
-        // this condition is added because emit is to only be emitted when redeemed flag is false but this mehtod is called for every player withdrawal in variable deposit pool.
-        if (!redeemed) {
+        // this condition is added because emit is to only be emitted when adminFeeSet flag is false but this mehtod is called for every player withdrawal in variable deposit pool.
+        if (!adminFeeSet) {
             emit EndGameStats(
                 _totalBalance,
                 totalGamePrincipal,
@@ -822,45 +823,68 @@ contract Pool is Ownable, Pausable, ReentrancyGuard {
         // when there's no winners, admin takes all the interest + rewards
         // to avoid SLOAD multiple times
         IERC20[] memory _rewardTokens = rewardTokens;
+        uint256[] memory _adminFeeAmount = adminFeeAmount;
         // UPDATE - N2 Audit Report
-        if (winnerCount == 0) {
-            // in case of no winners the admin takes all the interest and the rewards & the incentive amount (check adminFeeWithdraw method)
-            adminFeeAmount[0] = _grossInterest;
-            // just setting these for consistency since if there are no winners then for accounting both these vars aren't used
-            totalGameInterest = _grossInterest;
-
-            for (uint256 i = 0; i < _rewardTokens.length; ) {
-                rewardTokenAmounts[i] = _grossRewardTokenAmount[i];
-                // first slot is reserved for admin interest amount, so starts at 1.
-                adminFeeAmount[i + 1] = _grossRewardTokenAmount[i];
-                unchecked {
-                    ++i;
+        // since players can
+        if (adminFeeSet) {
+            if (adminWithdraw) {
+                    totalGameInterest = _grossInterest;
+                    rewardTokenAmounts = _grossRewardTokenAmount;
+                // for (uint256 i = 0; i < _rewardTokens.length; ) {
+                //     rewardTokenAmounts[i] = _grossRewardTokenAmount[i];
+                // }
+            } else {
+                if (_grossInterest > _adminFeeAmount[0]) {
+                    totalGameInterest = (_grossInterest - _adminFeeAmount[0]);
                 }
-            }
-        } else if (adminFee != 0) {
-            // if admin fee != 0 then the admin get's a share based on the adminFee %
-            adminFeeAmount[0] = (_grossInterest * adminFee) / 100;
-            totalGameInterest = _grossInterest - adminFeeAmount[0];
-
-            for (uint256 i = 0; i < _rewardTokens.length; ) {
-                // first slot is reserved for admin interest amount, so starts at 1.
-                adminFeeAmount[i + 1] = (_grossRewardTokenAmount[i] * adminFee) / 100;
-                rewardTokenAmounts[i] = _grossRewardTokenAmount[i] - adminFeeAmount[i + 1];
-                unchecked {
-                    ++i;
+                for (uint256 i = 0; i < _rewardTokens.length; ) {
+                    // first slot is reserved for admin interest amount, so starts at 1.
+                    if (_grossRewardTokenAmount[i] > _adminFeeAmount[i + 1]) {
+                        rewardTokenAmounts[i] = _grossRewardTokenAmount[i] - _adminFeeAmount[i + 1];
+                    }
                 }
             }
         } else {
-            // if there are winners and there is no admin fee in that case the admin fee will always be 0
-            totalGameInterest = _grossInterest;
-            for (uint256 i = 0; i < _rewardTokens.length; ) {
-                rewardTokenAmounts[i] = _grossRewardTokenAmount[i];
-                unchecked {
-                    ++i;
+            // UPDATE - N2 Audit Report
+            if (winnerCount == 0) {
+                // in case of no winners the admin takes all the interest and the rewards & the incentive amount (check adminFeeWithdraw method)
+                adminFeeAmount[0] = _grossInterest;
+                // just setting these for consistency since if there are no winners then for accounting both these vars aren't used
+                totalGameInterest = _grossInterest;
+
+                for (uint256 i = 0; i < _rewardTokens.length; ) {
+                    rewardTokenAmounts[i] = _grossRewardTokenAmount[i];
+                    // first slot is reserved for admin interest amount, so starts at 1.
+                    adminFeeAmount[i + 1] = _grossRewardTokenAmount[i];
+                    unchecked {
+                        ++i;
+                    }
+                }
+            } else if (adminFee != 0) {
+                // if admin fee != 0 then the admin get's a share based on the adminFee %
+                adminFeeAmount[0] = (_grossInterest * adminFee) / 100;
+                totalGameInterest = _grossInterest - adminFeeAmount[0];
+
+                for (uint256 i = 0; i < _rewardTokens.length; ) {
+                    // first slot is reserved for admin interest amount, so starts at 1.
+                    adminFeeAmount[i + 1] = (_grossRewardTokenAmount[i] * adminFee) / 100;
+                    rewardTokenAmounts[i] = _grossRewardTokenAmount[i] - adminFeeAmount[i + 1];
+                    unchecked {
+                        ++i;
+                    }
+                }
+            } else {
+                // if there are winners and there is no admin fee in that case the admin fee will always be 0
+                totalGameInterest = _grossInterest;
+                for (uint256 i = 0; i < _rewardTokens.length; ) {
+                    rewardTokenAmounts[i] = _grossRewardTokenAmount[i];
+                    unchecked {
+                        ++i;
+                    }
                 }
             }
+            emit AdminFee(adminFeeAmount);
         }
-        emit AdminFee(adminFeeAmount);
     }
 
     /**
@@ -1024,11 +1048,9 @@ contract Pool is Ownable, Pausable, ReentrancyGuard {
         }
         // gets the grossInterest after updating the game accounting
         uint256 grossInterest = _calculateAndUpdateGameAccounting(totalBalance, grossRewardTokenAmount);
-        if (!redeemed) {
-            // admin fee is set only once
-            _calculateAndSetAdminAccounting(grossInterest, grossRewardTokenAmount);
-            redeemed = true;
-        }
+        _calculateAndSetAdminAccounting(grossInterest, grossRewardTokenAmount);
+        adminFeeSet = true;
+    
         emit UpdateGameStats(
             totalBalance,
             totalGamePrincipal,
