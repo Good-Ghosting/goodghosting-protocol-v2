@@ -242,10 +242,12 @@ contract AaveStrategy is Ownable, IStrategy {
             assets[0] = address(aToken);
 
             if (address(rewardToken) != address(0)) {
+                // safety check for external services calling this function.
+                // Aave forks like Moola may not have an incentive controller (it is set to address(0)).
                 uint256 claimableRewards = incentiveController.getRewardsBalance(assets, address(this));
                 // moola the celo version of aave does not have the incentive controller logic
                 if (claimableRewards != 0) {
-                    incentiveController.claimRewards(assets, claimableRewards, address(this));
+                        incentiveController.claimRewards(assets, claimableRewards, address(this));
                 }
                 // moola the celo version of aave does not have the incentive controller logic
                 if (rewardToken.balanceOf(address(this)) != 0) {
@@ -286,11 +288,15 @@ contract AaveStrategy is Ownable, IStrategy {
     {
         uint256 amount = 0;
         if (!disableRewardTokenClaim) {
-            // atoken address in v2 is fetched from data provider contract
-            // Claims the rewards from the external pool
-            address[] memory assets = new address[](1);
-            assets[0] = address(aToken);
-            amount = incentiveController.getRewardsBalance(assets, address(this));
+            // safety check for external services calling this function.
+            // Aave forks like Moola may not have an incentive controller (it is set to address(0)).
+            if (address(incentiveController) != address(0)) {
+                // atoken address in v2 is fetched from data provider contract
+                // Claims the rewards from the external pool
+                address[] memory assets = new address[](1);
+                assets[0] = address(aToken);
+                amount = incentiveController.getRewardsBalance(assets, address(this));
+            }
         }
         uint256[] memory amounts = new uint256[](1);
         amounts[0] = amount;

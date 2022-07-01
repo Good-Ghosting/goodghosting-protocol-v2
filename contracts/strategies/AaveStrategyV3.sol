@@ -156,7 +156,9 @@ contract AaveStrategyV3 is Ownable, IStrategy {
             (aTokenAddress, , ) = dataProvider.getReserveTokensAddresses(_inboundCurrency);
         }
         aToken = AToken(aTokenAddress);
-        rewardTokens = rewardsController.getRewardsByAsset(aTokenAddress);
+        if (_rewardsController != address(0)) {
+            rewardTokens = rewardsController.getRewardsByAsset(aTokenAddress);
+        }
     }
 
     /**
@@ -251,7 +253,9 @@ contract AaveStrategyV3 is Ownable, IStrategy {
             address[] memory assets = new address[](1);
             assets[0] = address(aToken);
 
-            rewardsController.claimAllRewardsToSelf(assets);
+            if (address(rewardsController) != address(0)) {
+                rewardsController.claimAllRewardsToSelf(assets);
+            }
             for (uint256 i = 0; i < rewardTokens.length; ) {
                 if (IERC20(rewardTokens[i]).balanceOf(address(this)) != 0) {
                     bool success = IERC20(rewardTokens[i]).transfer(
@@ -295,15 +299,14 @@ contract AaveStrategyV3 is Ownable, IStrategy {
         override
         returns (uint256[] memory)
     {
-        if (!disableRewardTokenClaim) {
+        if (!disableRewardTokenClaim && address(rewardsController) != address(0)) {
             // Claims the rewards from the external pool
-            address[] memory assets = new address[](1);
+            address[] memory assets = new address[](rewardTokens.length);
             assets[0] = address(aToken);
             (, uint256[] memory unclaimedAmounts) = rewardsController.getAllUserRewards(assets, address(this));
             return unclaimedAmounts;
         } else {
-            uint256[] memory amounts = new uint256[](1);
-            amounts[0] = 0;
+            uint256[] memory amounts = new uint256[](rewardTokens.length);
             return amounts;
         }
     }

@@ -249,13 +249,6 @@ contract MobiusStrategy is Ownable, IStrategy {
         lpToken.approve(address(pool), poolWithdrawAmount);
 
         pool.removeLiquidityOneToken(poolWithdrawAmount, 0, _minAmount, block.timestamp + 1000);
-        //}
-        // else {
-        //     gauge.withdraw(gaugeBalance, claimRewards);
-
-        //     lpToken.approve(address(pool), lpToken.balanceOf(address(this)));
-        //     pool.removeLiquidityOneToken(lpToken.balanceOf(address(this)), 0, _minAmount, block.timestamp + 1000);
-        // }
 
         bool success = mobi.transfer(msg.sender, mobi.balanceOf(address(this)));
         if (!success) {

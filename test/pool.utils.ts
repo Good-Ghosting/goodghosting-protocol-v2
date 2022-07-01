@@ -848,24 +848,3 @@ export const shouldNotBeAbleToDeposit = async (
     ).to.be.revertedWith(revertReason);
   }
 };
-
-export const redeem = async (
-  goodGhosting: Pool,
-  inboundToken: MintableERC20,
-  player: any,
-  amount: string,
-  depositCount: number,
-  segmentLength: number,
-  depositAmount: string,
-) => {
-  // await joinGamePaySegmentsAndComplete(
-  //   inboundToken,
-  //   player,
-  //   amount,
-  //   depositCount,
-  //   segmentLength,
-  //   goodGhosting,
-  //   depositAmount,
-  // );
-  // await goodGhosting.connect(player).redeemFromExternalPoolForFixedDepositPool(0);
-};
