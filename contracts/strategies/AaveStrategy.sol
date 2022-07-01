@@ -244,12 +244,10 @@ contract AaveStrategy is Ownable, IStrategy {
             if (address(rewardToken) != address(0)) {
                 // safety check for external services calling this function.
                 // Aave forks like Moola may not have an incentive controller (it is set to address(0)).
-                if (address(incentiveController) != address(0)) {
-                    uint256 claimableRewards = incentiveController.getRewardsBalance(assets, address(this));
-                    // moola the celo version of aave does not have the incentive controller logic
-                    if (claimableRewards != 0) {
+                uint256 claimableRewards = incentiveController.getRewardsBalance(assets, address(this));
+                // moola the celo version of aave does not have the incentive controller logic
+                if (claimableRewards != 0) {
                         incentiveController.claimRewards(assets, claimableRewards, address(this));
-                    }
                 }
                 // moola the celo version of aave does not have the incentive controller logic
                 if (rewardToken.balanceOf(address(this)) != 0) {
