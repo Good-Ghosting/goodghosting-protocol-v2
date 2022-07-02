@@ -382,6 +382,16 @@ export const deployPool = async (
   } else {
     const rewardTokenDeployer = new MockWMatic__factory(deployer);
     rewardToken = await rewardTokenDeployer.deploy();
+    const rewardToken2 = await rewardTokenDeployer.deploy();
+    const rewardToken3 = await rewardTokenDeployer.deploy();
+    const rewardToken4 = await rewardTokenDeployer.deploy();
+    const rewardToken5 = await rewardTokenDeployer.deploy();
+    const rewardToken6 = await rewardTokenDeployer.deploy();
+    const rewardToken7 = await rewardTokenDeployer.deploy();
+    const rewardToken8 = await rewardTokenDeployer.deploy();
+    const rewardToken9 = await rewardTokenDeployer.deploy();
+    const rewardToken10 = await rewardTokenDeployer.deploy();
+
     if (isSameAsRewardToken) {
       inboundToken = rewardToken;
     }
@@ -393,9 +403,45 @@ export const deployPool = async (
       ).to.be.revertedWith("INVALID_REWARD_TOKEN()");
       strategy = await noExternalStrategyDeployer.deploy(isInboundToken ? inboundToken.address : inboundToken, [
         rewardToken.address,
+        rewardToken2.address,
+        rewardToken3.address,
+        rewardToken4.address,
+        rewardToken5.address,
+        rewardToken6.address,
+        rewardToken7.address,
+        rewardToken8.address,
+        rewardToken9.address,
+        rewardToken10.address,
       ]);
-      await rewardToken.deposit({ value: ethers.utils.parseEther("15") });
-      await rewardToken.transfer(strategy.address, ethers.utils.parseEther("15"));
+      await rewardToken.deposit({ value: ethers.utils.parseEther("7") });
+      await rewardToken.transfer(strategy.address, ethers.utils.parseEther("7"));
+
+      await rewardToken2.deposit({ value: ethers.utils.parseEther("7") });
+      await rewardToken2.transfer(strategy.address, ethers.utils.parseEther("7"));
+
+      await rewardToken3.deposit({ value: ethers.utils.parseEther("7") });
+      await rewardToken3.transfer(strategy.address, ethers.utils.parseEther("7"));
+
+      await rewardToken4.deposit({ value: ethers.utils.parseEther("7") });
+      await rewardToken4.transfer(strategy.address, ethers.utils.parseEther("7"));
+
+      await rewardToken5.deposit({ value: ethers.utils.parseEther("7") });
+      await rewardToken5.transfer(strategy.address, ethers.utils.parseEther("7"));
+
+      await rewardToken6.deposit({ value: ethers.utils.parseEther("7") });
+      await rewardToken6.transfer(strategy.address, ethers.utils.parseEther("7"));
+
+      await rewardToken7.deposit({ value: ethers.utils.parseEther("7") });
+      await rewardToken7.transfer(strategy.address, ethers.utils.parseEther("7"));
+
+      await rewardToken8.deposit({ value: ethers.utils.parseEther("7") });
+      await rewardToken8.transfer(strategy.address, ethers.utils.parseEther("7"));
+
+      await rewardToken9.deposit({ value: ethers.utils.parseEther("7") });
+      await rewardToken9.transfer(strategy.address, ethers.utils.parseEther("7"));
+
+      await rewardToken10.deposit({ value: ethers.utils.parseEther("7") });
+      await rewardToken10.transfer(strategy.address, ethers.utils.parseEther("7"));
     }
   }
   if (isSameAsRewardToken) {
@@ -698,11 +744,11 @@ export const approveToken = async (
 ) => {
   await inboundToken
     .connect(player)
-    .approve(poolAddress, ethers.BigNumber.from(segmentPayment).mul(ethers.BigNumber.from("2")).toString());
+    .approve(poolAddress, ethers.BigNumber.from(segmentPayment).mul(ethers.BigNumber.from("1000")).toString());
   const allowance = await inboundToken.allowance(player.address, poolAddress);
   assert(
     allowance.eq(
-      ethers.BigNumber.from(ethers.BigNumber.from(segmentPayment).mul(ethers.BigNumber.from("2")).toString()),
+      ethers.BigNumber.from(ethers.BigNumber.from(segmentPayment).mul(ethers.BigNumber.from("1000")).toString()),
     ),
   );
 };
