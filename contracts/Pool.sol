@@ -1197,8 +1197,9 @@ contract Pool is Ownable, Pausable, ReentrancyGuard {
         // have to check for both since the rewards, interest accumulated along with the total deposit is withdrawn in a single redeem call
         if (_adminFeeAmount[0] != 0 || _claimableRewards) {
             if (strategy.getTotalAmount() >  _adminFeeAmount[0]) {
-                strategy.redeem(inboundToken, _adminFeeAmount[0], _minAmount, disableRewardTokenClaim);
+                _adminFeeAmount[0] = strategy.getTotalAmount();
             }
+            strategy.redeem(inboundToken, _adminFeeAmount[0], _minAmount, disableRewardTokenClaim);
 
             // need the updated value for the event
             // balance check before transferring the funds
