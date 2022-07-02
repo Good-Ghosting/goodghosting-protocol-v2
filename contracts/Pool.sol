@@ -525,6 +525,9 @@ contract Pool is Ownable, Pausable, ReentrancyGuard {
         // UPDATE - H3 Audit Report
         _playerIndexSharePercentage = (playerIndexSum * MULTIPLIER) / cumulativePlayerIndexSum[_segment];
 
+        // reduce cumulativePlayerIndexSum since a winner only withdraws their own funds.
+        cumulativePlayerIndexSum[_segment] -= playerIndexSum;
+
         // calculate _playerDepositAmountSharePercentage for each player for waiting round calculations depending on how much deposit share the player has.
         // have a safety check players[msg.sender].netAmountPaid > totalWinnerDepositsPerSegment[segment]
         // in case of a impermanent loss although we probably won't need it since we reduce player's netAmountPaid too but just in case.
@@ -555,11 +558,10 @@ contract Pool is Ownable, Pausable, ReentrancyGuard {
 
             // update the total amount to be redeemed
             _payout += playerInterestAmountDuringDepositRounds + playerInterestAmountDuringWaitingRounds;
+            
+            // reduce totalGameInterest since a winner only withdraws their own funds.
+            totalGameInterest -= (playerInterestAmountDuringDepositRounds + playerInterestAmountDuringWaitingRounds);
         }
-
-        // reduce totalGameInterest & cumulativePlayerIndexSum since a winner only withdraws their own funds.
-        totalGameInterest -= (playerInterestAmountDuringDepositRounds + playerInterestAmountDuringWaitingRounds);
-        cumulativePlayerIndexSum[_segment] -= playerIndexSum;
     }
 
     /**
@@ -787,11 +789,11 @@ contract Pool is Ownable, Pausable, ReentrancyGuard {
         // sets the totalIncentiveAmount if available
         // UPDATE - N1 Audit Report
         address _incentiveToken = address(incentiveToken);
-        if (address(_incentiveToken) != address(0)) {
+        if (_incentiveToken != address(0)) {
             try IERC20(_incentiveToken).balanceOf(address(this)) returns (uint256 _totalIncentiveAmount) {
                 totalIncentiveAmount = _totalIncentiveAmount;
             } catch (bytes memory reason) {
-                emit ExternalTokenGetBalanceError(address(_incentiveToken), reason);
+                emit ExternalTokenGetBalanceError(_incentiveToken, reason);
             }
         }
         // this condition is added because emit is to only be emitted when adminFeeSet flag is false but this mehtod is called for every player withdrawal in variable deposit pool.
@@ -1194,7 +1196,9 @@ contract Pool is Ownable, Pausable, ReentrancyGuard {
 
         // have to check for both since the rewards, interest accumulated along with the total deposit is withdrawn in a single redeem call
         if (_adminFeeAmount[0] != 0 || _claimableRewards) {
-            strategy.redeem(inboundToken, _adminFeeAmount[0], _minAmount, disableRewardTokenClaim);
+            if (strategy.getTotalAmount() >  _adminFeeAmount[0]) {
+                strategy.redeem(inboundToken, _adminFeeAmount[0], _minAmount, disableRewardTokenClaim);
+            }
 
             // need the updated value for the event
             // balance check before transferring the funds
