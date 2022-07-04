@@ -301,7 +301,7 @@ contract AaveStrategyV3 is Ownable, IStrategy {
     {
         if (!disableRewardTokenClaim && address(rewardsController) != address(0)) {
             // Claims the rewards from the external pool
-            address[] memory assets = new address[](rewardTokens.length);
+            address[] memory assets = new address[](1);
             assets[0] = address(aToken);
             (, uint256[] memory unclaimedAmounts) = rewardsController.getAllUserRewards(assets, address(this));
             return unclaimedAmounts;
