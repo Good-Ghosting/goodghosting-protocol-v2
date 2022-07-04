@@ -184,11 +184,14 @@ contract Pool is Ownable, Pausable, ReentrancyGuard {
     mapping(uint256 => uint256) public segmentCounter;
 
     /// @notice Stores info of cumulativePlayerIndexSum for each segment for early exit scenario.
+    /// so if for the key as segment `3` cumulativePlayerIndexSum will have player index sum
+    /// of all players who have deposited in segment `3` from the current segment and previous segments.
     mapping(uint256 => uint256) public cumulativePlayerIndexSum;
 
     /// @notice Stores the total deposited amount by winners in each segment.
     /// @dev we need this for calculating the waiting round share amount of the
     /// winners depending on their total deposit size (individual ratio compared to all winners).
+    /// totalWinnerDepositsPerSegment for let's say segment `3` will be the sum of deposites from all players who have deposited in segment `3` & other previous segments.
     mapping(uint256 => uint256) public totalWinnerDepositsPerSegment;
 
     /// @notice list of players.
