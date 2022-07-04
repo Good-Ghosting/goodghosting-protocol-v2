@@ -225,17 +225,6 @@ contract("Pool with Curve Strategy when admin enables early game completion", ac
           wmaticRewardBalanceBefore.lte(wmaticRewardBalanceAfter),
           "expected wmatic balance after withdrawal to be equal to or less than before withdrawal",
         );
-
-        // truffleAssert.eventEmitted(
-        //   result,
-        //   "Withdrawal",
-        //   async (ev: any) => {
-        //     console.log(`player${i} withdraw amount: ${ev.amount.toString()}`);
-
-        //     return ev.player === player;
-        //   },
-        //   "withdrawal event failure",
-        // );
       }
 
       const inboundTokenPoolBalance = web3.utils.toBN(
@@ -295,7 +284,7 @@ contract("Pool with Curve Strategy when admin enables early game completion", ac
       // very minor differences
       assert(curveBalanceDiffForPlayer1.gte(curveBalanceDiffForPlayer2));
       assert(wmaticBalanceDiffForPlayer1.gte(wmaticBalanceDiffForPlayer2));
-      assert(inboundTokenBalanceDiffForPlayer1.gte(inboundTokenBalanceDiffForPlayer2));
+      assert(inboundTokenBalanceDiffForPlayer1.lte(inboundTokenBalanceDiffForPlayer2));
       assert(inboundTokenPoolBalance.eq(web3.utils.toBN(0)));
       assert(curveRewardTokenPoolBalance.gte(web3.utils.toBN(0)));
       assert(wmaticRewardTokenBalance.gte(web3.utils.toBN(0)));

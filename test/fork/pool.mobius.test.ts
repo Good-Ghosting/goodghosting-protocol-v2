@@ -322,17 +322,6 @@ contract("Pool with Mobius Strategy", accounts => {
           celoRewardBalanceAfter.lte(celoRewardBalanceBefore),
           "expected celo balance after withdrawal to be equal to before withdrawal",
         );
-
-        // truffleAssert.eventEmitted(
-        //   result,
-        //   "Withdrawal",
-        //   async (ev: any) => {
-        //     console.log(`player${i} withdraw amount: ${ev.amount.toString()}`);
-
-        //     return ev.player === player;
-        //   },
-        //   "withdrawal event failure",
-        // );
       }
     });
 

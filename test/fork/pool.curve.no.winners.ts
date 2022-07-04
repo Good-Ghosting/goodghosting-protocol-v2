@@ -271,7 +271,7 @@ contract("Deposit Pool with Curve Strategy with no winners", accounts => {
       assert(inboundTokenBalanceDiffForPlayer1.lte(netAmountPaidForLargeDepositPlayer));
       assert(curveBalanceDiffForPlayer1.eq(curveBalanceDiffForPlayer2));
       assert(wmaticBalanceDiffForPlayer1.eq(wmaticBalanceDiffForPlayer2));
-      assert(inboundTokenBalanceDiffForPlayer1.gte(inboundTokenBalanceDiffForPlayer2));
+      assert(inboundTokenBalanceDiffForPlayer1.lte(inboundTokenBalanceDiffForPlayer2));
       assert(inboundTokenPoolBalance.eq(web3.utils.toBN(0)));
       assert(curveRewardTokenPoolBalance.gte(web3.utils.toBN(0)));
       assert(wmaticRewardTokenBalance.gte(web3.utils.toBN(0)));
