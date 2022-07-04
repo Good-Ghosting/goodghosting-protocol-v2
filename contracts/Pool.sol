@@ -131,7 +131,7 @@ contract Pool is Ownable, Pausable, ReentrancyGuard {
     /// @notice emaergency withdraw flag.
     bool public emergencyWithdraw;
 
-    /// @notice Checkss if admin fee has been assigned.
+    /// @notice Checks if admin fee has been assigned.
     bool public adminFeeSet;
 
     /// @notice Controls if reward tokens are to be claimed at the time of redeem.
@@ -191,7 +191,8 @@ contract Pool is Ownable, Pausable, ReentrancyGuard {
     /// @notice Stores the total deposited amount by winners in each segment.
     /// @dev we need this for calculating the waiting round share amount of the
     /// winners depending on their total deposit size (individual ratio compared to all winners).
-    /// totalWinnerDepositsPerSegment for let's say segment `3` will be the sum of deposites from all players who have deposited in segment `3` & other previous segments.
+    /// totalWinnerDepositsPerSegment for let's say segment `3` will be the sum of deposits from
+    // all winning players who have deposited in segment `3` & other previous segments.
     mapping(uint256 => uint256) public totalWinnerDepositsPerSegment;
 
     /// @notice list of players.
