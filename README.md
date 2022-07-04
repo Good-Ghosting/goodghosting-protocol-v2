@@ -16,11 +16,13 @@ With the GoodGhosting V2 Pool, we aim to improve on the protocol and make it mor
 
 - **Multiple Yield Strategies:** the v2 smart contract architecture uses a strategy pattern that allows to have multiple sources for yield strategies, chosen during deployment time. At the moment, v2 offers strategies for AaveV2/Moola, AaveV3, Curve (Aave and Atricrypto pools), Mobius, NoExternalPool strategies. And many more in the future.
 
+- **Withdrawal Mechanism Update for fixed deposit pool** With the amm yield strategies in mind with v2, while withdrawing funds from the pool, the winners/players both will only withdraw the amount of funds they are entilted too to prevent sandwich attacks, large % of pool imbalance on the amm proctocols like curve, mobius, unlike V1 where we withdrew all pool funds via [redeem method in the smart contract](https://github.com/Good-Ghosting/goodghosting-protocol-v1/blob/master/contracts/GoodGhostingPolygon.sol#L163), this also means if a winners withdraws later their funds are still earning interests in the external strategy protocols.
+
 ## Types of Pools
 
 - **Fixed Deposit Pool with same waiting segment duration:** deposit amount is fixed and equal for each player, and the waiting round duration is equal to the duration of the deposit rounds. This type of pool follows the same principal of V1 Pools.
 
-- **Fixed Deposit Pool with waiting round duration more than deposit rounds duration:** the deposit amount is fixed and equal for each player, but the waiting round length is greater (longer) than the regular deposit rounds. It may require less interactions from the players, in terms of sending transactions, because we may have pools with 1 deposit round of 1 week and a waiting round of 3 months, for example.
+- **Fixed Deposit Pool with waiting round duration more than deposit rounds duration:** the deposit amount is fixed and equal for each player, but the waiting round length is greater (longer) than the regular deposit rounds. It may require less interactions from the players, in terms of sending transactions, because we may have pools with 1 deposit round of 1 week and a waiting round of 3 months.
 
 - **Flexible Deposit Pool with same waiting segment duration:** the deposit amount is decided by each player while joining the pool. Subsequent deposits for that player will be equal to the amount chosen upon joining. Finally, the duration of the waiting round is the same as the duration of the deposit rounds.
 
@@ -32,14 +34,20 @@ With the GoodGhosting V2 Pool, we aim to improve on the protocol and make it mor
 
 ## Pool Interest Accounting Math
 
-GoodGhosting Protocol v2 introduces better fairness in terms of interest and reward generation for winners, and we are doing this by computing the deposit amount made by each player and how early does a player pay in each segment (player share % in the pool). Below, there's a brief explanation of the math behind this feature.
+GoodGhosting Protocol v2 introduces better fairness in terms of interest and reward generation for winners.
 
-In the new version of the [Pool Smart Contract](https://github.com/Good-Ghosting/goodghosting-protocol-v2/blob/master/contracts/Pool.sol) we have a couple of mappings defined: `playerIndex[player_address][segment_number] & cumulativePlayerIndexSum[segment_number]`
+Since with V2 there are 2 phases of the game **deposit rounds** & the **waiting round**. So there are different accounting mechanisms for both the phases.
+
+**Accounting for Deposit Rounds**
+
+We compute the deposit amount made by each player and how early does a player pay in each segment (player share % in the pool). Below, there's a brief explanation of the math behind this feature.
+
+In V2 Smart Contract we have a couple of mappings defined: `playerIndex[player_address][segment_number] & cumulativePlayerIndexSum[segment_number]`
 
 As each player starts making the deposits, the mappings are updated as follows:
 
 ```
-playerIndex = deposit_amount * (MULTIPLIER_CONSTANT) / block.timestamp
+playerIndex = deposit_amount * (MULTIPLIER_CONSTANT) / (segmentLength + block.timestamp - (firstSegmentStart + (currentSegment * segmentLength)))
 
 for (each segment paid by the player) {
   cumulativePlayerIndexSum[current_segment] += playerIndex
@@ -76,7 +84,7 @@ player1Index = 10 / 5 = 2
 player2Index = 100 / 20 = 5
 ```
 
-In this scenario, `cumulativePlayerIndexSum` will be `7` and even though player2 deposits late but the amount is 10x more than player1. At the end get, so player2 gets about 72% of the rewards and player1 gets the remaining 28%.
+In this scenario, `cumulativePlayerIndexSum` will be `7` and even though player2 deposits late but the amount is 10x more than player1. At the end get, so player2 gets about 72% of the rewards and player1 gets the remaining 28% os the interest earned in the deposit round phase.
 
 _Scenario 2: A Game with 2 players, 1 early withdrawal_
 
@@ -85,9 +93,35 @@ There are 2 players in the game with only 1 deposit required. It's a flexible de
 ```
 player1Index = 10 / 5 = 2
 player2Index = 100 / 20 = 5
-
-In this scenario, `cumulativePlayerIndexSum` will be `7`. The twist is that player2 early withdrew so `cumulativePlayerIndexSum` became `2`. This means that player 1 gets all the interest and rewards earned by the pool.
 ```
+
+In this scenario, `cumulativePlayerIndexSum` will be `7`. The twist is that player2 early withdrew so `cumulativePlayerIndexSum` became `2`. This means that player 1 gets all the interest and rewards earned by the pool accrued during the deposit phase.
+
+**Accounting for the Waiting Round**
+For hodl pools i.e where we have only let's say 1 deposit segment and long waiting round i.e 1 month or 3 months. We need a different accounting mechanism to calculate the intrest accrued in the waiting round.
+
+In V2 we have new mapping `totalWinnerDepositsPerSegment[segment_no]` which basically keeps a track of all winners deposit amounts, so during the waiting period based on the % of the waiting round out of the total duration.
+
+The % of the winner interest share during the waiting round phase is calculated by
+`total_deposits_made_by_player / totalWinnerDepositsPerSegment[last_segment_pool]`
+
+then interest share of the winner interest share = `total_interest * % of winner interest accrued during waiting round / 100`
+
+**Considering a example**
+
+```
+If there are 2 players who deposit 20 & 40 DAI each in a pool which is 1 week long.
+
+So assuming waiting round dominance in the pool is 75 %
+
+So if total interest is 100 DAI the interest accrued in waiting round would be 75 DAI
+
+interest share of player 1 = 20 / 60 * 100 = 33.3 %
+
+now for player 1 the waiting round interest share would be 33.3 / 100 * 100 = 33.3 DAI, hence for player 2 because they deposited more the interest would be 66.6 DAI
+```
+
+Once we have the interest/incentive/reward accrued for both deposit & waiting round for each player we just add both and hence making sure the accounting is fair for all types of pools and for all winners.
 
 ## Emergency Scenario
 
@@ -95,7 +129,7 @@ By transferring funds to an external protocol pool (depending on the strategy us
 
 Once this function is called, it updates the last segment value to current segment and sets the emergency flag to `true` in the smart contract. Players who have deposited in the prev. segment, i.e `current segment - 1`, are all considered as winners and they can withdraw their funds immediately after the emergency flag is enabled.
 
-The mechanisms for fixed and variable deposit pools still applies. This means that for fixed deposit pools, the total amount of funds are redeemed at once from the external pool. For variable deposit pools, each player withdrawal only redeem their portion of the funds (principal, and the interest, rewards & incentives in case of winners).
+The withdrawal mechanism for each player withdrawal remains the same in case of emergency withdrawal too, they only redeem their portion of the funds (principal, and the interest, rewards & incentives in case of winners).
 
 **NOTE** - Handling this emergency exit scenario is the reason why `cumulativePlayerIndexSum` is a mapping.
 
@@ -303,24 +337,6 @@ Starting migrations...
    ------------------------------
    > confirmation number: 3 (block: 26186439)
 
-   Replacing 'SafeMath'
-   --------------------
-   > transaction hash:    0x651ba018aa6709ef01644b45b353111814630922d4ae03d976a7de4e8e37adc3
-   > Blocks: 3            Seconds: 5
-   > contract address:    0xAE130829ffeD8249BE3323289f15E4Bfd0770203
-   > block number:        26186444
-   > block timestamp:     1647862614
-   > account:             0xf88b0247e611eE5af8Cf98f5303769Cba8e7177C
-   > balance:             12.651008224891911123
-   > gas used:            72217 (0x11a19)
-   > gas price:           32 gwei
-   > value sent:          0 ETH
-   > total cost:          0.002310944 ETH
-
-   Pausing for 2 confirmations...
-   ------------------------------
-   > confirmation number: 2 (block: 26186449)
-
    Replacing 'Pool'
    ----------------
    > transaction hash:    0xb16d515ed33d945d1c38be20c384d314ab0e129a602fc08eb44b4963f6bfcca1
@@ -383,21 +399,6 @@ Replacing 'MobiusStrategy'
 > gas price:           0.5 gwei
 > value sent:          0 ETH
 > total cost:          0.000928395 ETH
-
-
-Replacing 'SafeMath'
---------------------
-> transaction hash:    0xdc5acfd4e69d3b5de2b6012af3cfa6fa057576b13d8bc83541c649ac97391198
-> Blocks: 0            Seconds: 0
-> contract address:    0xb2C98f7f573bbf653972F030766e36138C82F4A2
-> block number:        11985353
-> block timestamp:     1647505433
-> account:             0xf88b0247e611eE5af8Cf98f5303769Cba8e7177C
-> balance:             2.110712283176738485
-> gas used:            72217 (0x11a19)
-> gas price:           0.5 gwei
-> value sent:          0 ETH
-> total cost:          0.0000361085 ETH
 
 
 Replacing 'Pool'
