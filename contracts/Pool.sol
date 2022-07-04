@@ -1364,10 +1364,9 @@ contract Pool is Ownable, Pausable, ReentrancyGuard {
 
         uint256 payout;
 
-        // determining last game segment considering the possibility of emergencyWithdraw
-        uint64 segment = depositCountMemory == 0 ? 0 : uint64(depositCountMemory - 1);
-
         if (_isWinner(player, depositCountMemory)) {
+            // determining last game segment considering the possibility of emergencyWithdraw
+            uint64 segment = depositCountMemory == 0 ? 0 : uint64(depositCountMemory - 1);
             (
                 uint256 playerIndexSharePercentage,
                 uint256 playerDepositAmountSharePercentage,
@@ -1397,8 +1396,8 @@ contract Pool is Ownable, Pausable, ReentrancyGuard {
             strategy.redeem(inboundToken, payout, _minAmount, disableRewardTokenClaim);
         }
 
-        // sets withdrawalSegment with the value of the "first segment after the game ends".
-        player.withdrawalSegment = uint64(segment + 2);
+        // sets withdrawalSegment for the player
+        player.withdrawalSegment = getCurrentSegment();
         if (_impermanentLossShare != 0) {
             // resetting I.Loss Share % after every withdrawal to be consistent
             impermanentLossShare = 0;
