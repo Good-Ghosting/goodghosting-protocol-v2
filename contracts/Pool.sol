@@ -6,7 +6,6 @@ import "@openzeppelin/contracts/security/Pausable.sol";
 import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "./strategies/IStrategy.sol";
-// import "hardhat/console.sol";
 
 //*********************************************************************//
 // --------------------------- custom errors ------------------------- //
@@ -558,7 +557,7 @@ contract Pool is Ownable, Pausable, ReentrancyGuard {
 
             // update the total amount to be redeemed
             _payout += playerInterestAmountDuringDepositRounds + playerInterestAmountDuringWaitingRounds;
-            
+
             // reduce totalGameInterest since a winner only withdraws their own funds.
             totalGameInterest -= (playerInterestAmountDuringDepositRounds + playerInterestAmountDuringWaitingRounds);
         }
@@ -639,6 +638,7 @@ contract Pool is Ownable, Pausable, ReentrancyGuard {
                 ++i;
             }
         }
+        // avoid SSTORE inside loop
         rewardTokenAmounts = _rewardTokenAmounts;
 
         // We have to ignore the "check-effects-interactions" pattern here and emit the event
@@ -828,13 +828,15 @@ contract Pool is Ownable, Pausable, ReentrancyGuard {
         // to avoid SLOAD multiple times
         IERC20[] memory _rewardTokens = rewardTokens;
         uint256[] memory _adminFeeAmount = adminFeeAmount;
-        // UPDATE - N2 Audit Report
-        // since players can
+        uint256[] memory _rewardTokenAmounts = rewardTokenAmounts;
 
+        // UPDATE - N2 Audit Report
+        // handling the scenario when some winners withdraw later so they should get extra interest/rewards
+        // the scenario wasn't handled before
         if (adminFeeSet) {
             if (adminWithdraw) {
-                    totalGameInterest = _grossInterest;
-                    rewardTokenAmounts = _grossRewardTokenAmount;
+                totalGameInterest = _grossInterest;
+                _rewardTokenAmounts = _grossRewardTokenAmount;
             } else {
                 if (_grossInterest > _adminFeeAmount[0]) {
                     totalGameInterest = (_grossInterest - _adminFeeAmount[0]);
@@ -842,45 +844,52 @@ contract Pool is Ownable, Pausable, ReentrancyGuard {
                 for (uint256 i = 0; i < _rewardTokens.length; ) {
                     // first slot is reserved for admin interest amount, so starts at 1.
                     if (_grossRewardTokenAmount[i] > _adminFeeAmount[i + 1]) {
-                        rewardTokenAmounts[i] = _grossRewardTokenAmount[i] - _adminFeeAmount[i + 1];
+                        _rewardTokenAmounts[i] = _grossRewardTokenAmount[i] - _adminFeeAmount[i + 1];
                     }
-                    unchecked { ++i; }
+                    unchecked {
+                        ++i;
+                    }
                 }
+
             }
         } else {
             // UPDATE - N2 Audit Report
             if (winnerCount == 0) {
                 // in case of no winners the admin takes all the interest and the rewards & the incentive amount (check adminFeeWithdraw method)
-                adminFeeAmount[0] = _grossInterest;
+                _adminFeeAmount[0] = _grossInterest;
                 // just setting these for consistency since if there are no winners then for accounting both these vars aren't used
                 totalGameInterest = _grossInterest;
 
                 for (uint256 i = 0; i < _rewardTokens.length; ) {
-                    rewardTokenAmounts[i] = _grossRewardTokenAmount[i];
+                    _rewardTokenAmounts[i] = _grossRewardTokenAmount[i];
                     // first slot is reserved for admin interest amount, so starts at 1.
-                    adminFeeAmount[i + 1] = _grossRewardTokenAmount[i];
+                    _adminFeeAmount[i + 1] = _grossRewardTokenAmount[i];
                     unchecked {
                         ++i;
                     }
                 }
+                // avoid SSTORE in loop
+                adminFeeAmount = _adminFeeAmount;
             } else if (adminFee != 0) {
                 // if admin fee != 0 then the admin get's a share based on the adminFee %
-                adminFeeAmount[0] = (_grossInterest * adminFee) / 100;
-                totalGameInterest = _grossInterest - adminFeeAmount[0];
+                _adminFeeAmount[0] = (_grossInterest * adminFee) / 100;
+                totalGameInterest = _grossInterest - _adminFeeAmount[0];
 
                 for (uint256 i = 0; i < _rewardTokens.length; ) {
                     // first slot is reserved for admin interest amount, so starts at 1.
-                    adminFeeAmount[i + 1] = (_grossRewardTokenAmount[i] * adminFee) / 100;
-                    rewardTokenAmounts[i] = _grossRewardTokenAmount[i] - adminFeeAmount[i + 1];
+                    _adminFeeAmount[i + 1] = (_grossRewardTokenAmount[i] * adminFee) / 100;
+                    _rewardTokenAmounts[i] = _grossRewardTokenAmount[i] - _adminFeeAmount[i + 1];
                     unchecked {
                         ++i;
                     }
                 }
+                // avoid SSTORE in loop
+                adminFeeAmount = _adminFeeAmount;
             } else {
                 // if there are winners and there is no admin fee in that case the admin fee will always be 0
                 totalGameInterest = _grossInterest;
                 for (uint256 i = 0; i < _rewardTokens.length; ) {
-                    rewardTokenAmounts[i] = _grossRewardTokenAmount[i];
+                    _rewardTokenAmounts[i] = _grossRewardTokenAmount[i];
                     unchecked {
                         ++i;
                     }
@@ -888,6 +897,9 @@ contract Pool is Ownable, Pausable, ReentrancyGuard {
             }
             emit AdminFee(adminFeeAmount);
         }
+
+        // avoid SSTORE in loop
+        rewardTokenAmounts = _rewardTokenAmounts;
     }
 
     /**
@@ -1054,7 +1066,7 @@ contract Pool is Ownable, Pausable, ReentrancyGuard {
 
         _calculateAndSetAdminAccounting(grossInterest, grossRewardTokenAmount);
         adminFeeSet = true;
-    
+
         emit UpdateGameStats(
             totalBalance,
             totalGamePrincipal,
@@ -1196,7 +1208,7 @@ contract Pool is Ownable, Pausable, ReentrancyGuard {
 
         // have to check for both since the rewards, interest accumulated along with the total deposit is withdrawn in a single redeem call
         if (_adminFeeAmount[0] != 0 || _claimableRewards) {
-            if (strategy.getTotalAmount() >  _adminFeeAmount[0]) {
+            if (strategy.getTotalAmount() >= _adminFeeAmount[0]) {
                 strategy.redeem(inboundToken, _adminFeeAmount[0], _minAmount, disableRewardTokenClaim);
             }
 
