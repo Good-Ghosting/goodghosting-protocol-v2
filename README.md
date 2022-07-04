@@ -16,7 +16,7 @@ With the GoodGhosting V2 Pool, we aim to improve on the protocol and make it mor
 
 - **Multiple Yield Strategies:** the v2 smart contract architecture uses a strategy pattern that allows to have multiple sources for yield strategies, chosen during deployment time. At the moment, v2 offers strategies for AaveV2/Moola, AaveV3, Curve (Aave and Atricrypto pools), Mobius, NoExternalPool strategies. And many more in the future.
 
-- **Withdrawal Mechanism Update for fixed deposit pool** With the amm yield strategies in mind with v2, while withdrawing funds from the pool, the winners/players both will only withdraw the amount of funds they are entilted too to prevent sandwich attacks, large % of pool imbalance on the amm proctocols like curve, mobius, unlike V1 where we withdrew all pool funds via [redeem method in the smart contract](https://github.com/Good-Ghosting/goodghosting-protocol-v1/blob/master/contracts/GoodGhostingPolygon.sol#L163), this also means if a winners withdraws later their funds are still earning interests in the external strategy protocols.
+- **Withdrawal Mechanism Update for fixed deposit pool** With the amm yield strategies in mind with v2, while withdrawing funds from the pool, the winners/players both will only withdraw the amount of funds they are entitled to, preventing sandwich attacks, large % of pool imbalance on the amm protocols like curve, mobius. This is different than the mechanism used for V1 pools where the first withdrawal would withdraw all pool funds via [redeem method in the smart contract](https://github.com/Good-Ghosting/goodghosting-protocol-v1/blob/master/contracts/GoodGhostingPolygon.sol#L163). This also means if a winners withdraws later, their funds are still earning interests in the external strategy protocols.
 
 ## Types of Pools
 
@@ -36,7 +36,7 @@ With the GoodGhosting V2 Pool, we aim to improve on the protocol and make it mor
 
 GoodGhosting Protocol v2 introduces better fairness in terms of interest and reward generation for winners.
 
-Since with V2 there are 2 phases of the game **deposit rounds** & the **waiting round**. So there are different accounting mechanisms for both the phases.
+In V2 there are 2 phases of the game, **deposit rounds** & the **waiting round**, so there are different accounting mechanisms for both phases.
 
 **Accounting for Deposit Rounds**
 
@@ -84,7 +84,7 @@ player1Index = 10 / 5 = 2
 player2Index = 100 / 20 = 5
 ```
 
-In this scenario, `cumulativePlayerIndexSum` will be `7` and even though player2 deposits late but the amount is 10x more than player1. At the end get, so player2 gets about 72% of the rewards and player1 gets the remaining 28% os the interest earned in the deposit round phase.
+In this scenario, `cumulativePlayerIndexSum` will be `7` and even though player2 deposits late but the amount is 10x more than player1. At the end get, so player2 gets about 72% of the rewards and player1 gets the remaining 28% of the interest earned in the deposit round phase.
 
 _Scenario 2: A Game with 2 players, 1 early withdrawal_
 
@@ -98,30 +98,31 @@ player2Index = 100 / 20 = 5
 In this scenario, `cumulativePlayerIndexSum` will be `7`. The twist is that player2 early withdrew so `cumulativePlayerIndexSum` became `2`. This means that player 1 gets all the interest and rewards earned by the pool accrued during the deposit phase.
 
 **Accounting for the Waiting Round**
-For hodl pools i.e where we have only let's say 1 deposit segment and long waiting round i.e 1 month or 3 months. We need a different accounting mechanism to calculate the intrest accrued in the waiting round.
+For hodl pools, i.e where we have 1 deposit segment (1 month) and a longe waiting round(3 months). We need a different accounting mechanism to calculate the interest accrued in the waiting round.
 
-In V2 we have new mapping `totalWinnerDepositsPerSegment[segment_no]` which basically keeps a track of all winners deposit amounts, so during the waiting period based on the % of the waiting round out of the total duration.
+In V2 we have a new mapping `totalWinnerDepositsPerSegment[segment_no]` which keeps track of all winners deposit amounts. We also calculate the ratio of the waiting round duration vs. the total game duration, to determine the interest % that was generated during the waiting round.
 
-The % of the winner interest share during the waiting round phase is calculated by
-`total_deposits_made_by_player / totalWinnerDepositsPerSegment[last_segment_pool]`
+The % of the winner interest share during the waiting round phase is calculated by:
+a) calculate how much the player's deposit amount represents compared to the total deposit amount of all winners:
+`% of winner interest accrued during waiting round = total_deposits_made_by_player / totalWinnerDepositsPerSegment[last_segment_pool]`
 
-then interest share of the winner interest share = `total_interest * % of winner interest accrued during waiting round / 100`
+b) calculate interest amount for the winner earned during the waiting round:
+`total_interest * % of winner interest accrued during waiting round / 100`
 
 **Considering a example**
 
 ```
 If there are 2 players who deposit 20 & 40 DAI each in a pool which is 1 week long.
 
-So assuming waiting round dominance in the pool is 75 %
-
-So if total interest is 100 DAI the interest accrued in waiting round would be 75 DAI
+Assume the waiting round dominance in the pool is 75%.
+Assume the total interest is 100 DAI, so the interest accrued during the waiting round is 75 DAI.
 
 interest share of player 1 = 20 / 60 * 100 = 33.3 %
 
-now for player 1 the waiting round interest share would be 33.3 / 100 * 100 = 33.3 DAI, hence for player 2 because they deposited more the interest would be 66.6 DAI
+now for player 1 the waiting round interest share would be 33.3 / 100 * 100 = 33.3 DAI, hence for player 2, because they deposited more, the interest would be 66.6 DAI.
 ```
 
-Once we have the interest/incentive/reward accrued for both deposit & waiting round for each player we just add both and hence making sure the accounting is fair for all types of pools and for all winners.
+Once we have the interest/incentive/reward accrued for both deposit & waiting round for each player we just add both values to calculate the total amount of interest a player should receive, ensuring the accounting is fair for all types of pools and for all winners.
 
 ## Emergency Scenario
 
@@ -129,7 +130,7 @@ By transferring funds to an external protocol pool (depending on the strategy us
 
 Once this function is called, it updates the last segment value to current segment and sets the emergency flag to `true` in the smart contract. Players who have deposited in the prev. segment, i.e `current segment - 1`, are all considered as winners and they can withdraw their funds immediately after the emergency flag is enabled.
 
-The withdrawal mechanism for each player withdrawal remains the same in case of emergency withdrawal too, they only redeem their portion of the funds (principal, and the interest, rewards & incentives in case of winners).
+The withdrawal mechanism for each player withdrawal remains the same in case of emergency withdrawal too - players only redeem their portion of the funds (principal, and the interest, rewards & incentives in case of winners).
 
 **NOTE** - Handling this emergency exit scenario is the reason why `cumulativePlayerIndexSum` is a mapping.
 
