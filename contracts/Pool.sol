@@ -482,6 +482,7 @@ contract Pool is Ownable, Pausable, ReentrancyGuard {
     /**
     @dev Winner interest accounting based on the interest amount share in the deposit rounds & waiting round.
     @param _segment last deposit segment for the winners.
+    @param _impermanentLossShare impermanent loss share during the current withdrawal.
     @return _playerIndexSharePercentage is the percentage share of the winners during deposit rounds for getting interest/rewards/incentives based on player index.
     @return _playerDepositAmountSharePercentage is the percentage share of the winners during waiting round for getting interest/rewards/incentives based on player deposits.
     @return _payout total amount to be transferred to the winners.
@@ -841,13 +842,17 @@ contract Pool is Ownable, Pausable, ReentrancyGuard {
                 totalGameInterest = _grossInterest;
                 _rewardTokenAmounts = _grossRewardTokenAmount;
             } else {
-                if (_grossInterest > _adminFeeAmount[0]) {
+                if (_grossInterest >= _adminFeeAmount[0]) {
                     totalGameInterest = (_grossInterest - _adminFeeAmount[0]);
+                } else {
+                    totalGameInterest = 0;
                 }
                 for (uint256 i = 0; i < _rewardTokens.length; ) {
                     // first slot is reserved for admin interest amount, so starts at 1.
-                    if (_grossRewardTokenAmount[i] > _adminFeeAmount[i + 1]) {
+                    if (_grossRewardTokenAmount[i] >= _adminFeeAmount[i + 1]) {
                         _rewardTokenAmounts[i] = _grossRewardTokenAmount[i] - _adminFeeAmount[i + 1];
+                    } else {
+                        _rewardTokenAmounts[i] = 0;
                     }
                     unchecked {
                         ++i;
@@ -1211,9 +1216,11 @@ contract Pool is Ownable, Pausable, ReentrancyGuard {
 
         // have to check for both since the rewards, interest accumulated along with the total deposit is withdrawn in a single redeem call
         if (_adminFeeAmount[0] != 0 || _claimableRewards) {
-            if (strategy.getTotalAmount() >= _adminFeeAmount[0]) {
-                strategy.redeem(inboundToken, _adminFeeAmount[0], _minAmount, disableRewardTokenClaim);
+            if (strategy.getTotalAmount() < _adminFeeAmount[0]) {
+                 _adminFeeAmount[0] = strategy.getTotalAmount();
             }
+            strategy.redeem(inboundToken, _adminFeeAmount[0], _minAmount, disableRewardTokenClaim);
+
 
             // need the updated value for the event
             // balance check before transferring the funds
