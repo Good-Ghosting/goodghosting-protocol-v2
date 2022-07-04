@@ -131,7 +131,7 @@ contract Pool is Ownable, Pausable, ReentrancyGuard {
     /// @notice emaergency withdraw flag.
     bool public emergencyWithdraw;
 
-    /// @notice Controls if tokens were adminFeeSet or not from the pool.
+    /// @notice Checkss if admin fee has been assigned.
     bool public adminFeeSet;
 
     /// @notice Controls if reward tokens are to be claimed at the time of redeem.
