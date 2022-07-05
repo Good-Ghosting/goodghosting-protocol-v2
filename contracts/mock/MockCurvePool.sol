@@ -109,11 +109,19 @@ contract MockCurvePool is MintableERC20, Ownable {
     }
 
     function calc_token_amount(uint256[3] calldata _amounts, bool is_deposit) external view returns (uint256) {
-        return _amounts[0];
+        if (_amounts[0] == 1) {
+            return 0;
+        } else {
+            return _amounts[0];
+        }
     }
 
     function calc_token_amount(uint256[5] calldata _amounts, bool is_deposit) external view returns (uint256) {
-        return _amounts[0];
+        if (_amounts[0] == 1) {
+            return 0;
+        } else {
+            return _amounts[0];
+        }
     }
 
     function lp_token() external view returns (address) {

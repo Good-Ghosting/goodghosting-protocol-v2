@@ -86,7 +86,11 @@ contract MockMobiusPool is MintableERC20, Ownable {
         uint256[] calldata amounts,
         bool deposit
     ) external view returns (uint256) {
-        return amounts[0];
+        if (amounts[0] == 1) {
+            return 0;
+        } else {
+            return amounts[0];
+        }
     }
 
     function getLpToken() external view returns (address) {
