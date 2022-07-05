@@ -859,7 +859,6 @@ contract Pool is Ownable, Pausable, ReentrancyGuard {
                         ++i;
                     }
                 }
-
             }
         } else {
             // UPDATE - N2 Audit Report
@@ -931,7 +930,7 @@ contract Pool is Ownable, Pausable, ReentrancyGuard {
             revert MAX_PLAYER_COUNT_REACHED();
         }
 
-        if (flexibleSegmentPayment && _depositAmount > maxFlexibleSegmentPaymentAmount) {
+        if (flexibleSegmentPayment && (_depositAmount == 0 || _depositAmount > maxFlexibleSegmentPaymentAmount)) {
             revert INVALID_FLEXIBLE_AMOUNT();
         }
         uint256 amount = flexibleSegmentPayment ? _depositAmount : segmentPayment;
@@ -946,6 +945,9 @@ contract Pool is Ownable, Pausable, ReentrancyGuard {
         }
         // get net deposit amount from the strategy
         uint256 netAmount = strategy.getNetDepositAmount(amount);
+        if (netAmount == 0) {
+            revert INVALID_NET_DEPOSIT_AMOUNT();
+        }
 
         Player memory newPlayer = Player({
             addr: msg.sender,
@@ -1218,10 +1220,9 @@ contract Pool is Ownable, Pausable, ReentrancyGuard {
         // have to check for both since the rewards, interest accumulated along with the total deposit is withdrawn in a single redeem call
         if (_adminFeeAmount[0] != 0 || _claimableRewards) {
             if (strategy.getTotalAmount() < _adminFeeAmount[0]) {
-                 _adminFeeAmount[0] = strategy.getTotalAmount();
+                _adminFeeAmount[0] = strategy.getTotalAmount();
             }
             strategy.redeem(inboundToken, _adminFeeAmount[0], _minAmount, disableRewardTokenClaim);
-
 
             // need the updated value for the event
             // balance check before transferring the funds
