@@ -1,12 +1,13 @@
 const { ethers } = require("hardhat");
 import * as chai from "chai";
 import { assert } from "chai";
-import { solidity } from "ethereum-waffle";
+import { deployMockContract, solidity } from "ethereum-waffle";
 import { ERC20__factory } from "../src/types";
 import {
   mintTokens,
   approveToken,
   deployPool,
+  deployPoolWithMockStrategy,
   unableToJoinGame,
   joinGame,
   makeDeposit,
@@ -3207,6 +3208,188 @@ export const shouldBehaveLikePlayersWithdrawingFromGGPool = async (strategyType:
   });
 
   if (strategyType === "curve" || strategyType === "mobius") {
+    it("admin is able to withdraw if the interest reduces a bit", async () => {
+      contracts = await deployPoolWithMockStrategy(
+        depositCount,
+        segmentLength,
+        segmentPayment,
+        1,
+        1,
+        maxPlayersCount,
+        1,
+        strategyType,
+        0,
+      );
+      const accounts = await ethers.getSigners();
+      const deployer = accounts[0];
+      const player1 = accounts[2];
+
+      let inboundTokenBalanceBeforeWithdraw,
+        rewardTokenAdminBalanceBeforeWithdraw,
+        inboundTokenBalanceAfterWithdraw,
+        rewardTokenAdminBalanceAfterWithdraw;
+
+      // await approveToken(contracts.inboundToken, player1.address, contracts.goodGhosting.address, ethers.utils.parseEther("1000"));
+      await contracts.inboundToken
+        .connect(player1)
+        .approve(
+          contracts.goodGhosting.address,
+          ethers.BigNumber.from(segmentPayment).mul(ethers.BigNumber.from("1000")).toString(),
+        );
+      await contracts.goodGhosting.connect(player1).joinGame(0, 0);
+      // await joinGame(contracts.goodGhosting, contracts.inboundToken, player1, segmentPayment, segmentPayment);
+
+      for (let index = 1; index < depositCount; index++) {
+        await ethers.provider.send("evm_increaseTime", [segmentLength]);
+        await ethers.provider.send("evm_mine", []);
+        await contracts.goodGhosting.connect(player1).makeDeposit(0, 0);
+      }
+
+      // above, it accounted for 1st deposit window, and then the loop runs till depositCount - 1.
+      // now, we move 2 more segments (depositCount-1 and depositCount) to complete the game.
+      await ethers.provider.send("evm_increaseTime", [segmentLength]);
+      await ethers.provider.send("evm_mine", []);
+
+      const waitingRoundLength = await contracts.goodGhosting.waitingRoundSegmentLength();
+      await ethers.provider.send("evm_increaseTime", [parseInt(waitingRoundLength.toString())]);
+      await ethers.provider.send("evm_mine", []);
+
+      await mintTokens(contracts.inboundToken, deployer.address);
+      if (strategyType === "curve") {
+        await contracts.inboundToken
+          .connect(deployer)
+          .approve(contracts.curvePool.address, ethers.utils.parseEther("3"));
+        await contracts.curvePool.connect(deployer).send_liquidity(ethers.utils.parseEther("3"));
+        await contracts.curvePool.connect(deployer).approve(contracts.curveGauge.address, ethers.utils.parseEther("3"));
+        await contracts.curveGauge.connect(deployer).deposit(ethers.utils.parseEther("3"));
+        await contracts.curveGauge.connect(deployer).transfer(contracts.strategy.address, ethers.utils.parseEther("3"));
+      } else {
+        contracts.rewardToken = contracts.minter;
+        await contracts.inboundToken
+          .connect(deployer)
+          .approve(contracts.mobiPool.address, ethers.utils.parseEther("3"));
+        await contracts.mobiPool.connect(deployer).send_liquidity(ethers.utils.parseEther("3"));
+        await contracts.mobiPool.connect(deployer).approve(contracts.mobiGauge.address, ethers.utils.parseEther("3"));
+        await contracts.mobiGauge.connect(deployer).deposit(ethers.utils.parseEther("3"));
+        await contracts.mobiGauge.connect(deployer).transfer(contracts.strategy.address, ethers.utils.parseEther("3"));
+      }
+
+      const totalGamePrincipal = await contracts.goodGhosting.netTotalGamePrincipal();
+      const totalAmount = await contracts.strategy.getTotalAmount();
+      const grossInterest = totalAmount.sub(totalGamePrincipal);
+      const expectedAdminFee = grossInterest.mul(ethers.BigNumber.from(1)).div(ethers.BigNumber.from(100));
+
+      await contracts.goodGhosting.connect(player1).withdraw(0);
+
+      inboundTokenBalanceBeforeWithdraw = await contracts.inboundToken.balanceOf(deployer.address);
+
+      const rewardTokenInstance = await getRewardTokenInstance(contracts.strategy, player1);
+
+      rewardTokenAdminBalanceBeforeWithdraw = await rewardTokenInstance.balanceOf(deployer.address);
+
+      await contracts.goodGhosting.adminFeeWithdraw(0);
+
+      inboundTokenBalanceAfterWithdraw = await contracts.inboundToken.balanceOf(deployer.address);
+
+      rewardTokenAdminBalanceAfterWithdraw = await rewardTokenInstance.balanceOf(deployer.address);
+
+      const diff = inboundTokenBalanceAfterWithdraw.sub(inboundTokenBalanceBeforeWithdraw);
+
+      assert(diff.lt(expectedAdminFee));
+      assert(rewardTokenAdminBalanceAfterWithdraw.gt(rewardTokenAdminBalanceBeforeWithdraw));
+    });
+
+    it("one of the winners is able to withdraw if the interest reduces a bit", async () => {
+      contracts = await deployPoolWithMockStrategy(
+        depositCount,
+        segmentLength,
+        segmentPayment,
+        1,
+        1,
+        maxPlayersCount,
+        1,
+        strategyType,
+        0,
+      );
+      const accounts = await ethers.getSigners();
+      const deployer = accounts[0];
+      const player1 = accounts[2];
+      const player2 = accounts[3];
+
+      let inboundTokenBalanceBeforeWithdraw, inboundTokenBalanceAfterWithdraw;
+
+      // await approveToken(contracts.inboundToken, player1.address, contracts.goodGhosting.address, ethers.utils.parseEther("1000"));
+      await contracts.inboundToken
+        .connect(player1)
+        .approve(
+          contracts.goodGhosting.address,
+          ethers.BigNumber.from(segmentPayment).mul(ethers.BigNumber.from("1000")).toString(),
+        );
+      await contracts.goodGhosting.connect(player1).joinGame(0, 0);
+
+      await contracts.inboundToken
+        .connect(player2)
+        .approve(
+          contracts.goodGhosting.address,
+          ethers.BigNumber.from(segmentPayment).mul(ethers.BigNumber.from("1000")).toString(),
+        );
+      await contracts.goodGhosting.connect(player2).joinGame(0, 0);
+      // await joinGame(contracts.goodGhosting, contracts.inboundToken, player1, segmentPayment, segmentPayment);
+
+      for (let index = 1; index < depositCount; index++) {
+        await ethers.provider.send("evm_increaseTime", [segmentLength]);
+        await ethers.provider.send("evm_mine", []);
+        await contracts.goodGhosting.connect(player1).makeDeposit(0, 0);
+        await contracts.goodGhosting.connect(player2).makeDeposit(0, 0);
+      }
+
+      // above, it accounted for 1st deposit window, and then the loop runs till depositCount - 1.
+      // now, we move 2 more segments (depositCount-1 and depositCount) to complete the game.
+      await ethers.provider.send("evm_increaseTime", [segmentLength]);
+      await ethers.provider.send("evm_mine", []);
+
+      const waitingRoundLength = await contracts.goodGhosting.waitingRoundSegmentLength();
+      await ethers.provider.send("evm_increaseTime", [parseInt(waitingRoundLength.toString())]);
+      await ethers.provider.send("evm_mine", []);
+
+      await mintTokens(contracts.inboundToken, deployer.address);
+      if (strategyType === "curve") {
+        await contracts.inboundToken
+          .connect(deployer)
+          .approve(contracts.curvePool.address, ethers.utils.parseEther("3"));
+        await contracts.curvePool.connect(deployer).send_liquidity(ethers.utils.parseEther("3"));
+        await contracts.curvePool.connect(deployer).approve(contracts.curveGauge.address, ethers.utils.parseEther("3"));
+        await contracts.curveGauge.connect(deployer).deposit(ethers.utils.parseEther("3"));
+        await contracts.curveGauge.connect(deployer).transfer(contracts.strategy.address, ethers.utils.parseEther("3"));
+      } else {
+        contracts.rewardToken = contracts.minter;
+        await contracts.inboundToken
+          .connect(deployer)
+          .approve(contracts.mobiPool.address, ethers.utils.parseEther("3"));
+        await contracts.mobiPool.connect(deployer).send_liquidity(ethers.utils.parseEther("3"));
+        await contracts.mobiPool.connect(deployer).approve(contracts.mobiGauge.address, ethers.utils.parseEther("3"));
+        await contracts.mobiGauge.connect(deployer).deposit(ethers.utils.parseEther("3"));
+        await contracts.mobiGauge.connect(deployer).transfer(contracts.strategy.address, ethers.utils.parseEther("3"));
+      }
+
+      const totalGamePrincipal = await contracts.goodGhosting.netTotalGamePrincipal();
+      const totalAmount = await contracts.strategy.getTotalAmount();
+      const grossInterest = totalAmount.sub(totalGamePrincipal);
+      const approxGrossInterestForWinner = grossInterest.div(ethers.BigNumber.from("2"));
+
+      await contracts.goodGhosting.connect(player1).withdraw(0);
+
+      inboundTokenBalanceBeforeWithdraw = await contracts.inboundToken.balanceOf(player2.address);
+      // gets no interest since it reduces
+      await contracts.goodGhosting.connect(player2).withdraw(0);
+      inboundTokenBalanceAfterWithdraw = await contracts.inboundToken.balanceOf(player2.address);
+
+      const playerInfo = await contracts.goodGhosting.players(player2.address);
+      let interestReceived = inboundTokenBalanceAfterWithdraw.sub(inboundTokenBalanceBeforeWithdraw);
+      interestReceived = interestReceived.sub(playerInfo.netAmountPaid);
+      assert(interestReceived.lt(approxGrossInterestForWinner));
+    });
+
     it("admin is able to withdraw if there is impermanent loss", async () => {
       const accounts = await ethers.getSigners();
       const deployer = accounts[0];
