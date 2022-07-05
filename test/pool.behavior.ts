@@ -4970,6 +4970,22 @@ export const shouldBehaveLikeVariableDepositPool = async (strategyType: string) 
     );
   });
 
+  it("reverts if a users tries to join with no amount i.e 0", async () => {
+    const accounts = await ethers.getSigners();
+    const player1 = accounts[2];
+    await expect(contracts.goodGhosting.connect(player1).joinGame(0, 0)).to.be.revertedWith("INVALID_FLEXIBLE_AMOUNT");
+  });
+
+  if (strategyType == "curve" || strategyType == "mobius") {
+    it("reverts if a users tries to join with a very small amount so the net amount is 0", async () => {
+      const accounts = await ethers.getSigners();
+      const player1 = accounts[2];
+      await expect(contracts.goodGhosting.connect(player1).joinGame(0, 1)).to.be.revertedWith(
+        "INVALID_NET_DEPOSIT_AMOUNT",
+      );
+    });
+  }
+
   it("allows admin to withdraw fees early after admin enables early game completion", async () => {
     const accounts = await ethers.getSigners();
     let governanceTokenAdminBalanceAfterWithdraw = 0,
