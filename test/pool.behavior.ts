@@ -3207,6 +3207,75 @@ export const shouldBehaveLikePlayersWithdrawingFromGGPool = async (strategyType:
   });
 
   if (strategyType === "curve" || strategyType === "mobius") {
+    it("admin is able to withdraw if there is impermanent loss", async () => {
+      const accounts = await ethers.getSigners();
+      const deployer = accounts[0];
+      const player1 = accounts[2];
+      const player2 = accounts[3];
+
+      let inboundTokenBalanceBeforeWithdraw,
+        rewardTokenAdminBalanceBeforeWithdraw,
+        governanceTokenAdminBalanceBeforeWithdraw,
+        inboundTokenBalanceAfterWithdraw,
+        rewardTokenAdminBalanceAfterWithdraw,
+        governanceTokenAdminBalanceAfterWithdraw;
+
+      await joinGame(contracts.goodGhosting, contracts.inboundToken, player2, segmentPayment, segmentPayment);
+      await joinGame(contracts.goodGhosting, contracts.inboundToken, player1, segmentPayment, segmentPayment);
+
+      for (let index = 1; index < depositCount; index++) {
+        await ethers.provider.send("evm_increaseTime", [segmentLength]);
+        await ethers.provider.send("evm_mine", []);
+        await makeDeposit(contracts.goodGhosting, contracts.inboundToken, player2, segmentPayment, segmentPayment);
+        await makeDeposit(contracts.goodGhosting, contracts.inboundToken, player1, segmentPayment, segmentPayment);
+      }
+
+      // above, it accounted for 1st deposit window, and then the loop runs till depositCount - 1.
+      // now, we move 2 more segments (depositCount-1 and depositCount) to complete the game.
+      await ethers.provider.send("evm_increaseTime", [segmentLength]);
+      await ethers.provider.send("evm_mine", []);
+
+      const waitingRoundLength = await contracts.goodGhosting.waitingRoundSegmentLength();
+      await ethers.provider.send("evm_increaseTime", [parseInt(waitingRoundLength.toString())]);
+      await ethers.provider.send("evm_mine", []);
+
+      if (strategyType === "curve") {
+        await contracts.curvePool.connect(deployer).setILoss();
+      } else {
+        await contracts.mobiPool.connect(deployer).setILoss();
+      }
+
+      inboundTokenBalanceBeforeWithdraw = await contracts.inboundToken.balanceOf(deployer.address);
+
+      if (strategyType === "curve") {
+        governanceTokenAdminBalanceBeforeWithdraw = await contracts.curve.balanceOf(player1.address);
+      } else if (strategyType === "mobius") {
+        contracts.rewardToken = contracts.minter;
+        governanceTokenAdminBalanceBeforeWithdraw = await contracts.mobi.balanceOf(player1.address);
+      }
+
+      const rewardTokenInstance = await getRewardTokenInstance(contracts.strategy, player1);
+
+      rewardTokenAdminBalanceBeforeWithdraw = await rewardTokenInstance.balanceOf(deployer.address);
+
+      await contracts.goodGhosting.adminFeeWithdraw(0);
+
+      inboundTokenBalanceAfterWithdraw = await contracts.inboundToken.balanceOf(deployer.address);
+
+      rewardTokenAdminBalanceAfterWithdraw = await rewardTokenInstance.balanceOf(deployer.address);
+
+      if (strategyType === "curve") {
+        governanceTokenAdminBalanceAfterWithdraw = await contracts.curve.balanceOf(deployer.address);
+      } else if (strategyType === "mobius") {
+        contracts.rewardToken = contracts.minter;
+        governanceTokenAdminBalanceAfterWithdraw = await contracts.mobi.balanceOf(deployer.address);
+      }
+
+      assert(inboundTokenBalanceAfterWithdraw.eq(inboundTokenBalanceBeforeWithdraw));
+      assert(rewardTokenAdminBalanceAfterWithdraw.gt(rewardTokenAdminBalanceBeforeWithdraw));
+      assert(governanceTokenAdminBalanceAfterWithdraw.gt(governanceTokenAdminBalanceBeforeWithdraw));
+    });
+
     it("players are able to withdraw if there is impermanent loss and there is a ghost too", async () => {
       const accounts = await ethers.getSigners();
       const deployer = accounts[0];
@@ -4391,11 +4460,6 @@ export const shouldBehaveLikeAdminWithdrawingFeesFromGGPoolWithFeePercentMoreTha
       const totalGamePrincipal = await contracts.goodGhosting.totalGamePrincipal();
       const grossInterest = contractBalance.sub(totalGamePrincipal);
 
-      // const fee: any = [];
-      // const rewardTokens = await contracts.strategy.getRewardTokens();
-      // for (let i = 0; i <= rewardTokens.length; i++) {
-      //   fee[i] = await contracts.goodGhosting.adminFeeAmount(i);
-      // }
       // There's no winner, so admin takes it all
       let adminMaticBalanceBeforeWithdraw = await contracts.rewardToken.balanceOf(deployer.address);
       const result = await contracts.goodGhosting.adminFeeWithdraw(0);
