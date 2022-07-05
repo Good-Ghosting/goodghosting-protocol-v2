@@ -65,7 +65,7 @@ contract MobiusStrategy is Ownable, IStrategy {
     Intended for usage by external clients and in case of variable deposit pools.
     @return Total accumulated amount.
     */
-    function getTotalAmount() external view override returns (uint256) {
+    function getTotalAmount() external view virtual override returns (uint256) {
         uint256 gaugeBalance = gauge.balanceOf(address(this));
         uint256 totalAccumulatedAmount = pool.calculateRemoveLiquidityOneToken(address(this), gaugeBalance, 0);
         return totalAccumulatedAmount;
