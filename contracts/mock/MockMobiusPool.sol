@@ -1,4 +1,4 @@
-pragma solidity ^0.8.7;
+pragma solidity 0.8.7;
 
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
@@ -86,7 +86,12 @@ contract MockMobiusPool is MintableERC20, Ownable {
         uint256[] calldata amounts,
         bool deposit
     ) external view returns (uint256) {
-        return amounts[0];
+        // this method mocks the net amount returned so to cover the invalid net amount scenario if _amounts[0] is 1 wei we return 0
+        if (amounts[0] == 1) {
+            return 0;
+        } else {
+            return amounts[0];
+        }
     }
 
     function getLpToken() external view returns (address) {

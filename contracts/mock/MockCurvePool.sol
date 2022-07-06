@@ -1,4 +1,4 @@
-pragma solidity ^0.8.7;
+pragma solidity 0.8.7;
 
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
@@ -109,11 +109,21 @@ contract MockCurvePool is MintableERC20, Ownable {
     }
 
     function calc_token_amount(uint256[3] calldata _amounts, bool is_deposit) external view returns (uint256) {
-        return _amounts[0];
+        // this method mocks the net amount returned so to cover the invalid net amount scenario if _amounts[0] is 1 wei we return 0
+        if (_amounts[0] == 1) {
+            return 0;
+        } else {
+            return _amounts[0];
+        }
     }
 
     function calc_token_amount(uint256[5] calldata _amounts, bool is_deposit) external view returns (uint256) {
-        return _amounts[0];
+        // this method mocks the net amount returned so to cover the invalid net amount scenario if _amounts[0] is 1 wei we return 0
+        if (_amounts[0] == 1) {
+            return 0;
+        } else {
+            return _amounts[0];
+        }
     }
 
     function lp_token() external view returns (address) {

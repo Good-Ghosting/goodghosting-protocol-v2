@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: UNLICENSED
 
-pragma solidity ^0.8.7;
+pragma solidity 0.8.7;
 
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
@@ -65,7 +65,7 @@ contract MobiusStrategy is Ownable, IStrategy {
     Intended for usage by external clients and in case of variable deposit pools.
     @return Total accumulated amount.
     */
-    function getTotalAmount() external view override returns (uint256) {
+    function getTotalAmount() external view virtual override returns (uint256) {
         uint256 gaugeBalance = gauge.balanceOf(address(this));
         uint256 totalAccumulatedAmount = pool.calculateRemoveLiquidityOneToken(address(this), gaugeBalance, 0);
         return totalAccumulatedAmount;
@@ -88,6 +88,7 @@ contract MobiusStrategy is Ownable, IStrategy {
     Returns the underlying inbound (deposit) token address.
     @return Underlying token address.
     */
+    // UPDATE - A4 Audit Report
     function getUnderlyingAsset() external view override returns (address) {
         return address(pool.getToken(0));
     }

@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: UNLICENSED
 
-pragma solidity ^0.8.7;
+pragma solidity 0.8.7;
 
 import "./IStrategy.sol";
 import "../aaveV3/IPoolAddressesProvider.sol";
@@ -171,7 +171,7 @@ contract AaveStrategyV3 is Ownable, IStrategy {
     function invest(address _inboundCurrency, uint256 _minAmount) external payable override onlyOwner {
         if (_inboundCurrency == address(0) || _inboundCurrency == address(wrappedTxToken)) {
             if (_inboundCurrency == address(wrappedTxToken) && address(wrappedTxToken) != address(0)) {
-                // unwraps WMATIC back into MATIC
+                // unwraps WrappedToken back into Native Token
                 // UPDATE - A6 Audit Report
                 WrappedToken(address(wrappedTxToken)).withdraw(IERC20(_inboundCurrency).balanceOf(address(this)));
             }
@@ -301,7 +301,7 @@ contract AaveStrategyV3 is Ownable, IStrategy {
     {
         if (!disableRewardTokenClaim && address(rewardsController) != address(0)) {
             // Claims the rewards from the external pool
-            address[] memory assets = new address[](rewardTokens.length);
+            address[] memory assets = new address[](1);
             assets[0] = address(aToken);
             (, uint256[] memory unclaimedAmounts) = rewardsController.getAllUserRewards(assets, address(this));
             return unclaimedAmounts;

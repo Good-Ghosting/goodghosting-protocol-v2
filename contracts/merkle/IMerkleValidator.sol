@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: UNLICENSED
-pragma solidity ^0.8.7;
+pragma solidity 0.8.7;
 
 // Allows anyone to claim a token if they exist in a merkle root.
 interface IMerkleValidator {

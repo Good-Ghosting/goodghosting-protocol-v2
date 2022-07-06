@@ -1,4 +1,4 @@
-pragma solidity ^0.8.7;
+pragma solidity 0.8.7;
 
 interface ICurveGauge {
     function deposit(uint256 _value) external;

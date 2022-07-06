@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: UNLICENSED
 
-pragma solidity ^0.8.7;
+pragma solidity 0.8.7;
 
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
@@ -80,7 +80,7 @@ contract CurveStrategy is Ownable, IStrategy {
     Intended for usage by external clients and in case of variable deposit pools.
     @return Total accumulated amount.
     */
-    function getTotalAmount() external view override returns (uint256) {
+    function getTotalAmount() external view virtual override returns (uint256) {
         uint256 gaugeBalance = gauge.balanceOf(address(this));
         uint256 totalAccumulatedAmount = 0;
         if (poolType == AAVE_POOL) {
@@ -115,6 +115,7 @@ contract CurveStrategy is Ownable, IStrategy {
     Returns the underlying inbound (deposit) token address.
     @return Underlying token address.
     */
+    // UPDATE - A4 Audit Report
     function getUnderlyingAsset() external view override returns (address) {
         return pool.underlying_coins(uint256(uint128(inboundTokenIndex)));
     }
