@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: UNLICENSED
-pragma solidity ^0.8.7;
+pragma solidity 0.8.7;
 
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/security/Pausable.sol";
@@ -512,19 +512,6 @@ contract Pool is Ownable, Pausable, ReentrancyGuard {
             }
         }
 
-        _payout = players[msg.sender].netAmountPaid;
-
-        if (_impermanentLossShare != 0) {
-            // new payput in case of impermanent loss
-            _payout = (players[msg.sender].netAmountPaid * _impermanentLossShare) / 100;
-            // update totalWinnerDepositsPerSegment in case of impermanent loss
-            totalWinnerDepositsPerSegment[_segment] =
-                (totalWinnerDepositsPerSegment[_segment] * _impermanentLossShare) /
-                100;
-            // update netAmountPaid in case of impermanent loss
-            players[msg.sender].netAmountPaid = _payout;
-        }
-
         // calculate playerIndexSharePercentage for each player
         // UPDATE - H3 Audit Report
         _playerIndexSharePercentage = (playerIndexSum * MULTIPLIER) / cumulativePlayerIndexSum[_segment];
@@ -532,14 +519,34 @@ contract Pool is Ownable, Pausable, ReentrancyGuard {
         // reduce cumulativePlayerIndexSum since a winner only withdraws their own funds.
         cumulativePlayerIndexSum[_segment] -= playerIndexSum;
 
+        _payout = players[msg.sender].netAmountPaid;
+
+
         // calculate _playerDepositAmountSharePercentage for each player for waiting round calculations depending on how much deposit share the player has.
         // have a safety check players[msg.sender].netAmountPaid > totalWinnerDepositsPerSegment[segment] in case of a impermanent loss
         // in case of a impermanent loss although we probably won't need it since we reduce player's netAmountPaid too but just in case.
-        _playerDepositAmountSharePercentage = players[msg.sender].netAmountPaid >
+        _playerDepositAmountSharePercentage = _payout >
             totalWinnerDepositsPerSegment[_segment]
             ? MULTIPLIER // UPDATE - H3 Audit Report
-            : (players[msg.sender].netAmountPaid * MULTIPLIER) / totalWinnerDepositsPerSegment[_segment];
+            : (_payout * MULTIPLIER) / totalWinnerDepositsPerSegment[_segment];
 
+
+        // update storage vars since each winner withdraws only funds entitled to them.
+        if (totalWinnerDepositsPerSegment[_segment] < _payout) {
+            totalWinnerDepositsPerSegment[_segment] = 0;
+        } else {
+            totalWinnerDepositsPerSegment[_segment] -= _payout;
+        }
+
+        // checking for impermenent loss
+        if (_impermanentLossShare != 0) {
+            // new payput in case of impermanent loss
+            _payout = (_payout * _impermanentLossShare) / 100;
+            
+            // update netAmountPaid in case of impermanent loss
+             players[msg.sender].netAmountPaid = _payout;
+        }
+    
         // checking for impermenent loss
         // save gas by checking the interest before entering in the if block
         if (_impermanentLossShare == 0 && totalGameInterest != 0) {
@@ -633,6 +640,7 @@ contract Pool is Ownable, Pausable, ReentrancyGuard {
 
                 // transferring the reward token share to the winner
                 // updates variable value to make sure on a failure, event is emitted w/ correct value.
+                // UPDATE - Related to N1 Audit Report (If an external protocol reward token get's compromised)
                 playerRewards[i] = _transferTokenOrContinueOnFailure(
                     address(_rewardTokens[i]),
                     msg.sender,
@@ -697,8 +705,8 @@ contract Pool is Ownable, Pausable, ReentrancyGuard {
     }
 
     /**
-    @notice
-    updates the waiting and deposit rounds time percentages based on the total duration of the pool, total deposit round & waiting round duration.
+    @notice updates the waiting and deposit rounds time percentages based on the total duration of the pool, total deposit round & waiting round duration.
+    @param _currentSegment current segment value.
     */
     function _updateInterestShares(uint64 _currentSegment) internal {
         // if emergencyWithdraw hasn't been enabled then the calculation of the percentages is pretty straightforward
@@ -725,8 +733,8 @@ contract Pool is Ownable, Pausable, ReentrancyGuard {
     }
 
     /**
-    @notice
-    check if there are any rewards to claim for the admin.
+    @notice check if there are any rewards to claim for the admin.
+    @param _adminFeeAmount admin fee amount value.
     */
     function _checkRewardsClaimableByAdmin(uint256[] memory _adminFeeAmount) internal pure returns (bool) {
         // starts loop from 1, because first spot of _adminFeeAmount is reserved for admin interest share.
@@ -742,8 +750,9 @@ contract Pool is Ownable, Pausable, ReentrancyGuard {
     }
 
     /**
-    @notice
-    Transfer funds after balance checks to the players / admin.
+    @notice Transfer funds after balance checks to the players / admin.
+    @param _recepient address which will receive tokens.
+    @param _amount transfer amount.
     */
     // UPDATE - A3 Audit Report
     function _transferFundsSafelyOrFail(address _recepient, uint256 _amount) internal returns (uint256) {
@@ -773,9 +782,10 @@ contract Pool is Ownable, Pausable, ReentrancyGuard {
 
     /**
     @notice
-    Calculates and updates's game accounting called by methods _setGlobalPoolParamsForFlexibleDepositPool.
+    Calculates and updates's game accounting called by methods _setGlobalPoolParams.
     Updates the game storage vars used for calculating player interest, incentives etc.
     @param _totalBalance Total inbound token balance in the contract.
+    @param _grossRewardTokenAmount Gross reward amounts.
     */
     function _calculateAndUpdateGameAccounting(uint256 _totalBalance, uint256[] memory _grossRewardTokenAmount)
         internal
@@ -818,7 +828,7 @@ contract Pool is Ownable, Pausable, ReentrancyGuard {
 
     /**
     @notice
-    Calculates and set's admin accounting called by methods _setGlobalPoolParamsForFlexibleDepositPool.
+    Calculates and set's admin accounting called by methods _setGlobalPoolParams.
     Updates the admin fee storage var used for admin fee.
     @param _grossInterest Gross interest amount.
     @param _grossRewardTokenAmount Gross reward amount array.
@@ -835,7 +845,6 @@ contract Pool is Ownable, Pausable, ReentrancyGuard {
         uint256[] memory _adminFeeAmount = adminFeeAmount;
         uint256[] memory _rewardTokenAmounts = rewardTokenAmounts;
 
-        // UPDATE - N2 Audit Report
         // handling the scenario when some winners withdraw later so they should get extra interest/rewards
         // the scenario wasn't handled before
         if (adminFeeSet) {
@@ -978,6 +987,7 @@ contract Pool is Ownable, Pausable, ReentrancyGuard {
         which determines the interest and reward share of the winner based on the deposit amount amount and the time they deposit in a particular segment.
         @param _minAmount Slippage based amount to cover for impermanent loss scenario.
         @param _depositAmount Variable Deposit Amount in case of a variable deposit pool.
+        @param _netDepositAmount Net deposit amount.
      */
     function _transferInboundTokenToContract(
         uint256 _minAmount,
@@ -1003,6 +1013,7 @@ contract Pool is Ownable, Pausable, ReentrancyGuard {
         playerIndex[msg.sender][currentSegment] = currentSegmentplayerIndex;
 
         // updating the cummulative player Index with all the deposits made by the player till that segment
+        // Avoids SLOAD in loop
         uint256 cummalativePlayerIndexSumInMemory = cumulativePlayerIndexSum[currentSegment];
         for (uint256 i = 0; i <= currentSegment; ) {
             cummalativePlayerIndexSumInMemory += playerIndex[msg.sender][i];
@@ -1048,7 +1059,7 @@ contract Pool is Ownable, Pausable, ReentrancyGuard {
 
     /// @dev Sets the game stats without redeeming the funds from the strategy.
     /// Can only be called after the game is completed when each player withdraws.
-    function _setGlobalPoolParamsForFlexibleDepositPool() internal virtual whenGameIsCompleted {
+    function _setGlobalPoolParams() internal virtual whenGameIsCompleted {
         // this method is called everytime a player decides to withdraw,
         // to update the game storage vars because every player withdraw's their entitled amount that includes the incentive & reward tokens.
         // so totalBalance keeps a track of the ucrrent balance & the accumulated principal + interest stored in the strategy protocol.
@@ -1212,7 +1223,7 @@ contract Pool is Ownable, Pausable, ReentrancyGuard {
         adminWithdraw = true;
 
         // UPDATE - C2 Audit Report - removing redeem method
-        _setGlobalPoolParamsForFlexibleDepositPool();
+        _setGlobalPoolParams();
         // to avoid SLOAD multiple times
         // UPDATE - A5 Audit Report
         uint256[] memory _adminFeeAmount = adminFeeAmount;
@@ -1327,6 +1338,7 @@ contract Pool is Ownable, Pausable, ReentrancyGuard {
 
         // FIX - C3 Audit Report
         // reduce the cumulativePlayerIndexSum for the segment where the player doing the early withdraw deposited last
+        // cumulativePlayerIndexSum has the value of the player index sums for all player till the current segment.
         cumulativePlayerIndexSum[player.mostRecentSegmentPaid] -= playerIndexSum;
         // reduce the totalWinnerDepositsPerSegment for the segment.
         totalWinnerDepositsPerSegment[player.mostRecentSegmentPaid] -= player.netAmountPaid;
@@ -1372,7 +1384,7 @@ contract Pool is Ownable, Pausable, ReentrancyGuard {
         player.withdrawn = true;
 
         // UPDATE - C2 Audit Report - removing redeem method
-        _setGlobalPoolParamsForFlexibleDepositPool();
+        _setGlobalPoolParams();
 
         // to avoid SLOAD multiple times
         uint64 depositCountMemory = depositCount;
@@ -1400,12 +1412,6 @@ contract Pool is Ownable, Pausable, ReentrancyGuard {
             // calculating winners share of the reward earned from the external protocol deposits/no_strategy
             _calculateAndUpdateWinnerRewardAccounting(playerDepositAmountSharePercentage, playerIndexSharePercentage);
 
-            // update storage vars since each winner withdraws only funds entitled to them.
-            if (totalWinnerDepositsPerSegment[segment] < player.netAmountPaid) {
-                totalWinnerDepositsPerSegment[segment] = 0;
-            } else {
-                totalWinnerDepositsPerSegment[segment] -= player.netAmountPaid;
-            }
         } else {
             payout = _calculateAndUpdateNonWinnerAccounting(_impermanentLossShare, player.netAmountPaid);
             // Withdraws the principal for non-winners
