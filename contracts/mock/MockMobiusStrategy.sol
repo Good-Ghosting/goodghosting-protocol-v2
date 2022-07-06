@@ -1,4 +1,4 @@
-pragma solidity ^0.8.7;
+pragma solidity 0.8.7;
 
 import "../strategies/MobiusStrategy.sol";
 
@@ -12,6 +12,8 @@ contract MockMobiusStrategy is MobiusStrategy {
     ) MobiusStrategy(_pool, _gauge, _minter, _mobi, _celo) {}
 
     function getTotalAmount() external view override returns (uint256) {
+        // this method mocks the strategy method to cover a scneario where the interest reduces but stays > 0
+        // so we assign gaugeBalance a value based on the gauge balance value
         uint256 gaugeBalance;
         if (gauge.balanceOf(address(this)) >= 33 ether) {
             gaugeBalance = gauge.balanceOf(address(this));

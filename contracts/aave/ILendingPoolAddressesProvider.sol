@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: UNLICENSED
 
-pragma solidity ^0.8.7;
+pragma solidity 0.8.7;
 
 abstract contract ILendingPoolAddressesProvider {
     function getLendingPool() public view virtual returns (address);

@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: UNLICENSED
 
-pragma solidity ^0.8.7;
+pragma solidity 0.8.7;
 
 import "./IStrategy.sol";
 import "../aave/ILendingPoolAddressesProvider.sol";
@@ -159,7 +159,7 @@ contract AaveStrategy is Ownable, IStrategy {
     function invest(address _inboundCurrency, uint256 _minAmount) external payable override onlyOwner {
         if (_inboundCurrency == address(0) || _inboundCurrency == address(rewardToken)) {
             if (_inboundCurrency == address(rewardToken)) {
-                // unwraps WMATIC back into MATIC
+                // unwraps WrappedToken back into Native Token
                 // UPDATE - A6 Audit Report
                 WrappedToken(address(rewardToken)).withdraw(IERC20(_inboundCurrency).balanceOf(address(this)));
             }
