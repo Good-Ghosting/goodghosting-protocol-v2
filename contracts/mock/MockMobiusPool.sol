@@ -86,6 +86,7 @@ contract MockMobiusPool is MintableERC20, Ownable {
         uint256[] calldata amounts,
         bool deposit
     ) external view returns (uint256) {
+        // this method mocks the net amount returned so to cover the invalid net amount scenario if _amounts[0] is 1 wei we return 0
         if (amounts[0] == 1) {
             return 0;
         } else {

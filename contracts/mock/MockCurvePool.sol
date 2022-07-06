@@ -109,6 +109,7 @@ contract MockCurvePool is MintableERC20, Ownable {
     }
 
     function calc_token_amount(uint256[3] calldata _amounts, bool is_deposit) external view returns (uint256) {
+        // this method mocks the net amount returned so to cover the invalid net amount scenario if _amounts[0] is 1 wei we return 0
         if (_amounts[0] == 1) {
             return 0;
         } else {
@@ -117,6 +118,7 @@ contract MockCurvePool is MintableERC20, Ownable {
     }
 
     function calc_token_amount(uint256[5] calldata _amounts, bool is_deposit) external view returns (uint256) {
+        // this method mocks the net amount returned so to cover the invalid net amount scenario if _amounts[0] is 1 wei we return 0
         if (_amounts[0] == 1) {
             return 0;
         } else {

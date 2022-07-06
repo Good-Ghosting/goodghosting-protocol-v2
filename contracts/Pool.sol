@@ -501,7 +501,7 @@ contract Pool is Ownable, Pausable, ReentrancyGuard {
         uint256 playerInterestAmountDuringWaitingRounds;
 
         // winners of the game get a share of the interest, reward & incentive tokens based on how early they deposit, the amount they deposit in case of avriable deposit pool & the ratio of the deposit & waiting round.
-        // Calculate Cummalative index for each player
+        // Calculate Cummalative index of the withdrawing player
         uint256 playerIndexSum = 0;
 
         // calculate playerIndexSum for each player
@@ -533,7 +533,7 @@ contract Pool is Ownable, Pausable, ReentrancyGuard {
         cumulativePlayerIndexSum[_segment] -= playerIndexSum;
 
         // calculate _playerDepositAmountSharePercentage for each player for waiting round calculations depending on how much deposit share the player has.
-        // have a safety check players[msg.sender].netAmountPaid > totalWinnerDepositsPerSegment[segment]
+        // have a safety check players[msg.sender].netAmountPaid > totalWinnerDepositsPerSegment[segment] in case of a impermanent loss
         // in case of a impermanent loss although we probably won't need it since we reduce player's netAmountPaid too but just in case.
         _playerDepositAmountSharePercentage = players[msg.sender].netAmountPaid >
             totalWinnerDepositsPerSegment[_segment]
@@ -839,10 +839,13 @@ contract Pool is Ownable, Pausable, ReentrancyGuard {
         // handling the scenario when some winners withdraw later so they should get extra interest/rewards
         // the scenario wasn't handled before
         if (adminFeeSet) {
+            // if the admin fee is set a check is made to check whether the admin has withdrawn or not
             if (adminWithdraw) {
+                // we update the totalGameInterest/reward amounts as the gross values
                 totalGameInterest = _grossInterest;
                 _rewardTokenAmounts = _grossRewardTokenAmount;
             } else {
+                // if the admin hasn't withdrawn then we consider the admin fee into account while calculating the totalGameInterest/reward amounts
                 if (_grossInterest >= _adminFeeAmount[0]) {
                     totalGameInterest = (_grossInterest - _adminFeeAmount[0]);
                 } else {
@@ -861,6 +864,7 @@ contract Pool is Ownable, Pausable, ReentrancyGuard {
                 }
             }
         } else {
+            // if the admin fee isn't set then we set it in the else part
             // UPDATE - N2 Audit Report
             if (winnerCount == 0) {
                 // in case of no winners the admin takes all the interest and the rewards & the incentive amount (check adminFeeWithdraw method)
