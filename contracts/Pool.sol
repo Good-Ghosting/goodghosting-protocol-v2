@@ -681,7 +681,6 @@ contract Pool is Ownable, Pausable, ReentrancyGuard {
                 : totalIncentiveAmount - incentiveAmountSharedDuringDepositRounds;
 
             // calculating the winner incentive amount share split b/w the waiting & deposit rounds.
-            // rename
             uint256 playerIncentiveAmountDuringDepositRounds = (incentiveAmountSharedDuringDepositRounds *
                 playerIndexSharePercentage) / MULTIPLIER;
             uint256 playerIncentiveAmountDuringWaitingRounds = (incentiveAmountShareDuringWaitingRound *
@@ -1496,7 +1495,9 @@ contract Pool is Ownable, Pausable, ReentrancyGuard {
 
         // get net deposit amount from the strategy
         uint256 netAmount = strategy.getNetDepositAmount(amount);
-
+        if (netAmount == 0) {
+            revert INVALID_NET_DEPOSIT_AMOUNT();
+        }
         emit Deposit(msg.sender, currentSegment, amount, netAmount);
         _transferInboundTokenToContract(_minAmount, amount, netAmount);
     }
