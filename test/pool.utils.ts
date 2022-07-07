@@ -421,35 +421,35 @@ export const deployPool = async (
         rewardToken9.address,
         rewardToken10.address,
       ]);
-      await rewardToken.deposit({ value: ethers.utils.parseEther("7") });
-      await rewardToken.transfer(strategy.address, ethers.utils.parseEther("7"));
+      await rewardToken.deposit({ value: ethers.utils.parseEther("3") });
+      await rewardToken.transfer(strategy.address, ethers.utils.parseEther("3"));
 
-      await rewardToken2.deposit({ value: ethers.utils.parseEther("7") });
-      await rewardToken2.transfer(strategy.address, ethers.utils.parseEther("7"));
+      await rewardToken2.deposit({ value: ethers.utils.parseEther("3") });
+      await rewardToken2.transfer(strategy.address, ethers.utils.parseEther("3"));
 
-      await rewardToken3.deposit({ value: ethers.utils.parseEther("7") });
-      await rewardToken3.transfer(strategy.address, ethers.utils.parseEther("7"));
+      await rewardToken3.deposit({ value: ethers.utils.parseEther("3") });
+      await rewardToken3.transfer(strategy.address, ethers.utils.parseEther("3"));
 
-      await rewardToken4.deposit({ value: ethers.utils.parseEther("7") });
-      await rewardToken4.transfer(strategy.address, ethers.utils.parseEther("7"));
+      await rewardToken4.deposit({ value: ethers.utils.parseEther("3") });
+      await rewardToken4.transfer(strategy.address, ethers.utils.parseEther("3"));
 
-      await rewardToken5.deposit({ value: ethers.utils.parseEther("7") });
-      await rewardToken5.transfer(strategy.address, ethers.utils.parseEther("7"));
+      await rewardToken5.deposit({ value: ethers.utils.parseEther("3") });
+      await rewardToken5.transfer(strategy.address, ethers.utils.parseEther("3"));
 
-      await rewardToken6.deposit({ value: ethers.utils.parseEther("7") });
-      await rewardToken6.transfer(strategy.address, ethers.utils.parseEther("7"));
+      await rewardToken6.deposit({ value: ethers.utils.parseEther("3") });
+      await rewardToken6.transfer(strategy.address, ethers.utils.parseEther("3"));
 
-      await rewardToken7.deposit({ value: ethers.utils.parseEther("7") });
-      await rewardToken7.transfer(strategy.address, ethers.utils.parseEther("7"));
+      await rewardToken7.deposit({ value: ethers.utils.parseEther("3") });
+      await rewardToken7.transfer(strategy.address, ethers.utils.parseEther("3"));
 
-      await rewardToken8.deposit({ value: ethers.utils.parseEther("7") });
-      await rewardToken8.transfer(strategy.address, ethers.utils.parseEther("7"));
+      await rewardToken8.deposit({ value: ethers.utils.parseEther("3") });
+      await rewardToken8.transfer(strategy.address, ethers.utils.parseEther("3"));
 
-      await rewardToken9.deposit({ value: ethers.utils.parseEther("7") });
-      await rewardToken9.transfer(strategy.address, ethers.utils.parseEther("7"));
+      await rewardToken9.deposit({ value: ethers.utils.parseEther("3") });
+      await rewardToken9.transfer(strategy.address, ethers.utils.parseEther("3"));
 
-      await rewardToken10.deposit({ value: ethers.utils.parseEther("7") });
-      await rewardToken10.transfer(strategy.address, ethers.utils.parseEther("7"));
+      await rewardToken10.deposit({ value: ethers.utils.parseEther("3") });
+      await rewardToken10.transfer(strategy.address, ethers.utils.parseEther("3"));
     }
   }
   if (isSameAsRewardToken) {
