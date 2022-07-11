@@ -212,6 +212,7 @@ contract Pool is Ownable, Pausable, ReentrancyGuard {
     event WithdrawRewardTokens(address indexed player, uint256[] amounts);
 
     event UpdateGameStats(
+        address indexed player,
         uint256 totalBalance,
         uint256 totalGamePrincipal,
         uint256 netTotalGamePrincipal,
@@ -236,6 +237,7 @@ contract Pool is Ownable, Pausable, ReentrancyGuard {
     );
 
     event EndGameStats(
+        address indexed player,
         uint256 totalBalance,
         uint256 totalGamePrincipal,
         uint256 netTotalGamePricipal,
@@ -813,6 +815,7 @@ contract Pool is Ownable, Pausable, ReentrancyGuard {
         // this condition is added because emit is to only be emitted when adminFeeSet flag is false but this mehtod is called for every player withdrawal in variable deposit pool.
         if (!adminFeeSet) {
             emit EndGameStats(
+                msg.sender,
                 _totalBalance,
                 totalGamePrincipal,
                 netTotalGamePrincipal,
@@ -1093,6 +1096,7 @@ contract Pool is Ownable, Pausable, ReentrancyGuard {
         adminFeeSet = true;
 
         emit UpdateGameStats(
+            msg.sender,
             totalBalance,
             totalGamePrincipal,
             netTotalGamePrincipal,
