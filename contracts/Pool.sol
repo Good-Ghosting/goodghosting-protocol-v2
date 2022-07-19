@@ -323,7 +323,7 @@ contract Pool is Ownable, Pausable, ReentrancyGuard {
         // logic for getting the current segment while the game is on waiting round
         if (_waitingRoundSegmentStart <= block.timestamp && block.timestamp < endOfWaitingRound) {
             currentSegment = depositCount;
-        } else if (block.timestamp > endOfWaitingRound) {
+        } else if (block.timestamp >= endOfWaitingRound) {
             // logic for getting the current segment after the game completes (waiting round is over)
             currentSegment = depositCount + 1 + ((block.timestamp - endOfWaitingRound) / segmentLength);
         } else {
