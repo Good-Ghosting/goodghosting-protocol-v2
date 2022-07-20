@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: UNLICENSED
 
-pragma solidity ^0.8.7;
+pragma solidity 0.8.7;
 
 import "./IStrategy.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
@@ -83,9 +83,12 @@ contract NoExternalStrategy is Ownable, IStrategy {
     */
     constructor(address _inboundCurrency, IERC20[] memory _rewardTokens) {
         inboundToken = IERC20(_inboundCurrency);
-        for (uint256 i = 0; i < _rewardTokens.length; i++) {
+        for (uint256 i = 0; i < _rewardTokens.length; ) {
             if (address(_rewardTokens[i]) == address(0)) {
                 revert INVALID_REWARD_TOKEN();
+            }
+            unchecked {
+                ++i;
             }
         }
         rewardTokens = _rewardTokens;
@@ -144,7 +147,6 @@ contract NoExternalStrategy is Ownable, IStrategy {
     Redeems funds from this strategy when the waiting round for the good ghosting pool is over.
     @param _inboundCurrency Address of the inbound token.
     @param _amount Amount to withdraw.
-    @param variableDeposits Bool Flag which determines whether the deposit is to be made in context of a variable deposit pool or not.
     @param _minAmount Used for aam strategies, since every strategy overrides from the same strategy interface hence it is defined here.
     _minAmount isn't needed in this strategy but since all strategies override from the same interface and the amm strategies need it hence it is used here.
     @param disableRewardTokenClaim Reward claim disable flag.
@@ -152,23 +154,21 @@ contract NoExternalStrategy is Ownable, IStrategy {
     function redeem(
         address _inboundCurrency,
         uint256 _amount,
-        bool variableDeposits,
         uint256 _minAmount,
         bool disableRewardTokenClaim
     ) external override onlyOwner {
         uint256 _balance = _inboundCurrency == address(0)
             ? address(this).balance
             : IERC20(_inboundCurrency).balanceOf(address(this));
-        uint256 redeemAmount = variableDeposits ? _amount : _balance;
         // safety check since funds don't get transferred to a extrnal protocol
-        if (redeemAmount > _balance) {
-            redeemAmount = _balance;
+        if (_amount > _balance) {
+            _amount = _balance;
         }
 
-        _transferInboundTokenToPool(_inboundCurrency, redeemAmount);
+        _transferInboundTokenToPool(_inboundCurrency, _amount);
 
         if (!disableRewardTokenClaim) {
-            for (uint256 i = 0; i < rewardTokens.length; i++) {
+            for (uint256 i = 0; i < rewardTokens.length; ) {
                 // safety check since funds don't get transferred to a extrnal protocol
                 if (IERC20(rewardTokens[i]).balanceOf(address(this)) != 0) {
                     bool success = IERC20(rewardTokens[i]).transfer(
@@ -178,6 +178,9 @@ contract NoExternalStrategy is Ownable, IStrategy {
                     if (!success) {
                         revert TOKEN_TRANSFER_FAILURE();
                     }
+                }
+                unchecked {
+                    ++i;
                 }
             }
         }
@@ -195,12 +198,12 @@ contract NoExternalStrategy is Ownable, IStrategy {
         returns (uint256[] memory)
     {
         uint256[] memory amounts = new uint256[](rewardTokens.length);
-        for (uint256 i = 0; i < rewardTokens.length; i++) {
+        for (uint256 i = 0; i < rewardTokens.length; ) {
             amounts[i] = rewardTokens[i].balanceOf(address(this));
+            unchecked {
+                ++i;
+            }
         }
         return amounts;
     }
-
-    // Fallback Functions for calldata and reciever for handling only ether transfer
-    receive() external payable {}
 }

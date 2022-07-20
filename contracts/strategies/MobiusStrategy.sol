@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: UNLICENSED
 
-pragma solidity ^0.8.7;
+pragma solidity 0.8.7;
 
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
@@ -65,7 +65,7 @@ contract MobiusStrategy is Ownable, IStrategy {
     Intended for usage by external clients and in case of variable deposit pools.
     @return Total accumulated amount.
     */
-    function getTotalAmount() external view override returns (uint256) {
+    function getTotalAmount() external view virtual override returns (uint256) {
         uint256 gaugeBalance = gauge.balanceOf(address(this));
         uint256 totalAccumulatedAmount = pool.calculateRemoveLiquidityOneToken(address(this), gaugeBalance, 0);
         return totalAccumulatedAmount;
@@ -88,8 +88,9 @@ contract MobiusStrategy is Ownable, IStrategy {
     Returns the underlying inbound (deposit) token address.
     @return Underlying token address.
     */
-    function getUnderlyingAsset() external pure override returns (address) {
-        return address(0);
+    // UPDATE - A4 Audit Report
+    function getUnderlyingAsset() external view override returns (address) {
+        return address(pool.getToken(0));
     }
 
     /** 
@@ -217,14 +218,12 @@ contract MobiusStrategy is Ownable, IStrategy {
     Redeems funds from mobius after unstaking when the waiting round for the good ghosting pool is over.
     @param _inboundCurrency Address of the inbound token.
     @param _amount Amount to withdraw.
-    @param variableDeposits Bool Flag which determines whether the deposit is to be made in context of a variable deposit pool or not.
     @param _minAmount Slippage based amount to cover for impermanent loss scenario.
     @param disableRewardTokenClaim Reward claim disable flag.
     */
     function redeem(
         address _inboundCurrency,
         uint256 _amount,
-        bool variableDeposits,
         uint256 _minAmount,
         bool disableRewardTokenClaim
     ) external override onlyOwner {
@@ -236,27 +235,21 @@ contract MobiusStrategy is Ownable, IStrategy {
             minter.mint(address(gauge));
         }
         uint256 gaugeBalance = gauge.balanceOf(address(this));
-        if (variableDeposits) {
-            uint256[] memory amounts = new uint256[](2);
-            amounts[0] = _amount;
-            uint256 poolWithdrawAmount = pool.calculateTokenAmount(address(this), amounts, true);
+        // if (variableDeposits) {
+        uint256[] memory amounts = new uint256[](2);
+        amounts[0] = _amount;
+        uint256 poolWithdrawAmount = pool.calculateTokenAmount(address(this), amounts, true);
 
-            // safety check
-            // the amm mock contracts are common for all kinds of scenariuo's and it is not possible to mock this particular scenario, this is a very rare scenario to occur in production and hasn't been observed in the fork tests.
-            if (gaugeBalance < poolWithdrawAmount) {
-                poolWithdrawAmount = gaugeBalance;
-            }
-
-            gauge.withdraw(poolWithdrawAmount, claimRewards);
-            lpToken.approve(address(pool), poolWithdrawAmount);
-
-            pool.removeLiquidityOneToken(poolWithdrawAmount, 0, _minAmount, block.timestamp + 1000);
-        } else {
-            gauge.withdraw(gaugeBalance, claimRewards);
-
-            lpToken.approve(address(pool), lpToken.balanceOf(address(this)));
-            pool.removeLiquidityOneToken(lpToken.balanceOf(address(this)), 0, _minAmount, block.timestamp + 1000);
+        // safety check
+        // the amm mock contracts are common for all kinds of scenariuo's and it is not possible to mock this particular scenario, this is a very rare scenario to occur in production and hasn't been observed in the fork tests.
+        if (gaugeBalance < poolWithdrawAmount) {
+            poolWithdrawAmount = gaugeBalance;
         }
+
+        gauge.withdraw(poolWithdrawAmount, claimRewards);
+        lpToken.approve(address(pool), poolWithdrawAmount);
+
+        pool.removeLiquidityOneToken(poolWithdrawAmount, 0, _minAmount, block.timestamp + 1000);
 
         bool success = mobi.transfer(msg.sender, mobi.balanceOf(address(this)));
         if (!success) {

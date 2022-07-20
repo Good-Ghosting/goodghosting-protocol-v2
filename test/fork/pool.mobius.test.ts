@@ -284,71 +284,6 @@ contract("Pool with Mobius Strategy", accounts => {
       await timeMachine.advanceTime(parseInt(waitingRoundLength.toString()));
     });
 
-    it("redeems funds from external pool", async () => {
-      const userSlippage = 1;
-      let minAmount;
-      let mobiBalanceBeforeRedeem, mobiBalanceAfterRedeem, celoBalanceBeforeRedeem, celoBalanceAfterRedeem;
-      mobiBalanceBeforeRedeem = await mobi.methods.balanceOf(goodGhosting.address).call();
-      celoBalanceBeforeRedeem = await celo.methods.balanceOf(goodGhosting.address).call();
-
-      const gaugeTokenBalance = await gaugeToken.methods.balanceOf(mobiusStrategy.address).call();
-      minAmount = await pool.methods
-        .calculateRemoveLiquidityOneToken(
-          mobiusStrategy.address,
-          gaugeTokenBalance.toString(),
-          providersConfigs.tokenIndex,
-        )
-        .call();
-      const userProvidedMinAmount = web3.utils
-        .toBN(gaugeTokenBalance)
-        .sub(web3.utils.toBN(gaugeTokenBalance).mul(web3.utils.toBN(userSlippage)).div(web3.utils.toBN(100)));
-
-      if (parseInt(userProvidedMinAmount.toString()) < parseInt(minAmount.toString())) {
-        minAmount = userProvidedMinAmount;
-      }
-
-      let eventAmount = web3.utils.toBN(0);
-      let result;
-      result = await goodGhosting.redeemFromExternalPoolForFixedDepositPool(minAmount.toString(), {
-        from: admin,
-      });
-
-      mobiBalanceAfterRedeem = await mobi.methods.balanceOf(goodGhosting.address).call();
-      celoBalanceAfterRedeem = await celo.methods.balanceOf(goodGhosting.address).call();
-
-      assert(web3.utils.toBN(mobiBalanceBeforeRedeem).lt(web3.utils.toBN(mobiBalanceAfterRedeem)));
-      // for some reason forking mainnet we don't get back celo rewards so the before and after balance is equal
-      assert(web3.utils.toBN(celoBalanceBeforeRedeem).lte(web3.utils.toBN(celoBalanceAfterRedeem)));
-
-      const contractsDaiBalance = web3.utils.toBN(
-        await token.methods.balanceOf(goodGhosting.address).call({ from: admin }),
-      );
-      console.log("contractsDaiBalance", contractsDaiBalance.toString());
-      truffleAssert.eventEmitted(
-        result,
-        "FundsRedeemedFromExternalPool",
-        (ev: any) => {
-          console.log("totalContractAmount", ev.totalAmount.toString());
-          console.log("totalGamePrincipal", ev.totalGamePrincipal.toString());
-          console.log("totalGameInterest", ev.totalGameInterest.toString());
-          console.log("interestPerPlayer", ev.totalGameInterest.div(web3.utils.toBN(players.length - 1)).toString());
-          const adminFee = web3.utils
-            .toBN(configs.deployConfigs.adminFee)
-            .mul(ev.totalGameInterest)
-            .div(web3.utils.toBN("100"));
-          eventAmount = web3.utils.toBN(ev.totalAmount.toString());
-
-          return (
-            web3.utils
-              .toBN(ev.totalGameInterest)
-              .eq(web3.utils.toBN(ev.totalAmount).sub(web3.utils.toBN(ev.totalGamePrincipal))),
-            eventAmount.eq(contractsDaiBalance) && adminFee.lt(ev.totalGameInterest)
-          );
-        },
-        `FundsRedeemedFromExternalPool error - event amount: ${eventAmount.toString()}; expectAmount: ${contractsDaiBalance.toString()}`,
-      );
-    });
-
     it("players withdraw from contract", async () => {
       // starts from 2, since player1 (loser), requested an early withdraw and player 2 withdrew after the last segment
       for (let i = 2; i < players.length - 1; i++) {
@@ -386,17 +321,6 @@ contract("Pool with Mobius Strategy", accounts => {
         assert(
           celoRewardBalanceAfter.lte(celoRewardBalanceBefore),
           "expected celo balance after withdrawal to be equal to before withdrawal",
-        );
-
-        truffleAssert.eventEmitted(
-          result,
-          "Withdrawal",
-          async (ev: any) => {
-            console.log(`player${i} withdraw amount: ${ev.amount.toString()}`);
-
-            return ev.player === player;
-          },
-          "withdrawal event failure",
         );
       }
     });

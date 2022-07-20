@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: UNLICENSED
 
-pragma solidity ^0.8.7;
+pragma solidity 0.8.7;
 
 interface AToken {
     /**
@@ -11,5 +11,4 @@ interface AToken {
     function approve(address spender, uint256 amount) external returns (bool);
 
     function UNDERLYING_ASSET_ADDRESS() external view returns (address);
-
 }

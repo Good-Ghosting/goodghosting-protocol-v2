@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: UNLICENSED
 
-pragma solidity ^0.8.7;
+pragma solidity 0.8.7;
 
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
@@ -80,7 +80,7 @@ contract CurveStrategy is Ownable, IStrategy {
     Intended for usage by external clients and in case of variable deposit pools.
     @return Total accumulated amount.
     */
-    function getTotalAmount() external view override returns (uint256) {
+    function getTotalAmount() external view virtual override returns (uint256) {
         uint256 gaugeBalance = gauge.balanceOf(address(this));
         uint256 totalAccumulatedAmount = 0;
         if (poolType == AAVE_POOL) {
@@ -97,17 +97,17 @@ contract CurveStrategy is Ownable, IStrategy {
     @return net amount.
     */
     function getNetDepositAmount(uint256 _amount) external view override returns (uint256) {
-          if (poolType == AAVE_POOL) {
+        if (poolType == AAVE_POOL) {
             uint256[NUM_AAVE_TOKENS] memory amounts; // fixed-sized array is initialized w/ [0, 0, 0]
             amounts[uint256(uint128(inboundTokenIndex))] = _amount;
             uint256 poolWithdrawAmount = pool.calc_token_amount(amounts, true);
             return pool.calc_withdraw_one_coin(poolWithdrawAmount, inboundTokenIndex);
-          } else {
+        } else {
             uint256[NUM_ATRI_CRYPTO_TOKENS] memory amounts; // fixed-sized array is initialized w/ [0, 0, 0, 0, 0]
             amounts[uint256(uint128(inboundTokenIndex))] = _amount;
             uint256 poolWithdrawAmount = pool.calc_token_amount(amounts, true);
             return pool.calc_withdraw_one_coin(poolWithdrawAmount, uint256(uint128(inboundTokenIndex)));
-          }
+        }
     }
 
     /** 
@@ -115,8 +115,9 @@ contract CurveStrategy is Ownable, IStrategy {
     Returns the underlying inbound (deposit) token address.
     @return Underlying token address.
     */
-    function getUnderlyingAsset() external pure override returns (address) {
-        return address(0);
+    // UPDATE - A4 Audit Report
+    function getUnderlyingAsset() external view override returns (address) {
+        return pool.underlying_coins(uint256(uint128(inboundTokenIndex)));
     }
 
     /** 
@@ -278,7 +279,7 @@ contract CurveStrategy is Ownable, IStrategy {
                 Curve's Atricrypto pool (pool type 1): this contract integrates with other pools
                 and funds sit in those pools. Hence, an approval transaction is required because
                 it is communicating with external contracts
-                */
+            */
             lpToken.approve(address(pool), poolWithdrawAmount);
             pool.remove_liquidity_one_coin(poolWithdrawAmount, uint256(uint128(inboundTokenIndex)), _minAmount);
         }
@@ -298,14 +299,12 @@ contract CurveStrategy is Ownable, IStrategy {
     Redeems funds from curve after unstaking when the waiting round for the good ghosting pool is over.
     @param _inboundCurrency Address of the inbound token.
     @param _amount Amount to withdraw.
-    @param variableDeposits Bool Flag which determines whether the deposit is to be made in context of a variable deposit pool or not.
     @param _minAmount Slippage based amount to cover for impermanent loss scenario.
     @param disableRewardTokenClaim Reward claim disable flag.
     */
     function redeem(
         address _inboundCurrency,
         uint256 _amount,
-        bool variableDeposits,
         uint256 _minAmount,
         bool disableRewardTokenClaim
     ) external override onlyOwner {
@@ -315,75 +314,49 @@ contract CurveStrategy is Ownable, IStrategy {
             claimRewards = false;
         }
         uint256 gaugeBalance = gauge.balanceOf(address(this));
-        if (variableDeposits) {
-            if (poolType == AAVE_POOL) {
-                uint256[NUM_AAVE_TOKENS] memory amounts; // fixed-sized array is initialized w/ [0, 0, 0]
-                amounts[uint256(uint128(inboundTokenIndex))] = _amount;
-                uint256 poolWithdrawAmount = pool.calc_token_amount(amounts, true);
+        //if (variableDeposits) {
+        if (poolType == AAVE_POOL) {
+            uint256[NUM_AAVE_TOKENS] memory amounts; // fixed-sized array is initialized w/ [0, 0, 0]
+            amounts[uint256(uint128(inboundTokenIndex))] = _amount;
+            uint256 poolWithdrawAmount = pool.calc_token_amount(amounts, true);
 
-                // safety check
-                // the amm mock contracts are common for all kinds of scenariuo's and it is not possible to mock this particular scenario, this is a very rare scenario to occur in production and hasn't been observed in the fork tests.
-                if (gaugeBalance < poolWithdrawAmount) {
-                    poolWithdrawAmount = gaugeBalance;
-                }
+            // safety check
+            // the amm mock contracts are common for all kinds of scenariuo's and it is not possible to mock this particular scenario, this is a very rare scenario to occur in production and hasn't been observed in the fork tests.
+            if (gaugeBalance < poolWithdrawAmount) {
+                poolWithdrawAmount = gaugeBalance;
+            }
 
-                // passes false not to claim rewards
-                gauge.withdraw(poolWithdrawAmount, claimRewards);
+            // passes false not to claim rewards
+            gauge.withdraw(poolWithdrawAmount, claimRewards);
 
-                pool.remove_liquidity_one_coin(
-                    poolWithdrawAmount,
-                    inboundTokenIndex,
-                    _minAmount,
-                    true // redeems underlying coin (dai, usdc, usdt), instead of aTokens
-                );
-            } else {
-                uint256[NUM_ATRI_CRYPTO_TOKENS] memory amounts; // fixed-sized array is initialized w/ [0, 0, 0, 0, 0]
-                amounts[uint256(uint128(inboundTokenIndex))] = _amount;
-                uint256 poolWithdrawAmount = pool.calc_token_amount(amounts, true);
+            pool.remove_liquidity_one_coin(
+                poolWithdrawAmount,
+                inboundTokenIndex,
+                _minAmount,
+                true // redeems underlying coin (dai, usdc, usdt), instead of aTokens
+            );
+        } else {
+            uint256[NUM_ATRI_CRYPTO_TOKENS] memory amounts; // fixed-sized array is initialized w/ [0, 0, 0, 0, 0]
+            amounts[uint256(uint128(inboundTokenIndex))] = _amount;
+            uint256 poolWithdrawAmount = pool.calc_token_amount(amounts, true);
 
-                // safety check
-                // the amm mock contracts are common for all kinds of scenariuo's and it is not possible to mock this particular scenario, this is a very rare scenario to occur in production and hasn't been observed in the fork tests.                
-                if (gaugeBalance < poolWithdrawAmount) {
-                    poolWithdrawAmount = gaugeBalance;
-                }
+            // safety check
+            // the amm mock contracts are common for all kinds of scenariuo's and it is not possible to mock this particular scenario, this is a very rare scenario to occur in production and hasn't been observed in the fork tests.
+            if (gaugeBalance < poolWithdrawAmount) {
+                poolWithdrawAmount = gaugeBalance;
+            }
 
-                // passes false not to claim rewards
-                gauge.withdraw(poolWithdrawAmount, claimRewards);
-                /*
+            // passes false not to claim rewards
+            gauge.withdraw(poolWithdrawAmount, claimRewards);
+            /*
                     Code of curve's aave and curve's atricrypto pools are completely different.
                     Curve's Aave Pool (pool type 0): in this contract, all funds "sit" in the pool's smart contract.
                     Curve's Atricrypto pool (pool type 1): this contract integrates with other pools
                     and funds sit in those pools. Hence, an approval transaction is required because
                     it is communicating with external contracts
-                    */
-                lpToken.approve(address(pool), poolWithdrawAmount);
-                pool.remove_liquidity_one_coin(poolWithdrawAmount, uint256(uint128(inboundTokenIndex)), _minAmount);
-            }
-        } else {
-            // passes true to also claim rewards
-            gauge.withdraw(gaugeBalance, claimRewards);
-
-            uint256 lpTokenBalance = lpToken.balanceOf(address(this));
-            if (lpTokenBalance != 0) {
-                if (poolType == AAVE_POOL) {
-                    pool.remove_liquidity_one_coin(
-                        lpTokenBalance,
-                        inboundTokenIndex,
-                        _minAmount,
-                        true // redeems underlying coin (dai, usdc, usdt), instead of aTokens
-                    );
-                } else {
-                    /*
-                        Code of curve's aave and curve's atricrypto pools are completely different.
-                        Curve's Aave Pool (pool type 0): in this contract, all funds "sit" in the pool's smart contract.
-                        Curve's Atricrypto pool (pool type 1): this contract integrates with other pools
-                        and funds sit in those pools. Hence, an approval transaction is required because
-                        it is communicating with external contracts
-                         */
-                    lpToken.approve(address(pool), lpTokenBalance);
-                    pool.remove_liquidity_one_coin(lpTokenBalance, uint256(uint128(inboundTokenIndex)), _minAmount);
-                }
-            }
+            */
+            lpToken.approve(address(pool), poolWithdrawAmount);
+            pool.remove_liquidity_one_coin(poolWithdrawAmount, uint256(uint128(inboundTokenIndex)), _minAmount);
         }
 
         bool success = rewardToken.transfer(msg.sender, rewardToken.balanceOf(address(this)));

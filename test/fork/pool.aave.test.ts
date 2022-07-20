@@ -121,7 +121,7 @@ describe("Aave Pool Fork Tests", () => {
         await pool.connect(accounts[i]).earlyWithdraw(0);
         await expect(pool.connect(accounts[i]).joinGame(0, 0))
           .to.emit(pool, "JoinedGame")
-          .withArgs(accounts[i].address, ethers.BigNumber.from(segmentPayment));
+          .withArgs(accounts[i].address, ethers.BigNumber.from(segmentPayment), ethers.BigNumber.from(segmentPayment));
       }
     }
   });
@@ -166,19 +166,6 @@ describe("Aave Pool Fork Tests", () => {
     await ethers.provider.send("evm_mine", []);
     const gameStatus = await pool.isGameCompleted();
     chai.assert(gameStatus);
-  });
-
-  it("funds are redeemed from the pool", async () => {
-    await pool.redeemFromExternalPoolForFixedDepositPool(0);
-    const inboundTokenBalance = await daiInstance.balanceOf(pool.address);
-    console.log("inboundTokenBalance", inboundTokenBalance.toString());
-    const totalPrincipal = await pool.totalGamePrincipal();
-    console.log("totalPrincipal", totalPrincipal.toString());
-    const totalInterest = await pool.totalGameInterest();
-    console.log("totalInterest", totalInterest.toString());
-
-    assert(inboundTokenBalance.gt(totalPrincipal));
-    assert(totalInterest.gt(ethers.BigNumber.from(0)));
   });
 
   it("players are able to withdraw from the pool", async () => {

@@ -178,16 +178,6 @@ contract("Variable Deposit Pool with Moola Strategy", accounts => {
         result = await goodGhosting.withdraw(0, { from: player });
         const inboundBalanceAfterWithdraw = await token.methods.balanceOf(player).call({ from: admin });
         assert(web3.utils.toBN(inboundBalanceAfterWithdraw).gt(web3.utils.toBN(inboundBalanceBeforeWithdraw)));
-        truffleAssert.eventEmitted(
-          result,
-          "Withdrawal",
-          async (ev: any) => {
-            console.log(`player${i} withdraw amount: ${ev.amount.toString()}`);
-
-            return ev.player === player;
-          },
-          "withdrawal event failure",
-        );
       }
       const largeDepositPlayerInboundTokenBalanceAfter = web3.utils.toBN(
         await token.methods.balanceOf(players[2]).call({ from: admin }),

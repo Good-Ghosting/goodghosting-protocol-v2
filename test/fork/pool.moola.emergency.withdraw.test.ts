@@ -99,9 +99,6 @@ contract("Pool with Moola Strategy when admin enables early game completion", ac
       for (let segmentIndex = 1; segmentIndex < depositCount; segmentIndex++) {
         await timeMachine.advanceTime(segmentLength);
       }
-      await goodGhosting.redeemFromExternalPoolForFixedDepositPool(0, {
-        from: admin,
-      });
     });
 
     it("players withdraw from contract", async () => {
@@ -121,17 +118,6 @@ contract("Pool with Moola Strategy when admin enables early game completion", ac
         result = await goodGhosting.withdraw(0, { from: player });
         inboundTokenBalanceAfterWithdraw = web3.utils.toBN(await token.methods.balanceOf(player).call({ from: admin }));
         assert(inboundTokenBalanceAfterWithdraw.gt(inboundTokenBalanceBeforeWithdraw));
-
-        truffleAssert.eventEmitted(
-          result,
-          "Withdrawal",
-          async (ev: any) => {
-            console.log(`player${i} withdraw amount: ${ev.amount.toString()}`);
-
-            return ev.player === player;
-          },
-          "withdrawal event failure",
-        );
       }
     });
 

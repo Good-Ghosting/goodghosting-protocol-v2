@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: UNLICENSED
 
-pragma solidity ^0.8.7;
+pragma solidity 0.8.7;
 
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "../aaveV3/IRewardsController.sol";
@@ -20,16 +20,21 @@ contract RewardsControllerMock is IRewardsController {
         reserve.transfer(msg.sender, reserve.balanceOf(address(this)));
     }
 
-    function getAllUserRewards(address[] calldata assets, address user) external override view returns (address[] memory rewardsList, uint256[] memory unclaimedAmounts) {
+    function getAllUserRewards(address[] calldata assets, address user)
+        external
+        view
+        override
+        returns (address[] memory rewardsList, uint256[] memory unclaimedAmounts)
+    {
         rewardsList = new address[](1);
         rewardsList[0] = address(reserve);
         unclaimedAmounts = new uint256[](1);
         unclaimedAmounts[0] = reserve.balanceOf(address(this));
     }
 
-    function getRewardsByAsset(address asset) external override view returns (address[] memory) {
+    function getRewardsByAsset(address asset) external view override returns (address[] memory) {
         address[] memory rewardsList = new address[](1);
-        rewardsList[0] = address(reserve); 
+        rewardsList[0] = address(reserve);
         return rewardsList;
     }
 }

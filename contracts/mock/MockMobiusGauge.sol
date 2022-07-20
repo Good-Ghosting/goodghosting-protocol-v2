@@ -1,4 +1,4 @@
-pragma solidity ^0.8.7;
+pragma solidity 0.8.7;
 
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "./MintableERC20.sol";
@@ -6,7 +6,6 @@ import "./MintableERC20.sol";
 contract MockMobiusGauge is MintableERC20 {
     IERC20 public reserve;
     IERC20 public mobi;
-
 
     constructor(
         string memory name,

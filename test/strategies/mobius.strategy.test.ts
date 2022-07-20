@@ -6,7 +6,6 @@ import {
   shouldBehaveLikeJoiningGGPool,
   shouldBehaveLikeDepositingGGPool,
   shouldBehaveLikeEarlyWithdrawingGGPool,
-  shouldBehaveLikeRedeemingFromGGPool,
   shouldBehaveLikeGGPoolWithNoWinners,
   shouldBehaveLikePlayersWithdrawingFromGGPool,
   shouldBehaveLikeAdminWithdrawingFeesFromGGPoolWithFeePercentMoreThan0,
@@ -66,10 +65,6 @@ describe("Pool using Mobius Strategy", () => {
 
   describe("when a user withdraws before the end of the game", async () => {
     await shouldBehaveLikeEarlyWithdrawingGGPool("mobius");
-  });
-
-  describe("when an user tries to redeem from the external pool", async () => {
-    await shouldBehaveLikeRedeemingFromGGPool("mobius");
   });
 
   describe("when no one wins the game", async () => {

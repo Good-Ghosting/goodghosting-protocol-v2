@@ -223,17 +223,6 @@ contract("Variable Deposit Pool with Mobius Strategy with no winners", accounts 
           celoRewardBalanceAfter.lte(celoRewardBalanceBefore),
           "expected celo balance after withdrawal to be equal to or less than before withdrawal",
         );
-
-        truffleAssert.eventEmitted(
-          result,
-          "Withdrawal",
-          async (ev: any) => {
-            console.log(`player${i} withdraw amount: ${ev.amount.toString()}`);
-
-            return ev.player === player;
-          },
-          "withdrawal event failure",
-        );
       }
       const mobiRewardBalanceAfter = web3.utils.toBN(
         await mobi.methods.balanceOf(goodGhosting.address).call({ from: admin }),

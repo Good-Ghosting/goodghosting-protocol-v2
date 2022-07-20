@@ -1,12 +1,15 @@
-pragma solidity ^0.8.7;
+pragma solidity 0.8.7;
 
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import "@openzeppelin/contracts/access/Ownable.sol";
 import "./MintableERC20.sol";
 
-contract MockMobiusPool is MintableERC20 {
+contract MockMobiusPool is MintableERC20, Ownable {
     IERC20 public reserve;
 
     address gauge;
+
+    bool setImpermanentLoss;
 
     constructor(
         string memory name,
@@ -18,6 +21,10 @@ contract MockMobiusPool is MintableERC20 {
 
     function setGauge(address _gauge) external {
         gauge = _gauge;
+    }
+
+    function setILoss() external onlyOwner {
+        setImpermanentLoss = true;
     }
 
     function drain(uint256 _value) external {
@@ -67,7 +74,11 @@ contract MockMobiusPool is MintableERC20 {
         uint256 tokenAmount,
         uint8 tokenIndex
     ) external view returns (uint256) {
-        return tokenAmount;
+        if (setImpermanentLoss) {
+            return tokenAmount / 2;
+        } else {
+            return tokenAmount;
+        }
     }
 
     function calculateTokenAmount(
@@ -75,7 +86,12 @@ contract MockMobiusPool is MintableERC20 {
         uint256[] calldata amounts,
         bool deposit
     ) external view returns (uint256) {
-        return amounts[0];
+        // this method mocks the net amount returned so to cover the invalid net amount scenario if _amounts[0] is 1 wei we return 0
+        if (amounts[0] == 1) {
+            return 0;
+        } else {
+            return amounts[0];
+        }
     }
 
     function getLpToken() external view returns (address) {

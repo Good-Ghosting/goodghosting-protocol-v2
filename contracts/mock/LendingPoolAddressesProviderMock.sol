@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: UNLICENSED
 
-pragma solidity ^0.8.7;
+pragma solidity 0.8.7;
 
 import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
@@ -11,7 +11,14 @@ import { ILendingPoolV3 } from "../aaveV3/ILendingPoolV3.sol";
 
 import "../aave/IWETHGateway.sol";
 
-contract LendingPoolAddressesProviderMock is ILendingPoolAddressesProvider, IPoolAddressesProvider, ILendingPool, ILendingPoolV3, IWETHGateway, ERC20 {
+contract LendingPoolAddressesProviderMock is
+    ILendingPoolAddressesProvider,
+    IPoolAddressesProvider,
+    ILendingPool,
+    ILendingPoolV3,
+    IWETHGateway,
+    ERC20
+{
     address public underlyingAssetAddress;
 
     constructor(string memory name, string memory symbol) ERC20(name, symbol) {}
@@ -28,7 +35,6 @@ contract LendingPoolAddressesProviderMock is ILendingPoolAddressesProvider, IPoo
     function getPool() external view override returns (address) {
         return address(this);
     }
-
 
     function setLendingPoolImpl(address _pool) public override {}
 

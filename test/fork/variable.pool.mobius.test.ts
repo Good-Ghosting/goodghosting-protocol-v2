@@ -311,6 +311,42 @@ contract("Variable Deposit Pool with Mobius Strategy", accounts => {
       await timeMachine.advanceTime(parseInt(waitingRoundLength.toString()));
     });
 
+    it("admin withdraws admin fee from contract", async () => {
+      if (adminFee > 0) {
+        let mobiRewardBalanceBefore = web3.utils.toBN(0);
+        let mobiRewardBalanceAfter = web3.utils.toBN(0);
+        let celoRewardBalanceBefore = web3.utils.toBN(0);
+        let celoRewardBalanceAfter = web3.utils.toBN(0);
+        let inboundTokenBalanceBefore = web3.utils.toBN(0);
+        let inboundTokenBalanceAfter = web3.utils.toBN(0);
+
+        inboundTokenBalanceBefore = web3.utils.toBN(await token.methods.balanceOf(admin).call({ from: admin }));
+        mobiRewardBalanceBefore = web3.utils.toBN(await mobi.methods.balanceOf(admin).call({ from: admin }));
+        celoRewardBalanceBefore = web3.utils.toBN(await celo.methods.balanceOf(admin).call({ from: admin }));
+
+        await goodGhosting.adminFeeWithdraw(0, {
+          from: admin,
+        });
+
+        inboundTokenBalanceAfter = web3.utils.toBN(await token.methods.balanceOf(admin).call({ from: admin }));
+        mobiRewardBalanceAfter = web3.utils.toBN(await mobi.methods.balanceOf(admin).call({ from: admin }));
+        celoRewardBalanceAfter = web3.utils.toBN(await celo.methods.balanceOf(admin).call({ from: admin }));
+
+        assert(inboundTokenBalanceAfter.gt(inboundTokenBalanceBefore));
+
+        assert(
+          mobiRewardBalanceAfter.gt(mobiRewardBalanceBefore),
+          "expected mobi balance after withdrawal to be greater than before withdrawal",
+        );
+
+        // for some reason forking mainnet we don't get back celo rewards (does not happen on mainnet)
+        assert(
+          celoRewardBalanceAfter.gte(celoRewardBalanceBefore),
+          "expected celo balance after withdrawal to be greater than or equal to before withdrawal",
+        );
+      }
+    });
+
     it("players withdraw from contract", async () => {
       // starts from 2, since player1 (loser), requested an early withdraw and player 2 withdrew after the last segment
       for (let i = 2; i < players.length - 1; i++) {
@@ -347,17 +383,6 @@ contract("Variable Deposit Pool with Mobius Strategy", accounts => {
           celoRewardBalanceAfter.lte(celoRewardBalanceBefore),
           "expected celo balance after withdrawal to be equal to or less than before withdrawal",
         );
-
-        truffleAssert.eventEmitted(
-          result,
-          "Withdrawal",
-          async (ev: any) => {
-            console.log(`player${i} withdraw amount: ${ev.amount.toString()}`);
-
-            return ev.player === player;
-          },
-          "withdrawal event failure",
-        );
       }
       const mobiRewardBalanceAfter = web3.utils.toBN(
         await mobi.methods.balanceOf(goodGhosting.address).call({ from: admin }),
@@ -367,41 +392,6 @@ contract("Variable Deposit Pool with Mobius Strategy", accounts => {
       );
       assert(mobiRewardBalanceAfter.gte(web3.utils.toBN(0)));
       assert(celoRewardBalanceAfter.eq(web3.utils.toBN(0)));
-    });
-
-    it("admin withdraws admin fee from contract", async () => {
-      if (adminFee > 0) {
-        let mobiRewardBalanceBefore = web3.utils.toBN(0);
-        let mobiRewardBalanceAfter = web3.utils.toBN(0);
-        let celoRewardBalanceBefore = web3.utils.toBN(0);
-        let celoRewardBalanceAfter = web3.utils.toBN(0);
-        let inboundTokenBalanceBefore = web3.utils.toBN(0);
-        let inboundTokenBalanceAfter = web3.utils.toBN(0);
-
-        inboundTokenBalanceBefore = web3.utils.toBN(await token.methods.balanceOf(admin).call({ from: admin }));
-        mobiRewardBalanceBefore = web3.utils.toBN(await mobi.methods.balanceOf(admin).call({ from: admin }));
-        celoRewardBalanceBefore = web3.utils.toBN(await celo.methods.balanceOf(admin).call({ from: admin }));
-
-        await goodGhosting.adminFeeWithdraw(0, {
-          from: admin,
-        });
-
-        inboundTokenBalanceAfter = web3.utils.toBN(await token.methods.balanceOf(admin).call({ from: admin }));
-        mobiRewardBalanceAfter = web3.utils.toBN(await mobi.methods.balanceOf(admin).call({ from: admin }));
-        celoRewardBalanceAfter = web3.utils.toBN(await celo.methods.balanceOf(admin).call({ from: admin }));
-
-        assert(inboundTokenBalanceAfter.gt(inboundTokenBalanceBefore));
-
-        assert(
-          mobiRewardBalanceAfter.gt(mobiRewardBalanceBefore),
-          "expected mobi balance after withdrawal to be greater than before withdrawal",
-        );
-        // for some reason forking mainnet we don't get back celo rewards (does not happen on mainnet)
-        assert(
-          celoRewardBalanceAfter.gte(celoRewardBalanceBefore),
-          "expected celo balance after withdrawal to be greater than or equal to before withdrawal",
-        );
-      }
     });
   });
 });

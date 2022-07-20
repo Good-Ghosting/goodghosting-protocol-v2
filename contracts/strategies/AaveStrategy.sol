@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: UNLICENSED
 
-pragma solidity ^0.8.7;
+pragma solidity 0.8.7;
 
 import "./IStrategy.sol";
 import "../aave/ILendingPoolAddressesProvider.sol";
@@ -8,7 +8,7 @@ import "../aave/ILendingPool.sol";
 import "../aave/AToken.sol";
 import "../aave/IWETHGateway.sol";
 import "../aave/IncentiveController.sol";
-import "../polygon/WMatic.sol";
+import "../polygon/WrappedToken.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
@@ -17,6 +17,7 @@ import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 //*********************************************************************//
 error INVALID_DATA_PROVIDER();
 error INVALID_LENDING_POOL_ADDRESS_PROVIDER();
+error INVALID_TRANSACTIONAL_TOKEN_SENDER();
 error TOKEN_TRANSFER_FAILURE();
 error TRANSACTIONAL_TOKEN_TRANSFER_FAILURE();
 
@@ -28,6 +29,9 @@ error TRANSACTIONAL_TOKEN_TRANSFER_FAILURE();
   @author Francis Odisi & Viraz Malhotra.
 */
 contract AaveStrategy is Ownable, IStrategy {
+    /// @notice Aave referral code
+    uint16 constant REFERRAL_CODE = 155;
+
     /// @notice Address of the Aave V2 incentive controller contract
     IncentiveController public immutable incentiveController;
 
@@ -155,15 +159,16 @@ contract AaveStrategy is Ownable, IStrategy {
     function invest(address _inboundCurrency, uint256 _minAmount) external payable override onlyOwner {
         if (_inboundCurrency == address(0) || _inboundCurrency == address(rewardToken)) {
             if (_inboundCurrency == address(rewardToken)) {
-                // unwraps WMATIC back into MATIC
-                WMatic(address(rewardToken)).withdraw(IERC20(_inboundCurrency).balanceOf(address(this)));
+                // unwraps WrappedToken back into Native Token
+                // UPDATE - A6 Audit Report
+                WrappedToken(address(rewardToken)).withdraw(IERC20(_inboundCurrency).balanceOf(address(this)));
             }
             // Deposits MATIC into the pool
-            wethGateway.depositETH{ value: address(this).balance }(address(lendingPool), address(this), 155);
+            wethGateway.depositETH{ value: address(this).balance }(address(lendingPool), address(this), REFERRAL_CODE);
         } else {
             uint256 balance = IERC20(_inboundCurrency).balanceOf(address(this));
             IERC20(_inboundCurrency).approve(address(lendingPool), balance);
-            lendingPool.deposit(_inboundCurrency, balance, address(this), 155);
+            lendingPool.deposit(_inboundCurrency, balance, address(this), REFERRAL_CODE);
         }
     }
 
@@ -186,7 +191,7 @@ contract AaveStrategy is Ownable, IStrategy {
             wethGateway.withdrawETH(address(lendingPool), _amount, address(this));
             if (_inboundCurrency == address(rewardToken)) {
                 // Wraps MATIC back into WMATIC
-                WMatic(address(rewardToken)).deposit{ value: _amount }();
+                WrappedToken(address(rewardToken)).deposit{ value: _amount }();
             }
         } else {
             lendingPool.withdraw(_inboundCurrency, _amount, address(this));
@@ -209,7 +214,6 @@ contract AaveStrategy is Ownable, IStrategy {
     Redeems funds from aave when the waiting round for the good ghosting pool is over.
     @param _inboundCurrency Address of the inbound token.
     @param _amount Amount to withdraw.
-    @param variableDeposits Bool Flag which determines whether the deposit is to be made in context of a variable deposit pool or not.
     @param _minAmount Used for aam strategies, since every strategy overrides from the same strategy interface hence it is defined here.
     _minAmount isn't needed in this strategy but since all strategies override from the same interface and the amm strategies need it hence it is used here.
     @param disableRewardTokenClaim Reward claim disable flag.
@@ -217,22 +221,20 @@ contract AaveStrategy is Ownable, IStrategy {
     function redeem(
         address _inboundCurrency,
         uint256 _amount,
-        bool variableDeposits,
         uint256 _minAmount,
         bool disableRewardTokenClaim
     ) external override onlyOwner {
-        uint256 redeemAmount = variableDeposits ? _amount : type(uint256).max;
         // Withdraws funds (principal + interest + rewards) from external pool
         if (_inboundCurrency == address(0) || _inboundCurrency == address(rewardToken)) {
-            aToken.approve(address(wethGateway), redeemAmount);
+            aToken.approve(address(wethGateway), _amount);
 
-            wethGateway.withdrawETH(address(lendingPool), redeemAmount, address(this));
+            wethGateway.withdrawETH(address(lendingPool), _amount, address(this));
             if (_inboundCurrency == address(rewardToken)) {
                 // Wraps MATIC back into WMATIC
-                WMatic(address(rewardToken)).deposit{ value: address(this).balance }();
+                WrappedToken(address(rewardToken)).deposit{ value: address(this).balance }();
             }
         } else {
-            lendingPool.withdraw(_inboundCurrency, redeemAmount, address(this));
+            lendingPool.withdraw(_inboundCurrency, _amount, address(this));
         }
         if (!disableRewardTokenClaim) {
             // Claims the rewards from the external pool
@@ -240,6 +242,8 @@ contract AaveStrategy is Ownable, IStrategy {
             assets[0] = address(aToken);
 
             if (address(rewardToken) != address(0)) {
+                // safety check for external services calling this function.
+                // Aave forks like Moola may not have an incentive controller (it is set to address(0)).
                 uint256 claimableRewards = incentiveController.getRewardsBalance(assets, address(this));
                 // moola the celo version of aave does not have the incentive controller logic
                 if (claimableRewards != 0) {
@@ -283,14 +287,14 @@ contract AaveStrategy is Ownable, IStrategy {
         returns (uint256[] memory)
     {
         uint256 amount = 0;
-        if (!disableRewardTokenClaim) {
-            if (address(incentiveController) != address(0)) {
+        // safety check for external services calling this function.
+        // Aave forks like Moola may not have an incentive controller (it is set to address(0)).
+        if (!disableRewardTokenClaim && address(incentiveController) != address(0)) {
             // atoken address in v2 is fetched from data provider contract
             // Claims the rewards from the external pool
             address[] memory assets = new address[](1);
             assets[0] = address(aToken);
             amount = incentiveController.getRewardsBalance(assets, address(this));
-            } 
         }
         uint256[] memory amounts = new uint256[](1);
         amounts[0] = amount;
@@ -298,5 +302,10 @@ contract AaveStrategy is Ownable, IStrategy {
     }
 
     // Fallback Functions for calldata and reciever for handling only ether transfer
-    receive() external payable {}
+    // UPDATE - A7 Audit Report
+    receive() external payable {
+        if (msg.sender != address(rewardToken) && msg.sender != address(wethGateway)) {
+            revert INVALID_TRANSACTIONAL_TOKEN_SENDER();
+        }
+    }
 }

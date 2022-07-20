@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: UNLICENSED
-pragma solidity ^0.8.7;
+pragma solidity 0.8.7;
 
 import "./Pool.sol";
 import "./MerkleValidator.sol";
@@ -27,11 +27,11 @@ contract WhitelistedPool is Pool, MerkleValidator {
         address _inboundCurrency,
         uint256 _maxFlexibleSegmentPaymentAmount,
         uint64 _depositCount,
-        uint256 _segmentLength,
-        uint256 _waitingRoundSegmentLength,
+        uint64 _segmentLength,
+        uint64 _waitingRoundSegmentLength,
         uint256 _segmentPayment,
-        uint128 _earlyWithdrawalFee,
-        uint128 _customFee,
+        uint64 _earlyWithdrawalFee,
+        uint64 _customFee,
         uint256 _maxPlayersCount,
         bool _flexibleSegmentPayment,
         IStrategy _strategy,
@@ -58,7 +58,12 @@ contract WhitelistedPool is Pool, MerkleValidator {
     @param _merkleRoot Merkle Root for whitelisted players.
     @param _incentiveToken Incentive token address
     */
-    function initializePool(bytes32 _merkleRoot, IERC20 _incentiveToken) external onlyOwner whenGameIsNotInitialized whenNotPaused {
+    function initializePool(bytes32 _merkleRoot, IERC20 _incentiveToken)
+        external
+        onlyOwner
+        whenGameIsNotInitialized
+        whenNotPaused
+    {
         setMerkleRoot(_merkleRoot);
         super.initialize(_incentiveToken);
     }

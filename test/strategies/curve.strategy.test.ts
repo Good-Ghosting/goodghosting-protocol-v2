@@ -6,7 +6,6 @@ import {
   shouldBehaveLikeJoiningGGPool,
   shouldBehaveLikeDepositingGGPool,
   shouldBehaveLikeEarlyWithdrawingGGPool,
-  shouldBehaveLikeRedeemingFromGGPool,
   shouldBehaveLikeGGPoolWithNoWinners,
   shouldBehaveLikePlayersWithdrawingFromGGPool,
   shouldBehaveLikeAdminWithdrawingFeesFromGGPoolWithFeePercentMoreThan0,
@@ -67,10 +66,6 @@ describe("Pool using Curve Strategy", () => {
 
   describe("when a user withdraws before the end of the game", async () => {
     await shouldBehaveLikeEarlyWithdrawingGGPool("curve");
-  });
-
-  describe("when an user tries to redeem from the external pool", async () => {
-    await shouldBehaveLikeRedeemingFromGGPool("curve");
   });
 
   describe("when no one wins the game", async () => {
