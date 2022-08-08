@@ -213,13 +213,10 @@ contract Pool is Ownable, Pausable, ReentrancyGuard {
 
     event UpdateGameStats(
         address indexed player,
-        uint256 totalBalance,
-        uint256 totalGamePrincipal,
         uint256 netTotalGamePrincipal,
         uint256 totalGameInterest,
         uint256 totalIncentiveAmount,
-        uint256[] totalRewardAmounts,
-        uint256 impermanentLossShare
+        uint256[] totalRewardAmounts
     );
 
     event EarlyWithdrawal(
@@ -1094,17 +1091,6 @@ contract Pool is Ownable, Pausable, ReentrancyGuard {
 
         _calculateAndSetAdminAccounting(grossInterest, grossRewardTokenAmount);
         adminFeeSet = true;
-
-        emit UpdateGameStats(
-            msg.sender,
-            totalBalance,
-            totalGamePrincipal,
-            netTotalGamePrincipal,
-            totalGameInterest,
-            totalIncentiveAmount,
-            _rewardTokenAmounts,
-            impermanentLossShare
-        );
     }
 
     /// @dev Checks if player is a winner.
@@ -1444,6 +1430,14 @@ contract Pool is Ownable, Pausable, ReentrancyGuard {
         // In case the safety checks above are evaluated to true, payout, playerIncentive and playerReward
         // are updated, so we need the event to be emitted with the correct info.
         emit WithdrawInboundTokens(msg.sender, actualTransferredAmount);
+
+        emit UpdateGameStats(
+            msg.sender,
+            netTotalGamePrincipal,
+            totalGameInterest,
+            totalIncentiveAmount,
+            rewardTokenAmounts
+        );
     }
 
     /**
