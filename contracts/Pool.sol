@@ -213,10 +213,13 @@ contract Pool is Ownable, Pausable, ReentrancyGuard {
 
     event UpdateGameStats(
         address indexed player,
-        uint256 netTotalGamePrincipal,
+        uint256 totalBalance,
+        uint256 totalGamePrincipal,
+        uint256 netTotalGamePrincipal, 
         uint256 totalGameInterest,
         uint256 totalIncentiveAmount,
-        uint256[] totalRewardAmounts
+        uint256[] totalRewardAmounts,
+        uint256 impermanentLossShare
     );
 
     event EarlyWithdrawal(
@@ -1433,10 +1436,15 @@ contract Pool is Ownable, Pausable, ReentrancyGuard {
 
         emit UpdateGameStats(
             msg.sender,
+            isTransactionalToken
+            ? address(this).balance
+            : IERC20(inboundToken).balanceOf(address(this)),
+            totalGamePrincipal,
             netTotalGamePrincipal,
             totalGameInterest,
             totalIncentiveAmount,
-            rewardTokenAmounts
+            rewardTokenAmounts,
+            impermanentLossShare
         );
     }
 
