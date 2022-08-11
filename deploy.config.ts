@@ -20,4 +20,5 @@ exports.deployConfigs = {
   isWhitelisted: false,
   incentiveToken: "0x0000000000000000000000000000000000000000",
   initialize: true,
+  rewardTokens: [], // ONLY USED IF STRATEGY IS "NO_EXTERNAL_STRATEGY"
 };

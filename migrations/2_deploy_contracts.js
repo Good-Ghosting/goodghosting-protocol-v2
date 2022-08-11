@@ -92,7 +92,7 @@ module.exports = function (deployer, network, accounts) {
         inboundCurrencyAddress,
       ];
     } else if (config.deployConfigs.strategy === "no-external-strategy") {
-      strategyArgs = [NoExternalStrategyArtifact, inboundCurrencyAddress, strategyConfig.rewardTokens];
+      strategyArgs = [NoExternalStrategyArtifact, inboundCurrencyAddress, config.deployConfigs.rewardTokens];
     } else {
       strategyArgs = [
         CurveStrategyArtifact,
@@ -149,8 +149,8 @@ module.exports = function (deployer, network, accounts) {
 
     if (config.deployConfigs.initialize) {
       config.deployConfigs.isWhitelisted
-        ? await ggInstance.initializePool(config.deployConfigs.merkleroot, ZERO_ADDRESS)
-        : await ggInstance.initialize(ZERO_ADDRESS);
+        ? await ggInstance.initializePool(config.deployConfigs.merkleroot, config.deployConfigs.incentiveToken)
+        : await ggInstance.initialize(config.deployConfigs.incentiveToken);
     }
     const poolTxInfo = await web3.eth.getTransaction(poolTx.transactionHash);
     const strategyTxInfo = await web3.eth.getTransaction(strategyTx.transactionHash);

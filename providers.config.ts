@@ -43,9 +43,7 @@ exports.providers = {
         poolType: 1, // Aave Pool
         tokenIndex: 0, // 0: DAI; 1: USDC; 2: USDT
       },
-      "no-external-strategy": {
-        rewardTokens: ["0x0d500B1d8E8eF31E21C99d1Db9A6444d3ADf1270"],
-      },
+      //"no-external-strategy": {}, // REWARD TOKENS MUST BE CONFIGURED IN `deploy.configs.js` file
     },
   },
   mumbai: {
@@ -104,8 +102,24 @@ exports.providers = {
         address: "0x471EcE3750Da237f93B8E339c536989b8978a438",
         decimals: 18,
       },
+      creal: {
+        address: "0xe8537a3d056DA446677B9E9d6c5dB704EaAb4787",
+        decimals: 18,
+      },
+      ceur: {
+        address: "0xd8763cba276a3738e6de85b4b3bf5fded6d6ca73",
+        decimals: 18,
+      },
       mobi: {
         address: "0x73a210637f6F6B7005512677Ba6B3C96bb4AA44B",
+        decimals: 18,
+      },
+      ari: {
+        address: "0x20677d4f3d0f08e735ab512393524a3cfceb250c",
+        decimals: 18,
+      },
+      moo: {
+        address: "0x17700282592D6917F6A73D0bF8AcCf4D578c131e",
         decimals: 18,
       },
     },
@@ -126,9 +140,7 @@ exports.providers = {
         minter: "0x5F0200CA03196D5b817E2044a0Bb0D837e0A7823",
         tokenIndex: 0,
       },
-      "no-external-strategy": {
-        rewardTokens: ["0x73a210637f6F6B7005512677Ba6B3C96bb4AA44B"],
-      },
+      //"no-external-strategy": {}, // REWARD TOKENS MUST BE CONFIGURED IN `deploy.configs.js` file
     },
   },
 };
