@@ -53,13 +53,19 @@ export const shouldBehaveLikeGGPool = async (strategyType: string) => {
   });
 
   it("reverts if admin passes a invalid early withdraw fee while lowering it", async () => {
-    await expect(contracts.goodGhosting.lowerEarlyWithdrawFees(90)).to.be.revertedWith("INVALID_EARLY_WITHDRAW_FEE");
+    await expect(contracts.goodGhosting.lowerEarlyWithdrawFee(90)).to.be.revertedWith("INVALID_EARLY_WITHDRAW_FEE");
   });
 
   it("admin is able to reduce early withdrawal fees", async () => {
-    await contracts.goodGhosting.lowerEarlyWithdrawFees(0);
+    const currentFee = await contracts.goodGhosting.earlyWithdrawalFee();
+    const currentSegment = await contracts.goodGhosting.getCurrentSegment();
+    const result = await contracts.goodGhosting.lowerEarlyWithdrawFee(0);
     const earlyWithdrawalFee = await contracts.goodGhosting.earlyWithdrawalFee();
     assert(earlyWithdrawalFee.eq(ethers.BigNumber.from(0)));
+
+    await expect(result)
+      .to.emit(contracts.goodGhosting, "EarlyWithdrawalFeeChanged")
+      .withArgs(currentSegment, currentFee, ethers.BigNumber.from("0"));
   });
 
   it("check if inbound and interest token have distinct addresses", async () => {
@@ -609,7 +615,15 @@ export const shouldBehaveLikeJoiningGGPool = async (strategyType: string) => {
 
     await joinGame(contracts.goodGhosting, contracts.inboundToken, player2, segmentPayment, segmentPayment);
     await joinGame(contracts.goodGhosting, contracts.inboundToken, player1, segmentPayment, segmentPayment);
-    await contracts.goodGhosting.enableEmergencyWithdraw();
+
+    const currentSegment = await contracts.goodGhosting.getCurrentSegment();
+    const segmentCounter = await contracts.goodGhosting.segmentCounter(currentSegment.toString());
+
+    const MULTIPLIER = await contracts.goodGhosting.MULTIPLIER();
+    const result = await contracts.goodGhosting.enableEmergencyWithdraw();
+    await expect(result)
+      .to.emit(contracts.goodGhosting, "EmergencyWithdrawalEnabled")
+      .withArgs(currentSegment, segmentCounter, ethers.BigNumber.from(MULTIPLIER));
 
     if (strategyType === "curve") {
       governanceTokenPlayer1BalanceBeforeWithdraw = await contracts.curve.balanceOf(player1.address);
@@ -1644,7 +1658,9 @@ export const shouldBehaveLikePlayersWithdrawingFromGGPool = async (strategyType:
     const deployer = accounts[0];
     const token = new MintableERC20__factory(deployer);
     const incentiveToken = await token.deploy("INCENTIVE", "INCENTIVE");
-    await contracts.goodGhosting.setIncentiveToken(incentiveToken.address);
+    const result = await contracts.goodGhosting.setIncentiveToken(incentiveToken.address);
+    await expect(result).to.emit(contracts.goodGhosting, "IncentiveTokenSet").withArgs(incentiveToken.address);
+
     const actualIncentiveToken = await contracts.goodGhosting.incentiveToken();
     assert(incentiveToken.address.toLowerCase() === actualIncentiveToken.toLowerCase());
   });
@@ -1675,7 +1691,34 @@ export const shouldBehaveLikePlayersWithdrawingFromGGPool = async (strategyType:
     const waitingRoundLength = await contracts.goodGhosting.waitingRoundSegmentLength();
     await ethers.provider.send("evm_increaseTime", [parseInt(waitingRoundLength.toString()) / 2]);
     await ethers.provider.send("evm_mine", []);
-    await contracts.goodGhosting.enableEmergencyWithdraw();
+
+    const result = await contracts.goodGhosting.enableEmergencyWithdraw();
+    const currentSegment = await contracts.goodGhosting.getCurrentSegment();
+    const segmentCounterForCurrentSegment = await contracts.goodGhosting.segmentCounter(currentSegment.toString());
+    const segmentCounterForPreviousSegment = await contracts.goodGhosting.segmentCounter(
+      ethers.BigNumber.from(currentSegment).sub(ethers.BigNumber.from("1")).toString(),
+    );
+
+    const winnetCount = ethers.BigNumber.from(segmentCounterForCurrentSegment).add(
+      ethers.BigNumber.from(segmentCounterForPreviousSegment),
+    );
+
+    const MULTIPLIER = await contracts.goodGhosting.MULTIPLIER();
+    const blockNum = await ethers.provider.getBlockNumber();
+    const block = await ethers.provider.getBlock(blockNum);
+    const timestamp = block.timestamp;
+
+    const firstSegmentStart = await contracts.goodGhosting.firstSegmentStart();
+
+    const totalGameDuration = ethers.BigNumber.from(timestamp).sub(ethers.BigNumber.from(firstSegmentStart));
+
+    const depositRoundInterestSharePercentage = ethers.BigNumber.from(segmentLength)
+      .mul(ethers.BigNumber.from(depositCount).mul(ethers.BigNumber.from(MULTIPLIER)))
+      .div(totalGameDuration);
+
+    await expect(result)
+      .to.emit(contracts.goodGhosting, "EmergencyWithdrawalEnabled")
+      .withArgs(currentSegment, winnetCount, depositRoundInterestSharePercentage);
 
     if (strategyType === "curve") {
       governanceTokenPlayer1BalanceBeforeWithdraw = await contracts.curve.balanceOf(player1.address);
@@ -5356,6 +5399,12 @@ export const shouldBehaveLikeVariableDepositPool = async (strategyType: string) 
         ),
       );
     }
+  });
+
+  it("checks if event is emitted when admin disables claiming reward tokens", async () => {
+    const currentSegment = await contracts.goodGhosting.getCurrentSegment();
+    const result = await contracts.goodGhosting.disableClaimingRewardTokens();
+    await expect(result).to.emit(contracts.goodGhosting, "ClaimRewardTokensDisabled").withArgs(currentSegment);
   });
 
   it("make sure no rewards are claimed if admin enables the reward disable flag", async () => {
