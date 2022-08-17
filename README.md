@@ -370,7 +370,7 @@ Summary
 
 ## Celo
 
-After setting the required configs mentioned above, start by setting the `MNEMONIC` var (which is the 12 word seed phrase in your wallet) & the `RPC` var in the `.env` file. Then, make sure you have the correct [deployment configs](./deploy.config.ts) set. If a **whitelisted pool** needs to be deployed, make sure the `merkle root` is properly set, and the [isWhitelisted var](https://github.com/Good-Ghosting/goodghosting-protocol-v2/blob/master/deploy.config.ts#L20) is `true`. Then, just run `yarn deploy:polygon`.
+After setting the required configs mentioned above, start by setting the `CELO_PRIVATE_KEY` var (which is a 8-24 word seed phrase for your wallet) & the `RPC` var in the `.env` file. Then, make sure you have the correct [deployment configs](./deploy.config.ts) set. If a **whitelisted pool** needs to be deployed, make sure the `merkle root` is properly set, and the [isWhitelisted var](https://github.com/Good-Ghosting/goodghosting-protocol-v2/blob/master/deploy.config.ts#L20) is `true`. Then, just run `yarn deploy:celo`.
 
 The [strategy value](https://github.com/Good-Ghosting/goodghosting-protocol-v2/blob/master/deploy.config.ts#L6) options in deploy config are: "aaveV2", "moola", "mobius-cUSD-DAI", "mobius-cUSD-USDC" & "no-external-strategy".
 

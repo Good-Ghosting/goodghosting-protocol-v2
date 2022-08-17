@@ -624,7 +624,18 @@ export const deployPool = async (
 
     await expect(goodGhosting.getCurrentSegment()).to.be.revertedWith("GAME_NOT_INITIALIZED()");
 
-    await goodGhosting.initialize(incentiveTokenAddress);
+    const result = await goodGhosting.initialize(incentiveTokenAddress);
+
+    const blockNum = await ethers.provider.getBlockNumber();
+    const block = await ethers.provider.getBlock(blockNum);
+    const timestamp = block.timestamp;
+
+    const waitingRoundSegmentStart = ethers.BigNumber.from(timestamp).add(
+      ethers.BigNumber.from(depositCount).mul(ethers.BigNumber.from(segmentLength)),
+    );
+    await expect(result)
+      .to.emit(goodGhosting, "Initialized")
+      .withArgs(ethers.BigNumber.from(timestamp), waitingRoundSegmentStart);
 
     await expect(goodGhosting.initialize(incentiveTokenAddress)).to.be.revertedWith("GAME_ALREADY_INITIALIZED()");
   } else {

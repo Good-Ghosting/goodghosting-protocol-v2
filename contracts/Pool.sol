@@ -253,6 +253,20 @@ contract Pool is Ownable, Pausable, ReentrancyGuard {
 
     event ExternalTokenGetBalanceError(address indexed token, bytes reason);
 
+    event Initialized(uint64 firstSegmentStart, uint64 waitingRoundSegmentStart);
+
+    event IncentiveTokenSet(address token);
+
+    event EmergencyWithdrawalEnabled(
+        uint64 currentSegment,
+        uint64 winnerCount,
+        uint64 depositRoundInterestSharePercentage
+    );
+
+    event EarlyWithdrawalFeeChanged(uint64 currentSegment, uint64 oldFee, uint64 newFee);
+
+    event ClaimRewardTokensDisabled(uint64 currentSegment);
+
     //*********************************************************************//
     // ------------------------- modifiers -------------------------- //
     //*********************************************************************//
@@ -444,6 +458,7 @@ contract Pool is Ownable, Pausable, ReentrancyGuard {
         }
         _updateInterestShares(0);
         setIncentiveToken(_incentiveToken);
+        emit Initialized(firstSegmentStart, waitingRoundSegmentStart);
     }
 
     //*********************************************************************//
@@ -1136,6 +1151,8 @@ contract Pool is Ownable, Pausable, ReentrancyGuard {
         _updateInterestShares(currentSegment);
         // setting depositCount as current segment to manage all scenario's to handle emergency withdraw
         depositCount = currentSegment;
+
+        emit EmergencyWithdrawalEnabled(currentSegment, winnerCount, depositRoundInterestSharePercentage);
     }
 
     /**
@@ -1161,6 +1178,7 @@ contract Pool is Ownable, Pausable, ReentrancyGuard {
             }
         }
         incentiveToken = _incentiveToken;
+        emit IncentiveTokenSet(address(_incentiveToken));
     }
 
     /**
@@ -1169,6 +1187,7 @@ contract Pool is Ownable, Pausable, ReentrancyGuard {
     */
     function disableClaimingRewardTokens() external onlyOwner whenGameIsNotCompleted {
         disableRewardTokenClaim = true;
+        emit ClaimRewardTokensDisabled(getCurrentSegment());
     }
 
     /// @dev pauses the game. This function can be called only by the contract's admin.
@@ -1196,13 +1215,19 @@ contract Pool is Ownable, Pausable, ReentrancyGuard {
 
     /**
     @dev Allows admin to set a lower early withdrawal fee.
-    @param _newEarlyWithdrawFees New earlywithdrawal fee.
+    @param _newEarlyWithdrawFee New earlywithdrawal fee.
     */
-    function lowerEarlyWithdrawFees(uint64 _newEarlyWithdrawFees) external virtual onlyOwner {
-        if (_newEarlyWithdrawFees >= earlyWithdrawalFee) {
+    function lowerEarlyWithdrawFee(uint64 _newEarlyWithdrawFee) external virtual onlyOwner {
+        uint64 currentFee = earlyWithdrawalFee;
+        if (_newEarlyWithdrawFee >= currentFee) {
             revert INVALID_EARLY_WITHDRAW_FEE();
         }
-        earlyWithdrawalFee = _newEarlyWithdrawFees;
+        earlyWithdrawalFee = _newEarlyWithdrawFee;
+        emit EarlyWithdrawalFeeChanged(
+            getCurrentSegment(),
+            currentFee,
+            _newEarlyWithdrawFee
+        );
     }
 
     /// @dev Allows the admin to withdraw the performance fee, if applicable. This function can be called only by the contract's admin.
