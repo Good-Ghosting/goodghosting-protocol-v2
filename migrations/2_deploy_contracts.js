@@ -1,4 +1,6 @@
 const abi = require("ethereumjs-abi");
+const axios = require("axios");
+const BN = require("bn.js");
 const GoodGhostingContract = artifacts.require("Pool");
 const WhitelistedContract = artifacts.require("WhitelistedPool");
 const MobiusStrategyArtifact = artifacts.require("MobiusStrategy");
@@ -104,7 +106,18 @@ module.exports = function (deployer, network, accounts) {
         providerConfig.providers["polygon"].tokens["curve"].address,
       ];
     }
-    const strategyTx = await deployer.deploy(...strategyArgs);
+    const deploymentResult = {};
+    // converting to 1 eth worth of gwei default for celo
+    let gasPrice = new BN("1").mul(new BN(10 ** 9));
+    if (network.includes("celo")) {
+      deploymentResult.network = "celo";
+    } else {
+      deploymentResult.network = "polygon";
+      const payload = await axios.get("https://gasstation-mainnet.matic.network");
+      // converting to 1 eth worth of gwei
+      gasPrice = new BN(payload.data.fast).mul(new BN(10 ** 9));
+    }
+    const strategyTx = await deployer.deploy(...strategyArgs, { gasPrice: gasPrice });
     let strategyInstance;
     if (config.deployConfigs.strategy === "mobius-cUSD-DAI" || config.deployConfigs.strategy === "mobius-cUSD-USDC")
       strategyInstance = await MobiusStrategyArtifact.deployed();
@@ -139,7 +152,7 @@ module.exports = function (deployer, network, accounts) {
     ];
 
     // Deploys the Pool Contract
-    const poolTx = await deployer.deploy(...deploymentArgs);
+    const poolTx = await deployer.deploy(...deploymentArgs, { gasPrice: gasPrice });
     const ggInstance = await goodGhostingContract.deployed();
 
     if (config.deployConfigs.owner && config.deployConfigs.owner != "0x") {
@@ -154,13 +167,6 @@ module.exports = function (deployer, network, accounts) {
     }
     const poolTxInfo = await web3.eth.getTransaction(poolTx.transactionHash);
     const strategyTxInfo = await web3.eth.getTransaction(strategyTx.transactionHash);
-
-    const deploymentResult = {};
-    if (network.includes("celo")) {
-      deploymentResult.network = "celo";
-    } else {
-      deploymentResult.network = "polygon";
-    }
 
     deploymentResult.poolOwner = accounts[0];
     deploymentResult.poolAddress = ggInstance.address;
