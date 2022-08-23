@@ -67,8 +67,12 @@ contract MobiusStrategy is Ownable, IStrategy {
     */
     function getTotalAmount() external view virtual override returns (uint256) {
         uint256 gaugeBalance = gauge.balanceOf(address(this));
-        uint256 totalAccumulatedAmount = pool.calculateRemoveLiquidityOneToken(address(this), gaugeBalance, 0);
-        return totalAccumulatedAmount;
+        if (gaugeBalance != 0) {
+            uint256 totalAccumulatedAmount = pool.calculateRemoveLiquidityOneToken(address(this), gaugeBalance, 0);
+            return totalAccumulatedAmount;
+        } else {
+            return 0;
+        }
     }
 
     /** 
