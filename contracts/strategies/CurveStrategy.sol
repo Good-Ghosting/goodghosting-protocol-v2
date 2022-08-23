@@ -82,13 +82,17 @@ contract CurveStrategy is Ownable, IStrategy {
     */
     function getTotalAmount() external view virtual override returns (uint256) {
         uint256 gaugeBalance = gauge.balanceOf(address(this));
-        uint256 totalAccumulatedAmount = 0;
-        if (poolType == AAVE_POOL) {
-            totalAccumulatedAmount = pool.calc_withdraw_one_coin(gaugeBalance, inboundTokenIndex);
+        if (gaugeBalance != 0) {
+            uint256 totalAccumulatedAmount = 0;
+            if (poolType == AAVE_POOL) {
+                totalAccumulatedAmount = pool.calc_withdraw_one_coin(gaugeBalance, inboundTokenIndex);
+            } else {
+                totalAccumulatedAmount = pool.calc_withdraw_one_coin(gaugeBalance, uint256(uint128(inboundTokenIndex)));
+            }
+            return totalAccumulatedAmount;
         } else {
-            totalAccumulatedAmount = pool.calc_withdraw_one_coin(gaugeBalance, uint256(uint128(inboundTokenIndex)));
+            return 0;
         }
-        return totalAccumulatedAmount;
     }
 
     /** 
