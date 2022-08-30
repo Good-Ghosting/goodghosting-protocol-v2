@@ -1445,8 +1445,10 @@ contract Pool is Ownable, Pausable, ReentrancyGuard {
         // Updating total principal as well after each player withdraws this is separate since we have to do this for non-players
         if (netTotalGamePrincipal < player.netAmountPaid) {
             netTotalGamePrincipal = 0;
+            totalGamePrincipal = 0;
         } else {
             netTotalGamePrincipal -= player.netAmountPaid;
+            totalGamePrincipal -= player.amountPaid;
         }
 
         // sending the inbound token amount i.e principal + interest to the winners and just the principal in case of players
