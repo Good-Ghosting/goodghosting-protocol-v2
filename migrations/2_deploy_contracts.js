@@ -57,6 +57,10 @@ module.exports = function (deployer, network, accounts) {
       ? providerConfig.providers["mumbai"].tokens[config.deployConfigs.inboundCurrencySymbol].decimals
       : providerConfig.providers["polygon"].tokens[config.deployConfigs.inboundCurrencySymbol].decimals;
     const segmentPaymentWei = (config.deployConfigs.segmentPayment * 10 ** inboundCurrencyDecimals).toString();
+    const maxFlexibleSegmentPaymentAmountWei = (
+      maxFlexibleSegmentPaymentAmount *
+      10 ** inboundCurrencyDecimals
+    ).toString();
 
     const maxPlayersCount = config.deployConfigs.maxPlayersCount;
     const goodGhostingContract = config.deployConfigs.isWhitelisted ? WhitelistedContract : GoodGhostingContract; // defaults to Ethereum version
@@ -138,7 +142,7 @@ module.exports = function (deployer, network, accounts) {
     let deploymentArgs = [
       goodGhostingContract,
       inboundCurrencyAddress,
-      maxFlexibleSegmentPaymentAmount,
+      maxFlexibleSegmentPaymentAmountWei,
       config.deployConfigs.depositCount,
       config.deployConfigs.segmentLength,
       config.deployConfigs.waitingRoundSegmentLength,
