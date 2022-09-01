@@ -17,6 +17,7 @@ module.exports = function (deployer, network, accounts) {
   // Injects network name into process .env variable to make accessible on test suite.
   process.env.NETWORK = network;
   const ZERO_ADDRESS = "0x0000000000000000000000000000000000000000";
+  const MAX_PLAYER_COUNT = "115792089237316195423570985008687907853269984665640564039457584007913129639935";
 
   // Skips migration for local tests and soliditycoverage
   if (["test", "soliditycoverage"].includes(network)) return;
@@ -62,7 +63,12 @@ module.exports = function (deployer, network, accounts) {
       10 ** inboundCurrencyDecimals
     ).toString();
 
-    const maxPlayersCount = config.deployConfigs.maxPlayersCount;
+    let maxPlayersCount;
+    if (config.deployConfigs.maxPlayersCount && config.deployConfigs.maxPlayersCount != "") {
+      maxPlayersCount = config.deployConfigs.maxPlayersCount;
+    } else {
+      maxPlayersCount = MAX_PLAYER_COUNT;
+    }
     const goodGhostingContract = config.deployConfigs.isWhitelisted ? WhitelistedContract : GoodGhostingContract; // defaults to Ethereum version
     let strategyArgs;
     if (config.deployConfigs.strategy === "mobius-cUSD-DAI" || config.deployConfigs.strategy === "mobius-cUSD-USDC") {
