@@ -13,6 +13,22 @@ const fs = require("fs");
 const config = require("../deploy.config");
 const providerConfig = require("../providers.config");
 
+// used for amm strategies
+const tokenIndexMapping = {
+  "polygon-curve-aave": {
+    dai: 0,
+    usdc: 1,
+    usdt: 2,
+  },
+  "polygon-curve-atricrypto": {
+    dai: 0,
+    usdc: 1,
+    usdt: 2,
+    wbtc: 3,
+    weth: 4,
+  },
+};
+
 module.exports = function (deployer, network, accounts) {
   // Injects network name into process .env variable to make accessible on test suite.
   process.env.NETWORK = network;
@@ -109,7 +125,7 @@ module.exports = function (deployer, network, accounts) {
       strategyArgs = [
         CurveStrategyArtifact,
         strategyConfig.pool,
-        strategyConfig.tokenIndex,
+        tokenIndexMapping[config.deployConfigs.strategy][config.deployConfigs.inboundCurrencySymbol],
         strategyConfig.poolType,
         strategyConfig.gauge,
         providerConfig.providers["polygon"].tokens["wmatic"].address,
@@ -299,7 +315,8 @@ module.exports = function (deployer, network, accounts) {
     } else {
       deploymentResult.curvePoolAddress = strategyConfig.pool;
       deploymentResult.curveGaugeAddress = strategyConfig.gauge;
-      deploymentResult.strategyTokenIndex = strategyConfig.tokenIndex;
+      deploymentResult.strategyTokenIndex =
+        tokenIndexMapping[config.deployConfigs.strategy][config.deployConfigs.inboundCurrencySymbol];
       deploymentResult.strategyPoolType = strategyConfig.poolType;
       deploymentResult.strategyRewardTokenAddress = providerConfig.providers["polygon"].tokens["wmatic"].address;
       deploymentResult.strategyCurveTokenAddress = providerConfig.providers["polygon"].tokens["curve"].address;
