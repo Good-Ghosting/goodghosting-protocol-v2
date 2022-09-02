@@ -13,10 +13,26 @@ const fs = require("fs");
 const config = require("../deploy.config");
 const providerConfig = require("../providers.config");
 
+// used for amm strategies
+const tokenIndexMapping = {
+  "polygon-curve-aave": {
+    dai: 0,
+    usdc: 1,
+    usdt: 2,
+  },
+  "polygon-curve-atricrypto": {
+    dai: 0,
+    usdc: 1,
+    usdt: 2,
+    wbtc: 3,
+    weth: 4,
+  },
+};
+
 module.exports = function (deployer, network, accounts) {
   // Injects network name into process .env variable to make accessible on test suite.
   process.env.NETWORK = network;
-  const ZERO_ADDRESS = "0x0000000000000000000000000000000000000000";
+  const MAX_PLAYER_COUNT = "18446744073709551615";
 
   // Skips migration for local tests and soliditycoverage
   if (["test", "soliditycoverage"].includes(network)) return;
@@ -62,7 +78,12 @@ module.exports = function (deployer, network, accounts) {
       10 ** inboundCurrencyDecimals
     ).toString();
 
-    const maxPlayersCount = config.deployConfigs.maxPlayersCount;
+    let maxPlayersCount;
+    if (config.deployConfigs.maxPlayersCount && config.deployConfigs.maxPlayersCount != "") {
+      maxPlayersCount = config.deployConfigs.maxPlayersCount;
+    } else {
+      maxPlayersCount = MAX_PLAYER_COUNT;
+    }
     const goodGhostingContract = config.deployConfigs.isWhitelisted ? WhitelistedContract : GoodGhostingContract; // defaults to Ethereum version
     let strategyArgs;
     if (config.deployConfigs.strategy === "mobius-cUSD-DAI" || config.deployConfigs.strategy === "mobius-cUSD-USDC") {
@@ -103,7 +124,7 @@ module.exports = function (deployer, network, accounts) {
       strategyArgs = [
         CurveStrategyArtifact,
         strategyConfig.pool,
-        strategyConfig.tokenIndex,
+        tokenIndexMapping[config.deployConfigs.strategy][config.deployConfigs.inboundCurrencySymbol],
         strategyConfig.poolType,
         strategyConfig.gauge,
         providerConfig.providers["polygon"].tokens["wmatic"].address,
@@ -293,7 +314,8 @@ module.exports = function (deployer, network, accounts) {
     } else {
       deploymentResult.curvePoolAddress = strategyConfig.pool;
       deploymentResult.curveGaugeAddress = strategyConfig.gauge;
-      deploymentResult.strategyTokenIndex = strategyConfig.tokenIndex;
+      deploymentResult.strategyTokenIndex =
+        tokenIndexMapping[config.deployConfigs.strategy][config.deployConfigs.inboundCurrencySymbol];
       deploymentResult.strategyPoolType = strategyConfig.poolType;
       deploymentResult.strategyRewardTokenAddress = providerConfig.providers["polygon"].tokens["wmatic"].address;
       deploymentResult.strategyCurveTokenAddress = providerConfig.providers["polygon"].tokens["curve"].address;

@@ -32,7 +32,7 @@ contract WhitelistedPool is Pool, MerkleValidator {
         uint256 _segmentPayment,
         uint64 _earlyWithdrawalFee,
         uint64 _customFee,
-        uint256 _maxPlayersCount,
+        uint64 _maxPlayersCount,
         bool _flexibleSegmentPayment,
         IStrategy _strategy,
         bool _isTransactionalToken

@@ -35,13 +35,11 @@ exports.providers = {
         pool: "0x445FE580eF8d70FF569aB36e80c647af338db351",
         gauge: "0x19793B454D3AfC7b454F206Ffe95aDE26cA6912c",
         poolType: 0, // Aave Pool
-        tokenIndex: 0, // 0: DAI; 1: USDC; 2: USDT
       },
       "polygon-curve-atricrypto": {
         pool: "0x1d8b86e3d88cdb2d34688e87e72f388cb541b7c8",
         gauge: "0x3b6b158a76fd8ccc297538f454ce7b4787778c7c",
         poolType: 1, // Aave Pool
-        tokenIndex: 0, // 0: DAI; 1: USDC; 2: USDT
       },
       //"no-external-strategy": {}, // REWARD TOKENS MUST BE CONFIGURED IN `deploy.configs.js` file
     },
@@ -132,13 +130,11 @@ exports.providers = {
         pool: "0xF3f65dFe0c8c8f2986da0FEc159ABE6fd4E700B4",
         gauge: "0xE1f9D952EecC07cfEFa69df9fBB0cEF260957119",
         minter: "0x5F0200CA03196D5b817E2044a0Bb0D837e0A7823",
-        tokenIndex: 0,
       },
       "mobius-cUSD-USDC": {
         pool: "0x9906589Ea8fd27504974b7e8201DF5bBdE986b03",
         gauge: "0xc96AeeaFF32129da934149F6134Aa7bf291a754E",
         minter: "0x5F0200CA03196D5b817E2044a0Bb0D837e0A7823",
-        tokenIndex: 0,
       },
       //"no-external-strategy": {}, // REWARD TOKENS MUST BE CONFIGURED IN `deploy.configs.js` file
     },

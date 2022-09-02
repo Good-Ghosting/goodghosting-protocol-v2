@@ -68,7 +68,7 @@ contract Pool is Ownable, Pausable, ReentrancyGuard {
     uint64 public immutable waitingRoundSegmentLength;
 
     /// @notice Defines the max quantity of players allowed in the game.
-    uint256 public immutable maxPlayersCount;
+    uint64 public immutable maxPlayersCount;
 
     /// @notice The amount to be paid on each segment in case "flexibleSegmentPayment" is false (fixed payments).
     uint256 public immutable segmentPayment;
@@ -378,7 +378,7 @@ contract Pool is Ownable, Pausable, ReentrancyGuard {
         uint256 _segmentPayment,
         uint64 _earlyWithdrawalFee,
         uint64 _customFee,
-        uint256 _maxPlayersCount,
+        uint64 _maxPlayersCount,
         bool _flexibleSegmentPayment,
         IStrategy _strategy,
         bool _isTransactionalToken
