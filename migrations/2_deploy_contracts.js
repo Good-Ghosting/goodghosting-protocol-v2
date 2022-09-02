@@ -32,8 +32,7 @@ const tokenIndexMapping = {
 module.exports = function (deployer, network, accounts) {
   // Injects network name into process .env variable to make accessible on test suite.
   process.env.NETWORK = network;
-  const ZERO_ADDRESS = "0x0000000000000000000000000000000000000000";
-  const MAX_PLAYER_COUNT = "115792089237316195423570985008687907853269984665640564039457584007913129639935";
+  const MAX_PLAYER_COUNT = "18446744073709551615";
 
   // Skips migration for local tests and soliditycoverage
   if (["test", "soliditycoverage"].includes(network)) return;
