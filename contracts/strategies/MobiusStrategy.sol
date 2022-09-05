@@ -41,11 +41,11 @@ contract MobiusStrategy is Ownable, IStrategy {
     /// @notice celo token
     IERC20 public immutable celo;
 
+    /// @notice pool address
+    IMobiPool public immutable pool;
+
     /// @notice mobi lp token
     IERC20 public lpToken;
-
-    /// @notice pool address
-    IMobiPool public pool;
 
     //*********************************************************************//
     // ------------------------- external views -------------------------- //
@@ -66,12 +66,16 @@ contract MobiusStrategy is Ownable, IStrategy {
     @return Total accumulated amount.
     */
     function getTotalAmount() external view virtual override returns (uint256) {
-        uint256 gaugeBalance = gauge.balanceOf(address(this));
-        if (gaugeBalance != 0) {
-            uint256 totalAccumulatedAmount = pool.calculateRemoveLiquidityOneToken(address(this), gaugeBalance, 0);
-            return totalAccumulatedAmount;
+        if (address(gauge) != address(0)) {
+            uint256 gaugeBalance = gauge.balanceOf(address(this));
+            if (gaugeBalance != 0) {
+                uint256 totalAccumulatedAmount = pool.calculateRemoveLiquidityOneToken(address(this), gaugeBalance, 0);
+                return totalAccumulatedAmount;
+            } else {
+                return 0;
+            }
         } else {
-            return 0;
+            return lpToken.balanceOf(address(this));
         }
     }
 
@@ -94,6 +98,7 @@ contract MobiusStrategy is Ownable, IStrategy {
     */
     // UPDATE - A4 Audit Report
     function getUnderlyingAsset() external view override returns (address) {
+        require(address(pool.getToken(0)) == address(0x471EcE3750Da237f93B8E339c536989b8978a438), "no match");
         return address(pool.getToken(0));
     }
 
@@ -124,16 +129,11 @@ contract MobiusStrategy is Ownable, IStrategy {
         IMobiGauge _gauge,
         IMinter _minter,
         IERC20 _mobi,
-        IERC20 _celo
+        IERC20 _celo,
+        IERC20 _lpToken
     ) {
         if (address(_pool) == address(0)) {
             revert INVALID_POOL();
-        }
-        if (address(_gauge) == address(0)) {
-            revert INVALID_GAUGE();
-        }
-        if (address(_minter) == address(0)) {
-            revert INVALID_MINTER();
         }
         if (address(_mobi) == address(0)) {
             revert INVALID_MOBI_TOKEN();
@@ -147,7 +147,11 @@ contract MobiusStrategy is Ownable, IStrategy {
         minter = _minter;
         mobi = _mobi;
         celo = _celo;
-        lpToken = IERC20(pool.getLpToken());
+        if (address(_gauge) != address(0)) {
+            lpToken = IERC20(_pool.getLpToken());
+        } else {
+            lpToken = _lpToken;
+        }
     }
 
     /**
@@ -172,8 +176,10 @@ contract MobiusStrategy is Ownable, IStrategy {
 
         pool.addLiquidity(amounts, _minAmount, block.timestamp + 1000);
 
-        lpToken.approve(address(gauge), lpToken.balanceOf(address(this)));
-        gauge.deposit(lpToken.balanceOf(address(this)));
+        if (address(gauge) != address(0)) {
+            lpToken.approve(address(gauge), lpToken.balanceOf(address(this)));
+            gauge.deposit(lpToken.balanceOf(address(this)));
+        }
     }
 
     /**
@@ -192,17 +198,19 @@ contract MobiusStrategy is Ownable, IStrategy {
         uint256[] memory amounts = new uint256[](2);
         amounts[0] = _amount;
 
-        uint256 gaugeBalance = gauge.balanceOf(address(this));
         uint256 poolWithdrawAmount = pool.calculateTokenAmount(address(this), amounts, true);
+        if (address(gauge) != address(0)) {
+            uint256 gaugeBalance = gauge.balanceOf(address(this));
 
-        // safety check
-        // the amm mock contracts are common for all kinds of scenariuo's and it is not possible to mock this particular scenario, this is a very rare scenario to occur in production and hasn't been observed in the fork tests.
-        if (gaugeBalance < poolWithdrawAmount) {
-            poolWithdrawAmount = gaugeBalance;
+            // safety check
+            // the amm mock contracts are common for all kinds of scenariuo's and it is not possible to mock this particular scenario, this is a very rare scenario to occur in production and hasn't been observed in the fork tests.
+            if (gaugeBalance < poolWithdrawAmount) {
+                poolWithdrawAmount = gaugeBalance;
+            }
+
+            gauge.withdraw(poolWithdrawAmount, false);
+            lpToken.approve(address(pool), poolWithdrawAmount);
         }
-
-        gauge.withdraw(poolWithdrawAmount, false);
-        lpToken.approve(address(pool), poolWithdrawAmount);
 
         pool.removeLiquidityOneToken(poolWithdrawAmount, 0, _minAmount, block.timestamp + 1000);
 
@@ -231,27 +239,29 @@ contract MobiusStrategy is Ownable, IStrategy {
         uint256 _minAmount,
         bool disableRewardTokenClaim
     ) external override onlyOwner {
-        // not checking for validity of deposit token here since with pool contract as the owner of the strategy the only way to transfer pool funds is by invest method so the check there is sufficient
-        bool claimRewards = true;
-        if (disableRewardTokenClaim) {
-            claimRewards = false;
-        } else {
-            minter.mint(address(gauge));
-        }
-        uint256 gaugeBalance = gauge.balanceOf(address(this));
-        // if (variableDeposits) {
         uint256[] memory amounts = new uint256[](2);
         amounts[0] = _amount;
         uint256 poolWithdrawAmount = pool.calculateTokenAmount(address(this), amounts, true);
 
-        // safety check
-        // the amm mock contracts are common for all kinds of scenariuo's and it is not possible to mock this particular scenario, this is a very rare scenario to occur in production and hasn't been observed in the fork tests.
-        if (gaugeBalance < poolWithdrawAmount) {
-            poolWithdrawAmount = gaugeBalance;
-        }
+        if (address(gauge) != address(0)) {
+            // not checking for validity of deposit token here since with pool contract as the owner of the strategy the only way to transfer pool funds is by invest method so the check there is sufficient
+            bool claimRewards = true;
+            if (disableRewardTokenClaim) {
+                claimRewards = false;
+            } else {
+                minter.mint(address(gauge));
+            }
+            uint256 gaugeBalance = gauge.balanceOf(address(this));
 
-        gauge.withdraw(poolWithdrawAmount, claimRewards);
-        lpToken.approve(address(pool), poolWithdrawAmount);
+            // safety check
+            // the amm mock contracts are common for all kinds of scenariuo's and it is not possible to mock this particular scenario, this is a very rare scenario to occur in production and hasn't been observed in the fork tests.
+            if (gaugeBalance < poolWithdrawAmount) {
+                poolWithdrawAmount = gaugeBalance;
+            }
+
+            gauge.withdraw(poolWithdrawAmount, claimRewards);
+            lpToken.approve(address(pool), poolWithdrawAmount);
+        }
 
         pool.removeLiquidityOneToken(poolWithdrawAmount, 0, _minAmount, block.timestamp + 1000);
 
@@ -284,8 +294,10 @@ contract MobiusStrategy is Ownable, IStrategy {
         uint256 amount = 0;
         uint256 additionalAmount = 0;
         if (!disableRewardTokenClaim) {
-            amount = gauge.claimable_reward(address(this), address(celo));
-            additionalAmount = gauge.claimable_tokens(address(this));
+            if (address(gauge) != address(0)) {
+                amount = gauge.claimable_reward(address(this), address(celo));
+                additionalAmount = gauge.claimable_tokens(address(this));
+            }
         }
         uint256[] memory amounts = new uint256[](2);
         amounts[0] = amount;
