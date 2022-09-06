@@ -89,7 +89,8 @@ module.exports = function (deployer, network, accounts) {
     if (
       config.deployConfigs.strategy === "mobius-cUSD-DAI" ||
       config.deployConfigs.strategy === "mobius-cUSD-USDC" ||
-      config.deployConfigs.strategy === "mobius-celo-stCelo"
+      config.deployConfigs.strategy === "mobius-celo-stCelo" ||
+      config.deployConfigs.strategy === "mobius-cusd-usdcet"
     ) {
       strategyArgs = [
         MobiusStrategyArtifact,
@@ -152,7 +153,8 @@ module.exports = function (deployer, network, accounts) {
     if (
       config.deployConfigs.strategy === "mobius-cUSD-DAI" ||
       config.deployConfigs.strategy === "mobius-cUSD-USDC" ||
-      config.deployConfigs.strategy === "mobius-celo-stCelo"
+      config.deployConfigs.strategy === "mobius-celo-stCelo" ||
+      config.deployConfigs.strategy === "mobius-cusd-usdcet"
     )
       strategyInstance = await MobiusStrategyArtifact.deployed();
     else if (
@@ -261,7 +263,8 @@ module.exports = function (deployer, network, accounts) {
     if (
       config.deployConfigs.strategy === "mobius-cUSD-DAI" ||
       config.deployConfigs.strategy === "mobius-cUSD-USDC" ||
-      config.deployConfigs.strategy === "mobius-celo-stCelo"
+      config.deployConfigs.strategy === "mobius-celo-stCelo" ||
+      config.deployConfigs.strategy === "mobius-cusd-usdcet"
     ) {
       deploymentResult.mobiusPoolAddress = strategyConfig.pool;
       deploymentResult.mobiusGaugeAddress = strategyConfig.gauge;
