@@ -147,6 +147,13 @@ exports.providers = {
         // we get the lp token from getLpToken method
         lpToken: "0x4730ff6bC3008a40cf74D660D3f20d5b51646dA3",
       },
+      "mobius-cusd-usdcet": {
+        pool: "0xFa3df877F98ac5ecd87456a7AcCaa948462412f0",
+        gauge: "0x0000000000000000000000000000000000000000",
+        minter: "0x0000000000000000000000000000000000000000",
+        // we get the lp token from getLpToken method
+        lpToken: "0x552b9AA0eEe500c60f09456e49FBc1096322714C",
+      },
       //"no-external-strategy": {}, // REWARD TOKENS MUST BE CONFIGURED IN `deploy.configs.js` file
     },
   },
