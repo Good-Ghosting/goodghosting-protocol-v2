@@ -8,8 +8,9 @@ contract MockMobiusStrategy is MobiusStrategy {
         IMobiGauge _gauge,
         IMinter _minter,
         IERC20 _mobi,
-        IERC20 _celo
-    ) MobiusStrategy(_pool, _gauge, _minter, _mobi, _celo) {}
+        IERC20 _celo,
+        IERC20 _lpToken
+    ) MobiusStrategy(_pool, _gauge, _minter, _mobi, _celo, _lpToken) {}
 
     function getTotalAmount() external view override returns (uint256) {
         // this method mocks the strategy method to cover a scneario where the interest reduces but stays > 0
