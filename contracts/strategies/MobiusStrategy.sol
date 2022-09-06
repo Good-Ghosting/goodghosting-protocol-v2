@@ -119,10 +119,15 @@ contract MobiusStrategy is Ownable, IStrategy {
     Returns the instance of the reward token
     */
     function getRewardTokens() external view override returns (IERC20[] memory) {
-        IERC20[] memory tokens = new IERC20[](2);
-        tokens[0] = celo;
-        tokens[1] = mobi;
-        return tokens;
+        if (address(gauge) != address(0)) {
+            IERC20[] memory tokens = new IERC20[](2);
+            tokens[0] = celo;
+            tokens[1] = mobi;
+            return tokens;
+        } else {
+            IERC20[] memory tokens = new IERC20[](1);
+            tokens[0] = IERC20(address(0));
+        }
     }
 
     //*********************************************************************//
