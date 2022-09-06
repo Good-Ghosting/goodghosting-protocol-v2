@@ -221,9 +221,8 @@ contract MobiusStrategy is Ownable, IStrategy {
             }
 
             gauge.withdraw(poolWithdrawAmount, false);
-            lpToken.approve(address(pool), poolWithdrawAmount);
         }
-
+        lpToken.approve(address(pool), poolWithdrawAmount);
         pool.removeLiquidityOneToken(poolWithdrawAmount, 0, _minAmount, block.timestamp + 1000);
 
         // check for impermanent loss (safety check)
@@ -272,9 +271,9 @@ contract MobiusStrategy is Ownable, IStrategy {
             }
 
             gauge.withdraw(poolWithdrawAmount, claimRewards);
-            lpToken.approve(address(pool), poolWithdrawAmount);
         }
 
+        lpToken.approve(address(pool), poolWithdrawAmount);
         pool.removeLiquidityOneToken(poolWithdrawAmount, 0, _minAmount, block.timestamp + 1000);
 
         bool success = mobi.transfer(msg.sender, mobi.balanceOf(address(this)));
