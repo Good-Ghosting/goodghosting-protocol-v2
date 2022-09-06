@@ -66,16 +66,29 @@ contract MobiusStrategy is Ownable, IStrategy {
     @return Total accumulated amount.
     */
     function getTotalAmount() external view virtual override returns (uint256) {
+        uint256 liquidityBalance;
         if (address(gauge) != address(0)) {
-            uint256 gaugeBalance = gauge.balanceOf(address(this));
-            if (gaugeBalance != 0) {
-                uint256 totalAccumulatedAmount = pool.calculateRemoveLiquidityOneToken(address(this), gaugeBalance, 0);
+            liquidityBalance = gauge.balanceOf(address(this));
+            if (liquidityBalance != 0) {
+                uint256 totalAccumulatedAmount = pool.calculateRemoveLiquidityOneToken(
+                    address(this),
+                    liquidityBalance,
+                    0
+                );
                 return totalAccumulatedAmount;
             } else {
                 return 0;
             }
         } else {
-            return lpToken.balanceOf(address(this));
+            liquidityBalance = lpToken.balanceOf(address(this));
+            if (liquidityBalance != 0) {
+                uint256 totalAccumulatedAmount = pool.calculateRemoveLiquidityOneToken(
+                    address(this),
+                    liquidityBalance,
+                    0
+                );
+                return totalAccumulatedAmount;
+            }
         }
     }
 
@@ -98,7 +111,6 @@ contract MobiusStrategy is Ownable, IStrategy {
     */
     // UPDATE - A4 Audit Report
     function getUnderlyingAsset() external view override returns (address) {
-        require(address(pool.getToken(0)) == address(0x471EcE3750Da237f93B8E339c536989b8978a438), "no match");
         return address(pool.getToken(0));
     }
 
