@@ -354,23 +354,58 @@ export const deployPool = async (
     if (isInvestmentStrategy) {
       const mobiStrategyDeployer = new MobiusStrategy__factory(deployer);
       await expect(
-        mobiStrategyDeployer.deploy(ZERO_ADDRESS, mobiGauge.address, minter.address, mobi.address, minter.address),
+        mobiStrategyDeployer.deploy(
+          ZERO_ADDRESS,
+          mobiGauge.address,
+          minter.address,
+          mobi.address,
+          minter.address,
+          ZERO_ADDRESS,
+        ),
       ).to.be.revertedWith("INVALID_POOL()");
 
       await expect(
-        mobiStrategyDeployer.deploy(mobiPool.address, ZERO_ADDRESS, minter.address, mobi.address, minter.address),
+        mobiStrategyDeployer.deploy(
+          mobiPool.address,
+          ZERO_ADDRESS,
+          minter.address,
+          mobi.address,
+          minter.address,
+          ZERO_ADDRESS,
+        ),
       ).to.be.revertedWith("INVALID_GAUGE()");
 
       await expect(
-        mobiStrategyDeployer.deploy(mobiPool.address, mobiGauge.address, ZERO_ADDRESS, mobi.address, minter.address),
+        mobiStrategyDeployer.deploy(
+          mobiPool.address,
+          mobiGauge.address,
+          ZERO_ADDRESS,
+          mobi.address,
+          minter.address,
+          ZERO_ADDRESS,
+        ),
       ).to.be.revertedWith("INVALID_MINTER()");
 
       await expect(
-        mobiStrategyDeployer.deploy(mobiPool.address, mobiGauge.address, minter.address, ZERO_ADDRESS, minter.address),
+        mobiStrategyDeployer.deploy(
+          mobiPool.address,
+          mobiGauge.address,
+          minter.address,
+          ZERO_ADDRESS,
+          minter.address,
+          ZERO_ADDRESS,
+        ),
       ).to.be.revertedWith("INVALID_MOBI_TOKEN()");
 
       await expect(
-        mobiStrategyDeployer.deploy(mobiPool.address, mobiGauge.address, minter.address, mobi.address, ZERO_ADDRESS),
+        mobiStrategyDeployer.deploy(
+          mobiPool.address,
+          mobiGauge.address,
+          minter.address,
+          mobi.address,
+          ZERO_ADDRESS,
+          ZERO_ADDRESS,
+        ),
       ).to.be.revertedWith("INVALID_CELO_TOKEN()");
 
       strategy = await mobiStrategyDeployer.deploy(
@@ -379,6 +414,7 @@ export const deployPool = async (
         minter.address,
         mobi.address,
         minter.address,
+        ZERO_ADDRESS,
       );
 
       if (isInboundToken) {
@@ -573,6 +609,7 @@ export const deployPool = async (
           minter.address,
           mobi.address,
           minter.address,
+          ZERO_ADDRESS,
         );
       }
       await expect(
@@ -822,6 +859,7 @@ export const deployPoolWithMockStrategy = async (
       minter.address,
       mobi.address,
       minter.address,
+      ZERO_ADDRESS,
     );
   }
 
