@@ -86,7 +86,11 @@ module.exports = function (deployer, network, accounts) {
     }
     const goodGhostingContract = config.deployConfigs.isWhitelisted ? WhitelistedContract : GoodGhostingContract; // defaults to Ethereum version
     let strategyArgs;
-    if (config.deployConfigs.strategy === "mobius-cUSD-DAI" || config.deployConfigs.strategy === "mobius-cUSD-USDC") {
+    if (
+      config.deployConfigs.strategy === "mobius-cUSD-DAI" ||
+      config.deployConfigs.strategy === "mobius-cUSD-USDC" ||
+      config.deployConfigs.strategy === "mobius-celo-stCelo"
+    ) {
       strategyArgs = [
         MobiusStrategyArtifact,
         strategyConfig.pool,
@@ -94,6 +98,7 @@ module.exports = function (deployer, network, accounts) {
         strategyConfig.minter,
         providerConfig.providers["celo"].tokens["mobi"].address,
         providerConfig.providers["celo"].tokens["celo"].address,
+        strategyConfig.lpToken,
       ];
     } else if (config.deployConfigs.strategy === "moola") {
       strategyArgs = [
@@ -144,7 +149,11 @@ module.exports = function (deployer, network, accounts) {
     }
     const strategyTx = await deployer.deploy(...strategyArgs, { gasPrice: gasPrice });
     let strategyInstance;
-    if (config.deployConfigs.strategy === "mobius-cUSD-DAI" || config.deployConfigs.strategy === "mobius-cUSD-USDC")
+    if (
+      config.deployConfigs.strategy === "mobius-cUSD-DAI" ||
+      config.deployConfigs.strategy === "mobius-cUSD-USDC" ||
+      config.deployConfigs.strategy === "mobius-celo-stCelo"
+    )
       strategyInstance = await MobiusStrategyArtifact.deployed();
     else if (
       config.deployConfigs.strategy === "moola" ||
@@ -177,7 +186,7 @@ module.exports = function (deployer, network, accounts) {
     ];
 
     // Deploys the Pool Contract
-    const poolTx = await deployer.deploy(...deploymentArgs, { gasPrice: gasPrice });
+    const poolTx = await deployer.deploy(...deploymentArgs);
     const ggInstance = await goodGhostingContract.deployed();
 
     if (config.deployConfigs.owner && config.deployConfigs.owner != "0x") {
@@ -249,7 +258,11 @@ module.exports = function (deployer, network, accounts) {
     ];
     deploymentResult.poolEncodedParameters = abi.rawEncode(poolParameterTypes, poolParameterValues).toString("hex");
 
-    if (config.deployConfigs.strategy === "mobius-cUSD-DAI" || config.deployConfigs.strategy === "mobius-cUSD-USDC") {
+    if (
+      config.deployConfigs.strategy === "mobius-cUSD-DAI" ||
+      config.deployConfigs.strategy === "mobius-cUSD-USDC" ||
+      config.deployConfigs.strategy === "mobius-celo-stCelo"
+    ) {
       deploymentResult.mobiusPoolAddress = strategyConfig.pool;
       deploymentResult.mobiusGaugeAddress = strategyConfig.gauge;
       deploymentResult.mobiusMinterAddress = strategyConfig.minter;
