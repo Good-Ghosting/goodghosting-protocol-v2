@@ -14,7 +14,12 @@ contract("Pool with Mobius Strategy when admin enables early game completion", a
     return;
   }
 
-  if (configs.deployConfigs.strategy !== "mobius-cUSD-DAI" && configs.deployConfigs.strategy !== "mobius-cUSD-USDC") {
+  if (
+    configs.deployConfigs.strategy !== "mobius-cUSD-DAI" &&
+    configs.deployConfigs.strategy !== "mobius-cUSD-USDC" &&
+    configs.deployConfigs.strategy !== "mobius-celo-stCelo" &&
+    configs.deployConfigs.strategy !== "mobius-cusd-usdcet"
+  ) {
     return;
   }
 
@@ -27,9 +32,12 @@ contract("Pool with Mobius Strategy when admin enables early game completion", a
 
   if (configs.deployConfigs.strategy === "mobius-cUSD-DAI") {
     providersConfigs = providerConfig.providers.celo.strategies["mobius-cUSD-DAI"];
-  } else {
+  } else if (configs.deployConfigs.strategy === "mobius-cUSD-USDC") {
     providersConfigs = providerConfig.providers.celo.strategies["mobius-cUSD-USDC"];
+  } else {
+    providersConfigs = providerConfig.providers.celo.strategies["mobius-cusd-usdcet"];
   }
+
   const { depositCount, segmentLength, segmentPayment: segmentPaymentInt, adminFee } = configs.deployConfigs;
   let token: any;
   let pool: any;
@@ -37,6 +45,7 @@ contract("Pool with Mobius Strategy when admin enables early game completion", a
   let mobiusStrategy: any;
   let admin = accounts[0];
   const players = accounts.slice(1, 6); // 5 players
+  const ZERO_ADDRESS = "0x0000000000000000000000000000000000000000";
   const daiDecimals = web3.utils.toBN(1000000000000000000);
   const segmentPayment = daiDecimals.mul(web3.utils.toBN(segmentPaymentInt)); // equivalent to 10 Inbound Token
   let goodGhosting: any;
@@ -54,7 +63,9 @@ contract("Pool with Mobius Strategy when admin enables early game completion", a
 
       goodGhosting = await GoodGhostingArtifact.deployed();
       mobiusStrategy = await MobiusStrategy.deployed();
-      gaugeToken = new web3.eth.Contract(mobiusGauge.abi, providersConfigs.gauge);
+      if (providersConfigs.gauge !== ZERO_ADDRESS) {
+        gaugeToken = new web3.eth.Contract(mobiusGauge.abi, providersConfigs.gauge);
+      }
 
       const unlockedBalance = await token.methods.balanceOf(unlockedDaiAccount).call({ from: admin });
       const daiAmount = segmentPayment.mul(web3.utils.toBN(depositCount)).toString();
@@ -160,12 +171,18 @@ contract("Pool with Mobius Strategy when admin enables early game completion", a
           // very minor diff
           assert(difference.lte(netAmountPaid), "expected balance diff to be more than paid amount");
         }
-        assert(
-          mobiRewardBalanceAfter.gt(mobiRewardBalanceBefore),
-          "expected mobi balance after withdrawal to be greater than before withdrawal",
-        );
 
-        // for some reason forking mainnet we don't get back celo rewards
+        if (
+          configs.deployConfigs.strategy === "mobius-cUSD-DAI" &&
+          configs.deployConfigs.strategy === "mobius-cUSD-USDC"
+        ) {
+          assert(
+            mobiRewardBalanceAfter.gt(mobiRewardBalanceBefore),
+            "expected mobi balance after withdrawal to be greater than before withdrawal",
+          );
+        }
+
+        // for some reason forking mainnet we don't get back celo rewards since celo is considered as a native token while forking
         assert(
           celoRewardBalanceAfter.lte(celoRewardBalanceBefore),
           "expected celo balance after withdrawal to be equal to before withdrawal",
@@ -190,13 +207,19 @@ contract("Pool with Mobius Strategy when admin enables early game completion", a
         mobiRewardBalanceAfter = web3.utils.toBN(await mobi.methods.balanceOf(admin).call({ from: admin }));
         celoRewardBalanceAfter = web3.utils.toBN(await celo.methods.balanceOf(admin).call({ from: admin }));
 
+        if (
+          configs.deployConfigs.strategy === "mobius-cUSD-DAI" &&
+          configs.deployConfigs.strategy === "mobius-cUSD-USDC"
+        ) {
+          assert(
+            mobiRewardBalanceAfter.gt(mobiRewardBalanceBefore),
+            "expected mobi balance after withdrawal to be greater than before withdrawal",
+          );
+        }
+
+        // for some reason forking mainnet we don't get back celo rewards since celo is considered as a native token while forking
         assert(
-          mobiRewardBalanceAfter.gt(mobiRewardBalanceBefore),
-          "expected mobi balance after withdrawal to be greater than before withdrawal",
-        );
-        // for some reason forking mainnet we don't get back celo rewards
-        assert(
-          celoRewardBalanceAfter.gt(celoRewardBalanceBefore),
+          celoRewardBalanceAfter.gte(celoRewardBalanceBefore),
           "expected celo balance after withdrawal to be equal to before withdrawal",
         );
       }
