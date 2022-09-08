@@ -120,6 +120,18 @@ exports.providers = {
         address: "0x17700282592D6917F6A73D0bF8AcCf4D578c131e",
         decimals: 18,
       },
+      "s-celo20-ethix80-lp": {
+        address: "0xaD2F9f4CD2Ae4f2dD2841EB1ea7e162fb4767D4D",
+        decimals: 18,
+      },
+      symm: {
+        address: "0x8427bD503dd3169cCC9aFF7326c15258Bc305478",
+        decimals: 18,
+      },
+      ethix: {
+        address: "0x9995cc8F20Db5896943Afc8eE0ba463259c931ed",
+        decimals: 18,
+      },
     },
     strategies: {
       moola: {
