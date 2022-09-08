@@ -17,6 +17,14 @@ exports.providers = {
         address: "0x172370d5cd63279efa6d502dab29171933a610af",
         decimals: 18,
       },
+      weth: {
+        address: "0x7ceB23fD6bC0adD59E62ac25578270cFf1b9f619",
+        decimals: 18,
+      },
+      ghst: {
+        address: "0x385eeac5cb85a38a9a07a70c73e0a3271cfb54a7",
+        decimals: 18,
+      },
     },
     strategies: {
       aaveV2: {
