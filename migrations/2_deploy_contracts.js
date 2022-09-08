@@ -8,6 +8,7 @@ const MoolaStrategyArtifact = artifacts.require("AaveStrategy");
 const AaveV3StrategyArtifact = artifacts.require("AaveStrategyV3");
 const CurveStrategyArtifact = artifacts.require("CurveStrategy");
 const NoExternalStrategyArtifact = artifacts.require("NoExternalStrategy");
+const mobiusPool = require("../artifacts/contracts/mobius/IMobiPool.sol/IMobiPool.json");
 
 const fs = require("fs");
 const config = require("../deploy.config");
@@ -38,14 +39,15 @@ module.exports = function (deployer, network, accounts) {
   if (["test", "soliditycoverage"].includes(network)) return;
 
   deployer.then(async () => {
-    let maxFlexibleSegmentPaymentAmount, flexibleSegmentPayment;
-    if (network.toString().includes("local-variable")) {
-      flexibleSegmentPayment = true;
-      maxFlexibleSegmentPaymentAmount = "1000000000000000000000";
-    } else {
-      flexibleSegmentPayment = config.deployConfigs.flexibleSegmentPayment;
-      maxFlexibleSegmentPaymentAmount = config.deployConfigs.maxFlexibleSegmentPaymentAmount;
-    }
+    const maxFlexibleSegmentPaymentAmount = config.deployConfigs.maxFlexibleSegmentPaymentAmount;
+    const flexibleSegmentPayment = config.deployConfigs.flexibleSegmentPayment;
+    // if (network.toString().includes("local-variable")) {
+    //   flexibleSegmentPayment = true;
+    //   maxFlexibleSegmentPaymentAmount = "10000";
+    // } else {
+    //   flexibleSegmentPayment = config.deployConfigs.flexibleSegmentPayment;
+    //   maxFlexibleSegmentPaymentAmount = config.deployConfigs.maxFlexibleSegmentPaymentAmount;
+    // }
 
     const strategyConfig =
       providerConfig.providers[
@@ -73,10 +75,10 @@ module.exports = function (deployer, network, accounts) {
       ? providerConfig.providers["mumbai"].tokens[config.deployConfigs.inboundCurrencySymbol].decimals
       : providerConfig.providers["polygon"].tokens[config.deployConfigs.inboundCurrencySymbol].decimals;
     const segmentPaymentWei = (config.deployConfigs.segmentPayment * 10 ** inboundCurrencyDecimals).toString();
-    const maxFlexibleSegmentPaymentAmountWei = (
-      maxFlexibleSegmentPaymentAmount *
-      10 ** inboundCurrencyDecimals
-    ).toString();
+
+    const maxFlexibleSegmentPaymentAmountWei = new BN(maxFlexibleSegmentPaymentAmount)
+      .mul(new BN(10).pow(new BN(inboundCurrencyDecimals)))
+      .toString();
 
     let maxPlayersCount;
     if (config.deployConfigs.maxPlayersCount && config.deployConfigs.maxPlayersCount != "") {
@@ -186,6 +188,12 @@ module.exports = function (deployer, network, accounts) {
       strategyInstance.address,
       config.deployConfigs.isTransactionalToken,
     ];
+    // console.log(strategyInstance.address)
+    // console.log(strategyInstance.address)
+
+    // const pool = new web3.eth.Contract(mobiusPool.abi, strategyConfig.pool);
+    // const token = await pool.methods.getToken(1).call();
+    // console.log("token", token)
 
     // Deploys the Pool Contract
     const poolTx = await deployer.deploy(...deploymentArgs);
@@ -246,7 +254,7 @@ module.exports = function (deployer, network, accounts) {
     ];
     var poolParameterValues = [
       inboundCurrencyAddress,
-      maxFlexibleSegmentPaymentAmount,
+      maxFlexibleSegmentPaymentAmountWei,
       config.deployConfigs.depositCount,
       config.deployConfigs.segmentLength,
       config.deployConfigs.waitingRoundSegmentLength,
