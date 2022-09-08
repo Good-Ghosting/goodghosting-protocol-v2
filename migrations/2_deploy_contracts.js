@@ -140,7 +140,7 @@ module.exports = function (deployer, network, accounts) {
       deploymentResult.network = "polygon";
       const payload = await axios.get("https://gasstation-mainnet.matic.network");
       // converting to 1 eth worth of gwei
-      gasPrice = new BN(payload.data.fast).mul(new BN(10 ** 9));
+      gasPrice = new BN(payload.data.safeLow).mul(new BN(10 ** 9));
     }
     const strategyTx = await deployer.deploy(...strategyArgs, { gasPrice: gasPrice });
     let strategyInstance;
