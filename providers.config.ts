@@ -100,6 +100,14 @@ exports.providers = {
         address: "0x471EcE3750Da237f93B8E339c536989b8978a438",
         decimals: 18,
       },
+      stCelo: {
+        address: "0xC668583dcbDc9ae6FA3CE46462758188adfdfC24",
+        decimals: 18,
+      },
+      rstCelo: {
+        address: "0xDc5762753043327d74e0a538199c1488FC1F44cf",
+        decimals: 18,
+      },
       creal: {
         address: "0xe8537a3d056DA446677B9E9d6c5dB704EaAb4787",
         decimals: 18,
