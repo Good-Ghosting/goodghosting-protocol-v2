@@ -3,6 +3,7 @@ const MobiusStrategy = artifacts.require("MobiusStrategy");
 const timeMachine = require("ganache-time-traveler");
 const truffleAssert = require("truffle-assertions");
 const wmatic = require("../../artifacts/contracts/mock/MintableERC20.sol/MintableERC20.json");
+const rstCelo = require("../../abi-external/mobius-rstCelo-abi.json");
 const mobiusPool = require("../../artifacts/contracts/mobius/IMobiPool.sol/IMobiPool.json");
 const mobiusGauge = require("../../artifacts/contracts/mobius/IMobiGauge.sol/IMobiGauge.json");
 const configs = require("../../deploy.config");
@@ -28,12 +29,15 @@ contract("Variable Deposit Pool with Mobius Strategy", accounts => {
   let GoodGhostingArtifact: any;
   let mobi: any;
   let celo: any;
+  let stCeloToken: any;
   GoodGhostingArtifact = Pool;
 
   if (configs.deployConfigs.strategy === "mobius-cUSD-DAI") {
     providersConfigs = providerConfig.providers.celo.strategies["mobius-cUSD-DAI"];
   } else if (configs.deployConfigs.strategy === "mobius-cUSD-USDC") {
     providersConfigs = providerConfig.providers.celo.strategies["mobius-cUSD-USDC"];
+  } else if (configs.deployConfigs.strategy !== "mobius-celo-stCelo") {
+    providersConfigs = providerConfig.providers.celo.strategies["mobius-celo-stCelo"];
   } else {
     providersConfigs = providerConfig.providers.celo.strategies["mobius-cusd-usdcet"];
   }
@@ -63,31 +67,60 @@ contract("Variable Deposit Pool with Mobius Strategy", accounts => {
   describe("simulates a full game with 5 players and 4 of them winning the game and with admin fee % as 0", async () => {
     it("initializes contract instances and transfers Inbound Token to players", async () => {
       pool = new web3.eth.Contract(mobiusPool.abi, providersConfigs.pool);
+      let tokenAbi;
+      if (configs.deployConfigs.strategy === "mobius-celo-stCelo") {
+        tokenAbi = rstCelo;
+      } else {
+        tokenAbi = wmatic.abi;
+      }
       token = new web3.eth.Contract(
-        wmatic.abi,
+        tokenAbi,
         providerConfig.providers["celo"].tokens[configs.deployConfigs.inboundCurrencySymbol].address,
       );
       mobi = new web3.eth.Contract(wmatic.abi, providerConfig.providers["celo"].tokens["mobi"].address);
       celo = new web3.eth.Contract(wmatic.abi, providerConfig.providers["celo"].tokens["celo"].address);
+      stCeloToken = new web3.eth.Contract(wmatic.abi, providerConfig.providers["celo"].tokens["stCelo"].address);
 
       goodGhosting = await GoodGhostingArtifact.deployed();
       mobiusStrategy = await MobiusStrategy.deployed();
       if (providersConfigs.gauge !== ZERO_ADDRESS) {
         gaugeToken = new web3.eth.Contract(mobiusGauge.abi, providersConfigs.gauge);
       }
-      const unlockedBalance = await token.methods.balanceOf(unlockedDaiAccount).call({ from: admin });
-      console.log("unlockedBalance: ", web3.utils.fromWei(unlockedBalance));
-      console.log("daiAmountToTransfer", web3.utils.fromWei(daiAmount));
-      for (let i = 0; i < players.length; i++) {
-        const player = players[i];
-        let transferAmount = daiAmount;
-        if (i === 2) {
-          // Player 2 needs additional funds
-          transferAmount = web3.utils.toBN(daiAmount).add(segmentPayment).mul(web3.utils.toBN(6)).toString();
+
+      if (configs.deployConfigs.strategy === "mobius-celo-stCelo") {
+        let unlockedBalance = await stCeloToken.methods.balanceOf(unlockedDaiAccount).call({ from: admin });
+        console.log(unlockedBalance.toString());
+
+        for (let i = 0; i < players.length; i++) {
+          const player = players[i];
+          const transferAmount = segmentPayment.mul(web3.utils.toBN(depositCount * 13)).toString();
+          await stCeloToken.methods.transfer(player, transferAmount).send({ from: unlockedDaiAccount });
+          await stCeloToken.methods
+            .approve(
+              providerConfig.providers["celo"].tokens[configs.deployConfigs.inboundCurrencySymbol].address,
+              unlockedBalance,
+            )
+            .send({ from: player });
+          await token.methods.deposit(transferAmount).send({ from: player });
+          const playerBalance = await token.methods.balanceOf(player).call({ from: admin });
+          console.log(`player${i + 1}DAIBalance`, web3.utils.fromWei(playerBalance));
         }
-        await token.methods.transfer(player, transferAmount).send({ from: unlockedDaiAccount });
-        const playerBalance = await token.methods.balanceOf(player).call({ from: admin });
-        console.log(`player${i + 1}DAIBalance`, web3.utils.fromWei(playerBalance));
+      } else {
+        const unlockedBalance = await token.methods.balanceOf(unlockedDaiAccount).call({ from: admin });
+        const daiAmount = segmentPayment.mul(web3.utils.toBN(depositCount)).toString();
+        console.log("unlockedBalance: ", web3.utils.fromWei(unlockedBalance));
+        console.log("daiAmountToTransfer", web3.utils.fromWei(daiAmount));
+        for (let i = 0; i < players.length; i++) {
+          const player = players[i];
+          let transferAmount = daiAmount;
+          if (i === 2) {
+            // Player 2 needs additional funds
+            transferAmount = web3.utils.toBN(daiAmount).add(segmentPayment).mul(web3.utils.toBN(6)).toString();
+          }
+          await token.methods.transfer(player, transferAmount).send({ from: unlockedDaiAccount });
+          const playerBalance = await token.methods.balanceOf(player).call({ from: admin });
+          console.log(`player${i + 1}DAIBalance`, web3.utils.fromWei(playerBalance));
+        }
       }
     });
 
@@ -162,7 +195,7 @@ contract("Variable Deposit Pool with Mobius Strategy", accounts => {
           }
 
           let minAmount = await pool.methods
-            .calculateRemoveLiquidityOneToken(mobiusStrategy.address, lpTokenAmount.toString(), 0)
+            .calculateRemoveLiquidityOneToken(mobiusStrategy.address, lpTokenAmount.toString(), 1)
             .call();
 
           minAmount = web3.utils.toBN(minAmount).sub(web3.utils.toBN(minAmount).div(web3.utils.toBN("1000")));
@@ -258,7 +291,7 @@ contract("Variable Deposit Pool with Mobius Strategy", accounts => {
             }
           }
           let minAmount = await pool.methods
-            .calculateRemoveLiquidityOneToken(mobiusStrategy.address, lpTokenAmount.toString(), 0)
+            .calculateRemoveLiquidityOneToken(mobiusStrategy.address, lpTokenAmount.toString(), 1)
             .call();
           minAmount = web3.utils.toBN(minAmount).sub(web3.utils.toBN(minAmount).div(web3.utils.toBN("1000")));
 
@@ -299,7 +332,7 @@ contract("Variable Deposit Pool with Mobius Strategy", accounts => {
         }
       }
       let minAmount = await pool.methods
-        .calculateRemoveLiquidityOneToken(mobiusStrategy.address, lpTokenAmount.toString(), 0)
+        .calculateRemoveLiquidityOneToken(mobiusStrategy.address, lpTokenAmount.toString(), 1)
         .call();
       minAmount = web3.utils.toBN(minAmount).sub(web3.utils.toBN(minAmount).div(web3.utils.toBN("1000")));
 
