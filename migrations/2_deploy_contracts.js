@@ -8,7 +8,6 @@ const MoolaStrategyArtifact = artifacts.require("AaveStrategy");
 const AaveV3StrategyArtifact = artifacts.require("AaveStrategyV3");
 const CurveStrategyArtifact = artifacts.require("CurveStrategy");
 const NoExternalStrategyArtifact = artifacts.require("NoExternalStrategy");
-const mobiusPool = require("../artifacts/contracts/mobius/IMobiPool.sol/IMobiPool.json");
 
 const fs = require("fs");
 const config = require("../deploy.config");
@@ -28,6 +27,22 @@ const tokenIndexMapping = {
     wbtc: 3,
     weth: 4,
   },
+  "mobius-cUSD-DAI": {
+    cusd: 0,
+    dai: 1,
+  },
+  "mobius-cUSD-USDC": {
+    cusd: 0,
+    usdc: 1,
+  },
+  "mobius-celo-stCelo": {
+    cusd: 0,
+    rstCelo: 1,
+  },
+  "mobius-cusd-usdcet": {
+    cusd: 0,
+    usdcet: 1,
+  },
 };
 
 module.exports = function (deployer, network, accounts) {
@@ -41,13 +56,6 @@ module.exports = function (deployer, network, accounts) {
   deployer.then(async () => {
     const maxFlexibleSegmentPaymentAmount = config.deployConfigs.maxFlexibleSegmentPaymentAmount;
     const flexibleSegmentPayment = config.deployConfigs.flexibleSegmentPayment;
-    // if (network.toString().includes("local-variable")) {
-    //   flexibleSegmentPayment = true;
-    //   maxFlexibleSegmentPaymentAmount = "10000";
-    // } else {
-    //   flexibleSegmentPayment = config.deployConfigs.flexibleSegmentPayment;
-    //   maxFlexibleSegmentPaymentAmount = config.deployConfigs.maxFlexibleSegmentPaymentAmount;
-    // }
 
     const strategyConfig =
       providerConfig.providers[
@@ -102,6 +110,7 @@ module.exports = function (deployer, network, accounts) {
         providerConfig.providers["celo"].tokens["mobi"].address,
         providerConfig.providers["celo"].tokens["celo"].address,
         strategyConfig.lpToken,
+        tokenIndexMapping[config.deployConfigs.strategy][config.deployConfigs.inboundCurrencySymbol],
       ];
     } else if (config.deployConfigs.strategy === "moola") {
       strategyArgs = [
@@ -188,12 +197,6 @@ module.exports = function (deployer, network, accounts) {
       strategyInstance.address,
       config.deployConfigs.isTransactionalToken,
     ];
-    // console.log(strategyInstance.address)
-    // console.log(strategyInstance.address)
-
-    // const pool = new web3.eth.Contract(mobiusPool.abi, strategyConfig.pool);
-    // const token = await pool.methods.getToken(1).call();
-    // console.log("token", token)
 
     // Deploys the Pool Contract
     const poolTx = await deployer.deploy(...deploymentArgs);
@@ -279,7 +282,10 @@ module.exports = function (deployer, network, accounts) {
       deploymentResult.mobiusMinterAddress = strategyConfig.minter;
       deploymentResult.strategyMobiAddress = providerConfig.providers["celo"].tokens["mobi"].address;
       deploymentResult.strategyCeloAddress = providerConfig.providers["celo"].tokens["celo"].address;
-      var mobiusStrategyParameterTypes = ["address", "address", "address", "address", "address"];
+      deploymentResult.strategyLPTokenAddress = strategyConfig.lpToken;
+      deploymentResult.strategyTokenIndex =
+        tokenIndexMapping[config.deployConfigs.strategy][config.deployConfigs.inboundCurrencySymbol];
+      var mobiusStrategyParameterTypes = ["address", "address", "address", "address", "address", "address", "uint"];
 
       var mobiusStrategyValues = [
         deploymentResult.mobiusPoolAddress,
@@ -287,6 +293,8 @@ module.exports = function (deployer, network, accounts) {
         deploymentResult.mobiusMinterAddress,
         deploymentResult.strategyMobiAddress,
         deploymentResult.strategyCeloAddress,
+        deploymentResult.strategyLPTokenAddress,
+        deploymentResult.strategyTokenIndex,
       ];
 
       deploymentResult.strategyEncodedParameters = abi
