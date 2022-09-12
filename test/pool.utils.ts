@@ -361,6 +361,7 @@ export const deployPool = async (
           mobi.address,
           minter.address,
           ZERO_ADDRESS,
+          0,
         ),
       ).to.be.revertedWith("INVALID_POOL()");
 
@@ -372,6 +373,7 @@ export const deployPool = async (
           mobi.address,
           minter.address,
           ZERO_ADDRESS,
+          0,
         ),
       ).to.be.revertedWith("INVALID_GAUGE()");
 
@@ -383,6 +385,7 @@ export const deployPool = async (
           mobi.address,
           minter.address,
           ZERO_ADDRESS,
+          0,
         ),
       ).to.be.revertedWith("INVALID_MINTER()");
 
@@ -394,6 +397,7 @@ export const deployPool = async (
           ZERO_ADDRESS,
           minter.address,
           ZERO_ADDRESS,
+          0,
         ),
       ).to.be.revertedWith("INVALID_MOBI_TOKEN()");
 
@@ -405,6 +409,7 @@ export const deployPool = async (
           mobi.address,
           ZERO_ADDRESS,
           ZERO_ADDRESS,
+          0,
         ),
       ).to.be.revertedWith("INVALID_CELO_TOKEN()");
 
@@ -415,6 +420,7 @@ export const deployPool = async (
         mobi.address,
         minter.address,
         ZERO_ADDRESS,
+        0,
       );
 
       if (isInboundToken) {
@@ -610,6 +616,7 @@ export const deployPool = async (
           mobi.address,
           minter.address,
           ZERO_ADDRESS,
+          0,
         );
       }
       await expect(
@@ -860,6 +867,7 @@ export const deployPoolWithMockStrategy = async (
       mobi.address,
       minter.address,
       ZERO_ADDRESS,
+      0,
     );
   }
 

@@ -53,6 +53,7 @@ contract("Variable Deposit Pool with Mobius Strategy when admin enables early ga
   let pool: any;
   let gaugeToken: any;
   let mobiusStrategy: any;
+  let tokenIndex: any;
   let admin = accounts[0];
   const players = accounts.slice(1, 6); // 5 players
   const ZERO_ADDRESS = "0x0000000000000000000000000000000000000000";
@@ -79,6 +80,8 @@ contract("Variable Deposit Pool with Mobius Strategy when admin enables early ga
 
       goodGhosting = await GoodGhostingArtifact.deployed();
       mobiusStrategy = await MobiusStrategy.deployed();
+      tokenIndex = await mobiusStrategy.inboundTokenIndex();
+      tokenIndex = tokenIndex.toString();
       if (providersConfigs.gauge !== ZERO_ADDRESS) {
         gaugeToken = new web3.eth.Contract(mobiusGauge.abi, providersConfigs.gauge);
       }
@@ -190,7 +193,7 @@ contract("Variable Deposit Pool with Mobius Strategy when admin enables early ga
           }
 
           let minAmount = await pool.methods
-            .calculateRemoveLiquidityOneToken(mobiusStrategy.address, lpTokenAmount.toString(), 1)
+            .calculateRemoveLiquidityOneToken(mobiusStrategy.address, lpTokenAmount.toString(), tokenIndex)
             .call();
 
           minAmount = web3.utils.toBN(minAmount).sub(web3.utils.toBN(minAmount).div(web3.utils.toBN("1000")));

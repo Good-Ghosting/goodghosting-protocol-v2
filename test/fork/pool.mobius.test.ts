@@ -6,7 +6,7 @@ const timeMachine = require("ganache-time-traveler");
 const truffleAssert = require("truffle-assertions");
 const wmatic = require("../../artifacts/contracts/mock/MintableERC20.sol/MintableERC20.json");
 const rstCelo = require("../../abi-external/mobius-rstCelo-abi.json");
-
+const tokenIndex = require("../../migrations/2_deploy_contracts.js");
 const mobiusPool = require("../../artifacts/contracts/mobius/IMobiPool.sol/IMobiPool.json");
 const mobiusGauge = require("../../artifacts/contracts/mobius/IMobiGauge.sol/IMobiGauge.json");
 const configs = require("../../deploy.config");
@@ -56,6 +56,7 @@ contract("Pool with Mobius Strategy", accounts => {
   let pool: any;
   let gaugeToken: any;
   let mobiusStrategy: any;
+  let tokenIndex: any;
   let admin = accounts[0];
   const players = accounts.slice(1, 6); // 5 players
   const loser = players[0];
@@ -84,6 +85,9 @@ contract("Pool with Mobius Strategy", accounts => {
 
       goodGhosting = await GoodGhostingArtifact.deployed();
       mobiusStrategy = await MobiusStrategy.deployed();
+      tokenIndex = await mobiusStrategy.inboundTokenIndex();
+      tokenIndex = tokenIndex.toString();
+
       if (providersConfigs.gauge !== ZERO_ADDRESS) {
         gaugeToken = new web3.eth.Contract(mobiusGauge.abi, providersConfigs.gauge);
       }
@@ -172,7 +176,7 @@ contract("Pool with Mobius Strategy", accounts => {
           }
 
           let minAmount = await pool.methods
-            .calculateRemoveLiquidityOneToken(mobiusStrategy.address, lpTokenAmount.toString(), 1)
+            .calculateRemoveLiquidityOneToken(mobiusStrategy.address, lpTokenAmount.toString(), tokenIndex)
             .call();
 
           minAmount = web3.utils.toBN(minAmount).sub(web3.utils.toBN(minAmount).div(web3.utils.toBN("1000")));
@@ -267,7 +271,7 @@ contract("Pool with Mobius Strategy", accounts => {
             }
           }
           let minAmount = await pool.methods
-            .calculateRemoveLiquidityOneToken(mobiusStrategy.address, lpTokenAmount.toString(), 1)
+            .calculateRemoveLiquidityOneToken(mobiusStrategy.address, lpTokenAmount.toString(), tokenIndex)
             .call();
           minAmount = web3.utils.toBN(minAmount).sub(web3.utils.toBN(minAmount).div(web3.utils.toBN("1000")));
 
@@ -307,7 +311,7 @@ contract("Pool with Mobius Strategy", accounts => {
         }
       }
       let minAmount = await pool.methods
-        .calculateRemoveLiquidityOneToken(mobiusStrategy.address, lpTokenAmount.toString(), 1)
+        .calculateRemoveLiquidityOneToken(mobiusStrategy.address, lpTokenAmount.toString(), tokenIndex)
         .call();
       minAmount = web3.utils.toBN(minAmount).sub(web3.utils.toBN(minAmount).div(web3.utils.toBN("1000")));
 

@@ -45,11 +45,9 @@ contract("Pool with Mobius Strategy when admin enables early game completion", a
   const { depositCount, segmentLength, segmentPayment: segmentPaymentInt, adminFee } = configs.deployConfigs;
   let token: any;
   let pool: any;
-  let gaugeToken: any;
   let mobiusStrategy: any;
   let admin = accounts[0];
   const players = accounts.slice(1, 6); // 5 players
-  const ZERO_ADDRESS = "0x0000000000000000000000000000000000000000";
   const daiDecimals = web3.utils.toBN(1000000000000000000);
   const segmentPayment = daiDecimals.mul(web3.utils.toBN(segmentPaymentInt)); // equivalent to 10 Inbound Token
   let goodGhosting: any;
@@ -75,9 +73,6 @@ contract("Pool with Mobius Strategy when admin enables early game completion", a
 
       goodGhosting = await GoodGhostingArtifact.deployed();
       mobiusStrategy = await MobiusStrategy.deployed();
-      if (providersConfigs.gauge !== ZERO_ADDRESS) {
-        gaugeToken = new web3.eth.Contract(mobiusGauge.abi, providersConfigs.gauge);
-      }
 
       if (configs.deployConfigs.strategy === "mobius-celo-stCelo") {
         let unlockedBalance = await stCeloToken.methods.balanceOf(unlockedDaiAccount).call({ from: admin });
