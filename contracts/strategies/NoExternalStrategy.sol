@@ -74,6 +74,22 @@ contract NoExternalStrategy is Ownable, IStrategy {
         return rewardTokens;
     }
 
+    /** 
+    @notice
+    Returns the fee (for amm strategies)
+    */
+    function getFee() external view override returns (uint256) {
+        return 0;
+    }
+
+    /** 
+    @notice
+    Returns the lp token amount received (for amm strategies)
+    */
+    function getLPTokenAmount(uint256 _amount) external view override returns (uint256) {
+        return 0;
+    }
+
     //*********************************************************************//
     // -------------------------- constructor ---------------------------- //
     //*********************************************************************//

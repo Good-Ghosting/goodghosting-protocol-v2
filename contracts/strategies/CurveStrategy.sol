@@ -135,6 +135,30 @@ contract CurveStrategy is Ownable, IStrategy {
         return tokens;
     }
 
+    /** 
+    @notice
+    Returns the fee (for amm strategies)
+    */
+    function getFee() external view override returns (uint256) {
+        return pool.fee();
+    }
+
+    /** 
+    @notice
+    Returns the lp token amount received (for amm strategies)
+    */
+    function getLPTokenAmount(uint256 _amount) external view override returns (uint256) {
+        if (poolType == AAVE_POOL) {
+            uint256[NUM_AAVE_TOKENS] memory amounts; // fixed-sized array is initialized w/ [0, 0, 0]
+            amounts[uint256(uint128(inboundTokenIndex))] = _amount;
+            return pool.calc_token_amount(amounts, true);
+        } else {
+            uint256[NUM_ATRI_CRYPTO_TOKENS] memory amounts; // fixed-sized array is initialized w/ [0, 0, 0, 0, 0]
+            amounts[uint256(uint128(inboundTokenIndex))] = _amount;
+            return pool.calc_token_amount(amounts, true);
+        }
+    }
+
     //*********************************************************************//
     // -------------------------- constructor ---------------------------- //
     //*********************************************************************//
