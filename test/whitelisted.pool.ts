@@ -22,7 +22,7 @@ describe("Whitelisted Pool Tests", () => {
   const depositCount = 3;
   const segmentLength = 600;
   const segmentPayment = "10000000000000000000";
-  const maxPlayersCount = "115792089237316195423570985008687907853269984665640564039457584007913129639935";
+  const maxPlayersCount = "18446744073709551615";
   const whitelistedPlayerConfig: any = [
     {
       "0x7B239486bB165D44825eA1dB7f05871C34dd7ae6": {
