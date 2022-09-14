@@ -27,7 +27,7 @@ const depositCount = 3;
 const segmentLength = 604800;
 const ZERO_ADDRESS = "0x0000000000000000000000000000000000000000";
 const segmentPayment = "10000000000000000000";
-const maxPlayersCount = "115792089237316195423570985008687907853269984665640564039457584007913129639935";
+const maxPlayersCount = "18446744073709551615";
 let contracts: any;
 
 export const shouldBehaveLikeGGPool = async (strategyType: string) => {
