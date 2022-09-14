@@ -138,7 +138,7 @@ contract MobiusStrategy is Ownable, IStrategy {
     Returns the fee (for amm strategies)
     */
     function getFee() external view override returns (uint256) {
-        (, , , , uint256 swapFee, , , , , , , , , ,) = pool.getPoolInfo();
+        (, , , , uint256 swapFee, , , , ,) = pool.swapStorage();
         return swapFee;
     }
 
