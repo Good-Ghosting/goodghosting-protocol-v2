@@ -1330,8 +1330,18 @@ contract Pool is Ownable, Pausable, ReentrancyGuard {
         player.withdrawn = true;
         activePlayersCount -= 1;
 
-        // In an early withdraw, users get their principal minus the earlyWithdrawalFee % defined in the constructor.
+        // In an early withdraw, users get their principal minus the earlyWithdrawalFee % defined in the constructor & it also considers the impermanent loss.
+        uint256 _totalBalance = isTransactionalToken
+            ? address(this).balance + strategy.getTotalAmount()
+            : IERC20(inboundToken).balanceOf(address(this)) + strategy.getTotalAmount();
+        
         uint256 withdrawAmount = player.netAmountPaid - ((player.netAmountPaid * earlyWithdrawalFee) / 100);
+        if (_totalBalance < netTotalGamePrincipal) {
+            // handling impermanent loss case
+            uint256 _impermanentLossShare = (_totalBalance * 100) / netTotalGamePrincipal;
+            withdrawAmount = (withdrawAmount * _impermanentLossShare) / 100;
+        }
+
         // Decreases the totalGamePrincipal & netTotalGamePrincipal on earlyWithdraw
         totalGamePrincipal -= player.amountPaid;
         netTotalGamePrincipal -= player.netAmountPaid;

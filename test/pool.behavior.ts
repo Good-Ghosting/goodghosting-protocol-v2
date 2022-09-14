@@ -27,7 +27,7 @@ const depositCount = 3;
 const segmentLength = 604800;
 const ZERO_ADDRESS = "0x0000000000000000000000000000000000000000";
 const segmentPayment = "10000000000000000000";
-const maxPlayersCount = "115792089237316195423570985008687907853269984665640564039457584007913129639935";
+const maxPlayersCount = "18446744073709551615";
 let contracts: any;
 
 export const shouldBehaveLikeGGPool = async (strategyType: string) => {
@@ -1403,6 +1403,7 @@ export const shouldBehaveLikeEarlyWithdrawingGGPool = async (strategyType: strin
   if (strategyType === "curve" || strategyType === "mobius") {
     it("user is able to do an early withdraw if there is an impermanent loss", async () => {
       const accounts = await ethers.getSigners();
+      const deployer = accounts[0];
       const player1 = accounts[2];
       const player2 = accounts[3];
 
@@ -1420,12 +1421,21 @@ export const shouldBehaveLikeEarlyWithdrawingGGPool = async (strategyType: strin
         await contracts.goodGhosting.connect(player2).makeDeposit(0, segmentPayment);
       }
       const player1Info = await contracts.goodGhosting.players(player1.address);
+      const feeAmount = player1Info.amountPaid.mul(ethers.BigNumber.from(1)).div(ethers.BigNumber.from(100));
+      const earlyWithdrawAmount = player1Info.amountPaid.sub(feeAmount);
+      if (strategyType === "curve") {
+        await contracts.curvePool.connect(deployer).setILoss();
+      } else {
+        await contracts.mobiPool.connect(deployer).setILoss();
+      }
 
-      // impermanent loss amount defined in mock contracts
-      const impermanentLossAmount = "6000000000000000000";
-      await expect(contracts.goodGhosting.connect(player1).earlyWithdraw("900000000000000000"))
-        .to.emit(contracts.goodGhosting, "EarlyWithdrawal")
-        .withArgs(player1.address, impermanentLossAmount, player1Info.amountPaid, player1Info.netAmountPaid);
+      const player1BeforeWithdrawBalance = await contracts.inboundToken.balanceOf(player1.address);
+
+      await contracts.goodGhosting.connect(player1).earlyWithdraw(0);
+
+      const player1AfterWithdrawBalance = await contracts.inboundToken.balanceOf(player1.address);
+      const player1WithdrawAmount = player1AfterWithdrawBalance.sub(player1BeforeWithdrawBalance);
+      assert(player1WithdrawAmount.lt(earlyWithdrawAmount));
     });
   }
 
