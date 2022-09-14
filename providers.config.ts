@@ -39,7 +39,12 @@ exports.providers = {
       "polygon-curve-atricrypto": {
         pool: "0x1d8b86e3d88cdb2d34688e87e72f388cb541b7c8",
         gauge: "0x3b6b158a76fd8ccc297538f454ce7b4787778c7c",
-        poolType: 1, // Aave Pool
+        poolType: 1, // Atricrypto Pool
+      },
+      "polygon-curve-stmatic-matic": {
+        pool: "0xfb6fe7802ba9290ef8b00ca16af4bc26eb663a28",
+        gauge: "0x9633e0749faa6ec6d992265368b88698d6a93ac0",
+        poolType: 3, // Stmatic-Matic Pool
       },
       //"no-external-strategy": {}, // REWARD TOKENS MUST BE CONFIGURED IN `deploy.configs.js` file
     },
