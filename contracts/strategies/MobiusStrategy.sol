@@ -135,15 +135,6 @@ contract MobiusStrategy is Ownable, IStrategy {
 
     /** 
     @notice
-    Returns the fee (for amm strategies)
-    */
-    function getFee() external view override returns (uint256) {
-        (, , , , uint256 swapFee, , , , , , , , , ,) = pool.getPoolInfo();
-        return swapFee;
-    }
-
-    /** 
-    @notice
     Returns the lp token amount received (for amm strategies)
     */
     function getLPTokenAmount(uint256 _amount) external view override returns (uint256) {
