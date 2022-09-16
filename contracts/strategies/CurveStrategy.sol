@@ -51,11 +51,17 @@ contract CurveStrategy is Ownable, IStrategy {
     /// @notice total tokens in atricrypto pool
     uint64 public constant NUM_ATRI_CRYPTO_TOKENS = 5;
 
+    /// @notice total tokens in atricrypto pool
+    uint64 public constant NUM_MATIC_POOL_TOKENS = 2;
+
     /// @notice identifies the "Aave Pool" Type
     uint64 public constant AAVE_POOL = 0;
 
     /// @notice identifies the "Atri Crypto Pool" Type
     uint64 public constant ATRI_CRYPTO_POOL = 1;
+
+    /// @notice identifies the "Atri Crypto Pool" Type
+    uint64 public constant MATIC_POOL = 2;
 
     /// @notice pool address
     ICurvePool public pool;
@@ -107,10 +113,15 @@ contract CurveStrategy is Ownable, IStrategy {
             amounts[uint256(uint128(inboundTokenIndex))] = _amount;
             uint256 poolWithdrawAmount = pool.calc_token_amount(amounts, true);
             return pool.calc_withdraw_one_coin(poolWithdrawAmount, inboundTokenIndex);
-        } else {
+        } else if (poolType == ATRI_CRYPTO_POOL) {
             uint256[NUM_ATRI_CRYPTO_TOKENS] memory amounts; // fixed-sized array is initialized w/ [0, 0, 0, 0, 0]
             amounts[uint256(uint128(inboundTokenIndex))] = _amount;
             uint256 poolWithdrawAmount = pool.calc_token_amount(amounts, true);
+            return pool.calc_withdraw_one_coin(poolWithdrawAmount, uint256(uint128(inboundTokenIndex)));
+        } else {
+            uint256[NUM_MATIC_POOL_TOKENS] memory amounts; // fixed-sized array is initialized w/ [0, 0, 0, 0, 0]
+            amounts[uint256(uint128(inboundTokenIndex))] = _amount;
+            uint256 poolWithdrawAmount = pool.calc_token_amount(amounts);
             return pool.calc_withdraw_one_coin(poolWithdrawAmount, uint256(uint128(inboundTokenIndex)));
         }
     }
@@ -122,7 +133,8 @@ contract CurveStrategy is Ownable, IStrategy {
     */
     // UPDATE - A4 Audit Report
     function getUnderlyingAsset() external view override returns (address) {
-        return pool.underlying_coins(uint256(uint128(inboundTokenIndex)));
+        if (poolType == MATIC_POOL) return pool.coins(uint256(uint128(inboundTokenIndex)));
+        else return pool.underlying_coins(uint256(uint128(inboundTokenIndex)));
     }
 
     /** 
@@ -145,10 +157,14 @@ contract CurveStrategy is Ownable, IStrategy {
             uint256[NUM_AAVE_TOKENS] memory amounts; // fixed-sized array is initialized w/ [0, 0, 0]
             amounts[uint256(uint128(inboundTokenIndex))] = _amount;
             return pool.calc_token_amount(amounts, true);
-        } else {
+        } else if (poolType == ATRI_CRYPTO_POOL) {
             uint256[NUM_ATRI_CRYPTO_TOKENS] memory amounts; // fixed-sized array is initialized w/ [0, 0, 0, 0, 0]
             amounts[uint256(uint128(inboundTokenIndex))] = _amount;
             return pool.calc_token_amount(amounts, true);
+        } else {
+            uint256[NUM_MATIC_POOL_TOKENS] memory amounts; // fixed-sized array is initialized w/ [0, 0, 0, 0, 0]
+            amounts[uint256(uint128(inboundTokenIndex))] = _amount;
+            uint256 poolWithdrawAmount = pool.calc_token_amount(amounts);
         }
     }
 
@@ -202,9 +218,16 @@ contract CurveStrategy is Ownable, IStrategy {
             }
             lpToken = IERC20(pool.lp_token());
         } else {
-            if (uint128(_inboundTokenIndex) >= NUM_ATRI_CRYPTO_TOKENS) {
-                revert INVALID_INBOUND_TOKEN_INDEX();
+            if (_poolType == ATRI_CRYPTO_POOL) {
+                if (uint128(_inboundTokenIndex) >= NUM_ATRI_CRYPTO_TOKENS) {
+                    revert INVALID_INBOUND_TOKEN_INDEX();
+                }
+            } else {
+                if (uint128(_inboundTokenIndex) >= NUM_MATIC_POOL_TOKENS) {
+                    revert INVALID_INBOUND_TOKEN_INDEX();
+                }
             }
+
             lpToken = IERC20(pool.token());
         }
     }
@@ -220,9 +243,16 @@ contract CurveStrategy is Ownable, IStrategy {
         if (msg.value != 0) {
             revert CANNOT_ACCEPT_TRANSACTIONAL_TOKEN();
         }
-        if (pool.underlying_coins(uint256(uint128(inboundTokenIndex))) != _inboundCurrency) {
-            revert INVALID_DEPOSIT_TOKEN();
+        if (poolType == MATIC_POOL) {
+            if (pool.coins(uint256(uint128(inboundTokenIndex))) != _inboundCurrency) {
+                revert INVALID_DEPOSIT_TOKEN();
+            }
+        } else {
+            if (pool.underlying_coins(uint256(uint128(inboundTokenIndex))) != _inboundCurrency) {
+                revert INVALID_DEPOSIT_TOKEN();
+            }
         }
+
         uint256 contractBalance = IERC20(_inboundCurrency).balanceOf(address(this));
         IERC20(_inboundCurrency).approve(address(pool), contractBalance);
         /*
@@ -237,8 +267,12 @@ contract CurveStrategy is Ownable, IStrategy {
             uint256[NUM_AAVE_TOKENS] memory amounts; // fixed-sized array is initialized w/ [0, 0, 0]
             amounts[uint256(uint128(inboundTokenIndex))] = contractBalance;
             pool.add_liquidity(amounts, _minAmount, true);
-        } else {
+        } else if (poolType == ATRI_CRYPTO_POOL) {
             uint256[NUM_ATRI_CRYPTO_TOKENS] memory amounts; // fixed-sized array is initialized w/ [0, 0, 0, 0, 0]
+            amounts[uint256(uint128(inboundTokenIndex))] = contractBalance;
+            pool.add_liquidity(amounts, _minAmount);
+        } else {
+            uint256[NUM_MATIC_POOL_TOKENS] memory amounts; // fixed-sized array is initialized w/ [0, 0, 0, 0, 0]
             amounts[uint256(uint128(inboundTokenIndex))] = contractBalance;
             pool.add_liquidity(amounts, _minAmount);
         }
@@ -281,10 +315,32 @@ contract CurveStrategy is Ownable, IStrategy {
                 _minAmount,
                 true // redeems underlying coin (dai, usdc, usdt), instead of aTokens
             );
-        } else {
+        } else if (poolType == ATRI_CRYPTO_POOL) {
             uint256[NUM_ATRI_CRYPTO_TOKENS] memory amounts; // fixed-sized array is initialized w/ [0, 0, 0, 0, 0]
             amounts[uint256(uint128(inboundTokenIndex))] = _amount;
             uint256 poolWithdrawAmount = pool.calc_token_amount(amounts, true);
+
+            // safety check
+            // the amm mock contracts are common for all kinds of scenariuo's and it is not possible to mock this particular scenario, this is a very rare scenario to occur in production and hasn't been observed in the fork tests.
+            if (gaugeBalance < poolWithdrawAmount) {
+                poolWithdrawAmount = gaugeBalance;
+            }
+
+            // passes false not to claim rewards
+            gauge.withdraw(poolWithdrawAmount, address(this), false);
+            /*
+                Code of curve's aave and curve's atricrypto pools are completely different.
+                Curve's Aave Pool (pool type 0): in this contract, all funds "sit" in the pool's smart contract.
+                Curve's Atricrypto pool (pool type 1): this contract integrates with other pools
+                and funds sit in those pools. Hence, an approval transaction is required because
+                it is communicating with external contracts
+            */
+            lpToken.approve(address(pool), poolWithdrawAmount);
+            pool.remove_liquidity_one_coin(poolWithdrawAmount, uint256(uint128(inboundTokenIndex)), _minAmount);
+        } else {
+            uint256[NUM_MATIC_POOL_TOKENS] memory amounts; // fixed-sized array is initialized w/ [0, 0, 0, 0, 0]
+            amounts[uint256(uint128(inboundTokenIndex))] = _amount;
+            uint256 poolWithdrawAmount = pool.calc_token_amount(amounts);
 
             // safety check
             // the amm mock contracts are common for all kinds of scenariuo's and it is not possible to mock this particular scenario, this is a very rare scenario to occur in production and hasn't been observed in the fork tests.
@@ -352,14 +408,13 @@ contract CurveStrategy is Ownable, IStrategy {
             // passes false not to claim rewards
             gauge.withdraw(poolWithdrawAmount, address(this), claimRewards);
 
-
             pool.remove_liquidity_one_coin(
                 poolWithdrawAmount,
                 inboundTokenIndex,
                 _minAmount,
                 true // redeems underlying coin (dai, usdc, usdt), instead of aTokens
             );
-        } else {
+        } else if (poolType == ATRI_CRYPTO_POOL) {
             uint256[NUM_ATRI_CRYPTO_TOKENS] memory amounts; // fixed-sized array is initialized w/ [0, 0, 0, 0, 0]
             amounts[uint256(uint128(inboundTokenIndex))] = _amount;
             uint256 poolWithdrawAmount = pool.calc_token_amount(amounts, true);
@@ -381,12 +436,36 @@ contract CurveStrategy is Ownable, IStrategy {
             */
             lpToken.approve(address(pool), poolWithdrawAmount);
             pool.remove_liquidity_one_coin(poolWithdrawAmount, uint256(uint128(inboundTokenIndex)), _minAmount);
+        } else {
+            uint256[NUM_MATIC_POOL_TOKENS] memory amounts; // fixed-sized array is initialized w/ [0, 0, 0, 0, 0]
+            amounts[uint256(uint128(inboundTokenIndex))] = _amount;
+            uint256 poolWithdrawAmount = pool.calc_token_amount(amounts);
+
+            // safety check
+            // the amm mock contracts are common for all kinds of scenariuo's and it is not possible to mock this particular scenario, this is a very rare scenario to occur in production and hasn't been observed in the fork tests.
+            if (gaugeBalance < poolWithdrawAmount) {
+                poolWithdrawAmount = gaugeBalance;
+            }
+
+            gauge.claim_rewards(address(this));
+            // passes false not to claim rewards
+            gauge.withdraw(poolWithdrawAmount, address(this), claimRewards);
+            /*
+                Code of curve's aave and curve's atricrypto pools are completely different.
+                Curve's Aave Pool (pool type 0): in this contract, all funds "sit" in the pool's smart contract.
+                Curve's Atricrypto pool (pool type 1): this contract integrates with other pools
+                and funds sit in those pools. Hence, an approval transaction is required because
+                it is communicating with external contracts
+            */
+            lpToken.approve(address(pool), poolWithdrawAmount);
+            pool.remove_liquidity_one_coin(poolWithdrawAmount, uint256(uint128(inboundTokenIndex)), _minAmount);
         }
 
         bool success = rewardToken.transfer(msg.sender, rewardToken.balanceOf(address(this)));
         if (!success) {
             revert TOKEN_TRANSFER_FAILURE();
         }
+
         success = curve.transfer(msg.sender, curve.balanceOf(address(this)));
         if (!success) {
             revert TOKEN_TRANSFER_FAILURE();

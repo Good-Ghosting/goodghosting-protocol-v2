@@ -17,6 +17,8 @@ interface ICurvePool {
 
     function add_liquidity(uint256[5] calldata _amounts, uint256 _min_mint_amount) external;
 
+    function add_liquidity(uint256[2] calldata _amounts, uint256 _min_mint_amount) external;
+
     function remove_liquidity_one_coin(
         uint256 _token_amount,
         int128 i,
@@ -44,5 +46,9 @@ interface ICurvePool {
 
     function calc_token_amount(uint256[5] calldata _amounts, bool is_deposit) external view returns (uint256);
 
+    function calc_token_amount(uint256[2] calldata _amounts) external view returns (uint256);
+
     function underlying_coins(uint256 arg0) external view returns (address);
+
+    function coins(uint256 arg0) external view returns (address);
 }
