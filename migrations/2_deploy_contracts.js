@@ -12,6 +12,7 @@ const NoExternalStrategyArtifact = artifacts.require("NoExternalStrategy");
 const fs = require("fs");
 const config = require("../deploy.config");
 const providerConfig = require("../providers.config");
+const ZERO_ADDRESS = "0x0000000000000000000000000000000000000000";
 
 // used for amm strategies
 const tokenIndexMapping = {
@@ -26,6 +27,10 @@ const tokenIndexMapping = {
     usdt: 2,
     wbtc: 3,
     weth: 4,
+  },
+  "polygon-curve-stmatic-matic": {
+    stmatic: 0,
+    wmatic: 1,
   },
   "mobius-cUSD-DAI": {
     cusd: 0,
@@ -145,7 +150,7 @@ module.exports = function (deployer, network, accounts) {
         strategyConfig.poolType,
         strategyConfig.gauge,
         providerConfig.providers["polygon"].tokens["wmatic"].address,
-        providerConfig.providers["polygon"].tokens["curve"].address,
+        providerConfig.providers["polygon"].tokens["ldo"].address,
       ];
     }
     const deploymentResult = {};
@@ -184,7 +189,7 @@ module.exports = function (deployer, network, accounts) {
     // Prepares deployment arguments
     let deploymentArgs = [
       goodGhostingContract,
-      inboundCurrencyAddress,
+      config.deployConfigs.isTransactionalToken ? ZERO_ADDRESS : inboundCurrencyAddress,
       maxFlexibleSegmentPaymentAmountWei,
       config.deployConfigs.depositCount,
       config.deployConfigs.segmentLength,
@@ -256,7 +261,7 @@ module.exports = function (deployer, network, accounts) {
       "bool", // isTransactionalToken
     ];
     var poolParameterValues = [
-      inboundCurrencyAddress,
+      config.deployConfigs.isTransactionalToken ? ZERO_ADDRESS : inboundCurrencyAddress,
       maxFlexibleSegmentPaymentAmountWei,
       config.deployConfigs.depositCount,
       config.deployConfigs.segmentLength,
@@ -350,7 +355,7 @@ module.exports = function (deployer, network, accounts) {
         tokenIndexMapping[config.deployConfigs.strategy][config.deployConfigs.inboundCurrencySymbol];
       deploymentResult.strategyPoolType = strategyConfig.poolType;
       deploymentResult.strategyRewardTokenAddress = providerConfig.providers["polygon"].tokens["wmatic"].address;
-      deploymentResult.strategyCurveTokenAddress = providerConfig.providers["polygon"].tokens["curve"].address;
+      deploymentResult.strategyCurveTokenAddress = providerConfig.providers["polygon"].tokens["ldo"].address;
 
       var curveStrategyParameterTypes = ["address", "address", "uint", "uint", "address", "address"];
       var curveStrategyValues = [
