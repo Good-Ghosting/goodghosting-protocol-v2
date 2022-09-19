@@ -180,7 +180,11 @@ module.exports = function (deployer, network, accounts) {
     const poolTx = await deployer.deploy(...deploymentArgs, { gasPrice: gasPrice });
     const ggInstance = await goodGhostingContract.deployed();
 
-    if (config.deployConfigs.owner && config.deployConfigs.owner != "0x") {
+    if (
+      config.deployConfigs.owner &&
+      config.deployConfigs.owner != "0x" &&
+      config.deployConfigs.owner != "0x0000000000000000000000000000000000000000"
+    ) {
       await ggInstance.transferOwnership(config.deployConfigs.owner);
     }
     await strategyInstance.transferOwnership(ggInstance.address);
