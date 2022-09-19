@@ -9,8 +9,9 @@ contract MockCurveStrategy is CurveStrategy {
         uint64 _poolType,
         ICurveGauge _gauge,
         IERC20 _rewardToken,
-        IERC20 _curve
-    ) CurveStrategy(_pool, _inboundTokenIndex, _poolType, _gauge, _rewardToken, _curve) {}
+        IERC20 _curve,
+        ICurveMinter _gaugeMinter
+    ) CurveStrategy(_pool, _inboundTokenIndex, _poolType, _gauge, _rewardToken, _curve, _gaugeMinter) {}
 
     function getTotalAmount() external view override returns (uint256) {
         // this method mocks the strategy method to cover a scneario where the interest reduces but stays > 0

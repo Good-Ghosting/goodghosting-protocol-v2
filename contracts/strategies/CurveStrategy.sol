@@ -45,6 +45,12 @@ contract CurveStrategy is Ownable, IStrategy {
     /// @notice flag to differentiate between aave and atricrypto pool
     uint64 public immutable poolType;
 
+    /// @notice pool address
+    ICurvePool public immutable pool;
+
+    /// @notice gauge minter address
+    ICurveMinter public immutable gaugeMinter;
+
     /// @notice total tokens in aave pool
     uint64 public constant NUM_AAVE_TOKENS = 3;
 
@@ -62,9 +68,6 @@ contract CurveStrategy is Ownable, IStrategy {
 
     /// @notice identifies the "Atri Crypto Pool" Type
     uint64 public constant MATIC_POOL = 2;
-
-    /// @notice pool address
-    ICurvePool public pool;
 
     /// @notice curve lp token
     IERC20 public lpToken;
@@ -164,7 +167,7 @@ contract CurveStrategy is Ownable, IStrategy {
         } else {
             uint256[NUM_MATIC_POOL_TOKENS] memory amounts; // fixed-sized array is initialized w/ [0, 0, 0, 0, 0]
             amounts[uint256(uint128(inboundTokenIndex))] = _amount;
-            uint256 poolWithdrawAmount = pool.calc_token_amount(amounts);
+            return pool.calc_token_amount(amounts);
         }
     }
 
@@ -186,7 +189,8 @@ contract CurveStrategy is Ownable, IStrategy {
         uint64 _poolType,
         ICurveGauge _gauge,
         IERC20 _rewardToken,
-        IERC20 _curve
+        IERC20 _curve,
+        ICurveMinter _gaugeMinter
     ) {
         if (address(_pool) == address(0)) {
             revert INVALID_POOL();
@@ -207,6 +211,7 @@ contract CurveStrategy is Ownable, IStrategy {
 
         pool = _pool;
         gauge = _gauge;
+        gaugeMinter = _gaugeMinter;
         curve = _curve;
         poolType = _poolType;
         inboundTokenIndex = _inboundTokenIndex;
@@ -216,7 +221,7 @@ contract CurveStrategy is Ownable, IStrategy {
             if (uint128(_inboundTokenIndex) >= NUM_AAVE_TOKENS) {
                 revert INVALID_INBOUND_TOKEN_INDEX();
             }
-            lpToken = IERC20(pool.lp_token());
+            lpToken = IERC20(_pool.lp_token());
         } else {
             if (_poolType == ATRI_CRYPTO_POOL) {
                 if (uint128(_inboundTokenIndex) >= NUM_ATRI_CRYPTO_TOKENS) {
@@ -228,7 +233,7 @@ contract CurveStrategy is Ownable, IStrategy {
                 }
             }
 
-            lpToken = IERC20(pool.token());
+            lpToken = IERC20(_pool.token());
         }
     }
 
@@ -307,7 +312,7 @@ contract CurveStrategy is Ownable, IStrategy {
             }
 
             // passes false not to claim rewards
-            gauge.withdraw(poolWithdrawAmount, address(this), false);
+            gauge.withdraw(poolWithdrawAmount);
 
             pool.remove_liquidity_one_coin(
                 poolWithdrawAmount,
@@ -327,7 +332,7 @@ contract CurveStrategy is Ownable, IStrategy {
             }
 
             // passes false not to claim rewards
-            gauge.withdraw(poolWithdrawAmount, address(this), false);
+            gauge.withdraw(poolWithdrawAmount);
             /*
                 Code of curve's aave and curve's atricrypto pools are completely different.
                 Curve's Aave Pool (pool type 0): in this contract, all funds "sit" in the pool's smart contract.
@@ -349,7 +354,7 @@ contract CurveStrategy is Ownable, IStrategy {
             }
 
             // passes false not to claim rewards
-            gauge.withdraw(poolWithdrawAmount, address(this), false);
+            gauge.withdraw(poolWithdrawAmount);
             /*
                 Code of curve's aave and curve's atricrypto pools are completely different.
                 Curve's Aave Pool (pool type 0): in this contract, all funds "sit" in the pool's smart contract.
@@ -386,12 +391,11 @@ contract CurveStrategy is Ownable, IStrategy {
         bool disableRewardTokenClaim
     ) external override onlyOwner {
         // not checking for validity of deposit token here since with pool contract as the owner of the strategy the only way to transfer pool funds is by invest method so the check there is sufficient
-        bool claimRewards = true;
-        if (disableRewardTokenClaim) {
-            claimRewards = false;
+        if (!disableRewardTokenClaim) {
+            gauge.claim_rewards();
+            gaugeMinter.mint(address(gauge));
         }
         uint256 gaugeBalance = gauge.balanceOf(address(this));
-        //if (variableDeposits) {
         if (poolType == AAVE_POOL) {
             uint256[NUM_AAVE_TOKENS] memory amounts; // fixed-sized array is initialized w/ [0, 0, 0]
             amounts[uint256(uint128(inboundTokenIndex))] = _amount;
@@ -403,10 +407,8 @@ contract CurveStrategy is Ownable, IStrategy {
                 poolWithdrawAmount = gaugeBalance;
             }
 
-            ICurveMinter(0xabC000d88f23Bb45525E447528DBF656A9D55bf5).mint(address(gauge));
-
             // passes false not to claim rewards
-            gauge.withdraw(poolWithdrawAmount, address(this), claimRewards);
+            gauge.withdraw(poolWithdrawAmount);
 
             pool.remove_liquidity_one_coin(
                 poolWithdrawAmount,
@@ -426,7 +428,7 @@ contract CurveStrategy is Ownable, IStrategy {
             }
 
             // passes false not to claim rewards
-            gauge.withdraw(poolWithdrawAmount, address(this), claimRewards);
+            gauge.withdraw(poolWithdrawAmount);
             /*
                     Code of curve's aave and curve's atricrypto pools are completely different.
                     Curve's Aave Pool (pool type 0): in this contract, all funds "sit" in the pool's smart contract.
@@ -447,9 +449,8 @@ contract CurveStrategy is Ownable, IStrategy {
                 poolWithdrawAmount = gaugeBalance;
             }
 
-            gauge.claim_rewards(address(this));
             // passes false not to claim rewards
-            gauge.withdraw(poolWithdrawAmount, address(this), claimRewards);
+            gauge.withdraw(poolWithdrawAmount);
             /*
                 Code of curve's aave and curve's atricrypto pools are completely different.
                 Curve's Aave Pool (pool type 0): in this contract, all funds "sit" in the pool's smart contract.
@@ -465,7 +466,6 @@ contract CurveStrategy is Ownable, IStrategy {
         if (!success) {
             revert TOKEN_TRANSFER_FAILURE();
         }
-
         success = curve.transfer(msg.sender, curve.balanceOf(address(this)));
         if (!success) {
             revert TOKEN_TRANSFER_FAILURE();
@@ -491,7 +491,12 @@ contract CurveStrategy is Ownable, IStrategy {
         uint256 amount = 0;
         uint256 additionalAmount = 0;
         if (!disableRewardTokenClaim) {
-            amount = gauge.claimable_tokens(address(this));
+            if (poolType == ATRI_CRYPTO_POOL || poolType == AAVE_POOL) {
+                amount = gauge.claimable_reward_write(address(this), address(rewardToken));
+                additionalAmount = gauge.claimable_reward_write(address(this), address(curve));
+            } else {
+                amount = gauge.claimable_tokens(address(this));
+            }
         }
         uint256[] memory amounts = new uint256[](2);
         amounts[0] = amount;
