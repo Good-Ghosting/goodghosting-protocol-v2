@@ -45,7 +45,7 @@ contract MobiusStrategy is Ownable, IStrategy {
     IMobiPool public immutable pool;
 
     /// @notice token index in the pool.
-    uint256 public immutable inboundTokenIndex;
+    uint8 public immutable inboundTokenIndex;
 
     /// @notice mobi lp token
     IERC20 public lpToken;
@@ -72,27 +72,20 @@ contract MobiusStrategy is Ownable, IStrategy {
         uint256 liquidityBalance;
         if (address(gauge) != address(0)) {
             liquidityBalance = gauge.balanceOf(address(this));
-            if (liquidityBalance != 0) {
-                uint256 totalAccumulatedAmount = pool.calculateRemoveLiquidityOneToken(
-                    address(this),
-                    liquidityBalance,
-                    uint8(inboundTokenIndex)
-                );
-                return totalAccumulatedAmount;
-            } else {
-                return 0;
-            }
         } else {
             liquidityBalance = lpToken.balanceOf(address(this));
-            if (liquidityBalance != 0) {
-                uint256 totalAccumulatedAmount = pool.calculateRemoveLiquidityOneToken(
-                    address(this),
-                    liquidityBalance,
-                    uint8(inboundTokenIndex)
-                );
-                return totalAccumulatedAmount;
-            }
         }
+
+        if (liquidityBalance != 0) {
+            uint256 totalAccumulatedAmount = pool.calculateRemoveLiquidityOneToken(
+                address(this),
+                liquidityBalance,
+                inboundTokenIndex
+            );
+            return totalAccumulatedAmount;
+        }
+
+        return 0;
     }
 
     /** 
@@ -104,7 +97,7 @@ contract MobiusStrategy is Ownable, IStrategy {
         uint256[] memory amounts = new uint256[](2);
         amounts[inboundTokenIndex] = _amount;
         uint256 poolWithdrawAmount = pool.calculateTokenAmount(address(this), amounts, true);
-        return pool.calculateRemoveLiquidityOneToken(address(this), poolWithdrawAmount, uint8(inboundTokenIndex));
+        return pool.calculateRemoveLiquidityOneToken(address(this), poolWithdrawAmount, inboundTokenIndex);
     }
 
     /** 
@@ -114,7 +107,7 @@ contract MobiusStrategy is Ownable, IStrategy {
     */
     // UPDATE - A4 Audit Report
     function getUnderlyingAsset() external view override returns (address) {
-        return address(pool.getToken(uint8(inboundTokenIndex)));
+        return address(pool.getToken(inboundTokenIndex));
     }
 
     /** 
@@ -122,15 +115,12 @@ contract MobiusStrategy is Ownable, IStrategy {
     Returns the instance of the reward token
     */
     function getRewardTokens() external view override returns (IERC20[] memory) {
+        IERC20[] memory tokens = new IERC20[](2);
         if (address(gauge) != address(0)) {
-            IERC20[] memory tokens = new IERC20[](2);
             tokens[0] = celo;
             tokens[1] = mobi;
-            return tokens;
-        } else {
-            IERC20[] memory tokens = new IERC20[](1);
-            tokens[0] = IERC20(address(0));
         }
+        return tokens;
     }
 
     /** 
@@ -161,7 +151,7 @@ contract MobiusStrategy is Ownable, IStrategy {
         IERC20 _mobi,
         IERC20 _celo,
         IERC20 _lpToken,
-        uint256 _inboundTokenIndex
+        uint8 _inboundTokenIndex
     ) {
         if (address(_pool) == address(0)) {
             revert INVALID_POOL();
@@ -197,7 +187,7 @@ contract MobiusStrategy is Ownable, IStrategy {
         if (msg.value != 0) {
             revert CANNOT_ACCEPT_TRANSACTIONAL_TOKEN();
         }
-        if (address(pool.getToken(uint8(inboundTokenIndex))) != _inboundCurrency) {
+        if (address(pool.getToken(inboundTokenIndex)) != _inboundCurrency) {
             revert INVALID_DEPOSIT_TOKEN();
         }
         uint256 contractBalance = IERC20(_inboundCurrency).balanceOf(address(this));
@@ -243,7 +233,7 @@ contract MobiusStrategy is Ownable, IStrategy {
             gauge.withdraw(poolWithdrawAmount, false);
         }
         lpToken.approve(address(pool), poolWithdrawAmount);
-        pool.removeLiquidityOneToken(poolWithdrawAmount, uint8(inboundTokenIndex), _minAmount, block.timestamp + 1000);
+        pool.removeLiquidityOneToken(poolWithdrawAmount, inboundTokenIndex, _minAmount, block.timestamp + 1000);
 
         // check for impermanent loss (safety check)
         if (IERC20(_inboundCurrency).balanceOf(address(this)) < _amount) {
@@ -294,7 +284,7 @@ contract MobiusStrategy is Ownable, IStrategy {
         }
 
         lpToken.approve(address(pool), poolWithdrawAmount);
-        pool.removeLiquidityOneToken(poolWithdrawAmount, uint8(inboundTokenIndex), _minAmount, block.timestamp + 1000);
+        pool.removeLiquidityOneToken(poolWithdrawAmount, inboundTokenIndex, _minAmount, block.timestamp + 1000);
 
         bool success = mobi.transfer(msg.sender, mobi.balanceOf(address(this)));
         if (!success) {
