@@ -17,6 +17,10 @@ exports.providers = {
         address: "0x172370d5cd63279efa6d502dab29171933a610af",
         decimals: 18,
       },
+      ldo: {
+        address: "0xc3c7d422809852031b44ab29eec9f1eff2a58756",
+        decimals: 18,
+      },
     },
     strategies: {
       aaveV2: {
@@ -44,7 +48,7 @@ exports.providers = {
       "polygon-curve-stmatic-matic": {
         pool: "0xfb6fe7802ba9290ef8b00ca16af4bc26eb663a28",
         gauge: "0x9633e0749faa6ec6d992265368b88698d6a93ac0",
-        poolType: 3, // Stmatic-Matic Pool
+        poolType: 2, // Stmatic-Matic Pool
       },
       //"no-external-strategy": {}, // REWARD TOKENS MUST BE CONFIGURED IN `deploy.configs.js` file
     },
