@@ -312,6 +312,7 @@ contract CurveStrategy is Ownable, IStrategy {
         uint256 _minAmount,
         bool disableRewardTokenClaim
     ) external override onlyOwner {
+        if (_amount != 0) {
         // not checking for validity of deposit token here since with pool contract as the owner of the strategy the only way to transfer pool funds is by invest method so the check there is sufficient
         bool claimRewards = true;
         if (disableRewardTokenClaim) {
@@ -361,6 +362,7 @@ contract CurveStrategy is Ownable, IStrategy {
             */
             lpToken.approve(address(pool), poolWithdrawAmount);
             pool.remove_liquidity_one_coin(poolWithdrawAmount, uint256(uint128(inboundTokenIndex)), _minAmount);
+        }
         }
 
         bool success = rewardToken.transfer(msg.sender, rewardToken.balanceOf(address(this)));

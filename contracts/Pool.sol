@@ -1130,7 +1130,9 @@ contract Pool is Ownable, Pausable, ReentrancyGuard {
        Returns the maximum amount that can be redeemed from a strategy for a player/admin
      */
     function getRedemptionValue(uint256 _amountToRedeem, uint256 _totalAmount) internal returns(uint256) {
-        if (_amountToRedeem > _totalAmount) return _totalAmount;
+        if (_amountToRedeem > _totalAmount) {
+            return _totalAmount;
+        }
         return _amountToRedeem;
     }
 
@@ -1434,9 +1436,9 @@ contract Pool is Ownable, Pausable, ReentrancyGuard {
                 uint256 _payout
             ) = _calculateAndUpdateWinnerInterestAccounting(segment, _impermanentLossShare);
             payout = _payout;
-            // safety check in case some incentives in the form of the deposit tokens are transferred to the pool
+            // safety check in case some incentives in the form of the deposit tokens are transferred to the pool\
             uint256 _amountToRedeem = getRedemptionValue(payout, strategy.getTotalAmount());
-             
+
             strategy.redeem(inboundToken, _amountToRedeem, _minAmount, disableRewardTokenClaim);
 
             // calculating winners share of the incentive amount

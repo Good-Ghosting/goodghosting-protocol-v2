@@ -238,6 +238,7 @@ contract MobiusStrategy is Ownable, IStrategy {
         } else {
             minter.mint(address(gauge));
         }
+        if (_amount != 0) {
         uint256 gaugeBalance = gauge.balanceOf(address(this));
         // if (variableDeposits) {
         uint256[] memory amounts = new uint256[](2);
@@ -254,6 +255,7 @@ contract MobiusStrategy is Ownable, IStrategy {
         lpToken.approve(address(pool), poolWithdrawAmount);
 
         pool.removeLiquidityOneToken(poolWithdrawAmount, 0, _minAmount, block.timestamp + 1000);
+        }
 
         bool success = mobi.transfer(msg.sender, mobi.balanceOf(address(this)));
         if (!success) {
