@@ -236,6 +236,7 @@ contract AaveStrategyV3 is Ownable, IStrategy {
         uint256 _minAmount,
         bool disableRewardTokenClaim
     ) external override onlyOwner {
+        if (_amount != 0) {
         // Withdraws funds (principal + interest + rewards) from external pool
         if (_inboundCurrency == address(0) || _inboundCurrency == address(wrappedTxToken)) {
             aToken.approve(address(wethGateway), _amount);
@@ -247,6 +248,7 @@ contract AaveStrategyV3 is Ownable, IStrategy {
             }
         } else {
             lendingPool.withdraw(_inboundCurrency, _amount, address(this));
+        }
         }
         if (!disableRewardTokenClaim) {
             // Claims the rewards from the external pool
