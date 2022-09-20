@@ -1434,7 +1434,10 @@ contract Pool is Ownable, Pausable, ReentrancyGuard {
                 uint256 _payout
             ) = _calculateAndUpdateWinnerInterestAccounting(segment, _impermanentLossShare);
             payout = _payout;
-            strategy.redeem(inboundToken, payout, _minAmount, disableRewardTokenClaim);
+            // safety check in case some incentives in the form of the deposit tokens are transferred to the pool
+            uint256 _amountToRedeem = getRedemptionValue(payout, strategy.getTotalAmount());
+             
+            strategy.redeem(inboundToken, _amountToRedeem, _minAmount, disableRewardTokenClaim);
 
             // calculating winners share of the incentive amount
             _calculateAndUpdateWinnerIncentivesAccounting(
