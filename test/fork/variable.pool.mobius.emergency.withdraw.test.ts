@@ -62,7 +62,7 @@ contract("Variable Deposit Pool with Mobius Strategy when admin enables early ga
       gaugeToken = new web3.eth.Contract(mobiusGauge.abi, providersConfigs.gauge);
 
       const unlockedBalance = await token.methods.balanceOf(unlockedDaiAccount).call({ from: admin });
-      const daiAmount = segmentPayment.mul(web3.utils.toBN(depositCount)).toString();
+      const daiAmount = segmentPayment.mul(web3.utils.toBN(depositCount * 10)).toString();
       console.log("unlockedBalance: ", web3.utils.fromWei(unlockedBalance));
       console.log("daiAmountToTransfer", web3.utils.fromWei(daiAmount));
       for (let i = 0; i < players.length; i++) {
@@ -146,11 +146,7 @@ contract("Variable Deposit Pool with Mobius Strategy when admin enables early ga
           }
 
           let minAmount = await pool.methods
-            .calculateRemoveLiquidityOneToken(
-              mobiusStrategy.address,
-              lpTokenAmount.toString(),
-              providersConfigs.tokenIndex,
-            )
+            .calculateRemoveLiquidityOneToken(mobiusStrategy.address, lpTokenAmount.toString(), 0)
             .call();
 
           minAmount = web3.utils.toBN(minAmount).sub(web3.utils.toBN(minAmount).div(web3.utils.toBN("1000")));

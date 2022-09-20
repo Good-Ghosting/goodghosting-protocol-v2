@@ -150,11 +150,7 @@ contract("Variable Deposit Pool with Mobius Strategy", accounts => {
           }
 
           let minAmount = await pool.methods
-            .calculateRemoveLiquidityOneToken(
-              mobiusStrategy.address,
-              lpTokenAmount.toString(),
-              providersConfigs.tokenIndex,
-            )
+            .calculateRemoveLiquidityOneToken(mobiusStrategy.address, lpTokenAmount.toString(), 0)
             .call();
 
           minAmount = web3.utils.toBN(minAmount).sub(web3.utils.toBN(minAmount).div(web3.utils.toBN("1000")));
@@ -247,11 +243,7 @@ contract("Variable Deposit Pool with Mobius Strategy", accounts => {
             lpTokenAmount = gaugeTokenBalance;
           }
           let minAmount = await pool.methods
-            .calculateRemoveLiquidityOneToken(
-              mobiusStrategy.address,
-              lpTokenAmount.toString(),
-              providersConfigs.tokenIndex,
-            )
+            .calculateRemoveLiquidityOneToken(mobiusStrategy.address, lpTokenAmount.toString(), 0)
             .call();
           minAmount = web3.utils.toBN(minAmount).sub(web3.utils.toBN(minAmount).div(web3.utils.toBN("1000")));
 
@@ -289,7 +281,7 @@ contract("Variable Deposit Pool with Mobius Strategy", accounts => {
         lpTokenAmount = gaugeTokenBalance;
       }
       let minAmount = await pool.methods
-        .calculateRemoveLiquidityOneToken(mobiusStrategy.address, lpTokenAmount.toString(), providersConfigs.tokenIndex)
+        .calculateRemoveLiquidityOneToken(mobiusStrategy.address, lpTokenAmount.toString(), 0)
         .call();
       minAmount = web3.utils.toBN(minAmount).sub(web3.utils.toBN(minAmount).div(web3.utils.toBN("1000")));
 

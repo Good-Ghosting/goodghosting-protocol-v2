@@ -123,11 +123,7 @@ contract("Pool with Mobius Strategy", accounts => {
           }
 
           let minAmount = await pool.methods
-            .calculateRemoveLiquidityOneToken(
-              mobiusStrategy.address,
-              lpTokenAmount.toString(),
-              providersConfigs.tokenIndex,
-            )
+            .calculateRemoveLiquidityOneToken(mobiusStrategy.address, lpTokenAmount.toString(), 0)
             .call();
 
           minAmount = web3.utils.toBN(minAmount).sub(web3.utils.toBN(minAmount).div(web3.utils.toBN("1000")));
@@ -220,11 +216,7 @@ contract("Pool with Mobius Strategy", accounts => {
             lpTokenAmount = gaugeTokenBalance;
           }
           let minAmount = await pool.methods
-            .calculateRemoveLiquidityOneToken(
-              mobiusStrategy.address,
-              lpTokenAmount.toString(),
-              providersConfigs.tokenIndex,
-            )
+            .calculateRemoveLiquidityOneToken(mobiusStrategy.address, lpTokenAmount.toString(), 0)
             .call();
           minAmount = web3.utils.toBN(minAmount).sub(web3.utils.toBN(minAmount).div(web3.utils.toBN("1000")));
 
@@ -262,7 +254,7 @@ contract("Pool with Mobius Strategy", accounts => {
         lpTokenAmount = gaugeTokenBalance;
       }
       let minAmount = await pool.methods
-        .calculateRemoveLiquidityOneToken(mobiusStrategy.address, lpTokenAmount.toString(), providersConfigs.tokenIndex)
+        .calculateRemoveLiquidityOneToken(mobiusStrategy.address, lpTokenAmount.toString(), 0)
         .call();
       minAmount = web3.utils.toBN(minAmount).sub(web3.utils.toBN(minAmount).div(web3.utils.toBN("1000")));
 
@@ -341,6 +333,11 @@ contract("Pool with Mobius Strategy", accounts => {
         await goodGhosting.adminFeeWithdraw(0, {
           from: admin,
         });
+
+        const inboundTokenPoolBalance = web3.utils.toBN(
+          await token.methods.balanceOf(goodGhosting.address).call({ from: admin }),
+        );
+        console.log(inboundTokenPoolBalance.toString());
 
         inboundTokenBalanceAfterWithdraw = web3.utils.toBN(await token.methods.balanceOf(admin).call({ from: admin }));
         mobiRewardBalanceAfter = web3.utils.toBN(await mobi.methods.balanceOf(admin).call({ from: admin }));
