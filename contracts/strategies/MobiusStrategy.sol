@@ -16,6 +16,7 @@ error CANNOT_ACCEPT_TRANSACTIONAL_TOKEN();
 error INVALID_CELO_TOKEN();
 error INVALID_DEPOSIT_TOKEN();
 error INVALID_GAUGE();
+error INVALID_LP_TOKEN();
 error INVALID_MINTER();
 error INVALID_MOBI_TOKEN();
 error INVALID_POOL();
@@ -172,6 +173,9 @@ contract MobiusStrategy is Ownable, IStrategy {
         if (address(_gauge) != address(0)) {
             lpToken = IERC20(_pool.getLpToken());
         } else {
+            if (address(_lpToken) == address(0)) {
+                revert INVALID_LP_TOKEN();
+            }
             lpToken = _lpToken;
         }
     }
@@ -192,7 +196,7 @@ contract MobiusStrategy is Ownable, IStrategy {
         }
         uint256 contractBalance = IERC20(_inboundCurrency).balanceOf(address(this));
         IERC20(_inboundCurrency).approve(address(pool), contractBalance);
-        
+
         uint256[] memory amounts = new uint256[](2);
         amounts[inboundTokenIndex] = contractBalance;
 
@@ -270,7 +274,9 @@ contract MobiusStrategy is Ownable, IStrategy {
             if (disableRewardTokenClaim) {
                 claimRewards = false;
             } else {
-                minter.mint(address(gauge));
+                if (address(minter) != address(0)) {
+                    minter.mint(address(gauge));
+                }
             }
             uint256 gaugeBalance = gauge.balanceOf(address(this));
 
