@@ -153,9 +153,7 @@ contract("Variale Deposit Pool with Curve Strategy with no winners", accounts =>
             lpTokenAmount = gaugeTokenBalance;
           }
 
-          let minAmount = await pool.methods
-            .calc_withdraw_one_coin(lpTokenAmount.toString(), providersConfigs.tokenIndex)
-            .call();
+          let minAmount = await pool.methods.calc_withdraw_one_coin(lpTokenAmount.toString(), 0).call();
 
           minAmount = web3.utils.toBN(minAmount).sub(web3.utils.toBN(minAmount).div(web3.utils.toBN("1000")));
 

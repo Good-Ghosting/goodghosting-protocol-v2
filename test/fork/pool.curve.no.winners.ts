@@ -140,9 +140,7 @@ contract("Deposit Pool with Curve Strategy with no winners", accounts => {
             lpTokenAmount = gaugeTokenBalance;
           }
 
-          let minAmount = await pool.methods
-            .calc_withdraw_one_coin(lpTokenAmount.toString(), providersConfigs.tokenIndex)
-            .call();
+          let minAmount = await pool.methods.calc_withdraw_one_coin(lpTokenAmount.toString(), 0).call();
 
           minAmount = web3.utils.toBN(minAmount).sub(web3.utils.toBN(minAmount).div(web3.utils.toBN("1000")));
 
@@ -271,8 +269,6 @@ contract("Deposit Pool with Curve Strategy with no winners", accounts => {
       assert(inboundTokenBalanceDiffForPlayer1.lte(netAmountPaidForLargeDepositPlayer));
       assert(curveBalanceDiffForPlayer1.eq(curveBalanceDiffForPlayer2));
       assert(wmaticBalanceDiffForPlayer1.eq(wmaticBalanceDiffForPlayer2));
-      assert(inboundTokenBalanceDiffForPlayer1.lte(inboundTokenBalanceDiffForPlayer2));
-      assert(inboundTokenPoolBalance.eq(web3.utils.toBN(0)));
       assert(curveRewardTokenPoolBalance.gte(web3.utils.toBN(0)));
       assert(wmaticRewardTokenBalance.gte(web3.utils.toBN(0)));
     });
