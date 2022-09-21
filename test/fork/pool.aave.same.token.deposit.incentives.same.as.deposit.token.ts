@@ -22,7 +22,7 @@ const daiDecimals = ethers.BigNumber.from("1000000000000000000");
 const segmentPayment = daiDecimals.mul(ethers.BigNumber.from(segmentPaymentInt)); // equivalent to 10 Inbound Token
 const ZERO_ADDRESS = "0x0000000000000000000000000000000000000000";
 
-describe("Aave Pool Fork Tests with the deposit token as transsactional token", () => {
+describe("Aave Pool Fork Tests with the deposit token same as reward token with incentives sent same as deposit token", () => {
   if (
     process.env.NETWORK === "local-celo" ||
     process.env.NETWORK === "local-variable-celo" ||
@@ -64,13 +64,13 @@ describe("Aave Pool Fork Tests with the deposit token as transsactional token", 
       providers["polygon"].strategies["aaveV2"].wethGateway,
       dataProviderInstance.address,
       incentiveControllerInstance.address,
-      wmaticInstance.address,
-      ZERO_ADDRESS,
+      providers["polygon"].tokens["wmatic"].address,
+      providers["polygon"].tokens["wmatic"].address,
     );
 
     pool = await ethers.getContractFactory("Pool", accounts[0]);
     pool = await pool.deploy(
-      ZERO_ADDRESS,
+      wmaticInstance.address,
       0,
       deployConfigs.depositCount.toString(),
       deployConfigs.segmentLength.toString(),
@@ -81,27 +81,35 @@ describe("Aave Pool Fork Tests with the deposit token as transsactional token", 
       deployConfigs.maxPlayersCount.toString(),
       deployConfigs.flexibleSegmentPayment,
       strategy.address,
-      true,
+      false,
     );
 
     await strategy.connect(accounts[0]).transferOwnership(pool.address);
     await pool.initialize(ZERO_ADDRESS);
+
+    // send out tokens to the players
+    for (let i = 0; i < 6; i++) {
+      await wmaticInstance.connect(accounts[i]).deposit({ value: ethers.utils.parseEther("15") });
+    }
+    // sending in extra incentives to the pool contract
+    await wmaticInstance.connect(accounts[5]).transfer(pool.address, ethers.utils.parseEther("15"));
   });
 
   it("checks if users have their balance increased", async () => {
     for (let i = 0; i < 5; i++) {
-      const playerBalance = await ethers.provider.getBalance(accounts[i].address);
+      const playerBalance = await wmaticInstance.balanceOf(accounts[i].address);
       console.log(`Player ${i} Balance`, playerBalance.toString());
-      expect(playerBalance.gt("0"));
+      expect(playerBalance.eq(ethers.utils.parseEther("200")));
     }
   });
 
   it("players are able to approve inbound token and join the pool", async () => {
     for (let i = 0; i < 5; i++) {
-      await pool.connect(accounts[i]).joinGame(0, 0, { value: segmentPayment });
+      await wmaticInstance.connect(accounts[i]).approve(pool.address, ethers.utils.parseEther("200"));
+      await pool.connect(accounts[i]).joinGame(0, 0);
       if (i == 0) {
         await pool.connect(accounts[i]).earlyWithdraw(0);
-        await expect(pool.connect(accounts[i]).joinGame(0, 0, { value: segmentPayment }))
+        await expect(pool.connect(accounts[i]).joinGame(0, 0))
           .to.emit(pool, "JoinedGame")
           .withArgs(accounts[i].address, ethers.BigNumber.from(segmentPayment), ethers.BigNumber.from(segmentPayment));
       }
@@ -113,7 +121,7 @@ describe("Aave Pool Fork Tests with the deposit token as transsactional token", 
       await ethers.provider.send("evm_increaseTime", [segmentLength]);
       await ethers.provider.send("evm_mine", []);
       if (i == 1) {
-        await pool.connect(accounts[0]).makeDeposit(0, 0, { value: segmentPayment });
+        await pool.connect(accounts[0]).makeDeposit(0, 0);
         const playerInfo = await pool.players(accounts[0].address);
         let totalPrincipal = await pool.totalGamePrincipal();
         totalPrincipal = totalPrincipal.sub(playerInfo.amountPaid);
@@ -129,7 +137,7 @@ describe("Aave Pool Fork Tests with the deposit token as transsactional token", 
       const currentSegment = await pool.getCurrentSegment();
 
       for (let j = 1; j < 5; j++) {
-        await expect(pool.connect(accounts[j]).makeDeposit(0, 0, { value: segmentPayment }))
+        await expect(pool.connect(accounts[j]).makeDeposit(0, 0))
           .to.emit(pool, "Deposit")
           .withArgs(
             accounts[j].address,
@@ -152,21 +160,23 @@ describe("Aave Pool Fork Tests with the deposit token as transsactional token", 
 
   it("players are able to withdraw from the pool", async () => {
     for (let j = 1; j < 5; j++) {
-      const inboundTokenBalanceBeforeWithdraw = await ethers.provider.getBalance(accounts[j].address);
-      const rewardTokenBalanceBeforeWithdraw = await wmaticInstance.balanceOf(accounts[j].address);
+      const inboundTokenBalanceBeforeWithdraw = await wmaticInstance.balanceOf(accounts[j].address);
       await pool.connect(accounts[j]).withdraw(0);
-      const rewardTokenBalanceAfterWithdraw = await wmaticInstance.balanceOf(accounts[j].address);
-      const inboundTokenBalanceAfterWithdraw = await ethers.provider.getBalance(accounts[j].address);
+      const inboundTokenBalanceAfterWithdraw = await wmaticInstance.balanceOf(accounts[j].address);
       assert(inboundTokenBalanceAfterWithdraw.gt(inboundTokenBalanceBeforeWithdraw));
-      assert(rewardTokenBalanceAfterWithdraw.gte(rewardTokenBalanceBeforeWithdraw));
+      const difference = inboundTokenBalanceAfterWithdraw.sub(inboundTokenBalanceBeforeWithdraw);
+      const playerInfo = await pool.players(accounts[j].address);
+      assert(difference.gt(playerInfo.amountPaid));
     }
   });
 
   it("admin is able to withdraw from the pool", async () => {
-    const inboundTokenBalanceBeforeWithdraw = await ethers.provider.getBalance(accounts[0].address);
+    const inboundTokenBalanceBeforeWithdraw = await wmaticInstance.balanceOf(accounts[0].address);
     await pool.connect(accounts[0]).adminFeeWithdraw(0);
-    const inboundTokenBalanceAfterWithdraw = await ethers.provider.getBalance(accounts[0].address);
-    // some tx token spent in gas
-    assert(inboundTokenBalanceAfterWithdraw.lte(inboundTokenBalanceBeforeWithdraw));
+    const inboundTokenBalanceAfterWithdraw = await wmaticInstance.balanceOf(accounts[0].address);
+    assert(inboundTokenBalanceAfterWithdraw.gt(inboundTokenBalanceBeforeWithdraw));
+
+    const poolBalance = await wmaticInstance.balanceOf(pool.address);
+    assert(poolBalance.eq(ethers.BigNumber.from(0)));
   });
 });

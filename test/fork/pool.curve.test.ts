@@ -131,9 +131,7 @@ contract("Pool with Curve Strategy", accounts => {
             lpTokenAmount = gaugeTokenBalance;
           }
 
-          let minAmount = await pool.methods
-            .calc_withdraw_one_coin(lpTokenAmount.toString(), providersConfigs.tokenIndex)
-            .call();
+          let minAmount = await pool.methods.calc_withdraw_one_coin(lpTokenAmount.toString(), 0).call();
 
           minAmount = web3.utils.toBN(minAmount).sub(web3.utils.toBN(minAmount).div(web3.utils.toBN("1000")));
 
@@ -232,9 +230,7 @@ contract("Pool with Curve Strategy", accounts => {
           if (parseInt(gaugeTokenBalance.toString()) < parseInt(lpTokenAmount.toString())) {
             lpTokenAmount = gaugeTokenBalance;
           }
-          let minAmount = await pool.methods
-            .calc_withdraw_one_coin(lpTokenAmount.toString(), providersConfigs.tokenIndex)
-            .call();
+          let minAmount = await pool.methods.calc_withdraw_one_coin(lpTokenAmount.toString(), 0).call();
 
           minAmount = web3.utils.toBN(minAmount).sub(web3.utils.toBN(minAmount).div(web3.utils.toBN("1000")));
 
@@ -273,9 +269,7 @@ contract("Pool with Curve Strategy", accounts => {
       if (parseInt(gaugeTokenBalance.toString()) < parseInt(lpTokenAmount.toString())) {
         lpTokenAmount = gaugeTokenBalance;
       }
-      let minAmount = await pool.methods
-        .calc_withdraw_one_coin(lpTokenAmount.toString(), providersConfigs.tokenIndex)
-        .call();
+      let minAmount = await pool.methods.calc_withdraw_one_coin(lpTokenAmount.toString(), 0).call();
 
       minAmount = web3.utils.toBN(minAmount).sub(web3.utils.toBN(minAmount).div(web3.utils.toBN("1000")));
 

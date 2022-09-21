@@ -8,9 +8,9 @@ const mobiusGauge = require("../../artifacts/contracts/mobius/IMobiGauge.sol/IMo
 const configs = require("../../deploy.config");
 const providerConfig = require("../../providers.config");
 
-contract("Variable Deposit Pool with Mobius Strategy with no winners", accounts => {
+contract("Deposit Pool with Mobius Strategy with no winners with incentives sent same as deposit token", accounts => {
   // Only executes this test file for local network fork
-  if (process.env.NETWORK !== "local-variable-celo") {
+  if (process.env.NETWORK !== "local-celo") {
     return;
   }
 
@@ -77,6 +77,10 @@ contract("Variable Deposit Pool with Mobius Strategy with no winners", accounts 
         const playerBalance = await token.methods.balanceOf(player).call({ from: admin });
         console.log(`player${i + 1}DAIBalance`, web3.utils.fromWei(playerBalance));
       }
+
+      await token.methods
+        .transfer(goodGhosting.address, web3.utils.toWei("100").toString())
+        .send({ from: unlockedDaiAccount });
     });
 
     it("players approve Inbound Token to contract and join the game", async () => {
@@ -102,34 +106,20 @@ contract("Variable Deposit Pool with Mobius Strategy with no winners", accounts 
                 .toBN(slippageFromContract)
                 .sub(web3.utils.toBN(slippageFromContract).mul(web3.utils.toBN("10")).div(web3.utils.toBN("10000")))
             : userProvidedMinAmount.sub(userProvidedMinAmount.mul(web3.utils.toBN("10")).div(web3.utils.toBN("10000")));
-        if (i == 2) {
-          result = await goodGhosting.joinGame(minAmountWithFees.toString(), web3.utils.toWei("23"), { from: player });
-          truffleAssert.eventEmitted(
-            result,
-            "JoinedGame",
-            (ev: any) => {
-              playerEvent = ev.player;
-              paymentEvent = ev.amount;
-              return (
-                playerEvent === player && web3.utils.toBN(paymentEvent).toString() == web3.utils.toWei("23").toString()
-              );
-            },
-            `JoinedGame event should be emitted when an user joins the game with params\n
-                                      player: expected ${player}; got ${playerEvent}\n
-                                      paymentAmount: expected ${web3.utils
-                                        .toWei("23")
-                                        .toString()}; got ${paymentEvent.toString()}`,
-          );
-        } else {
-          result = await goodGhosting.joinGame(minAmountWithFees.toString(), web3.utils.toWei("5"), { from: player });
-          truffleAssert.eventEmitted(result, "JoinedGame", (ev: any) => {
+        //if (i == 2) {
+        result = await goodGhosting.joinGame(minAmountWithFees.toString(), 0, { from: player });
+        truffleAssert.eventEmitted(
+          result,
+          "JoinedGame",
+          (ev: any) => {
             playerEvent = ev.player;
             paymentEvent = ev.amount;
-            return (
-              playerEvent === player && web3.utils.toBN(paymentEvent).toString() == web3.utils.toWei("5").toString()
-            );
-          });
-        }
+            return playerEvent === player && web3.utils.toBN(paymentEvent).toString() == segmentPayment.toString();
+          },
+          `JoinedGame event should be emitted when an user joins the game with params\n
+                                      player: expected ${player}; got ${playerEvent}\n
+                                      paymentAmount: expected ${segmentPayment.toString()}; got ${paymentEvent.toString()}`,
+        );
         // player 2 early withdraws in segment 0 and joins again
         if (i == 2) {
           const withdrawAmount = segmentPayment.sub(
@@ -166,7 +156,7 @@ contract("Variable Deposit Pool with Mobius Strategy with no winners", accounts 
             .approve(goodGhosting.address, web3.utils.toWei("200").toString().toString())
             .send({ from: player });
 
-          await goodGhosting.joinGame(minAmountWithFees.toString(), web3.utils.toWei("23"), { from: player });
+          await goodGhosting.joinGame(minAmountWithFees.toString(), 0, { from: player });
         }
       }
     });
@@ -183,7 +173,7 @@ contract("Variable Deposit Pool with Mobius Strategy with no winners", accounts 
 
     it("players withdraw from contract", async () => {
       // starts from 2, since player1 (loser), requested an early withdraw and player 2 withdrew after the last segment
-      for (let i = 2; i < players.length - 1; i++) {
+      for (let i = 0; i < players.length; i++) {
         const player = players[i];
         let mobiRewardBalanceBefore = web3.utils.toBN(0);
         let mobiRewardBalanceAfter = web3.utils.toBN(0);
@@ -198,16 +188,15 @@ contract("Variable Deposit Pool with Mobius Strategy with no winners", accounts 
         const playerInfo = await goodGhosting.players(player);
         const netAmountPaid = playerInfo.netAmountPaid;
 
-        let result;
         // to avoid tx revert due to slippage passing in 0
-        result = await goodGhosting.withdraw(0, { from: player });
+        await goodGhosting.withdraw(0, { from: player });
         mobiRewardBalanceAfter = web3.utils.toBN(await mobi.methods.balanceOf(player).call({ from: admin }));
         celoRewardBalanceAfter = web3.utils.toBN(await celo.methods.balanceOf(player).call({ from: admin }));
 
         inboundBalanceAfter = web3.utils.toBN(await token.methods.balanceOf(player).call({ from: admin }));
         const difference = inboundBalanceAfter.sub(inboundBalanceBefore);
 
-        assert(difference.lte(netAmountPaid), "expected balance diff to be more than paid amount");
+        assert(difference.lte(netAmountPaid), "expected balance diff to be less than or equal to paid amount");
 
         assert(
           mobiRewardBalanceAfter.eq(mobiRewardBalanceBefore),
@@ -243,6 +232,13 @@ contract("Variable Deposit Pool with Mobius Strategy with no winners", accounts 
         await goodGhosting.adminFeeWithdraw(0, {
           from: admin,
         });
+
+        const inboundTokenPoolBalance = web3.utils.toBN(
+          await token.methods.balanceOf(goodGhosting.address).call({ from: admin }),
+        );
+
+        console.log(inboundTokenPoolBalance.toString());
+        assert(inboundTokenPoolBalance.eq(web3.utils.toBN(0)));
 
         mobiRewardBalanceAfter = web3.utils.toBN(await mobi.methods.balanceOf(admin).call({ from: admin }));
         celoRewardBalanceAfter = web3.utils.toBN(await celo.methods.balanceOf(admin).call({ from: admin }));
