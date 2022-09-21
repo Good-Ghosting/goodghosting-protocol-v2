@@ -88,7 +88,7 @@ In this scenario, `cumulativePlayerIndexSum` will be `7` and even though player2
 
 _Scenario 2: A Game with 2 players, 1 early withdrawal_
 
-There are 2 players in the game with only 1 deposit required. It's a flexible deposit pool, where player1 deposits 10 DAI and player2 deposits 100 DAI. Player1 deposits early than player2 (player1 deposit happens at time unit 5, while player2 deposit happens at time unit 20). However, player2 early withdraws (before the game ends).
+There are 2 players in the game with only 1 deposit required. It's a flexible deposit pool, where player1 deposits 10 DAI and player2 deposits 100 DAI. Player1 deposits earlier than player2 (player1 deposit happens at time unit 5, while player2 deposit happens at time unit 20). However, player2 early withdraws (before the game ends).
 
 ```
 player1Index = 10 / 5 = 2
@@ -98,9 +98,9 @@ player2Index = 100 / 20 = 5
 In this scenario, `cumulativePlayerIndexSum` will be `7`. The twist is that player2 early withdrew so `cumulativePlayerIndexSum` became `2`. This means that player 1 gets all the interest and rewards earned by the pool accrued during the deposit phase.
 
 **Accounting for the Waiting Round**
-For hodl pools, i.e where we have 1 deposit segment (1 month) and a longe waiting round(3 months). We need a different accounting mechanism to calculate the interest accrued in the waiting round.
+For hodl pools, i.e where we have 1 deposit segment (1 month) and a long waiting round(3 months). We need a different accounting mechanism to calculate the interest accrued in the waiting round.
 
-In V2 we have a new mapping `totalWinnerDepositsPerSegment[segment_no]` which keeps track of all winners deposit amounts. We also calculate the ratio of the waiting round duration vs. the total game duration, to determine the interest % that was generated during the waiting round.
+In V2 we have a new mapping `totalWinnerDepositsPerSegment[segment_no]` which keeps track of all winners' deposit amounts. We also calculate the ratio of the waiting round duration vs. the total game duration, to determine the interest % that was generated during the waiting round.
 
 The % of the winner interest share during the waiting round phase is calculated by:
 a) calculate how much the player's deposit amount represents compared to the total deposit amount of all winners:
@@ -109,7 +109,7 @@ a) calculate how much the player's deposit amount represents compared to the tot
 b) calculate interest amount for the winner earned during the waiting round:
 `total_interest * % of winner interest accrued during waiting round / 100`
 
-**Considering a example**
+**Considering an example**
 
 ```
 If there are 2 players who deposit 20 & 40 DAI each in a pool which is 1 week long.
@@ -126,7 +126,7 @@ Once we have the interest/incentive/reward accrued for both deposit & waiting ro
 
 ## Emergency Scenario
 
-By transferring funds to an external protocol pool (depending on the strategy used the pool) as part of the interest generation strategy, there's always a risk of funds being locked in the external protocol in case something happens or if the external protocol used by the ongoing pool migrates to a new contract in the middle of a game. To handle this scenario, the v2 smart contracts introduced a new function named [enableEmergencyWithdraw](https://github.com/Good-Ghosting/goodghosting-protocol-v2/blob/master/contracts/Pool.sol#L676) which can only be called by the contract deployer, a.k.a the admin.
+By transferring funds to an external protocol pool (depending on the strategy used in the pool) as part of the interest generation strategy, there's always a risk of funds being locked in the external protocol in case something happens or if the external protocol used by the ongoing pool migrates to a new contract in the middle of a game. To handle this scenario, the v2 smart contracts introduced a new function named [enableEmergencyWithdraw](https://github.com/Good-Ghosting/goodghosting-protocol-v2/blob/master/contracts/Pool.sol#L676) which can only be called by the contract deployer, a.k.a the admin.
 
 Once this function is called, it updates the last segment value to current segment and sets the emergency flag to `true` in the smart contract. Players who have deposited in the prev. segment, i.e `current segment - 1`, are all considered as winners and they can withdraw their funds immediately after the emergency flag is enabled.
 
@@ -145,7 +145,7 @@ In order to make the contracts modular, the contracts are divided into two types
 3. transfer strategy's contract ownership to the pool contract
 4. initialize the pool contract. At this moment, a validation is made to make sure the pool contract is the owner of the strategy. If not, the pool contract cannot be initialized.
 
-An in depth explanation of each contract is provided below.
+An in-depth explanation of each contract is provided below.
 
 <br/>
 
