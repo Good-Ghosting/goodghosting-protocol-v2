@@ -239,22 +239,22 @@ contract MobiusStrategy is Ownable, IStrategy {
             minter.mint(address(gauge));
         }
         if (_amount != 0) {
-        uint256 gaugeBalance = gauge.balanceOf(address(this));
-        // if (variableDeposits) {
-        uint256[] memory amounts = new uint256[](2);
-        amounts[0] = _amount;
-        uint256 poolWithdrawAmount = pool.calculateTokenAmount(address(this), amounts, true);
+            uint256 gaugeBalance = gauge.balanceOf(address(this));
+            // if (variableDeposits) {
+            uint256[] memory amounts = new uint256[](2);
+            amounts[0] = _amount;
+            uint256 poolWithdrawAmount = pool.calculateTokenAmount(address(this), amounts, true);
 
-        // safety check
-        // the amm mock contracts are common for all kinds of scenariuo's and it is not possible to mock this particular scenario, this is a very rare scenario to occur in production and hasn't been observed in the fork tests.
-        if (gaugeBalance < poolWithdrawAmount) {
-            poolWithdrawAmount = gaugeBalance;
-        }
+            // safety check
+            // the amm mock contracts are common for all kinds of scenariuo's and it is not possible to mock this particular scenario, this is a very rare scenario to occur in production and hasn't been observed in the fork tests.
+            if (gaugeBalance < poolWithdrawAmount) {
+                poolWithdrawAmount = gaugeBalance;
+            }
 
-        gauge.withdraw(poolWithdrawAmount, claimRewards);
-        lpToken.approve(address(pool), poolWithdrawAmount);
+            gauge.withdraw(poolWithdrawAmount, claimRewards);
+            lpToken.approve(address(pool), poolWithdrawAmount);
 
-        pool.removeLiquidityOneToken(poolWithdrawAmount, 0, _minAmount, block.timestamp + 1000);
+            pool.removeLiquidityOneToken(poolWithdrawAmount, 0, _minAmount, block.timestamp + 1000);
         }
 
         bool success = mobi.transfer(msg.sender, mobi.balanceOf(address(this)));

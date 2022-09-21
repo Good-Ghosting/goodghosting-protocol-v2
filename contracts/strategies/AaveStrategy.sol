@@ -225,18 +225,18 @@ contract AaveStrategy is Ownable, IStrategy {
         bool disableRewardTokenClaim
     ) external override onlyOwner {
         if (_amount != 0) {
-        // Withdraws funds (principal + interest + rewards) from external pool
-        if (_inboundCurrency == address(0) || _inboundCurrency == address(rewardToken)) {
-            aToken.approve(address(wethGateway), _amount);
-            
-            wethGateway.withdrawETH(address(lendingPool), _amount, address(this));
-            if (_inboundCurrency == address(rewardToken)) {
-                // Wraps MATIC back into WMATIC
-                WrappedToken(address(rewardToken)).deposit{ value: address(this).balance }();
+            // Withdraws funds (principal + interest + rewards) from external pool
+            if (_inboundCurrency == address(0) || _inboundCurrency == address(rewardToken)) {
+                aToken.approve(address(wethGateway), _amount);
+
+                wethGateway.withdrawETH(address(lendingPool), _amount, address(this));
+                if (_inboundCurrency == address(rewardToken)) {
+                    // Wraps MATIC back into WMATIC
+                    WrappedToken(address(rewardToken)).deposit{ value: address(this).balance }();
+                }
+            } else {
+                lendingPool.withdraw(_inboundCurrency, _amount, address(this));
             }
-        } else {
-            lendingPool.withdraw(_inboundCurrency, _amount, address(this));
-        }
         }
         if (!disableRewardTokenClaim) {
             // Claims the rewards from the external pool
