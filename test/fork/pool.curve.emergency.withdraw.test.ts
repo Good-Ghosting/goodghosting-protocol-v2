@@ -3,12 +3,12 @@ const CurveStrategy = artifacts.require("CurveStrategy");
 const timeMachine = require("ganache-time-traveler");
 const truffleAssert = require("truffle-assertions");
 const wmaticABI = require("../../artifacts/contracts/mock/MintableERC20.sol/MintableERC20.json");
-const curvePool = require("../../artifacts/contracts/curve/ICurvePool.sol/ICurvePool.json");
 const curveGauge = require("../../artifacts/contracts/curve/ICurveGauge.sol/ICurveGauge.json");
 const aavepoolABI = require("../../abi-external/curve-aave-pool-abi.json");
 const atricryptopoolABI = require("../../abi-external/curve-atricrypto-pool-abi.json");
 const configs = require("../../deploy.config");
 const providerConfig = require("../../providers.config");
+const maticpoolABI = require("../../abi-external/curve-matic-pool-abi.json");
 
 contract("Pool with Curve Strategy when admin enables early game completion", accounts => {
   // Only executes this test file for local network fork
@@ -22,10 +22,14 @@ contract("Pool with Curve Strategy when admin enables early game completion", ac
   if (configs.deployConfigs.strategy === "polygon-curve-aave") {
     GoodGhostingArtifact = Pool;
     providersConfigs = providerConfig.providers["polygon"].strategies["polygon-curve-aave"];
-  } else {
+  } else if (configs.deployConfigs.strategy === "polygon-curve-atricrypto") {
     GoodGhostingArtifact = Pool;
     providersConfigs = providerConfig.providers["polygon"].strategies["polygon-curve-atricrypto"];
+  } else {
+    GoodGhostingArtifact = Pool;
+    providersConfigs = providerConfig.providers["polygon"].strategies["polygon-curve-stmatic-matic"];
   }
+
   const {
     depositCount,
     segmentLength,
@@ -37,6 +41,7 @@ contract("Pool with Curve Strategy when admin enables early game completion", ac
   let pool: any;
   let gaugeToken: any;
   let curveStrategy: any;
+  let tokenIndex: any;
   let admin = accounts[0];
   const players = accounts.slice(1, 6); // 5 players
   const daiDecimals = web3.utils.toBN(1000000000000000000);
@@ -45,37 +50,55 @@ contract("Pool with Curve Strategy when admin enables early game completion", ac
 
   describe("simulates a full game with 5 players and 4 of them winning the game and with admin fee % as 0", async () => {
     it("initializes contract instances and transfers Inbound Token to players", async () => {
-      pool = new web3.eth.Contract(curvePool.abi, providersConfigs.pool);
       if (providersConfigs.poolType == 0) {
         pool = new web3.eth.Contract(aavepoolABI, providersConfigs.pool);
-      } else {
+      } else if (providersConfigs.poolType == 1) {
         pool = new web3.eth.Contract(atricryptopoolABI, providersConfigs.pool);
+      } else {
+        pool = new web3.eth.Contract(maticpoolABI, providersConfigs.pool);
       }
       token = new web3.eth.Contract(
-        wmaticABI.abi,
+        wmaticABI,
         providerConfig.providers["polygon"].tokens[configs.deployConfigs.inboundCurrencySymbol].address,
       );
-      curve = new web3.eth.Contract(wmaticABI.abi, providerConfig.providers["polygon"].tokens["curve"].address);
-      wmatic = new web3.eth.Contract(wmaticABI.abi, providerConfig.providers["polygon"].tokens["wmatic"].address);
+      if (configs.deployConfigs.strategy === "polygon-curve-stmatic-matic") {
+        curve = new web3.eth.Contract(wmaticABI, providerConfig.providers["polygon"].tokens["ldo"].address);
+      } else {
+        curve = new web3.eth.Contract(wmaticABI, providerConfig.providers["polygon"].tokens["curve"].address);
+      }
+      wmatic = new web3.eth.Contract(wmaticABI, providerConfig.providers["polygon"].tokens["wmatic"].address);
 
       goodGhosting = await GoodGhostingArtifact.deployed();
       curveStrategy = await CurveStrategy.deployed();
+      tokenIndex = await curveStrategy.inboundTokenIndex();
+      tokenIndex = tokenIndex.toString();
       gaugeToken = new web3.eth.Contract(curveGauge.abi, providersConfigs.gauge);
 
-      const unlockedBalance = await token.methods.balanceOf(unlockedDaiAccount).call({ from: admin });
-      const daiAmount = segmentPayment.mul(web3.utils.toBN(depositCount)).toString();
-      console.log("unlockedBalance: ", web3.utils.fromWei(unlockedBalance));
-      console.log("daiAmountToTransfer", web3.utils.fromWei(daiAmount));
-      for (let i = 0; i < players.length; i++) {
-        const player = players[i];
-        let transferAmount = daiAmount;
-        if (i === 2) {
-          // Player 2 needs additional funds
-          transferAmount = web3.utils.toBN(daiAmount).add(segmentPayment).mul(web3.utils.toBN(6)).toString();
+      if (configs.deployConfigs.strategy !== "polygon-curve-stmatic-matic") {
+        const unlockedBalance = await token.methods.balanceOf(unlockedDaiAccount).call({ from: admin });
+        const daiAmount = segmentPayment.mul(web3.utils.toBN(depositCount)).toString();
+        console.log("unlockedBalance: ", web3.utils.fromWei(unlockedBalance));
+        console.log("daiAmountToTransfer", web3.utils.fromWei(daiAmount));
+        for (let i = 0; i < players.length; i++) {
+          const player = players[i];
+          let transferAmount = daiAmount;
+          if (i === 1) {
+            // Player 1 needs additional funds to rejoin
+            transferAmount = web3.utils.toBN(daiAmount).add(segmentPayment).toString();
+          }
+          await token.methods.transfer(player, transferAmount).send({ from: unlockedDaiAccount });
+          const playerBalance = await token.methods.balanceOf(player).call({ from: admin });
+          console.log(`player${i + 1}DAIBalance`, web3.utils.fromWei(playerBalance));
         }
-        await token.methods.transfer(player, transferAmount).send({ from: unlockedDaiAccount });
-        const playerBalance = await token.methods.balanceOf(player).call({ from: admin });
-        console.log(`player${i + 1}DAIBalance`, web3.utils.fromWei(playerBalance));
+      } else {
+        const daiAmount = segmentPayment.mul(web3.utils.toBN(depositCount * 3)).toString();
+
+        for (let i = 0; i < players.length; i++) {
+          const player = players[i];
+          await token.methods.deposit().send({ from: player, value: daiAmount });
+          const playerBalance = await token.methods.balanceOf(player).call({ from: admin });
+          console.log(`player${i + 1}DAIBalance`, web3.utils.fromWei(playerBalance));
+        }
       }
     });
 
@@ -94,10 +117,12 @@ contract("Pool with Curve Strategy when admin enables early game completion", ac
 
         if (providersConfigs.poolType == 0) {
           slippageFromContract = await pool.methods.calc_token_amount([segmentPayment.toString(), 0, 0], true).call();
-        } else {
+        } else if (providersConfigs.poolType == 1) {
           slippageFromContract = await pool.methods
             .calc_token_amount([segmentPayment.toString(), 0, 0, 0, 0], true)
             .call();
+        } else {
+          slippageFromContract = await pool.methods.calc_token_amount([0, segmentPayment.toString()]).call();
         }
 
         minAmountWithFees =
@@ -131,8 +156,10 @@ contract("Pool with Curve Strategy when admin enables early game completion", ac
 
           if (providersConfigs.poolType == 0) {
             lpTokenAmount = await pool.methods.calc_token_amount([withdrawAmount.toString(), 0, 0], true).call();
-          } else {
+          } else if (providersConfigs.poolType == 1) {
             lpTokenAmount = await pool.methods.calc_token_amount([withdrawAmount.toString(), 0, 0, 0, 0], true).call();
+          } else {
+            lpTokenAmount = await pool.methods.calc_token_amount([0, segmentPayment.toString()]).call();
           }
 
           const gaugeTokenBalance = await gaugeToken.methods.balanceOf(curveStrategy.address).call();
@@ -197,8 +224,7 @@ contract("Pool with Curve Strategy when admin enables early game completion", ac
       const playerInfoForSmallDepositPlayer = await goodGhosting.players(players[3]);
       const netAmountPaidForSmallDepositPlayer = playerInfoForSmallDepositPlayer.netAmountPaid;
 
-      // starts from 2, since player1 (loser), requested an early withdraw and player 2 withdrew after the last segment
-      for (let i = 2; i < players.length - 1; i++) {
+      for (let i = 0; i < players.length; i++) {
         const player = players[i];
         let curveRewardBalanceBefore = web3.utils.toBN(0);
         let curveRewardBalanceAfter = web3.utils.toBN(0);
