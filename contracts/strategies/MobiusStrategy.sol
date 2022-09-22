@@ -275,6 +275,7 @@ contract MobiusStrategy is Ownable, IStrategy {
                 claimRewards = false;
             } else {
                 if (address(minter) != address(0)) {
+                    // fetch rewards
                     minter.mint(address(gauge));
                 }
             }
@@ -322,6 +323,7 @@ contract MobiusStrategy is Ownable, IStrategy {
         uint256 additionalAmount = 0;
         if (!disableRewardTokenClaim) {
             if (address(gauge) != address(0)) {
+                // fetches claimable reward amounts
                 amount = gauge.claimable_reward(address(this), address(celo));
                 additionalAmount = gauge.claimable_tokens(address(this));
             }
