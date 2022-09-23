@@ -393,7 +393,9 @@ contract CurveStrategy is Ownable, IStrategy {
         // not checking for validity of deposit token here since with pool contract as the owner of the strategy the only way to transfer pool funds is by invest method so the check there is sufficient
         if (!disableRewardTokenClaim) {
             gauge.claim_rewards();
-            gaugeMinter.mint(address(gauge));
+            if (address(gaugeMinter) != address(0)) {
+                gaugeMinter.mint(address(gauge));
+            }
         }
         uint256 gaugeBalance = gauge.balanceOf(address(this));
         if (poolType == AAVE_POOL) {
