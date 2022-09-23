@@ -39,16 +39,19 @@ exports.providers = {
         pool: "0x445FE580eF8d70FF569aB36e80c647af338db351",
         gauge: "0x19793B454D3AfC7b454F206Ffe95aDE26cA6912c",
         poolType: 0, // Aave Pool
+        gaugeMinter: "0xabC000d88f23Bb45525E447528DBF656A9D55bf5",
       },
       "polygon-curve-atricrypto": {
         pool: "0x1d8b86e3d88cdb2d34688e87e72f388cb541b7c8",
         gauge: "0x3b6b158a76fd8ccc297538f454ce7b4787778c7c",
         poolType: 1, // Atricrypto Pool
+        gaugeMinter: "0xabC000d88f23Bb45525E447528DBF656A9D55bf5",
       },
       "polygon-curve-stmatic-matic": {
         pool: "0xfb6fe7802ba9290ef8b00ca16af4bc26eb663a28",
         gauge: "0x9633e0749faa6ec6d992265368b88698d6a93ac0",
         poolType: 2, // Stmatic-Matic Pool
+        gaugeMinter: "0x0000000000000000000000000000000000000000",
       },
       //"no-external-strategy": {}, // REWARD TOKENS MUST BE CONFIGURED IN `deploy.configs.js` file
     },
