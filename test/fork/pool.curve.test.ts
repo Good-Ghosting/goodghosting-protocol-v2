@@ -208,7 +208,7 @@ contract("Pool with Curve Strategy", accounts => {
       for (let segmentIndex = 1; segmentIndex < depositCount; segmentIndex++) {
         await timeMachine.advanceTime(segmentLength);
         // j must start at 1 - Player1 (index 0) early withdraws after everyone else deposits, so won't continue making deposits
-        for (let j = 1; j < players.length - 1; j++) {
+        for (let j = 1; j < players.length; j++) {
           const player = players[j];
           let slippageFromContract;
           const userProvidedMinAmount = segmentPayment.sub(
@@ -322,8 +322,8 @@ contract("Pool with Curve Strategy", accounts => {
 
       const winnerCountAfterEarlyWithdraw = await goodGhosting.winnerCount();
 
-      assert(winnerCountBeforeEarlyWithdraw.eq(web3.utils.toBN(3)));
-      assert(winnerCountAfterEarlyWithdraw.eq(web3.utils.toBN(2)));
+      assert(winnerCountBeforeEarlyWithdraw.eq(web3.utils.toBN(4)));
+      assert(winnerCountAfterEarlyWithdraw.eq(web3.utils.toBN(3)));
       await timeMachine.advanceTime(segmentLength);
       const waitingRoundLength = await goodGhosting.waitingRoundSegmentLength();
       await timeMachine.advanceTime(parseInt(waitingRoundLength.toString()));
@@ -344,20 +344,20 @@ contract("Pool with Curve Strategy", accounts => {
         const playerInfo = await goodGhosting.players(player);
         const netAmountPaid = playerInfo.netAmountPaid;
 
-        await goodGhosting.withdraw(playerInfo.netAmountPaid.toString(), { from: player });
+        await goodGhosting.withdraw(0, { from: player });
 
         let inboundTokenBalanceAfterRedeem = await token.methods.balanceOf(player).call();
         curveRewardBalanceAfter = web3.utils.toBN(await curve.methods.balanceOf(player).call({ from: admin }));
         wmaticRewardBalanceAfter = web3.utils.toBN(await wmatic.methods.balanceOf(player).call({ from: admin }));
 
         assert(
-          curveRewardBalanceAfter.gte(curveRewardBalanceBefore),
+          curveRewardBalanceAfter.gt(curveRewardBalanceBefore),
           "expected curve balance after withdrawal to be greater than before withdrawal",
         );
 
         // for some reason forking mainnet we don't get back wmatic rewards(wamtic rewards were stopped from curve's end IMO)
         assert(
-          wmaticRewardBalanceBefore.gte(wmaticRewardBalanceAfter),
+          wmaticRewardBalanceBefore.lte(wmaticRewardBalanceAfter),
           "expected wmatic balance after withdrawal to be equal to or less than before withdrawal",
         );
 
@@ -405,7 +405,7 @@ contract("Pool with Curve Strategy", accounts => {
         assert(inboundTokenPoolBalance.eq(web3.utils.toBN(0)));
 
         assert(
-          curveRewardBalanceAfter.gte(curveRewardBalanceBefore),
+          curveRewardBalanceAfter.gt(curveRewardBalanceBefore),
           "expected curve balance after withdrawal to be greater than before withdrawal",
         );
         // for some reason forking mainnet we don't get back wmatic rewards(wamtic rewards were stopped from curve's end IMO)

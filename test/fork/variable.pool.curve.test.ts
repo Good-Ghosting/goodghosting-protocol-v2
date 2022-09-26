@@ -383,14 +383,13 @@ contract("Variale Deposit Pool with Curve Strategy", accounts => {
         wmaticRewardBalanceBefore = web3.utils.toBN(await wmatic.methods.balanceOf(player).call({ from: admin }));
         const playerInfo = await goodGhosting.players(player);
 
-        let result;
-        result = await goodGhosting.withdraw(playerInfo.netAmountPaid.toString(), { from: player });
+        await goodGhosting.withdraw(playerInfo.netAmountPaid.toString(), { from: player });
 
         curveRewardBalanceAfter = web3.utils.toBN(await curve.methods.balanceOf(player).call({ from: admin }));
         wmaticRewardBalanceAfter = web3.utils.toBN(await wmatic.methods.balanceOf(player).call({ from: admin }));
 
         assert(
-          curveRewardBalanceAfter.gte(curveRewardBalanceBefore),
+          curveRewardBalanceAfter.gt(curveRewardBalanceBefore),
           "expected curve balance after withdrawal to be greater than before withdrawal",
         );
 
@@ -400,18 +399,6 @@ contract("Variale Deposit Pool with Curve Strategy", accounts => {
           "expected wmatic balance after withdrawal to be equal to or less than before withdrawal",
         );
       }
-
-      const inboundTokenPoolBalance = web3.utils.toBN(
-        await token.methods.balanceOf(goodGhosting.address).call({ from: admin }),
-      );
-
-      const curveRewardTokenPoolBalance = web3.utils.toBN(
-        await curve.methods.balanceOf(goodGhosting.address).call({ from: admin }),
-      );
-
-      const wmaticRewardTokenBalance = web3.utils.toBN(
-        await wmatic.methods.balanceOf(goodGhosting.address).call({ from: admin }),
-      );
 
       const largeDepositPlayerInboundTokenBalanceAfter = web3.utils.toBN(
         await token.methods.balanceOf(players[2]).call({ from: admin }),
@@ -481,14 +468,6 @@ contract("Variale Deposit Pool with Curve Strategy", accounts => {
           await token.methods.balanceOf(goodGhosting.address).call({ from: admin }),
         );
 
-        const curveRewardTokenPoolBalance = web3.utils.toBN(
-          await curve.methods.balanceOf(goodGhosting.address).call({ from: admin }),
-        );
-
-        const wmaticRewardTokenBalance = web3.utils.toBN(
-          await wmatic.methods.balanceOf(goodGhosting.address).call({ from: admin }),
-        );
-
         inboundTokenBalanceAfter = web3.utils.toBN(await token.methods.balanceOf(admin).call({ from: admin }));
         curveRewardBalanceAfter = web3.utils.toBN(await curve.methods.balanceOf(admin).call({ from: admin }));
         wmaticRewardBalanceAfter = web3.utils.toBN(await wmatic.methods.balanceOf(admin).call({ from: admin }));
@@ -496,7 +475,7 @@ contract("Variale Deposit Pool with Curve Strategy", accounts => {
         assert(inboundTokenBalanceAfter.gt(inboundTokenBalanceBefore));
 
         assert(
-          curveRewardBalanceAfter.gte(curveRewardBalanceBefore),
+          curveRewardBalanceAfter.gt(curveRewardBalanceBefore),
           "expected curve balance after withdrawal to be greater than before withdrawal",
         );
         // for some reason forking mainnet we don't get back wmatic rewards(wamtic rewards were stopped from curve's end IMO)
@@ -505,8 +484,6 @@ contract("Variale Deposit Pool with Curve Strategy", accounts => {
           "expected wmatic balance after withdrawal to be equal to or greater than before withdrawal",
         );
         assert(inboundTokenPoolBalance.eq(web3.utils.toBN(0)));
-        // assert(curveRewardTokenPoolBalance.eq(web3.utils.toBN(0)));
-        // assert(wmaticRewardTokenBalance.eq(web3.utils.toBN(0)));
       }
     });
   });

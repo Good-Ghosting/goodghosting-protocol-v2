@@ -215,7 +215,7 @@ contract("Deposit Pool with Curve Strategy with no winners", accounts => {
         const playerInfo = await goodGhosting.players(player);
         const netAmountPaid = playerInfo.netAmountPaid;
 
-        await goodGhosting.withdraw(playerInfo.netAmountPaid.toString(), { from: player });
+        await goodGhosting.withdraw("0", { from: player });
 
         let inboundTokenBalanceAfterRedeem = await token.methods.balanceOf(player).call();
         curveRewardBalanceAfter = web3.utils.toBN(await curve.methods.balanceOf(player).call({ from: admin }));
@@ -228,7 +228,7 @@ contract("Deposit Pool with Curve Strategy with no winners", accounts => {
 
         // for some reason forking mainnet we don't get back wmatic rewards(wamtic rewards were stopped from curve's end IMO)
         assert(
-          wmaticRewardBalanceBefore.eq(wmaticRewardBalanceAfter),
+          wmaticRewardBalanceBefore.lte(wmaticRewardBalanceAfter),
           "expected wmatic balance after withdrawal to be equal to or less than before withdrawal",
         );
 
@@ -277,7 +277,7 @@ contract("Deposit Pool with Curve Strategy with no winners", accounts => {
         wmaticRewardBalanceAfter = web3.utils.toBN(await wmatic.methods.balanceOf(admin).call({ from: admin }));
 
         assert(
-          curveRewardBalanceAfter.gte(curveRewardBalanceBefore),
+          curveRewardBalanceAfter.gt(curveRewardBalanceBefore),
           "expected curve balance after withdrawal to be greater than before withdrawal",
         );
         // for some reason forking mainnet we don't get back wmatic rewards(wamtic rewards were stopped from curve's end IMO)
@@ -287,8 +287,6 @@ contract("Deposit Pool with Curve Strategy with no winners", accounts => {
         );
 
         assert(inboundTokenPoolBalance.eq(web3.utils.toBN(0)));
-        assert(curveRewardTokenPoolBalance.eq(web3.utils.toBN(0)));
-        assert(wmaticRewardTokenBalance.eq(web3.utils.toBN(0)));
       }
     });
   });

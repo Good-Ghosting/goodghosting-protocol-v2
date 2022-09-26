@@ -218,13 +218,13 @@ contract("Pool with Curve Strategy when admin enables early game completion", ac
         wmaticRewardBalanceAfter = web3.utils.toBN(await wmatic.methods.balanceOf(player).call({ from: admin }));
 
         assert(
-          curveRewardBalanceAfter.gte(curveRewardBalanceBefore),
+          curveRewardBalanceAfter.gt(curveRewardBalanceBefore),
           "expected curve balance after withdrawal to be greater than before withdrawal",
         );
 
         // for some reason forking mainnet we don't get back wmatic rewards(wamtic rewards were stopped from curve's end IMO)
         assert(
-          wmaticRewardBalanceBefore.gte(wmaticRewardBalanceAfter),
+          wmaticRewardBalanceBefore.lte(wmaticRewardBalanceAfter),
           "expected wmatic balance after withdrawal to be equal to or less than before withdrawal",
         );
 
@@ -271,7 +271,7 @@ contract("Pool with Curve Strategy when admin enables early game completion", ac
         assert(inboundTokenBalanceAfter.gt(inboundTokenBalanceBefore));
 
         assert(
-          curveRewardBalanceAfter.gte(curveRewardBalanceBefore),
+          curveRewardBalanceAfter.gt(curveRewardBalanceBefore),
           "expected curve balance after withdrawal to be greater than before withdrawal",
         );
         // for some reason forking mainnet we don't get back wmatic rewards(wamtic rewards were stopped from curve's end IMO)
