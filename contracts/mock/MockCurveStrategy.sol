@@ -25,7 +25,7 @@ contract MockCurveStrategy is CurveStrategy {
             gaugeBalance = 400000000000000;
         }
         uint256 totalAccumulatedAmount = 0;
-        if (poolType == AAVE_POOL) {
+        if (poolType == LENDING_POOL) {
             totalAccumulatedAmount = pool.calc_withdraw_one_coin(gaugeBalance, inboundTokenIndex);
         } else {
             totalAccumulatedAmount = pool.calc_withdraw_one_coin(gaugeBalance, uint256(uint128(inboundTokenIndex)));

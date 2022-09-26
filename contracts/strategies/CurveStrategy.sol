@@ -57,17 +57,17 @@ contract CurveStrategy is Ownable, IStrategy {
     /// @notice total tokens in atricrypto pool
     uint64 public constant NUM_ATRI_CRYPTO_TOKENS = 5;
 
-    /// @notice total tokens in atricrypto pool
+    /// @notice total tokens in matic pool
     uint64 public constant NUM_MATIC_POOL_TOKENS = 2;
 
-    /// @notice identifies the "Aave Pool" Type
-    uint64 public constant AAVE_POOL = 0;
+    /// @notice identifies the "Lending Pool" Type
+    uint64 public constant LENDING_POOL = 0;
 
-    /// @notice identifies the "Atri Crypto Pool" Type
-    uint64 public constant ATRI_CRYPTO_POOL = 1;
+    /// @notice identifies the "Curve Deposit Zap" Type
+    uint64 public constant DEPOSIT_ZAP = 1;
 
-    /// @notice identifies the "Atri Crypto Pool" Type
-    uint64 public constant MATIC_POOL = 2;
+    /// @notice identifies the "Generic Pool" Type
+    uint64 public constant GENERIC_POOL = 2;
 
     /// @notice curve lp token
     IERC20 public lpToken;
@@ -94,15 +94,14 @@ contract CurveStrategy is Ownable, IStrategy {
         uint256 gaugeBalance = gauge.balanceOf(address(this));
         if (gaugeBalance != 0) {
             uint256 totalAccumulatedAmount = 0;
-            if (poolType == AAVE_POOL) {
+            if (poolType == LENDING_POOL) {
                 totalAccumulatedAmount = pool.calc_withdraw_one_coin(gaugeBalance, inboundTokenIndex);
             } else {
                 totalAccumulatedAmount = pool.calc_withdraw_one_coin(gaugeBalance, uint256(uint128(inboundTokenIndex)));
             }
             return totalAccumulatedAmount;
-        } else {
-            return 0;
         }
+        return 0;
     }
 
     /** 
@@ -111,18 +110,18 @@ contract CurveStrategy is Ownable, IStrategy {
     @return net amount.
     */
     function getNetDepositAmount(uint256 _amount) external view override returns (uint256) {
-        if (poolType == AAVE_POOL) {
+        if (poolType == LENDING_POOL) {
             uint256[NUM_AAVE_TOKENS] memory amounts; // fixed-sized array is initialized w/ [0, 0, 0]
             amounts[uint256(uint128(inboundTokenIndex))] = _amount;
             uint256 poolWithdrawAmount = pool.calc_token_amount(amounts, true);
             return pool.calc_withdraw_one_coin(poolWithdrawAmount, inboundTokenIndex);
-        } else if (poolType == ATRI_CRYPTO_POOL) {
+        } else if (poolType == DEPOSIT_ZAP) {
             uint256[NUM_ATRI_CRYPTO_TOKENS] memory amounts; // fixed-sized array is initialized w/ [0, 0, 0, 0, 0]
             amounts[uint256(uint128(inboundTokenIndex))] = _amount;
             uint256 poolWithdrawAmount = pool.calc_token_amount(amounts, true);
             return pool.calc_withdraw_one_coin(poolWithdrawAmount, uint256(uint128(inboundTokenIndex)));
         } else {
-            uint256[NUM_MATIC_POOL_TOKENS] memory amounts; // fixed-sized array is initialized w/ [0, 0, 0, 0, 0]
+            uint256[NUM_MATIC_POOL_TOKENS] memory amounts; // fixed-sized array is initialized w/ [0, 0]
             amounts[uint256(uint128(inboundTokenIndex))] = _amount;
             uint256 poolWithdrawAmount = pool.calc_token_amount(amounts);
             return pool.calc_withdraw_one_coin(poolWithdrawAmount, uint256(uint128(inboundTokenIndex)));
@@ -136,8 +135,10 @@ contract CurveStrategy is Ownable, IStrategy {
     */
     // UPDATE - A4 Audit Report
     function getUnderlyingAsset() external view override returns (address) {
-        if (poolType == MATIC_POOL) return pool.coins(uint256(uint128(inboundTokenIndex)));
-        else return pool.underlying_coins(uint256(uint128(inboundTokenIndex)));
+        if (poolType == GENERIC_POOL) {
+            return pool.coins(uint256(uint128(inboundTokenIndex)));
+        }
+        return pool.underlying_coins(uint256(uint128(inboundTokenIndex)));
     }
 
     /** 
@@ -156,16 +157,16 @@ contract CurveStrategy is Ownable, IStrategy {
     Returns the lp token amount received (for amm strategies)
     */
     function getLPTokenAmount(uint256 _amount) external view override returns (uint256) {
-        if (poolType == AAVE_POOL) {
+        if (poolType == LENDING_POOL) {
             uint256[NUM_AAVE_TOKENS] memory amounts; // fixed-sized array is initialized w/ [0, 0, 0]
             amounts[uint256(uint128(inboundTokenIndex))] = _amount;
             return pool.calc_token_amount(amounts, true);
-        } else if (poolType == ATRI_CRYPTO_POOL) {
+        } else if (poolType == DEPOSIT_ZAP) {
             uint256[NUM_ATRI_CRYPTO_TOKENS] memory amounts; // fixed-sized array is initialized w/ [0, 0, 0, 0, 0]
             amounts[uint256(uint128(inboundTokenIndex))] = _amount;
             return pool.calc_token_amount(amounts, true);
         } else {
-            uint256[NUM_MATIC_POOL_TOKENS] memory amounts; // fixed-sized array is initialized w/ [0, 0, 0, 0, 0]
+            uint256[NUM_MATIC_POOL_TOKENS] memory amounts; // fixed-sized array is initialized w/ [0, 0]
             amounts[uint256(uint128(inboundTokenIndex))] = _amount;
             return pool.calc_token_amount(amounts);
         }
@@ -217,13 +218,13 @@ contract CurveStrategy is Ownable, IStrategy {
         inboundTokenIndex = _inboundTokenIndex;
         // wmatic in case of polygon and address(0) for non-polygon deployment
         rewardToken = _rewardToken;
-        if (_poolType == AAVE_POOL) {
+        if (_poolType == LENDING_POOL) {
             if (uint128(_inboundTokenIndex) >= NUM_AAVE_TOKENS) {
                 revert INVALID_INBOUND_TOKEN_INDEX();
             }
             lpToken = IERC20(_pool.lp_token());
         } else {
-            if (_poolType == ATRI_CRYPTO_POOL) {
+            if (_poolType == DEPOSIT_ZAP) {
                 if (uint128(_inboundTokenIndex) >= NUM_ATRI_CRYPTO_TOKENS) {
                     revert INVALID_INBOUND_TOKEN_INDEX();
                 }
@@ -248,14 +249,10 @@ contract CurveStrategy is Ownable, IStrategy {
         if (msg.value != 0) {
             revert CANNOT_ACCEPT_TRANSACTIONAL_TOKEN();
         }
-        if (poolType == MATIC_POOL) {
-            if (pool.coins(uint256(uint128(inboundTokenIndex))) != _inboundCurrency) {
-                revert INVALID_DEPOSIT_TOKEN();
-            }
-        } else {
-            if (pool.underlying_coins(uint256(uint128(inboundTokenIndex))) != _inboundCurrency) {
-                revert INVALID_DEPOSIT_TOKEN();
-            }
+        if (poolType == GENERIC_POOL && pool.coins(uint256(uint128(inboundTokenIndex))) != _inboundCurrency) {
+            revert INVALID_DEPOSIT_TOKEN();
+        } else if (pool.underlying_coins(uint256(uint128(inboundTokenIndex))) != _inboundCurrency) {
+            revert INVALID_DEPOSIT_TOKEN();
         }
 
         uint256 contractBalance = IERC20(_inboundCurrency).balanceOf(address(this));
@@ -268,16 +265,16 @@ contract CurveStrategy is Ownable, IStrategy {
             which will result in failure. This is due to the structure of how
             the curve contracts are written
         */
-        if (poolType == AAVE_POOL) {
+        if (poolType == LENDING_POOL) {
             uint256[NUM_AAVE_TOKENS] memory amounts; // fixed-sized array is initialized w/ [0, 0, 0]
             amounts[uint256(uint128(inboundTokenIndex))] = contractBalance;
             pool.add_liquidity(amounts, _minAmount, true);
-        } else if (poolType == ATRI_CRYPTO_POOL) {
+        } else if (poolType == DEPOSIT_ZAP) {
             uint256[NUM_ATRI_CRYPTO_TOKENS] memory amounts; // fixed-sized array is initialized w/ [0, 0, 0, 0, 0]
             amounts[uint256(uint128(inboundTokenIndex))] = contractBalance;
             pool.add_liquidity(amounts, _minAmount);
         } else {
-            uint256[NUM_MATIC_POOL_TOKENS] memory amounts; // fixed-sized array is initialized w/ [0, 0, 0, 0, 0]
+            uint256[NUM_MATIC_POOL_TOKENS] memory amounts; // fixed-sized array is initialized w/ [0, 0]
             amounts[uint256(uint128(inboundTokenIndex))] = contractBalance;
             pool.add_liquidity(amounts, _minAmount);
         }
@@ -300,7 +297,7 @@ contract CurveStrategy is Ownable, IStrategy {
     ) external override onlyOwner {
         // not checking for validity of deposit token here since with pool contract as the owner of the strategy the only way to transfer pool funds is by invest method so the check there is sufficient
         uint256 gaugeBalance = gauge.balanceOf(address(this));
-        if (poolType == AAVE_POOL) {
+        if (poolType == LENDING_POOL) {
             uint256[NUM_AAVE_TOKENS] memory amounts; // fixed-sized array is initialized w/ [0, 0, 0]
             amounts[uint256(uint128(inboundTokenIndex))] = _amount;
             uint256 poolWithdrawAmount = pool.calc_token_amount(amounts, true);
@@ -311,7 +308,6 @@ contract CurveStrategy is Ownable, IStrategy {
                 poolWithdrawAmount = gaugeBalance;
             }
 
-            // passes false not to claim rewards
             gauge.withdraw(poolWithdrawAmount);
 
             pool.remove_liquidity_one_coin(
@@ -320,7 +316,7 @@ contract CurveStrategy is Ownable, IStrategy {
                 _minAmount,
                 true // redeems underlying coin (dai, usdc, usdt), instead of aTokens
             );
-        } else if (poolType == ATRI_CRYPTO_POOL) {
+        } else if (poolType == DEPOSIT_ZAP) {
             uint256[NUM_ATRI_CRYPTO_TOKENS] memory amounts; // fixed-sized array is initialized w/ [0, 0, 0, 0, 0]
             amounts[uint256(uint128(inboundTokenIndex))] = _amount;
             uint256 poolWithdrawAmount = pool.calc_token_amount(amounts, true);
@@ -331,7 +327,6 @@ contract CurveStrategy is Ownable, IStrategy {
                 poolWithdrawAmount = gaugeBalance;
             }
 
-            // passes false not to claim rewards
             gauge.withdraw(poolWithdrawAmount);
             /*
                 Code of curve's aave and curve's atricrypto pools are completely different.
@@ -343,7 +338,7 @@ contract CurveStrategy is Ownable, IStrategy {
             lpToken.approve(address(pool), poolWithdrawAmount);
             pool.remove_liquidity_one_coin(poolWithdrawAmount, uint256(uint128(inboundTokenIndex)), _minAmount);
         } else {
-            uint256[NUM_MATIC_POOL_TOKENS] memory amounts; // fixed-sized array is initialized w/ [0, 0, 0, 0, 0]
+            uint256[NUM_MATIC_POOL_TOKENS] memory amounts; // fixed-sized array is initialized w/ [0, 0]
             amounts[uint256(uint128(inboundTokenIndex))] = _amount;
             uint256 poolWithdrawAmount = pool.calc_token_amount(amounts);
 
@@ -353,7 +348,6 @@ contract CurveStrategy is Ownable, IStrategy {
                 poolWithdrawAmount = gaugeBalance;
             }
 
-            // passes false not to claim rewards
             gauge.withdraw(poolWithdrawAmount);
             /*
                 Code of curve's aave and curve's atricrypto pools are completely different.
@@ -392,13 +386,15 @@ contract CurveStrategy is Ownable, IStrategy {
     ) external override onlyOwner {
         // not checking for validity of deposit token here since with pool contract as the owner of the strategy the only way to transfer pool funds is by invest method so the check there is sufficient
         if (!disableRewardTokenClaim) {
+            // claim rewards
             gauge.claim_rewards();
             if (address(gaugeMinter) != address(0)) {
+                // gauge minter for getting rewards
                 gaugeMinter.mint(address(gauge));
             }
         }
         uint256 gaugeBalance = gauge.balanceOf(address(this));
-        if (poolType == AAVE_POOL) {
+        if (poolType == LENDING_POOL) {
             uint256[NUM_AAVE_TOKENS] memory amounts; // fixed-sized array is initialized w/ [0, 0, 0]
             amounts[uint256(uint128(inboundTokenIndex))] = _amount;
             uint256 poolWithdrawAmount = pool.calc_token_amount(amounts, true);
@@ -409,7 +405,6 @@ contract CurveStrategy is Ownable, IStrategy {
                 poolWithdrawAmount = gaugeBalance;
             }
 
-            // passes false not to claim rewards
             gauge.withdraw(poolWithdrawAmount);
 
             pool.remove_liquidity_one_coin(
@@ -418,7 +413,7 @@ contract CurveStrategy is Ownable, IStrategy {
                 _minAmount,
                 true // redeems underlying coin (dai, usdc, usdt), instead of aTokens
             );
-        } else if (poolType == ATRI_CRYPTO_POOL) {
+        } else if (poolType == DEPOSIT_ZAP) {
             uint256[NUM_ATRI_CRYPTO_TOKENS] memory amounts; // fixed-sized array is initialized w/ [0, 0, 0, 0, 0]
             amounts[uint256(uint128(inboundTokenIndex))] = _amount;
             uint256 poolWithdrawAmount = pool.calc_token_amount(amounts, true);
@@ -429,7 +424,6 @@ contract CurveStrategy is Ownable, IStrategy {
                 poolWithdrawAmount = gaugeBalance;
             }
 
-            // passes false not to claim rewards
             gauge.withdraw(poolWithdrawAmount);
             /*
                     Code of curve's aave and curve's atricrypto pools are completely different.
@@ -441,7 +435,7 @@ contract CurveStrategy is Ownable, IStrategy {
             lpToken.approve(address(pool), poolWithdrawAmount);
             pool.remove_liquidity_one_coin(poolWithdrawAmount, uint256(uint128(inboundTokenIndex)), _minAmount);
         } else {
-            uint256[NUM_MATIC_POOL_TOKENS] memory amounts; // fixed-sized array is initialized w/ [0, 0, 0, 0, 0]
+            uint256[NUM_MATIC_POOL_TOKENS] memory amounts; // fixed-sized array is initialized w/ [0, 0]
             amounts[uint256(uint128(inboundTokenIndex))] = _amount;
             uint256 poolWithdrawAmount = pool.calc_token_amount(amounts);
 
@@ -451,7 +445,6 @@ contract CurveStrategy is Ownable, IStrategy {
                 poolWithdrawAmount = gaugeBalance;
             }
 
-            // passes false not to claim rewards
             gauge.withdraw(poolWithdrawAmount);
             /*
                 Code of curve's aave and curve's atricrypto pools are completely different.
@@ -493,7 +486,7 @@ contract CurveStrategy is Ownable, IStrategy {
         uint256 amount = 0;
         uint256 additionalAmount = 0;
         if (!disableRewardTokenClaim) {
-            if (poolType == ATRI_CRYPTO_POOL || poolType == AAVE_POOL) {
+            if (poolType == DEPOSIT_ZAP || poolType == LENDING_POOL) {
                 amount = gauge.claimable_reward_write(address(this), address(rewardToken));
                 additionalAmount = gauge.claimable_reward_write(address(this), address(curve));
             } else {
