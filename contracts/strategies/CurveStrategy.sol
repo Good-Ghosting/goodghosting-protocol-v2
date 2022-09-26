@@ -234,7 +234,7 @@ contract CurveStrategy is Ownable, IStrategy {
         }
         if (poolType == GENERIC_POOL && pool.coins(uint256(uint128(inboundTokenIndex))) != _inboundCurrency) {
             revert INVALID_DEPOSIT_TOKEN();
-        } else if (pool.underlying_coins(uint256(uint128(inboundTokenIndex))) != _inboundCurrency) {
+        } else if ((poolType == DEPOSIT_ZAP || poolType == LENDING_POOL) && pool.underlying_coins(uint256(uint128(inboundTokenIndex))) != _inboundCurrency) {
             revert INVALID_DEPOSIT_TOKEN();
         }
 
@@ -483,7 +483,7 @@ contract CurveStrategy is Ownable, IStrategy {
                 }
             } else {
                 for (uint256 i = 0; i < rewardTokens.length; ) {
-                    amounts[i] = gauge.claimable_tokens(address(this));
+                    amounts[i] = gauge.claimable_reward(address(this), address(rewardTokens[i]));
                     unchecked {
                         ++i;
                     }
