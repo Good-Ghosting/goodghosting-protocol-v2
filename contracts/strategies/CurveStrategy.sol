@@ -190,7 +190,17 @@ contract CurveStrategy is Ownable, IStrategy {
         if (address(_gauge) == address(0)) {
             revert INVALID_GAUGE();
         }
-        if (_inboundTokenIndex < 0) {
+
+        if (_poolType > GENERIC_POOL) {
+            revert INVALID_POOL();
+        }
+
+        if (
+            (_inboundTokenIndex < 0)
+            || (_poolType == LENDING_POOL && uint128(_inboundTokenIndex) >= NUM_AAVE_TOKENS)
+            || (_poolType == DEPOSIT_ZAP && uint128(_inboundTokenIndex) >= NUM_ATRI_CRYPTO_TOKENS)
+            || (_poolType == GENERIC_POOL && uint128(_inboundTokenIndex) >= NUM_MATIC_POOL_TOKENS)
+        ) {
             revert INVALID_INBOUND_TOKEN_INDEX();
         }
 
@@ -202,21 +212,8 @@ contract CurveStrategy is Ownable, IStrategy {
         // wmatic in case of polygon and address(0) for non-polygon deployment
         rewardTokens = _rewardTokens;
         if (_poolType == LENDING_POOL) {
-            if (uint128(_inboundTokenIndex) >= NUM_AAVE_TOKENS) {
-                revert INVALID_INBOUND_TOKEN_INDEX();
-            }
             lpToken = IERC20(_pool.lp_token());
         } else {
-            if (_poolType == DEPOSIT_ZAP) {
-                if (uint128(_inboundTokenIndex) >= NUM_ATRI_CRYPTO_TOKENS) {
-                    revert INVALID_INBOUND_TOKEN_INDEX();
-                }
-            } else {
-                if (uint128(_inboundTokenIndex) >= NUM_MATIC_POOL_TOKENS) {
-                    revert INVALID_INBOUND_TOKEN_INDEX();
-                }
-            }
-
             lpToken = IERC20(_pool.token());
         }
     }
@@ -261,9 +258,11 @@ contract CurveStrategy is Ownable, IStrategy {
             amounts[uint256(uint128(inboundTokenIndex))] = contractBalance;
             pool.add_liquidity(amounts, _minAmount);
         }
-
-        lpToken.approve(address(gauge), lpToken.balanceOf(address(this)));
-        gauge.deposit(lpToken.balanceOf(address(this)));
+        
+        // avoid multiple SLOADS
+        IERC20 _lpToken = lpToken;
+        _lpToken.approve(address(gauge), _lpToken.balanceOf(address(this)));
+        gauge.deposit(_lpToken.balanceOf(address(this)));
     }
 
     /**
@@ -440,12 +439,14 @@ contract CurveStrategy is Ownable, IStrategy {
             pool.remove_liquidity_one_coin(poolWithdrawAmount, uint256(uint128(inboundTokenIndex)), _minAmount);
         }
 
-        for (uint256 i = 0; i < rewardTokens.length; ) {
+        // avoid multiple SLOADS
+        IERC20[] memory _rewardTokens = rewardTokens;
+        for (uint256 i = 0; i < _rewardTokens.length; ) {
             // safety check since funds don't get transferred to a extrnal protocol
-            if (IERC20(rewardTokens[i]).balanceOf(address(this)) != 0) {
-                bool success = IERC20(rewardTokens[i]).transfer(
+            if (IERC20(_rewardTokens[i]).balanceOf(address(this)) != 0) {
+                bool success = IERC20(_rewardTokens[i]).transfer(
                     msg.sender,
-                    IERC20(rewardTokens[i]).balanceOf(address(this))
+                    IERC20(_rewardTokens[i]).balanceOf(address(this))
                 );
                 if (!success) {
                     revert TOKEN_TRANSFER_FAILURE();
@@ -472,18 +473,20 @@ contract CurveStrategy is Ownable, IStrategy {
         override
         returns (uint256[] memory)
     {
-        uint256[] memory amounts = new uint256[](rewardTokens.length);
+        // avoid multiple SLOADS
+        IERC20[] memory _rewardTokens = rewardTokens;
+        uint256[] memory amounts = new uint256[](_rewardTokens.length);
         if (!disableRewardTokenClaim) {
             if (poolType == DEPOSIT_ZAP || poolType == LENDING_POOL) {
-                for (uint256 i = 0; i < rewardTokens.length; ) {
-                    amounts[i] = gauge.claimable_reward_write(address(this), address(rewardTokens[i]));
+                for (uint256 i = 0; i < _rewardTokens.length; ) {
+                    amounts[i] = gauge.claimable_reward_write(address(this), address(_rewardTokens[i]));
                     unchecked {
                         ++i;
                     }
                 }
             } else {
-                for (uint256 i = 0; i < rewardTokens.length; ) {
-                    amounts[i] = gauge.claimable_reward(address(this), address(rewardTokens[i]));
+                for (uint256 i = 0; i < _rewardTokens.length; ) {
+                    amounts[i] = gauge.claimable_reward(address(this), address(_rewardTokens[i]));
                     unchecked {
                         ++i;
                     }
