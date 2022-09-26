@@ -117,7 +117,7 @@ contract AaveStrategyV3 is Ownable, IStrategy {
     @notice
     Returns the lp token amount received (for amm strategies)
     */
-    function getLPTokenAmount(uint256 _amount) external view override returns (uint256) {
+    function getLPTokenAmount(uint256 _amount) external pure override returns (uint256) {
         return 0;
     }
 
