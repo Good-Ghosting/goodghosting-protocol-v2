@@ -149,9 +149,8 @@ module.exports = function (deployer, network, accounts) {
         tokenIndexMapping[config.deployConfigs.strategy][config.deployConfigs.inboundCurrencySymbol],
         strategyConfig.poolType,
         strategyConfig.gauge,
-        providerConfig.providers["polygon"].tokens["wmatic"].address,
-        providerConfig.providers["polygon"].tokens["ldo"].address,
         strategyConfig.gaugeMinter,
+        config.deployConfigs.rewardTokens,
       ];
     }
     const deploymentResult = {};
@@ -355,19 +354,15 @@ module.exports = function (deployer, network, accounts) {
       deploymentResult.strategyTokenIndex =
         tokenIndexMapping[config.deployConfigs.strategy][config.deployConfigs.inboundCurrencySymbol];
       deploymentResult.strategyPoolType = strategyConfig.poolType;
-      deploymentResult.strategyRewardTokenAddress = providerConfig.providers["polygon"].tokens["wmatic"].address;
-      deploymentResult.strategyCurveTokenAddress = providerConfig.providers["polygon"].tokens["ldo"].address;
       deploymentResult.gaugeMinterAddress = strategyConfig.gaugeMinter;
-
-      var curveStrategyParameterTypes = ["address", "address", "uint", "uint", "address", "address", "address"];
+      var curveStrategyParameterTypes = ["address", "address", "uint", "uint", "address", "address[]"];
       var curveStrategyValues = [
         deploymentResult.curvePoolAddress,
         deploymentResult.curveGaugeAddress,
         deploymentResult.strategyTokenIndex,
         deploymentResult.strategyPoolType,
-        deploymentResult.strategyRewardTokenAddress,
-        deploymentResult.strategyCurveTokenAddress,
         deploymentResult.gaugeMinterAddress,
+        deploymentResult.rewardTokenAdddresses,
       ];
       deploymentResult.strategyEncodedParameters = abi
         .rawEncode(curveStrategyParameterTypes, curveStrategyValues)
