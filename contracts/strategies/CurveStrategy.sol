@@ -30,12 +30,6 @@ error TOKEN_TRANSFER_FAILURE();
   @author Francis Odisi & Viraz Malhotra.
 */
 contract CurveStrategy is Ownable, IStrategy {
-    /// @notice reward token address - i.e. wmatic in case of polygon deployment
-    IERC20 public immutable rewardToken;
-
-    /// @notice curve token
-    IERC20 public immutable curve;
-
     /// @notice gauge address
     ICurveGauge public immutable gauge;
 
@@ -71,6 +65,9 @@ contract CurveStrategy is Ownable, IStrategy {
 
     /// @notice curve lp token
     IERC20 public lpToken;
+
+    /// @notice reward token address
+    IERC20[] public rewardTokens;
 
     //*********************************************************************//
     // ------------------------- external views -------------------------- //
@@ -143,13 +140,10 @@ contract CurveStrategy is Ownable, IStrategy {
 
     /** 
     @notice
-    Returns the instance of the reward tokens
+    Returns the instances of the reward tokens
     */
     function getRewardTokens() external view override returns (IERC20[] memory) {
-        IERC20[] memory tokens = new IERC20[](2);
-        tokens[0] = curve;
-        tokens[1] = rewardToken;
-        return tokens;
+        return rewardTokens;
     }
 
     /** 
@@ -181,17 +175,14 @@ contract CurveStrategy is Ownable, IStrategy {
     @param _inboundTokenIndex Deposit token index in the pool.
     @param _poolType Pool type to diffrentiate b/w the pools.
     @param _gauge Curve Gauge Contract used to stake lp tokens.
-    @param _rewardToken A contract which acts as the reward token for this strategy.
-    @param _curve Curve Contract.
   */
     constructor(
         ICurvePool _pool,
         int128 _inboundTokenIndex,
         uint64 _poolType,
         ICurveGauge _gauge,
-        IERC20 _rewardToken,
-        IERC20 _curve,
-        ICurveMinter _gaugeMinter
+        ICurveMinter _gaugeMinter,
+        IERC20[] memory _rewardTokens
     ) {
         if (address(_pool) == address(0)) {
             revert INVALID_POOL();
@@ -199,13 +190,6 @@ contract CurveStrategy is Ownable, IStrategy {
         if (address(_gauge) == address(0)) {
             revert INVALID_GAUGE();
         }
-        if (address(_curve) == address(0)) {
-            revert INVALID_CURVE_TOKEN();
-        }
-        if (address(_rewardToken) == address(0)) {
-            revert INVALID_REWARD_TOKEN();
-        }
-
         if (_inboundTokenIndex < 0) {
             revert INVALID_INBOUND_TOKEN_INDEX();
         }
@@ -213,11 +197,10 @@ contract CurveStrategy is Ownable, IStrategy {
         pool = _pool;
         gauge = _gauge;
         gaugeMinter = _gaugeMinter;
-        curve = _curve;
         poolType = _poolType;
         inboundTokenIndex = _inboundTokenIndex;
         // wmatic in case of polygon and address(0) for non-polygon deployment
-        rewardToken = _rewardToken;
+        rewardTokens = _rewardTokens;
         if (_poolType == LENDING_POOL) {
             if (uint128(_inboundTokenIndex) >= NUM_AAVE_TOKENS) {
                 revert INVALID_INBOUND_TOKEN_INDEX();
@@ -457,16 +440,22 @@ contract CurveStrategy is Ownable, IStrategy {
             pool.remove_liquidity_one_coin(poolWithdrawAmount, uint256(uint128(inboundTokenIndex)), _minAmount);
         }
 
-        bool success = rewardToken.transfer(msg.sender, rewardToken.balanceOf(address(this)));
-        if (!success) {
-            revert TOKEN_TRANSFER_FAILURE();
+        for (uint256 i = 0; i < rewardTokens.length; ) {
+            // safety check since funds don't get transferred to a extrnal protocol
+            if (IERC20(rewardTokens[i]).balanceOf(address(this)) != 0) {
+                bool success = IERC20(rewardTokens[i]).transfer(
+                    msg.sender,
+                    IERC20(rewardTokens[i]).balanceOf(address(this))
+                );
+                if (!success) {
+                    revert TOKEN_TRANSFER_FAILURE();
+                }
+            }
+            unchecked {
+                ++i;
+            }
         }
-        success = curve.transfer(msg.sender, curve.balanceOf(address(this)));
-        if (!success) {
-            revert TOKEN_TRANSFER_FAILURE();
-        }
-
-        success = IERC20(_inboundCurrency).transfer(msg.sender, IERC20(_inboundCurrency).balanceOf(address(this)));
+        bool success = IERC20(_inboundCurrency).transfer(msg.sender, IERC20(_inboundCurrency).balanceOf(address(this)));
         if (!success) {
             revert TOKEN_TRANSFER_FAILURE();
         }
@@ -483,19 +472,24 @@ contract CurveStrategy is Ownable, IStrategy {
         override
         returns (uint256[] memory)
     {
-        uint256 amount = 0;
-        uint256 additionalAmount = 0;
+        uint256[] memory amounts = new uint256[](rewardTokens.length);
         if (!disableRewardTokenClaim) {
             if (poolType == DEPOSIT_ZAP || poolType == LENDING_POOL) {
-                amount = gauge.claimable_reward_write(address(this), address(rewardToken));
-                additionalAmount = gauge.claimable_reward_write(address(this), address(curve));
+                for (uint256 i = 0; i < rewardTokens.length; ) {
+                    amounts[i] = gauge.claimable_reward_write(address(this), address(rewardTokens[i]));
+                    unchecked {
+                        ++i;
+                    }
+                }
             } else {
-                amount = gauge.claimable_tokens(address(this));
+                for (uint256 i = 0; i < rewardTokens.length; ) {
+                    amounts[i] = gauge.claimable_tokens(address(this));
+                    unchecked {
+                        ++i;
+                    }
+                }
             }
         }
-        uint256[] memory amounts = new uint256[](2);
-        amounts[0] = amount;
-        amounts[1] = additionalAmount;
         return amounts;
     }
 }
