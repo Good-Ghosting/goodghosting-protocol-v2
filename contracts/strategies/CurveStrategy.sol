@@ -479,7 +479,7 @@ contract CurveStrategy is Ownable, IStrategy {
         if (!disableRewardTokenClaim) {
             if (poolType == DEPOSIT_ZAP || poolType == LENDING_POOL) {
                 for (uint256 i = 0; i < _rewardTokens.length; ) {
-                    amounts[i] = gauge.claimable_reward_write(address(this), address(_rewardTokens[i]));
+                    amounts[i] = gauge.integrate_fraction(address(this)) - gaugeMinter.minted(address(this), address(gauge));
                     unchecked {
                         ++i;
                     }
