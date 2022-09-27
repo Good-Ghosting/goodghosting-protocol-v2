@@ -37,13 +37,13 @@ exports.providers = {
       },
       "polygon-curve-aave": {
         pool: "0x445FE580eF8d70FF569aB36e80c647af338db351",
-        gauge: "0x19793B454D3AfC7b454F206Ffe95aDE26cA6912c",
+        gauge: "0x20759F567BB3EcDB55c817c9a1d13076aB215EdC",
         poolType: 0, // Aave Pool
         gaugeMinter: "0xabC000d88f23Bb45525E447528DBF656A9D55bf5",
       },
       "polygon-curve-atricrypto": {
         pool: "0x1d8b86e3d88cdb2d34688e87e72f388cb541b7c8",
-        gauge: "0x3b6b158a76fd8ccc297538f454ce7b4787778c7c",
+        gauge: "0xBb1B19495B8FE7C402427479B9aC14886cbbaaeE",
         poolType: 1, // Atricrypto Pool
         gaugeMinter: "0xabC000d88f23Bb45525E447528DBF656A9D55bf5",
       },
