@@ -78,7 +78,7 @@ contract("Variale Deposit Pool with Curve Strategy with no winners", accounts =>
 
       if (configs.deployConfigs.strategy !== "polygon-curve-stmatic-matic") {
         const unlockedBalance = await token.methods.balanceOf(unlockedDaiAccount).call({ from: admin });
-        const daiAmount = segmentPayment.mul(web3.utils.toBN(depositCount)).toString();
+        const daiAmount = segmentPayment.mul(web3.utils.toBN(depositCount * 5)).toString();
         console.log("unlockedBalance: ", web3.utils.fromWei(unlockedBalance));
         console.log("daiAmountToTransfer", web3.utils.fromWei(daiAmount));
         for (let i = 0; i < players.length; i++) {
