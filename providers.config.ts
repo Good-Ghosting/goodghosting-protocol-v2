@@ -150,28 +150,24 @@ exports.providers = {
         pool: "0xF3f65dFe0c8c8f2986da0FEc159ABE6fd4E700B4",
         gauge: "0xE1f9D952EecC07cfEFa69df9fBB0cEF260957119",
         minter: "0x5F0200CA03196D5b817E2044a0Bb0D837e0A7823",
-        // we get the lp token from getLpToken method
         lpToken: "0x0000000000000000000000000000000000000000",
       },
       "mobius-cUSD-USDC": {
         pool: "0x9906589Ea8fd27504974b7e8201DF5bBdE986b03",
         gauge: "0xc96AeeaFF32129da934149F6134Aa7bf291a754E",
         minter: "0x5F0200CA03196D5b817E2044a0Bb0D837e0A7823",
-        // we get the lp token from getLpToken method
         lpToken: "0x0000000000000000000000000000000000000000",
       },
       "mobius-celo-stCelo": {
         pool: "0xEBf0536356256f8FF2a5Eb6C65800839801d8B95",
         gauge: "0x0000000000000000000000000000000000000000",
         minter: "0x0000000000000000000000000000000000000000",
-        // we get the lp token from getLpToken method
         lpToken: "0x4730ff6bC3008a40cf74D660D3f20d5b51646dA3",
       },
       "mobius-cusd-usdcet": {
         pool: "0xFa3df877F98ac5ecd87456a7AcCaa948462412f0",
         gauge: "0x0000000000000000000000000000000000000000",
         minter: "0x0000000000000000000000000000000000000000",
-        // we get the lp token from getLpToken method
         lpToken: "0x552b9AA0eEe500c60f09456e49FBc1096322714C",
       },
       //"no-external-strategy": {}, // REWARD TOKENS MUST BE CONFIGURED IN `deploy.configs.js` file

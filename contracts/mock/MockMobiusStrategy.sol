@@ -10,7 +10,7 @@ contract MockMobiusStrategy is MobiusStrategy {
         IERC20 _mobi,
         IERC20 _celo,
         IERC20 _lpToken,
-        uint256 _inboundTokenIndex
+        uint8 _inboundTokenIndex
     ) MobiusStrategy(_pool, _gauge, _minter, _mobi, _celo, _lpToken, _inboundTokenIndex) {}
 
     function getTotalAmount() external view override returns (uint256) {
