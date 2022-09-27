@@ -13,5 +13,7 @@ interface ICurveGauge {
 
     function claimable_reward(address _addr, address _token) external view returns (uint256);
 
+    function integrate_fraction(address arg0) external view returns (uint256);
+
     function claim_rewards() external;
 }
