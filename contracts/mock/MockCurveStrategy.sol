@@ -8,9 +8,9 @@ contract MockCurveStrategy is CurveStrategy {
         int128 _inboundTokenIndex,
         uint64 _poolType,
         ICurveGauge _gauge,
-        IERC20 _rewardToken,
-        IERC20 _curve
-    ) CurveStrategy(_pool, _inboundTokenIndex, _poolType, _gauge, _rewardToken, _curve) {}
+        ICurveMinter _gaugeMinter,
+        IERC20[] memory _rewardTokens
+    ) CurveStrategy(_pool, _inboundTokenIndex, _poolType, _gauge, _gaugeMinter, _rewardTokens) {}
 
     function getTotalAmount() external view override returns (uint256) {
         // this method mocks the strategy method to cover a scneario where the interest reduces but stays > 0
@@ -24,7 +24,7 @@ contract MockCurveStrategy is CurveStrategy {
             gaugeBalance = 400000000000000;
         }
         uint256 totalAccumulatedAmount = 0;
-        if (poolType == AAVE_POOL) {
+        if (poolType == LENDING_POOL) {
             totalAccumulatedAmount = pool.calc_withdraw_one_coin(gaugeBalance, inboundTokenIndex);
         } else {
             totalAccumulatedAmount = pool.calc_withdraw_one_coin(gaugeBalance, uint256(uint128(inboundTokenIndex)));
