@@ -144,8 +144,8 @@ contract("Deposit Pool with Mobius Strategy with no winners", accounts => {
           amounts[0] = "0";
           amounts[tokenIndex] = segmentPayment.toString();
         } else {
-          amounts[0] = segmentPayment.toString();
-          amounts[tokenIndex] = "0";
+          amounts[tokenIndex] = segmentPayment.toString();
+          amounts[1] = "0";
         }
 
         slippageFromContract = await pool.methods.calculateTokenAmount(mobiusStrategy.address, amounts, true).call();
@@ -181,8 +181,8 @@ contract("Deposit Pool with Mobius Strategy with no winners", accounts => {
             amounts[0] = "0";
             amounts[tokenIndex] = withdrawAmount.toString();
           } else {
-            amounts[0] = withdrawAmount.toString();
-            amounts[tokenIndex] = "0";
+            amounts[tokenIndex] = withdrawAmount.toString();
+            amounts[1] = "0";
           }
           lpTokenAmount = await pool.methods.calculateTokenAmount(mobiusStrategy.address, amounts, true).call();
 

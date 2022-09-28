@@ -148,8 +148,8 @@ contract("Pool with Mobius Strategy", accounts => {
           amounts[0] = "0";
           amounts[tokenIndex] = segmentPayment.toString();
         } else {
-          amounts[0] = segmentPayment.toString();
-          amounts[tokenIndex] = "0";
+          amounts[tokenIndex] = segmentPayment.toString();
+          amounts[1] = "0";
         }
 
         slippageFromContract = await pool.methods.calculateTokenAmount(mobiusStrategy.address, amounts, true).call();
@@ -174,8 +174,8 @@ contract("Pool with Mobius Strategy", accounts => {
             amounts[0] = "0";
             amounts[tokenIndex] = withdrawAmount.toString();
           } else {
-            amounts[0] = withdrawAmount.toString();
-            amounts[tokenIndex] = "0";
+            amounts[tokenIndex] = withdrawAmount.toString();
+            amounts[1] = "0";
           }
           lpTokenAmount = await pool.methods.calculateTokenAmount(mobiusStrategy.address, amounts, true).call();
 
@@ -249,8 +249,8 @@ contract("Pool with Mobius Strategy", accounts => {
             amounts[0] = "0";
             amounts[tokenIndex] = segmentPayment.toString();
           } else {
-            amounts[0] = segmentPayment.toString();
-            amounts[tokenIndex] = "0";
+            amounts[tokenIndex] = segmentPayment.toString();
+            amounts[1] = "0";
           }
           slippageFromContract = await pool.methods.calculateTokenAmount(mobiusStrategy.address, amounts, true).call();
 
@@ -287,8 +287,8 @@ contract("Pool with Mobius Strategy", accounts => {
             amounts[0] = "0";
             amounts[tokenIndex] = withdrawAmount.toString();
           } else {
-            amounts[0] = withdrawAmount.toString();
-            amounts[tokenIndex] = "0";
+            amounts[tokenIndex] = withdrawAmount.toString();
+            amounts[1] = "0";
           }
           let lpTokenAmount;
           lpTokenAmount = await pool.methods.calculateTokenAmount(mobiusStrategy.address, amounts, true).call();
@@ -334,8 +334,8 @@ contract("Pool with Mobius Strategy", accounts => {
         amounts[0] = "0";
         amounts[tokenIndex] = withdrawAmount.toString();
       } else {
-        amounts[0] = withdrawAmount.toString();
-        amounts[tokenIndex] = "0";
+        amounts[tokenIndex] = withdrawAmount.toString();
+        amounts[1] = "0";
       }
       let lpTokenAmount;
       lpTokenAmount = await pool.methods.calculateTokenAmount(mobiusStrategy.address, amounts, true).call();

@@ -134,8 +134,8 @@ contract("Pool with Mobius Strategy when admin enables early game completion", a
           amounts[0] = "0";
           amounts[tokenIndex] = segmentPayment.toString();
         } else {
-          amounts[0] = segmentPayment.toString();
-          amounts[tokenIndex] = "0";
+          amounts[tokenIndex] = segmentPayment.toString();
+          amounts[1] = "0";
         }
         slippageFromContract = await pool.methods.calculateTokenAmount(mobiusStrategy.address, amounts, true).call();
 
