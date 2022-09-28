@@ -136,9 +136,15 @@ contract("Variable Deposit Pool with Mobius Strategy when admin enables early ga
           segmentPayment.mul(web3.utils.toBN(userSlippageOptions[i].toString())).div(web3.utils.toBN(100)),
         );
 
-        slippageFromContract = await pool.methods
-          .calculateTokenAmount(mobiusStrategy.address, [segmentPayment.toString(), 0, 0], true)
-          .call();
+        let amounts = new Array(2);
+        if (configs.deployConfigs.strategy === "mobius-celo-stCelo") {
+          amounts[0] = "0";
+          amounts[tokenIndex] = segmentPayment.toString();
+        } else {
+          amounts[0] = segmentPayment.toString();
+          amounts[tokenIndex] = "0";
+        }
+        slippageFromContract = await pool.methods.calculateTokenAmount(mobiusStrategy.address, amounts, true).call();
 
         minAmountWithFees =
           parseInt(userProvidedMinAmount.toString()) > parseInt(slippageFromContract.toString())
@@ -179,10 +185,17 @@ contract("Variable Deposit Pool with Mobius Strategy when admin enables early ga
           const withdrawAmount = segmentPayment.sub(
             segmentPayment.mul(web3.utils.toBN(earlyWithdrawFee)).div(web3.utils.toBN(100)),
           );
+
+          let amounts = new Array(2);
+          if (configs.deployConfigs.strategy === "mobius-celo-stCelo") {
+            amounts[0] = "0";
+            amounts[tokenIndex] = withdrawAmount.toString();
+          } else {
+            amounts[0] = withdrawAmount.toString();
+            amounts[tokenIndex] = "0";
+          }
           let lpTokenAmount;
-          lpTokenAmount = await pool.methods
-            .calculateTokenAmount(mobiusStrategy.address, [withdrawAmount.toString(), 0, 0], true)
-            .call();
+          lpTokenAmount = await pool.methods.calculateTokenAmount(mobiusStrategy.address, amounts, true).call();
 
           if (gaugeToken) {
             const gaugeTokenBalance = await gaugeToken.methods.balanceOf(mobiusStrategy.address).call();
@@ -227,7 +240,7 @@ contract("Variable Deposit Pool with Mobius Strategy when admin enables early ga
 
     it("players withdraw from contract", async () => {
       // starts from 2, since player1 (loser), requested an early withdraw and player 2 withdrew after the last segment
-      for (let i = 0; i < players.length - 1; i++) {
+      for (let i = 0; i < players.length; i++) {
         const player = players[i];
         let mobiRewardBalanceBefore = web3.utils.toBN(0);
         let mobiRewardBalanceAfter = web3.utils.toBN(0);
@@ -256,7 +269,8 @@ contract("Variable Deposit Pool with Mobius Strategy when admin enables early ga
 
         if (
           configs.deployConfigs.strategy === "mobius-cUSD-DAI" &&
-          configs.deployConfigs.strategy === "mobius-cUSD-USDC"
+          configs.deployConfigs.strategy === "mobius-cUSD-USDC" &&
+          configs.deployConfigs.strategy === "mobius-cusd-usdcet"
         ) {
           assert(
             mobiRewardBalanceAfter.gt(mobiRewardBalanceBefore),
@@ -290,7 +304,8 @@ contract("Variable Deposit Pool with Mobius Strategy when admin enables early ga
 
         if (
           configs.deployConfigs.strategy === "mobius-cUSD-DAI" &&
-          configs.deployConfigs.strategy === "mobius-cUSD-USDC"
+          configs.deployConfigs.strategy === "mobius-cUSD-USDC" &&
+          configs.deployConfigs.strategy === "mobius-cusd-usdcet"
         ) {
           assert(
             mobiRewardBalanceAfter.gt(mobiRewardBalanceBefore),

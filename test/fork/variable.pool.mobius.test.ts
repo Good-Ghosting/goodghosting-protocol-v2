@@ -140,9 +140,15 @@ contract("Variable Deposit Pool with Mobius Strategy", accounts => {
           segmentPayment.mul(web3.utils.toBN(userSlippageOptions[i].toString())).div(web3.utils.toBN(100)),
         );
 
-        slippageFromContract = await pool.methods
-          .calculateTokenAmount(mobiusStrategy.address, [segmentPayment.toString(), 0, 0], true)
-          .call();
+        let amounts = new Array(2);
+        if (configs.deployConfigs.strategy === "mobius-celo-stCelo") {
+          amounts[0] = "0";
+          amounts[tokenIndex] = segmentPayment.toString();
+        } else {
+          amounts[0] = segmentPayment.toString();
+          amounts[tokenIndex] = "0";
+        }
+        slippageFromContract = await pool.methods.calculateTokenAmount(mobiusStrategy.address, amounts, true).call();
 
         minAmountWithFees =
           parseInt(userProvidedMinAmount.toString()) > parseInt(slippageFromContract.toString())
@@ -184,10 +190,17 @@ contract("Variable Deposit Pool with Mobius Strategy", accounts => {
           const withdrawAmount = segmentPayment.sub(
             segmentPayment.mul(web3.utils.toBN(earlyWithdrawFee)).div(web3.utils.toBN(100)),
           );
+
+          let amounts = new Array(2);
+          if (configs.deployConfigs.strategy === "mobius-celo-stCelo") {
+            amounts[0] = "0";
+            amounts[tokenIndex] = withdrawAmount.toString();
+          } else {
+            amounts[0] = withdrawAmount.toString();
+            amounts[tokenIndex] = "0";
+          }
           let lpTokenAmount;
-          lpTokenAmount = await pool.methods
-            .calculateTokenAmount(mobiusStrategy.address, [withdrawAmount.toString(), 0, 0], true)
-            .call();
+          lpTokenAmount = await pool.methods.calculateTokenAmount(mobiusStrategy.address, amounts, true).call();
 
           if (gaugeToken) {
             const gaugeTokenBalance = await gaugeToken.methods.balanceOf(mobiusStrategy.address).call();
@@ -230,15 +243,22 @@ contract("Variable Deposit Pool with Mobius Strategy", accounts => {
       for (let segmentIndex = 1; segmentIndex < depositCount; segmentIndex++) {
         await timeMachine.advanceTime(segmentLength);
         // j must start at 1 - Player1 (index 0) early withdraws after everyone else deposits, so won't continue making deposits
-        for (let j = 1; j < players.length - 1; j++) {
+        for (let j = 1; j < players.length; j++) {
           const player = players[j];
           let slippageFromContract;
           const userProvidedMinAmount = segmentPayment.sub(
             segmentPayment.mul(web3.utils.toBN(userSlippageOptions[j].toString())).div(web3.utils.toBN(100)),
           );
-          slippageFromContract = await pool.methods
-            .calculateTokenAmount(mobiusStrategy.address, [segmentPayment.toString(), 0, 0], true)
-            .call();
+
+          let amounts = new Array(2);
+          if (configs.deployConfigs.strategy === "mobius-celo-stCelo") {
+            amounts[0] = "0";
+            amounts[tokenIndex] = segmentPayment.toString();
+          } else {
+            amounts[0] = segmentPayment.toString();
+            amounts[tokenIndex] = "0";
+          }
+          slippageFromContract = await pool.methods.calculateTokenAmount(mobiusStrategy.address, amounts, true).call();
 
           const minAmountWithFees =
             parseInt(userProvidedMinAmount.toString()) > parseInt(slippageFromContract.toString())
@@ -281,10 +301,17 @@ contract("Variable Deposit Pool with Mobius Strategy", accounts => {
           const withdrawAmount = playerInfo.amountPaid.sub(
             playerInfo.amountPaid.mul(web3.utils.toBN(earlyWithdrawFee)).div(web3.utils.toBN(100)),
           );
+
+          let amounts = new Array(2);
+          if (configs.deployConfigs.strategy === "mobius-celo-stCelo") {
+            amounts[0] = "0";
+            amounts[tokenIndex] = withdrawAmount.toString();
+          } else {
+            amounts[0] = withdrawAmount.toString();
+            amounts[tokenIndex] = "0";
+          }
           let lpTokenAmount;
-          lpTokenAmount = await pool.methods
-            .calculateTokenAmount(mobiusStrategy.address, [withdrawAmount.toString(), 0, 0], true)
-            .call();
+          lpTokenAmount = await pool.methods.calculateTokenAmount(mobiusStrategy.address, amounts, true).call();
 
           if (gaugeToken) {
             const gaugeTokenBalance = await gaugeToken.methods.balanceOf(mobiusStrategy.address).call();
@@ -322,10 +349,17 @@ contract("Variable Deposit Pool with Mobius Strategy", accounts => {
       const withdrawAmount = playerInfo.amountPaid.sub(
         playerInfo.amountPaid.mul(web3.utils.toBN(earlyWithdrawFee)).div(web3.utils.toBN(100)),
       );
+
+      let amounts = new Array(2);
+      if (configs.deployConfigs.strategy === "mobius-celo-stCelo") {
+        amounts[0] = "0";
+        amounts[tokenIndex] = withdrawAmount.toString();
+      } else {
+        amounts[0] = withdrawAmount.toString();
+        amounts[tokenIndex] = "0";
+      }
       let lpTokenAmount;
-      lpTokenAmount = await pool.methods
-        .calculateTokenAmount(mobiusStrategy.address, [withdrawAmount.toString(), 0, 0], true)
-        .call();
+      lpTokenAmount = await pool.methods.calculateTokenAmount(mobiusStrategy.address, amounts, true).call();
 
       if (gaugeToken) {
         const gaugeTokenBalance = await gaugeToken.methods.balanceOf(mobiusStrategy.address).call();
@@ -350,8 +384,8 @@ contract("Variable Deposit Pool with Mobius Strategy", accounts => {
 
       const winnerCountAfterEarlyWithdraw = await goodGhosting.winnerCount();
 
-      assert(winnerCountBeforeEarlyWithdraw.eq(web3.utils.toBN(3)));
-      assert(winnerCountAfterEarlyWithdraw.eq(web3.utils.toBN(2)));
+      assert(winnerCountBeforeEarlyWithdraw.eq(web3.utils.toBN(4)));
+      assert(winnerCountAfterEarlyWithdraw.eq(web3.utils.toBN(3)));
       await timeMachine.advanceTime(segmentLength);
       const waitingRoundLength = await goodGhosting.waitingRoundSegmentLength();
       await timeMachine.advanceTime(parseInt(waitingRoundLength.toString()));
@@ -382,7 +416,8 @@ contract("Variable Deposit Pool with Mobius Strategy", accounts => {
 
         if (
           configs.deployConfigs.strategy === "mobius-cUSD-DAI" &&
-          configs.deployConfigs.strategy === "mobius-cUSD-USDC"
+          configs.deployConfigs.strategy === "mobius-cUSD-USDC" &&
+          configs.deployConfigs.strategy === "mobius-cusd-usdcet"
         ) {
           assert(
             mobiRewardBalanceAfter.gt(mobiRewardBalanceBefore),
@@ -426,7 +461,8 @@ contract("Variable Deposit Pool with Mobius Strategy", accounts => {
 
         if (
           configs.deployConfigs.strategy === "mobius-cUSD-DAI" &&
-          configs.deployConfigs.strategy === "mobius-cUSD-USDC"
+          configs.deployConfigs.strategy === "mobius-cUSD-USDC" &&
+          configs.deployConfigs.strategy === "mobius-cusd-usdcet"
         ) {
           assert(
             mobiRewardBalanceAfter.gt(mobiRewardBalanceBefore),
