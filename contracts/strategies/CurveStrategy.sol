@@ -13,12 +13,10 @@ import "./IStrategy.sol";
 // --------------------------- custom errors ------------------------- //
 //*********************************************************************//
 error CANNOT_ACCEPT_TRANSACTIONAL_TOKEN();
-error INVALID_CURVE_TOKEN();
 error INVALID_DEPOSIT_TOKEN();
 error INVALID_GAUGE();
 error INVALID_INBOUND_TOKEN_INDEX();
 error INVALID_POOL();
-error INVALID_REWARD_TOKEN();
 error TOKEN_TRANSFER_FAILURE();
 
 /**
