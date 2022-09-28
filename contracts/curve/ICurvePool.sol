@@ -36,6 +36,12 @@ interface ICurvePool {
     function add_liquidity(uint256[5] calldata _amounts, uint256 _min_mint_amount) external;
 
     /**
+    @param _amounts deposit amounts.
+    @param _min_mint_amount min amount based on slippage.
+    */
+    function add_liquidity(uint256[2] calldata _amounts, uint256 _min_mint_amount) external;
+
+    /**
     @param _token_amount token amount to be removed.
     @param i token index.
     @param _min_amount min amount based on slippage.
@@ -89,5 +95,9 @@ interface ICurvePool {
     */
     function calc_token_amount(uint256[5] calldata _amounts, bool is_deposit) external view returns (uint256);
 
+    function calc_token_amount(uint256[2] calldata _amounts) external view returns (uint256);
+
     function underlying_coins(uint256 arg0) external view returns (address);
+
+    function coins(uint256 arg0) external view returns (address);
 }

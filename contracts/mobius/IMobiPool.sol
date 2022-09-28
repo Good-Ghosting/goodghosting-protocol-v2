@@ -52,7 +52,5 @@ interface IMobiPool {
         uint8 tokenIndex
     ) external view returns (uint256 availableTokenAmount);
 
-    function swapStorage() external view returns (uint256,uint256,uint256,uint256,uint256,uint256,uint256,uint256,address,address);
-
     function getToken(uint8 index) external view returns (IERC20);
 }
