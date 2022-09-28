@@ -13,12 +13,10 @@ import "./IStrategy.sol";
 // --------------------------- custom errors ------------------------- //
 //*********************************************************************//
 error CANNOT_ACCEPT_TRANSACTIONAL_TOKEN();
-error INVALID_CELO_TOKEN();
 error INVALID_DEPOSIT_TOKEN();
 error INVALID_GAUGE();
 error INVALID_LP_TOKEN();
 error INVALID_MINTER();
-error INVALID_MOBI_TOKEN();
 error INVALID_POOL();
 error TOKEN_TRANSFER_FAILURE();
 
@@ -36,12 +34,6 @@ contract MobiusStrategy is Ownable, IStrategy {
     /// @notice gauge address
     IMinter public immutable minter;
 
-    /// @notice mobi token
-    IERC20 public immutable mobi;
-
-    /// @notice celo token
-    IERC20 public immutable celo;
-
     /// @notice pool address
     IMobiPool public immutable pool;
 
@@ -50,6 +42,9 @@ contract MobiusStrategy is Ownable, IStrategy {
 
     /// @notice mobi lp token
     IERC20 public lpToken;
+
+    /// @notice reward token address
+    IERC20[] public rewardTokens;
 
     //*********************************************************************//
     // ------------------------- external views -------------------------- //
@@ -113,15 +108,10 @@ contract MobiusStrategy is Ownable, IStrategy {
 
     /** 
     @notice
-    Returns the instance of the reward token
+    Returns the instances of the reward tokens
     */
     function getRewardTokens() external view override returns (IERC20[] memory) {
-        IERC20[] memory tokens = new IERC20[](2);
-        if (address(gauge) != address(0)) {
-            tokens[0] = celo;
-            tokens[1] = mobi;
-        }
-        return tokens;
+        return rewardTokens;
     }
 
     /** 
@@ -142,33 +132,23 @@ contract MobiusStrategy is Ownable, IStrategy {
     @param _pool Mobius Pool Contract.
     @param _gauge Mobius Gauge Contract.
     @param _minter Mobius Minter Contract used for getting mobi rewards.
-    @param _mobi Mobi Contract.
-    @param _celo Celo Contract.
     */
     constructor(
         IMobiPool _pool,
         IMobiGauge _gauge,
         IMinter _minter,
-        IERC20 _mobi,
-        IERC20 _celo,
         IERC20 _lpToken,
-        uint8 _inboundTokenIndex
+        uint8 _inboundTokenIndex,
+        IERC20[] memory _rewardTokens
     ) {
         if (address(_pool) == address(0)) {
             revert INVALID_POOL();
-        }
-        if (address(_mobi) == address(0)) {
-            revert INVALID_MOBI_TOKEN();
-        }
-        if (address(_celo) == address(0)) {
-            revert INVALID_CELO_TOKEN();
         }
 
         pool = _pool;
         gauge = _gauge;
         minter = _minter;
-        mobi = _mobi;
-        celo = _celo;
+        rewardTokens = _rewardTokens;
         inboundTokenIndex = _inboundTokenIndex;
         if (address(_gauge) != address(0)) {
             lpToken = IERC20(_pool.getLpToken());
@@ -203,8 +183,10 @@ contract MobiusStrategy is Ownable, IStrategy {
         pool.addLiquidity(amounts, _minAmount, block.timestamp + 1000);
 
         if (address(gauge) != address(0)) {
-            lpToken.approve(address(gauge), lpToken.balanceOf(address(this)));
-            gauge.deposit(lpToken.balanceOf(address(this)));
+            // avoid multiple SLOADS
+            IERC20 _lpToken = lpToken;
+            _lpToken.approve(address(gauge), _lpToken.balanceOf(address(this)));
+            gauge.deposit(_lpToken.balanceOf(address(this)));
         }
     }
 
@@ -293,17 +275,25 @@ contract MobiusStrategy is Ownable, IStrategy {
         lpToken.approve(address(pool), poolWithdrawAmount);
         pool.removeLiquidityOneToken(poolWithdrawAmount, inboundTokenIndex, _minAmount, block.timestamp + 1000);
 
-        bool success = mobi.transfer(msg.sender, mobi.balanceOf(address(this)));
-        if (!success) {
-            revert TOKEN_TRANSFER_FAILURE();
+        // avoid multiple SLOADS
+        IERC20[] memory _rewardTokens = rewardTokens;
+        for (uint256 i = 0; i < _rewardTokens.length; ) {
+            // safety check since funds don't get transferred to a extrnal protocol
+            if (IERC20(_rewardTokens[i]).balanceOf(address(this)) != 0) {
+                bool success = IERC20(_rewardTokens[i]).transfer(
+                    msg.sender,
+                    IERC20(_rewardTokens[i]).balanceOf(address(this))
+                );
+                if (!success) {
+                    revert TOKEN_TRANSFER_FAILURE();
+                }
+            }
+            unchecked {
+                ++i;
+            }
         }
 
-        success = celo.transfer(msg.sender, celo.balanceOf(address(this)));
-        if (!success) {
-            revert TOKEN_TRANSFER_FAILURE();
-        }
-
-        success = IERC20(_inboundCurrency).transfer(msg.sender, IERC20(_inboundCurrency).balanceOf(address(this)));
+        bool success = IERC20(_inboundCurrency).transfer(msg.sender, IERC20(_inboundCurrency).balanceOf(address(this)));
         if (!success) {
             revert TOKEN_TRANSFER_FAILURE();
         }
@@ -319,18 +309,16 @@ contract MobiusStrategy is Ownable, IStrategy {
         override
         returns (uint256[] memory)
     {
-        uint256 amount = 0;
-        uint256 additionalAmount = 0;
+        // avoid multiple SLOADS
+        IERC20[] memory _rewardTokens = rewardTokens;
+        uint256[] memory amounts = new uint256[](_rewardTokens.length);
         if (!disableRewardTokenClaim) {
             if (address(gauge) != address(0)) {
                 // fetches claimable reward amounts
-                amount = gauge.claimable_reward(address(this), address(celo));
-                additionalAmount = gauge.claimable_tokens(address(this));
+                amounts[0] = gauge.claimable_reward(address(this), address(_rewardTokens[0])); //celo
+                amounts[1] = gauge.claimable_tokens(address(this)); //mobi
             }
         }
-        uint256[] memory amounts = new uint256[](2);
-        amounts[0] = amount;
-        amounts[1] = additionalAmount;
         return amounts;
     }
 }
