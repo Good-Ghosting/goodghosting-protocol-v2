@@ -112,10 +112,9 @@ module.exports = function (deployer, network, accounts) {
         strategyConfig.pool,
         strategyConfig.gauge,
         strategyConfig.minter,
-        providerConfig.providers["celo"].tokens["mobi"].address,
-        providerConfig.providers["celo"].tokens["celo"].address,
         strategyConfig.lpToken,
         tokenIndexMapping[config.deployConfigs.strategy][config.deployConfigs.inboundCurrencySymbol],
+        config.deployConfigs.rewardTokens,
       ];
     } else if (config.deployConfigs.strategy === "moola") {
       strategyArgs = [
@@ -285,21 +284,18 @@ module.exports = function (deployer, network, accounts) {
       deploymentResult.mobiusPoolAddress = strategyConfig.pool;
       deploymentResult.mobiusGaugeAddress = strategyConfig.gauge;
       deploymentResult.mobiusMinterAddress = strategyConfig.minter;
-      deploymentResult.strategyMobiAddress = providerConfig.providers["celo"].tokens["mobi"].address;
-      deploymentResult.strategyCeloAddress = providerConfig.providers["celo"].tokens["celo"].address;
       deploymentResult.strategyLPTokenAddress = strategyConfig.lpToken;
       deploymentResult.strategyTokenIndex =
         tokenIndexMapping[config.deployConfigs.strategy][config.deployConfigs.inboundCurrencySymbol];
-      var mobiusStrategyParameterTypes = ["address", "address", "address", "address", "address", "address", "uint"];
+      var mobiusStrategyParameterTypes = ["address", "address", "address", "address", "uint", "address[]"];
 
       var mobiusStrategyValues = [
         deploymentResult.mobiusPoolAddress,
         deploymentResult.mobiusGaugeAddress,
         deploymentResult.mobiusMinterAddress,
-        deploymentResult.strategyMobiAddress,
-        deploymentResult.strategyCeloAddress,
         deploymentResult.strategyLPTokenAddress,
         deploymentResult.strategyTokenIndex,
+        deploymentResult.rewardTokenAdddresses,
       ];
 
       deploymentResult.strategyEncodedParameters = abi
