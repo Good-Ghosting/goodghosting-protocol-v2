@@ -164,6 +164,19 @@ contract CurveStrategy is Ownable, IStrategy {
         }
     }
 
+
+    /** 
+    @notice
+    Returns the fee (for amm strategies)
+    */
+    function getFee() external view override returns (uint256) {
+       if (poolType == LENDING_POOL || poolType == GENERIC_POOL) {
+          return pool.fee();
+       }
+        address undderlyingPool = pool.pool();
+        return ICurvePool(undderlyingPool).fee();
+    }
+
     //*********************************************************************//
     // -------------------------- constructor ---------------------------- //
     //*********************************************************************//
@@ -439,12 +452,14 @@ contract CurveStrategy is Ownable, IStrategy {
 
         // avoid multiple SLOADS
         IERC20[] memory _rewardTokens = rewardTokens;
-        for (uint256 i = 0; i < _rewardTokens.length; ) {
+        bool success;
+        uint256 numRewards = _rewardTokens.length;
+        for (uint256 i = 0; i < numRewards; ) {
             // safety check since funds don't get transferred to a extrnal protocol
-            if (IERC20(_rewardTokens[i]).balanceOf(address(this)) != 0) {
-                bool success = IERC20(_rewardTokens[i]).transfer(
+            if (_rewardTokens[i].balanceOf(address(this)) != 0) {
+                success = _rewardTokens[i].transfer(
                     msg.sender,
-                    IERC20(_rewardTokens[i]).balanceOf(address(this))
+                    _rewardTokens[i].balanceOf(address(this))
                 );
                 if (!success) {
                     revert TOKEN_TRANSFER_FAILURE();
@@ -454,7 +469,7 @@ contract CurveStrategy is Ownable, IStrategy {
                 ++i;
             }
         }
-        bool success = IERC20(_inboundCurrency).transfer(msg.sender, IERC20(_inboundCurrency).balanceOf(address(this)));
+        success = IERC20(_inboundCurrency).transfer(msg.sender, IERC20(_inboundCurrency).balanceOf(address(this)));
         if (!success) {
             revert TOKEN_TRANSFER_FAILURE();
         }
@@ -468,22 +483,25 @@ contract CurveStrategy is Ownable, IStrategy {
     */
     function getAccumulatedRewardTokenAmounts(bool disableRewardTokenClaim)
         external
+        view
         override
         returns (uint256[] memory)
     {
         // avoid multiple SLOADS
         IERC20[] memory _rewardTokens = rewardTokens;
         uint256[] memory amounts = new uint256[](_rewardTokens.length);
+        uint256 numRewards = _rewardTokens.length;
+
         if (!disableRewardTokenClaim) {
             if (poolType == DEPOSIT_ZAP || poolType == LENDING_POOL) {
-                for (uint256 i = 0; i < _rewardTokens.length; ) {
+                for (uint256 i = 0; i < numRewards; ) {
                     amounts[i] = gauge.integrate_fraction(address(this)) - gaugeMinter.minted(address(this), address(gauge));
                     unchecked {
                         ++i;
                     }
                 }
             } else {
-                for (uint256 i = 0; i < _rewardTokens.length; ) {
+                for (uint256 i = 0; i < numRewards; ) {
                     amounts[i] = gauge.claimable_reward(address(this), address(_rewardTokens[i]));
                     unchecked {
                         ++i;

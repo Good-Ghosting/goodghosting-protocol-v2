@@ -124,6 +124,15 @@ contract MobiusStrategy is Ownable, IStrategy {
         return pool.calculateTokenAmount(address(this), amounts, true);
     }
 
+    /** 
+    @notice
+    Returns the fee (for amm strategies)
+    */
+    function getFee() external view override returns (uint256) {
+        (, , , , uint256 swapFee, , , , ,) = pool.swapStorage();
+        return swapFee;
+    }
+
     //*********************************************************************//
     // -------------------------- constructor ---------------------------- //
     //*********************************************************************//
@@ -277,12 +286,14 @@ contract MobiusStrategy is Ownable, IStrategy {
 
         // avoid multiple SLOADS
         IERC20[] memory _rewardTokens = rewardTokens;
-        for (uint256 i = 0; i < _rewardTokens.length; ) {
+        bool success;
+        uint256 numRewards = _rewardTokens.length;
+        for (uint256 i = 0; i < numRewards; ) {
             // safety check since funds don't get transferred to a extrnal protocol
             if (IERC20(_rewardTokens[i]).balanceOf(address(this)) != 0) {
-                bool success = IERC20(_rewardTokens[i]).transfer(
+                success = _rewardTokens[i].transfer(
                     msg.sender,
-                    IERC20(_rewardTokens[i]).balanceOf(address(this))
+                    _rewardTokens[i].balanceOf(address(this))
                 );
                 if (!success) {
                     revert TOKEN_TRANSFER_FAILURE();
@@ -293,7 +304,7 @@ contract MobiusStrategy is Ownable, IStrategy {
             }
         }
 
-        bool success = IERC20(_inboundCurrency).transfer(msg.sender, IERC20(_inboundCurrency).balanceOf(address(this)));
+        success = IERC20(_inboundCurrency).transfer(msg.sender, IERC20(_inboundCurrency).balanceOf(address(this)));
         if (!success) {
             revert TOKEN_TRANSFER_FAILURE();
         }

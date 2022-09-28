@@ -71,6 +71,8 @@ interface ICurvePool {
 
     function fee() external view returns (uint256);
 
+    function pool() external view returns (address);
+
     /**
     @param _token_amount token amount to be removed.
     @param i token index.
