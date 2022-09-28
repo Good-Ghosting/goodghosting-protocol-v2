@@ -82,6 +82,14 @@ contract NoExternalStrategy is Ownable, IStrategy {
         return _amount;
     }
 
+    /** 
+    @notice
+    Returns the fee (for amm strategies)
+    */
+    function getFee() external pure override returns (uint256) {
+        return 0;
+    }
+
     //*********************************************************************//
     // -------------------------- constructor ---------------------------- //
     //*********************************************************************//
@@ -91,7 +99,8 @@ contract NoExternalStrategy is Ownable, IStrategy {
     */
     constructor(address _inboundCurrency, IERC20[] memory _rewardTokens) {
         inboundToken = IERC20(_inboundCurrency);
-        for (uint256 i = 0; i < _rewardTokens.length; ) {
+        uint256 numRewards = _rewardTokens.length;
+        for (uint256 i = 0; i < numRewards; ) {
             if (address(_rewardTokens[i]) == address(0)) {
                 revert INVALID_REWARD_TOKEN();
             }
@@ -176,12 +185,15 @@ contract NoExternalStrategy is Ownable, IStrategy {
         _transferInboundTokenToPool(_inboundCurrency, _amount);
 
         if (!disableRewardTokenClaim) {
-            for (uint256 i = 0; i < rewardTokens.length; ) {
+            // avoid multiple SLOADS
+            IERC20[] memory _rewardTokens = rewardTokens;
+            uint256 numRewards = _rewardTokens.length;
+            for (uint256 i = 0; i < numRewards; ) {
                 // safety check since funds don't get transferred to a extrnal protocol
-                if (IERC20(rewardTokens[i]).balanceOf(address(this)) != 0) {
-                    bool success = IERC20(rewardTokens[i]).transfer(
+                if (_rewardTokens[i].balanceOf(address(this)) != 0) {
+                    bool success = _rewardTokens[i].transfer(
                         msg.sender,
-                        IERC20(rewardTokens[i]).balanceOf(address(this))
+                        _rewardTokens[i].balanceOf(address(this))
                     );
                     if (!success) {
                         revert TOKEN_TRANSFER_FAILURE();
@@ -205,9 +217,12 @@ contract NoExternalStrategy is Ownable, IStrategy {
         override
         returns (uint256[] memory)
     {
-        uint256[] memory amounts = new uint256[](rewardTokens.length);
-        for (uint256 i = 0; i < rewardTokens.length; ) {
-            amounts[i] = rewardTokens[i].balanceOf(address(this));
+        // avoid multiple SLOADS
+        IERC20[] memory _rewardTokens = rewardTokens;
+        uint256 numRewards = _rewardTokens.length;
+        uint256[] memory amounts = new uint256[](_rewardTokens.length);
+        for (uint256 i = 0; i < numRewards; ) {
+            amounts[i] = _rewardTokens[i].balanceOf(address(this));
             unchecked {
                 ++i;
             }

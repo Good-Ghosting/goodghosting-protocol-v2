@@ -112,6 +112,14 @@ contract AaveStrategy is Ownable, IStrategy {
         return _amount;
     }
 
+    /** 
+    @notice
+    Returns the fee (for amm strategies)
+    */
+    function getFee() external pure override returns (uint256) {
+        return 0;
+    }
+
 
     //*********************************************************************//
     // -------------------------- constructor ---------------------------- //
