@@ -152,11 +152,17 @@ exports.providers = {
         minter: "0x0000000000000000000000000000000000000000",
         lpToken: "0x4730ff6bC3008a40cf74D660D3f20d5b51646dA3",
       },
-      "mobius-cusd-usdcet": {
+      "mobius-mento": {
         pool: "0xFa3df877F98ac5ecd87456a7AcCaa948462412f0",
         gauge: "0x0000000000000000000000000000000000000000",
         minter: "0x0000000000000000000000000000000000000000",
         lpToken: "0x552b9AA0eEe500c60f09456e49FBc1096322714C",
+      },
+      "mobius-cusd-usdcet": {
+        pool: "0xc0ba93d4aaf90d39924402162ee4a213300d1d60",
+        gauge: "0x7ed927E685d7196Ff2e7Bc48c5cB5e8af88c9332",
+        minter: "0x5F0200CA03196D5b817E2044a0Bb0D837e0A7823",
+        lpToken: "0x0000000000000000000000000000000000000000",
       },
       //"no-external-strategy": {}, // REWARD TOKENS MUST BE CONFIGURED IN `deploy.configs.js` file
     },
