@@ -161,7 +161,7 @@ module.exports = function (deployer, network, accounts) {
       deploymentResult.network = "polygon";
       const payload = await axios.get("https://gasstation-mainnet.matic.network");
       // converting to 1 eth worth of gwei
-      gasPrice = new BN(payload.data.fast).mul(new BN(10 ** 9));
+      gasPrice = new BN(payload.data.safeLow).mul(new BN(10 ** 9));
     }
     const strategyTx = await deployer.deploy(...strategyArgs, { gasPrice: gasPrice });
     let strategyInstance;
@@ -206,7 +206,11 @@ module.exports = function (deployer, network, accounts) {
     const poolTx = await deployer.deploy(...deploymentArgs);
     const ggInstance = await goodGhostingContract.deployed();
 
-    if (config.deployConfigs.owner && config.deployConfigs.owner != "0x") {
+    if (
+      config.deployConfigs.owner &&
+      config.deployConfigs.owner != "0x" &&
+      config.deployConfigs.owner != "0x0000000000000000000000000000000000000000"
+    ) {
       await ggInstance.transferOwnership(config.deployConfigs.owner);
     }
     await strategyInstance.transferOwnership(ggInstance.address);
@@ -222,6 +226,12 @@ module.exports = function (deployer, network, accounts) {
     deploymentResult.poolOwner = accounts[0];
     deploymentResult.poolAddress = ggInstance.address;
     deploymentResult.poolDeploymentHash = poolTx.transactionHash;
+    if (config.deployConfigs.initialize) {
+      const firstSegmentStart = await ggInstance.firstSegmentStart();
+      const waitingRoundSegmentStart = await ggInstance.waitingRoundSegmentStart();
+      deploymentResult.firstSegmentStart = firstSegmentStart.toString();
+      deploymentResult.waitingRoundSegmentStart = waitingRoundSegmentStart.toString();
+    }
     deploymentResult.poolDeploymentBlock = poolTxInfo.blockNumber;
     deploymentResult.strategyName = config.deployConfigs.strategy;
     deploymentResult.strategyDeploymentHash = strategyTx.transactionHash;

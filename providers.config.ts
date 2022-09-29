@@ -21,6 +21,14 @@ exports.providers = {
         address: "0xc3c7d422809852031b44ab29eec9f1eff2a58756",
         decimals: 18,
       },
+      weth: {
+        address: "0x7ceB23fD6bC0adD59E62ac25578270cFf1b9f619",
+        decimals: 18,
+      },
+      ghst: {
+        address: "0x385eeac5cb85a38a9a07a70c73e0a3271cfb54a7",
+        decimals: 18,
+      },
     },
     strategies: {
       aaveV2: {
@@ -138,6 +146,18 @@ exports.providers = {
       },
       moo: {
         address: "0x17700282592D6917F6A73D0bF8AcCf4D578c131e",
+        decimals: 18,
+      },
+      "s-celo20-ethix80-lp": {
+        address: "0xaD2F9f4CD2Ae4f2dD2841EB1ea7e162fb4767D4D",
+        decimals: 18,
+      },
+      symm: {
+        address: "0x8427bD503dd3169cCC9aFF7326c15258Bc305478",
+        decimals: 18,
+      },
+      ethix: {
+        address: "0x9995cc8F20Db5896943Afc8eE0ba463259c931ed",
         decimals: 18,
       },
     },

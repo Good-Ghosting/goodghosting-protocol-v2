@@ -1139,6 +1139,15 @@ contract Pool is Ownable, Pausable, ReentrancyGuard {
                         : _player.mostRecentSegmentPaid >= (_depositCountMemory - 1)
                 ));
     }
+    /**
+       Returns the maximum amount that can be redeemed from a strategy for a player/admin
+     */
+    function getRedemptionValue(uint256 _amountToRedeem, uint256 _totalAmount) internal returns(uint256) {
+        if (_amountToRedeem > _totalAmount) {
+            return _totalAmount;
+        }
+        return _amountToRedeem;
+    }
 
     //*********************************************************************//
     // ------------------------- external/public methods -------------------------- //
@@ -1267,10 +1276,9 @@ contract Pool is Ownable, Pausable, ReentrancyGuard {
 
         // have to check for both since the rewards, interest accumulated along with the total deposit is withdrawn in a single redeem call
         if (_adminFeeAmount[0] != 0 || _claimableRewards) {
-            if (strategy.getTotalAmount() < _adminFeeAmount[0]) {
-                _adminFeeAmount[0] = strategy.getTotalAmount();
-            }
-            strategy.redeem(inboundToken, _adminFeeAmount[0], _minAmount, disableRewardTokenClaim);
+            // safety check in case some incentives in the form of the deposit tokens are transferred to the pool
+            uint256 _amountToRedeem = getRedemptionValue(_adminFeeAmount[0], strategy.getTotalAmount());
+            strategy.redeem(inboundToken, _amountToRedeem, _minAmount, disableRewardTokenClaim);
 
             // need the updated value for the event
             // balance check before transferring the funds
@@ -1348,8 +1356,18 @@ contract Pool is Ownable, Pausable, ReentrancyGuard {
         player.withdrawn = true;
         activePlayersCount -= 1;
 
-        // In an early withdraw, users get their principal minus the earlyWithdrawalFee % defined in the constructor.
+        // In an early withdraw, users get their principal minus the earlyWithdrawalFee % defined in the constructor & it also considers the impermanent loss.
+        uint256 _totalBalance = isTransactionalToken
+            ? address(this).balance + strategy.getTotalAmount()
+            : IERC20(inboundToken).balanceOf(address(this)) + strategy.getTotalAmount();
+        
         uint256 withdrawAmount = player.netAmountPaid - ((player.netAmountPaid * earlyWithdrawalFee) / 100);
+        if (_totalBalance < netTotalGamePrincipal) {
+            // handling impermanent loss case
+            uint256 _impermanentLossShare = (_totalBalance * 100) / netTotalGamePrincipal;
+            withdrawAmount = (withdrawAmount * _impermanentLossShare) / 100;
+        }
+
         // Decreases the totalGamePrincipal & netTotalGamePrincipal on earlyWithdraw
         totalGamePrincipal -= player.amountPaid;
         netTotalGamePrincipal -= player.netAmountPaid;
@@ -1436,7 +1454,10 @@ contract Pool is Ownable, Pausable, ReentrancyGuard {
                 uint256 _payout
             ) = _calculateAndUpdateWinnerInterestAccounting(segment, _impermanentLossShare);
             payout = _payout;
-            strategy.redeem(inboundToken, payout, _minAmount, disableRewardTokenClaim);
+            // safety check in case some incentives in the form of the deposit tokens are transferred to the pool\
+            uint256 _amountToRedeem = getRedemptionValue(payout, strategy.getTotalAmount());
+
+            strategy.redeem(inboundToken, _amountToRedeem, _minAmount, disableRewardTokenClaim);
 
             // calculating winners share of the incentive amount
             _calculateAndUpdateWinnerIncentivesAccounting(
@@ -1449,8 +1470,10 @@ contract Pool is Ownable, Pausable, ReentrancyGuard {
 
         } else {
             payout = _calculateAndUpdateNonWinnerAccounting(_impermanentLossShare, player.netAmountPaid);
+            // safety check in case some incentives in the form of the deposit tokens are transferred to the pool
+            uint256 _amountToRedeem = getRedemptionValue(payout, strategy.getTotalAmount());
             // Withdraws the principal for non-winners
-            strategy.redeem(inboundToken, payout, _minAmount, disableRewardTokenClaim);
+            strategy.redeem(inboundToken, _amountToRedeem, _minAmount, disableRewardTokenClaim);
         }
 
         // sets withdrawalSegment for the player

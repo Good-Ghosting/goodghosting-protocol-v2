@@ -138,9 +138,7 @@ contract("Pool with Curve Strategy when admin enables early game completion", ac
           (ev: any) => {
             playerEvent = ev.player;
             paymentEvent = ev.amount;
-            return (
-              playerEvent === player && web3.utils.toBN(paymentEvent).toString() == web3.utils.toWei("3").toString()
-            );
+            return playerEvent === player && web3.utils.toBN(paymentEvent).toString() == segmentPayment.toString();
           },
           `JoinedGame event should be emitted when an user joins the game with params\n
                                                           player: expected ${player}; got ${playerEvent}\n
