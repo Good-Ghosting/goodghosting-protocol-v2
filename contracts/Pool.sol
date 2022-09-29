@@ -631,7 +631,10 @@ contract Pool is Ownable, Pausable, ReentrancyGuard {
         IERC20[] memory _rewardTokens = rewardTokens;
         uint256[] memory _rewardTokenAmounts = rewardTokenAmounts;
         uint256[] memory playerRewards = new uint256[](_rewardTokens.length);
-        for (uint256 i = 0; i < _rewardTokens.length; ) {
+        // reference for array length to save gas
+        uint256 _rewardLength = _rewardTokens.length;
+
+        for (uint256 i = 0; i < _rewardLength; ) {
             if (address(_rewardTokens[i]) != address(0) && _rewardTokenAmounts[i] != 0) {
                 // calculating the reward token amount split b/w waiting & deposit Rounds.
                 uint256 totalRewardAmountsDuringDepositRounds = (_rewardTokenAmounts[i] *
@@ -753,8 +756,10 @@ contract Pool is Ownable, Pausable, ReentrancyGuard {
     @param _adminFeeAmount admin fee amount value.
     */
     function _checkRewardsClaimableByAdmin(uint256[] memory _adminFeeAmount) internal pure returns (bool) {
+        // reference for array length to save gas
+        uint256 _adminFeeAmountsLength = _adminFeeAmount.length;
         // starts loop from 1, because first spot of _adminFeeAmount is reserved for admin interest share.
-        for (uint256 i = 1; i < _adminFeeAmount.length; ) {
+        for (uint256 i = 1; i < _adminFeeAmountsLength; ) {
             if (_adminFeeAmount[i] != 0) {
                 return true;
             }
@@ -877,7 +882,10 @@ contract Pool is Ownable, Pausable, ReentrancyGuard {
                 } else {
                     totalGameInterest = 0;
                 }
-                for (uint256 i = 0; i < _rewardTokens.length; ) {
+
+                // reference for array length to save gas
+                uint256 _rewardsLength = _rewardTokens.length;
+                for (uint256 i = 0; i < _rewardsLength; ) {
                     // first slot is reserved for admin interest amount, so starts at 1.
                     if (_grossRewardTokenAmount[i] >= _adminFeeAmount[i + 1]) {
                         _rewardTokenAmounts[i] = _grossRewardTokenAmount[i] - _adminFeeAmount[i + 1];
@@ -890,6 +898,8 @@ contract Pool is Ownable, Pausable, ReentrancyGuard {
                 }
             }
         } else {
+            // reference for array length to save gas
+            uint256 _rewardsLength = _rewardTokens.length;
             // if the admin fee isn't set then we set it in the else part
             // UPDATE - N2 Audit Report
             if (winnerCount == 0) {
@@ -898,7 +908,7 @@ contract Pool is Ownable, Pausable, ReentrancyGuard {
                 // just setting these for consistency since if there are no winners then for accounting both these vars aren't used
                 totalGameInterest = _grossInterest;
 
-                for (uint256 i = 0; i < _rewardTokens.length; ) {
+                for (uint256 i = 0; i < _rewardsLength; ) {
                     _rewardTokenAmounts[i] = _grossRewardTokenAmount[i];
                     // first slot is reserved for admin interest amount, so starts at 1.
                     _adminFeeAmount[i + 1] = _grossRewardTokenAmount[i];
@@ -913,7 +923,7 @@ contract Pool is Ownable, Pausable, ReentrancyGuard {
                 _adminFeeAmount[0] = (_grossInterest * adminFee) / 100;
                 totalGameInterest = _grossInterest - _adminFeeAmount[0];
 
-                for (uint256 i = 0; i < _rewardTokens.length; ) {
+                for (uint256 i = 0; i < _rewardsLength; ) {
                     // first slot is reserved for admin interest amount, so starts at 1.
                     _adminFeeAmount[i + 1] = (_grossRewardTokenAmount[i] * adminFee) / 100;
                     _rewardTokenAmounts[i] = _grossRewardTokenAmount[i] - _adminFeeAmount[i + 1];
@@ -926,7 +936,8 @@ contract Pool is Ownable, Pausable, ReentrancyGuard {
             } else {
                 // if there are winners and there is no admin fee in that case the admin fee will always be 0
                 totalGameInterest = _grossInterest;
-                for (uint256 i = 0; i < _rewardTokens.length; ) {
+
+                for (uint256 i = 0; i < _rewardsLength; ) {
                     _rewardTokenAmounts[i] = _grossRewardTokenAmount[i];
                     unchecked {
                         ++i;
@@ -1093,8 +1104,10 @@ contract Pool is Ownable, Pausable, ReentrancyGuard {
             disableRewardTokenClaim
         );
 
+        // reference for array length to save gas
+        uint256 _rewardsLength = _rewardTokens.length;
         // iterate through the reward token array to set the total reward amounts accumulated
-        for (uint256 i = 0; i < _rewardTokens.length; ) {
+        for (uint256 i = 0; i < _rewardsLength; ) {
             // the reward calculation is the sum of the current reward amount the remaining rewards being accumulated in the strategy protocols.
             // the reason being like totalBalance for every player this is updated and prev. value is used to add any left over value
             if (address(_rewardTokens[i]) != address(0) && inboundToken != address(_rewardTokens[i])) {
@@ -1169,7 +1182,10 @@ contract Pool is Ownable, Pausable, ReentrancyGuard {
         }
         // incentiveToken cannot be the same as one of the reward tokens.
         IERC20[] memory _rewardTokens = rewardTokens;
-        for (uint256 i = 0; i < _rewardTokens.length; ) {
+
+        // reference for array length to save gas
+        uint256 _rewardsLength = _rewardTokens.length;
+        for (uint256 i = 0; i < _rewardsLength; ) {
             if ((address(_rewardTokens[i]) != address(0) && address(_rewardTokens[i]) == address(_incentiveToken))) {
                 revert INVALID_INCENTIVE_TOKEN();
             }
@@ -1261,7 +1277,9 @@ contract Pool is Ownable, Pausable, ReentrancyGuard {
             _adminFeeAmount[0] = _transferFundsSafelyOrFail(owner(), _adminFeeAmount[0]);
 
             if (_claimableRewards) {
-                for (uint256 i = 0; i < _rewardTokens.length; ) {
+                // reference for array length to save gas
+                uint256 _rewardsLength = _rewardTokens.length;
+                for (uint256 i = 0; i < _rewardsLength; ) {
                     if (address(_rewardTokens[i]) != address(0)) {
                         // updates variable value to make sure on a failure, event is emitted w/ correct value.
                         // first slot is reserved for admin interest amount, so starts at 1.
