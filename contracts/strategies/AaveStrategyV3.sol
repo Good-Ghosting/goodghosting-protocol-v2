@@ -107,7 +107,7 @@ contract AaveStrategyV3 is Ownable, IStrategy {
         address[] memory _rewardTokens = rewardTokens;
         uint256 numRewards = _rewardTokens.length;
         
-        IERC20[] memory rewardTokenInstances = new IERC20[](_rewardTokens.length);
+        IERC20[] memory rewardTokenInstances = new IERC20[](numRewards);
         for (uint256 i = 0; i < numRewards; ) {
             rewardTokenInstances[i] = IERC20(_rewardTokens[i]);
             unchecked {

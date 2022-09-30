@@ -489,8 +489,8 @@ contract CurveStrategy is Ownable, IStrategy {
     {
         // avoid multiple SLOADS
         IERC20[] memory _rewardTokens = rewardTokens;
-        uint256[] memory amounts = new uint256[](_rewardTokens.length);
         uint256 numRewards = _rewardTokens.length;
+        uint256[] memory amounts = new uint256[](numRewards);
 
         if (!disableRewardTokenClaim) {
             if (poolType == DEPOSIT_ZAP || poolType == LENDING_POOL) {

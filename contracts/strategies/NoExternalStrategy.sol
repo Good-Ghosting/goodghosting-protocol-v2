@@ -220,7 +220,7 @@ contract NoExternalStrategy is Ownable, IStrategy {
         // avoid multiple SLOADS
         IERC20[] memory _rewardTokens = rewardTokens;
         uint256 numRewards = _rewardTokens.length;
-        uint256[] memory amounts = new uint256[](_rewardTokens.length);
+        uint256[] memory amounts = new uint256[](numRewards);
         for (uint256 i = 0; i < numRewards; ) {
             amounts[i] = _rewardTokens[i].balanceOf(address(this));
             unchecked {
