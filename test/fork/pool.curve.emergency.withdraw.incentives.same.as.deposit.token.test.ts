@@ -2,13 +2,13 @@ const Pool = artifacts.require("Pool");
 const CurveStrategy = artifacts.require("CurveStrategy");
 const timeMachine = require("ganache-time-traveler");
 const truffleAssert = require("truffle-assertions");
-const wmaticABI = require("../../artifacts/contracts/mock/MintableERC20.sol/MintableERC20.json");
-const curvePool = require("../../artifacts/contracts/curve/ICurvePool.sol/ICurvePool.json");
+const wmaticABI = require("../../abi-external/wmatic.abi.json");
 const curveGauge = require("../../artifacts/contracts/curve/ICurveGauge.sol/ICurveGauge.json");
 const aavepoolABI = require("../../abi-external/curve-aave-pool-abi.json");
 const atricryptopoolABI = require("../../abi-external/curve-atricrypto-pool-abi.json");
 const configs = require("../../deploy.config");
 const providerConfig = require("../../providers.config");
+const maticpoolABI = require("../../abi-external/curve-matic-pool-abi.json");
 
 contract(
   "Pool with Curve Strategy when admin enables early game completion with incentives sent same as deposit token",
@@ -24,10 +24,14 @@ contract(
     if (configs.deployConfigs.strategy === "polygon-curve-aave") {
       GoodGhostingArtifact = Pool;
       providersConfigs = providerConfig.providers["polygon"].strategies["polygon-curve-aave"];
-    } else {
+    } else if (configs.deployConfigs.strategy === "polygon-curve-atricrypto") {
       GoodGhostingArtifact = Pool;
       providersConfigs = providerConfig.providers["polygon"].strategies["polygon-curve-atricrypto"];
+    } else {
+      GoodGhostingArtifact = Pool;
+      providersConfigs = providerConfig.providers["polygon"].strategies["polygon-curve-stmatic-matic"];
     }
+
     const {
       depositCount,
       segmentLength,
@@ -39,6 +43,7 @@ contract(
     let pool: any;
     let gaugeToken: any;
     let curveStrategy: any;
+    let tokenIndex: any;
     let admin = accounts[0];
     const players = accounts.slice(1, 6); // 5 players
     const daiDecimals = web3.utils.toBN(1000000000000000000);
@@ -47,41 +52,65 @@ contract(
 
     describe("simulates a full game with 5 players and 4 of them winning the game and with admin fee % as 0", async () => {
       it("initializes contract instances and transfers Inbound Token to players", async () => {
-        pool = new web3.eth.Contract(curvePool.abi, providersConfigs.pool);
         if (providersConfigs.poolType == 0) {
           pool = new web3.eth.Contract(aavepoolABI, providersConfigs.pool);
-        } else {
+        } else if (providersConfigs.poolType == 1) {
           pool = new web3.eth.Contract(atricryptopoolABI, providersConfigs.pool);
+        } else {
+          pool = new web3.eth.Contract(maticpoolABI, providersConfigs.pool);
         }
         token = new web3.eth.Contract(
-          wmaticABI.abi,
+          wmaticABI,
           providerConfig.providers["polygon"].tokens[configs.deployConfigs.inboundCurrencySymbol].address,
         );
-        curve = new web3.eth.Contract(wmaticABI.abi, providerConfig.providers["polygon"].tokens["curve"].address);
-        wmatic = new web3.eth.Contract(wmaticABI.abi, providerConfig.providers["polygon"].tokens["wmatic"].address);
+        if (configs.deployConfigs.strategy === "polygon-curve-stmatic-matic") {
+          curve = new web3.eth.Contract(wmaticABI, providerConfig.providers["polygon"].tokens["ldo"].address);
+        } else {
+          curve = new web3.eth.Contract(wmaticABI, providerConfig.providers["polygon"].tokens["curve"].address);
+        }
+        wmatic = new web3.eth.Contract(wmaticABI, providerConfig.providers["polygon"].tokens["wmatic"].address);
 
         goodGhosting = await GoodGhostingArtifact.deployed();
         curveStrategy = await CurveStrategy.deployed();
+        tokenIndex = await curveStrategy.inboundTokenIndex();
+        tokenIndex = tokenIndex.toString();
         gaugeToken = new web3.eth.Contract(curveGauge.abi, providersConfigs.gauge);
 
-        const unlockedBalance = await token.methods.balanceOf(unlockedDaiAccount).call({ from: admin });
-        const daiAmount = segmentPayment.mul(web3.utils.toBN(depositCount)).toString();
-        console.log("unlockedBalance: ", web3.utils.fromWei(unlockedBalance));
-        console.log("daiAmountToTransfer", web3.utils.fromWei(daiAmount));
-        for (let i = 0; i < players.length; i++) {
-          const player = players[i];
-          let transferAmount = daiAmount;
-          if (i === 2) {
-            // Player 2 needs additional funds
-            transferAmount = web3.utils.toBN(daiAmount).add(segmentPayment).mul(web3.utils.toBN(6)).toString();
+        if (configs.deployConfigs.strategy !== "polygon-curve-stmatic-matic") {
+          const unlockedBalance = await token.methods.balanceOf(unlockedDaiAccount).call({ from: admin });
+          const daiAmount = segmentPayment.mul(web3.utils.toBN(depositCount * 20)).toString();
+          console.log("unlockedBalance: ", web3.utils.fromWei(unlockedBalance));
+          console.log("daiAmountToTransfer", web3.utils.fromWei(daiAmount));
+          for (let i = 0; i < players.length; i++) {
+            const player = players[i];
+            let transferAmount = daiAmount;
+            if (i === 1) {
+              // Player 1 needs additional funds to rejoin
+              transferAmount = web3.utils.toBN(daiAmount).add(segmentPayment).toString();
+            }
+            await token.methods.transfer(player, transferAmount).send({ from: unlockedDaiAccount });
+            const playerBalance = await token.methods.balanceOf(player).call({ from: admin });
+            console.log(`player${i + 1}DAIBalance`, web3.utils.fromWei(playerBalance));
           }
-          await token.methods.transfer(player, transferAmount).send({ from: unlockedDaiAccount });
-          const playerBalance = await token.methods.balanceOf(player).call({ from: admin });
-          console.log(`player${i + 1}DAIBalance`, web3.utils.fromWei(playerBalance));
+          await token.methods
+            .transfer(goodGhosting.address, web3.utils.toWei("100").toString())
+            .send({ from: unlockedDaiAccount });
+        } else {
+          const daiAmount = segmentPayment.mul(web3.utils.toBN(depositCount * 20)).toString();
+
+          for (let i = 0; i < players.length; i++) {
+            const player = players[i];
+            await token.methods.deposit().send({ from: player, value: daiAmount });
+            const playerBalance = await token.methods.balanceOf(player).call({ from: admin });
+            console.log(`player${i + 1}DAIBalance`, web3.utils.fromWei(playerBalance));
+          }
+
+          await token.methods.deposit().send({ from: unlockedDaiAccount, value: web3.utils.toWei("100").toString() });
+
+          await token.methods
+            .transfer(goodGhosting.address, web3.utils.toWei("100").toString())
+            .send({ from: unlockedDaiAccount });
         }
-        await token.methods
-          .transfer(goodGhosting.address, web3.utils.toWei("100").toString())
-          .send({ from: unlockedDaiAccount });
       });
 
       it("players approve Inbound Token to contract and join the game", async () => {
@@ -99,10 +128,12 @@ contract(
 
           if (providersConfigs.poolType == 0) {
             slippageFromContract = await pool.methods.calc_token_amount([segmentPayment.toString(), 0, 0], true).call();
-          } else {
+          } else if (providersConfigs.poolType == 1) {
             slippageFromContract = await pool.methods
               .calc_token_amount([segmentPayment.toString(), 0, 0, 0, 0], true)
               .call();
+          } else {
+            slippageFromContract = await pool.methods.calc_token_amount([0, segmentPayment.toString()]).call();
           }
 
           minAmountWithFees =
@@ -113,7 +144,19 @@ contract(
               : userProvidedMinAmount.sub(
                   userProvidedMinAmount.mul(web3.utils.toBN("10")).div(web3.utils.toBN("10000")),
                 );
-          await goodGhosting.joinGame(minAmountWithFees.toString(), 0, { from: player });
+          result = await goodGhosting.joinGame(minAmountWithFees.toString(), 0, { from: player });
+          truffleAssert.eventEmitted(
+            result,
+            "JoinedGame",
+            (ev: any) => {
+              playerEvent = ev.player;
+              paymentEvent = ev.amount;
+              return playerEvent === player && web3.utils.toBN(paymentEvent).toString() == segmentPayment.toString();
+            },
+            `JoinedGame event should be emitted when an user joins the game with params\n
+                                                          player: expected ${player}; got ${playerEvent}\n
+                                                          paymentAmount: expected ${segmentPayment.toString()}; got ${paymentEvent.toString()}`,
+          );
 
           // player 2 early withdraws in segment 0 and joins again
           if (i == 2) {
@@ -124,10 +167,12 @@ contract(
 
             if (providersConfigs.poolType == 0) {
               lpTokenAmount = await pool.methods.calc_token_amount([withdrawAmount.toString(), 0, 0], true).call();
-            } else {
+            } else if (providersConfigs.poolType == 1) {
               lpTokenAmount = await pool.methods
                 .calc_token_amount([withdrawAmount.toString(), 0, 0, 0, 0], true)
                 .call();
+            } else {
+              lpTokenAmount = await pool.methods.calc_token_amount([0, segmentPayment.toString()]).call();
             }
 
             const gaugeTokenBalance = await gaugeToken.methods.balanceOf(curveStrategy.address).call();
@@ -136,7 +181,7 @@ contract(
               lpTokenAmount = gaugeTokenBalance;
             }
 
-            let minAmount = await pool.methods.calc_withdraw_one_coin(lpTokenAmount.toString(), 0).call();
+            let minAmount = await pool.methods.calc_withdraw_one_coin(lpTokenAmount.toString(), tokenIndex).call();
 
             minAmount = web3.utils.toBN(minAmount).sub(web3.utils.toBN(minAmount).div(web3.utils.toBN("1000")));
 
@@ -167,32 +212,6 @@ contract(
       });
 
       it("players withdraw from contract", async () => {
-        const largeDepositPlayerInboundTokenBalanceBefore = web3.utils.toBN(
-          await token.methods.balanceOf(players[2]).call({ from: admin }),
-        );
-        const largeDepositPlayerCurveRewardBalanceBefore = web3.utils.toBN(
-          await curve.methods.balanceOf(players[2]).call({ from: admin }),
-        );
-        const largeDepositPlayerWmaticRewardBalanceBefore = web3.utils.toBN(
-          await wmatic.methods.balanceOf(players[2]).call({ from: admin }),
-        );
-        const smallDepositPlayerCurveRewardBalanceBefore = web3.utils.toBN(
-          await curve.methods.balanceOf(players[3]).call({ from: admin }),
-        );
-        const smallDepositPlayerWmaticRewardBalanceBefore = web3.utils.toBN(
-          await wmatic.methods.balanceOf(players[3]).call({ from: admin }),
-        );
-        const smallDepositPlayerInboundTokenBalanceBefore = web3.utils.toBN(
-          await token.methods.balanceOf(players[3]).call({ from: admin }),
-        );
-
-        const playerInfoForLargeDepositPlayer = await goodGhosting.players(players[2]);
-        const netAmountPaidForLargeDepositPlayer = playerInfoForLargeDepositPlayer.netAmountPaid;
-
-        const playerInfoForSmallDepositPlayer = await goodGhosting.players(players[3]);
-        const netAmountPaidForSmallDepositPlayer = playerInfoForSmallDepositPlayer.netAmountPaid;
-
-        // starts from 2, since player1 (loser), requested an early withdraw and player 2 withdrew after the last segment
         for (let i = 0; i < players.length; i++) {
           const player = players[i];
           let curveRewardBalanceBefore = web3.utils.toBN(0);
@@ -200,18 +219,21 @@ contract(
           let wmaticRewardBalanceBefore = web3.utils.toBN(0);
           let wmaticRewardBalanceAfter = web3.utils.toBN(0);
 
+          let inboundTokenBalanceBeforeRedeem = await token.methods.balanceOf(player).call();
+
           curveRewardBalanceBefore = web3.utils.toBN(await curve.methods.balanceOf(player).call({ from: admin }));
           wmaticRewardBalanceBefore = web3.utils.toBN(await wmatic.methods.balanceOf(player).call({ from: admin }));
           const playerInfo = await goodGhosting.players(player);
+          const netAmountPaid = playerInfo.netAmountPaid;
 
-          let result;
-          result = await goodGhosting.withdraw("0", { from: player });
+          await goodGhosting.withdraw(0, { from: player });
 
+          let inboundTokenBalanceAfterRedeem = await token.methods.balanceOf(player).call();
           curveRewardBalanceAfter = web3.utils.toBN(await curve.methods.balanceOf(player).call({ from: admin }));
           wmaticRewardBalanceAfter = web3.utils.toBN(await wmatic.methods.balanceOf(player).call({ from: admin }));
 
           assert(
-            curveRewardBalanceAfter.gte(curveRewardBalanceBefore),
+            curveRewardBalanceAfter.gt(curveRewardBalanceBefore),
             "expected curve balance after withdrawal to be greater than before withdrawal",
           );
 
@@ -220,67 +242,20 @@ contract(
             wmaticRewardBalanceBefore.lte(wmaticRewardBalanceAfter),
             "expected wmatic balance after withdrawal to be equal to or less than before withdrawal",
           );
+
+          const difference = web3.utils
+            .toBN(inboundTokenBalanceAfterRedeem)
+            .sub(web3.utils.toBN(inboundTokenBalanceBeforeRedeem));
+
+          // some i.loss happens
+          if (difference.gt(netAmountPaid)) {
+            // very minor diff
+            assert(difference.gte(netAmountPaid), "expected balance diff to be more than paid amount");
+          } else {
+            // very minor diff
+            assert(difference.lte(netAmountPaid), "expected balance diff to be more than paid amount");
+          }
         }
-
-        const inboundTokenPoolBalance = web3.utils.toBN(
-          await token.methods.balanceOf(goodGhosting.address).call({ from: admin }),
-        );
-
-        const curveRewardTokenPoolBalance = web3.utils.toBN(
-          await curve.methods.balanceOf(goodGhosting.address).call({ from: admin }),
-        );
-
-        const wmaticRewardTokenBalance = web3.utils.toBN(
-          await wmatic.methods.balanceOf(goodGhosting.address).call({ from: admin }),
-        );
-
-        const largeDepositPlayerInboundTokenBalanceAfter = web3.utils.toBN(
-          await token.methods.balanceOf(players[2]).call({ from: admin }),
-        );
-        const smallDepositPlayerInboundTokenBalanceAfter = web3.utils.toBN(
-          await token.methods.balanceOf(players[3]).call({ from: admin }),
-        );
-        const largeDepositPlayerCurveRewardBalanceAfter = web3.utils.toBN(
-          await curve.methods.balanceOf(players[2]).call({ from: admin }),
-        );
-        const largeDepositPlayerWmaticRewardBalanceAfter = web3.utils.toBN(
-          await wmatic.methods.balanceOf(players[2]).call({ from: admin }),
-        );
-        const smallDepositPlayerCurveRewardBalanceAfter = web3.utils.toBN(
-          await curve.methods.balanceOf(players[3]).call({ from: admin }),
-        );
-        const smallDepositPlayerWmaticRewardBalanceAfter = web3.utils.toBN(
-          await wmatic.methods.balanceOf(players[3]).call({ from: admin }),
-        );
-
-        const inboundTokenBalanceDiffForPlayer1 = largeDepositPlayerInboundTokenBalanceAfter.sub(
-          largeDepositPlayerInboundTokenBalanceBefore,
-        );
-        const inboundTokenBalanceDiffForPlayer2 = smallDepositPlayerInboundTokenBalanceAfter.sub(
-          smallDepositPlayerInboundTokenBalanceBefore,
-        );
-
-        const curveBalanceDiffForPlayer1 = largeDepositPlayerCurveRewardBalanceAfter.sub(
-          largeDepositPlayerCurveRewardBalanceBefore,
-        );
-        const wmaticBalanceDiffForPlayer1 = largeDepositPlayerWmaticRewardBalanceAfter.sub(
-          largeDepositPlayerWmaticRewardBalanceBefore,
-        );
-        const curveBalanceDiffForPlayer2 = smallDepositPlayerCurveRewardBalanceAfter.sub(
-          smallDepositPlayerCurveRewardBalanceBefore,
-        );
-        const wmaticBalanceDiffForPlayer2 = smallDepositPlayerWmaticRewardBalanceAfter.sub(
-          smallDepositPlayerWmaticRewardBalanceBefore,
-        );
-
-        assert(inboundTokenBalanceDiffForPlayer2.gt(netAmountPaidForSmallDepositPlayer));
-        assert(inboundTokenBalanceDiffForPlayer1.gt(netAmountPaidForLargeDepositPlayer));
-
-        // very minor differences
-        assert(curveBalanceDiffForPlayer1.gte(curveBalanceDiffForPlayer2));
-        assert(wmaticBalanceDiffForPlayer1.gte(wmaticBalanceDiffForPlayer2));
-        assert(curveRewardTokenPoolBalance.gte(web3.utils.toBN(0)));
-        assert(wmaticRewardTokenBalance.gte(web3.utils.toBN(0)));
       });
 
       it("admin withdraws admin fee from contract", async () => {
@@ -304,14 +279,6 @@ contract(
             await token.methods.balanceOf(goodGhosting.address).call({ from: admin }),
           );
 
-          const curveRewardTokenPoolBalance = web3.utils.toBN(
-            await curve.methods.balanceOf(goodGhosting.address).call({ from: admin }),
-          );
-
-          const wmaticRewardTokenBalance = web3.utils.toBN(
-            await wmatic.methods.balanceOf(goodGhosting.address).call({ from: admin }),
-          );
-
           inboundTokenBalanceAfter = web3.utils.toBN(await token.methods.balanceOf(admin).call({ from: admin }));
           curveRewardBalanceAfter = web3.utils.toBN(await curve.methods.balanceOf(admin).call({ from: admin }));
           wmaticRewardBalanceAfter = web3.utils.toBN(await wmatic.methods.balanceOf(admin).call({ from: admin }));
@@ -319,7 +286,7 @@ contract(
           assert(inboundTokenBalanceAfter.gt(inboundTokenBalanceBefore));
 
           assert(
-            curveRewardBalanceAfter.gte(curveRewardBalanceBefore),
+            curveRewardBalanceAfter.gt(curveRewardBalanceBefore),
             "expected curve balance after withdrawal to be greater than before withdrawal",
           );
           // for some reason forking mainnet we don't get back wmatic rewards(wamtic rewards were stopped from curve's end IMO)
@@ -328,8 +295,6 @@ contract(
             "expected wmatic balance after withdrawal to be equal to or greater than before withdrawal",
           );
           assert(inboundTokenPoolBalance.eq(web3.utils.toBN(0)));
-          assert(curveRewardTokenPoolBalance.gte(web3.utils.toBN(0)));
-          assert(wmaticRewardTokenBalance.gte(web3.utils.toBN(0)));
         }
       });
     });

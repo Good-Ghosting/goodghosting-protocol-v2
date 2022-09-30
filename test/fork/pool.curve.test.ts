@@ -80,7 +80,7 @@ contract("Pool with Curve Strategy", accounts => {
 
       if (configs.deployConfigs.strategy !== "polygon-curve-stmatic-matic") {
         const unlockedBalance = await token.methods.balanceOf(unlockedDaiAccount).call({ from: admin });
-        const daiAmount = segmentPayment.mul(web3.utils.toBN(depositCount)).toString();
+        const daiAmount = segmentPayment.mul(web3.utils.toBN(depositCount * 20)).toString();
         console.log("unlockedBalance: ", web3.utils.fromWei(unlockedBalance));
         console.log("daiAmountToTransfer", web3.utils.fromWei(daiAmount));
         for (let i = 0; i < players.length; i++) {
@@ -95,7 +95,7 @@ contract("Pool with Curve Strategy", accounts => {
           console.log(`player${i + 1}DAIBalance`, web3.utils.fromWei(playerBalance));
         }
       } else {
-        const daiAmount = segmentPayment.mul(web3.utils.toBN(depositCount * 3)).toString();
+        const daiAmount = segmentPayment.mul(web3.utils.toBN(depositCount * 20)).toString();
 
         for (let i = 0; i < players.length; i++) {
           const player = players[i];
