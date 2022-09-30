@@ -92,7 +92,7 @@ contract("Variable Deposit Pool with Mobius Strategy when admin enables early ga
 
         for (let i = 0; i < players.length; i++) {
           const player = players[i];
-          const transferAmount = segmentPayment.mul(web3.utils.toBN(depositCount * 5)).toString();
+          const transferAmount = segmentPayment.mul(web3.utils.toBN(depositCount * 40)).toString();
           await stCeloToken.methods.transfer(player, transferAmount).send({ from: unlockedDaiAccount });
           await stCeloToken.methods
             .approve(
@@ -106,7 +106,7 @@ contract("Variable Deposit Pool with Mobius Strategy when admin enables early ga
         }
       } else {
         const unlockedBalance = await token.methods.balanceOf(unlockedDaiAccount).call({ from: admin });
-        const daiAmount = segmentPayment.mul(web3.utils.toBN(depositCount)).toString();
+        const daiAmount = segmentPayment.mul(web3.utils.toBN(depositCount * 20)).toString();
         console.log("unlockedBalance: ", web3.utils.fromWei(unlockedBalance));
         console.log("daiAmountToTransfer", web3.utils.fromWei(daiAmount));
         for (let i = 0; i < players.length; i++) {
@@ -120,6 +120,10 @@ contract("Variable Deposit Pool with Mobius Strategy when admin enables early ga
           const playerBalance = await token.methods.balanceOf(player).call({ from: admin });
           console.log(`player${i + 1}DAIBalance`, web3.utils.fromWei(playerBalance));
         }
+
+        await token.methods
+          .transfer(goodGhosting.address, web3.utils.toWei("90").toString())
+          .send({ from: unlockedDaiAccount });
       }
     });
 
@@ -254,7 +258,7 @@ contract("Variable Deposit Pool with Mobius Strategy when admin enables early ga
         const netAmountPaid = playerInfo.netAmountPaid;
 
         // redeem already called hence passing in 0
-        await goodGhosting.withdraw(netAmountPaid.toString(), { from: player });
+        await goodGhosting.withdraw("0", { from: player });
 
         let inboundTokenBalanceAfterRedeem = await token.methods.balanceOf(player).call();
         mobiRewardBalanceAfter = web3.utils.toBN(await mobi.methods.balanceOf(player).call({ from: admin }));

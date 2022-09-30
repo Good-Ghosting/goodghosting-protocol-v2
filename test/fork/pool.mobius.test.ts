@@ -111,7 +111,7 @@ contract("Pool with Mobius Strategy", accounts => {
         }
       } else {
         const unlockedBalance = await token.methods.balanceOf(unlockedDaiAccount).call({ from: admin });
-        const daiAmount = segmentPayment.mul(web3.utils.toBN(depositCount)).toString();
+        const daiAmount = segmentPayment.mul(web3.utils.toBN(depositCount * 10)).toString();
         console.log("unlockedBalance: ", web3.utils.fromWei(unlockedBalance));
         console.log("daiAmountToTransfer", web3.utils.fromWei(daiAmount));
         for (let i = 0; i < players.length; i++) {

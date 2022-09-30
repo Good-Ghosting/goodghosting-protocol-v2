@@ -94,7 +94,7 @@ contract("Variable Deposit Pool with Mobius Strategy with no winners", accounts 
 
         for (let i = 0; i < players.length; i++) {
           const player = players[i];
-          const transferAmount = segmentPayment.mul(web3.utils.toBN(depositCount * 5)).toString();
+          const transferAmount = segmentPayment.mul(web3.utils.toBN(depositCount * 40)).toString();
           await stCeloToken.methods.transfer(player, transferAmount).send({ from: unlockedDaiAccount });
           await stCeloToken.methods
             .approve(
@@ -108,7 +108,7 @@ contract("Variable Deposit Pool with Mobius Strategy with no winners", accounts 
         }
       } else {
         const unlockedBalance = await token.methods.balanceOf(unlockedDaiAccount).call({ from: admin });
-        const daiAmount = segmentPayment.mul(web3.utils.toBN(depositCount)).toString();
+        const daiAmount = segmentPayment.mul(web3.utils.toBN(depositCount * 20)).toString();
         console.log("unlockedBalance: ", web3.utils.fromWei(unlockedBalance));
         console.log("daiAmountToTransfer", web3.utils.fromWei(daiAmount));
         for (let i = 0; i < players.length; i++) {
