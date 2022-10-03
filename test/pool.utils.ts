@@ -311,6 +311,12 @@ export const deployPool = async (
         ),
       ).to.be.revertedWith("INVALID_GAUGE()");
 
+      await expect(
+        curveStrategyDeployer.deploy(curvePool.address, 0, curvePoolType, curveGauge.address, gaugeminter.address, [
+          ZERO_ADDRESS,
+        ]),
+      ).to.be.revertedWith("INVALID_REWARD_TOKEN()");
+
       strategy = await curveStrategyDeployer.deploy(
         curvePool.address,
         0,
@@ -346,6 +352,16 @@ export const deployPool = async (
       await expect(
         mobiStrategyDeployer.deploy(ZERO_ADDRESS, mobiGauge.address, minter.address, ZERO_ADDRESS, 0, rewardTokens),
       ).to.be.revertedWith("INVALID_POOL()");
+
+      await expect(
+        mobiStrategyDeployer.deploy(mobiPool.address, mobiGauge.address, minter.address, ZERO_ADDRESS, 0, [
+          ZERO_ADDRESS,
+        ]),
+      ).to.be.revertedWith("INVALID_REWARD_TOKEN()");
+
+      await expect(
+        mobiStrategyDeployer.deploy(mobiPool.address, ZERO_ADDRESS, minter.address, ZERO_ADDRESS, 0, rewardTokens),
+      ).to.be.revertedWith("INVALID_REWARD_TOKEN()");
 
       strategy = await mobiStrategyDeployer.deploy(
         mobiPool.address,
