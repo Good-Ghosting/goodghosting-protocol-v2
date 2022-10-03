@@ -18,6 +18,7 @@ error INVALID_GAUGE();
 error INVALID_LP_TOKEN();
 error INVALID_MINTER();
 error INVALID_POOL();
+error INVALID_REWARD_TOKEN();
 error TOKEN_TRANSFER_FAILURE();
 
 /**
@@ -129,7 +130,7 @@ contract MobiusStrategy is Ownable, IStrategy {
     Returns the fee (for amm strategies)
     */
     function getFee() external view override returns (uint256) {
-        (, , , , uint256 swapFee, , , , ,) = pool.swapStorage();
+        (, , , , uint256 swapFee, , , , , ) = pool.swapStorage();
         return swapFee;
     }
 
@@ -152,6 +153,20 @@ contract MobiusStrategy is Ownable, IStrategy {
     ) {
         if (address(_pool) == address(0)) {
             revert INVALID_POOL();
+        }
+
+        if (address(_gauge) == address(0) && _rewardTokens.length > 0) {
+            revert INVALID_REWARD_TOKEN();
+        } else {
+            uint256 numRewards = _rewardTokens.length;
+            for (uint256 i = 0; i < numRewards; ) {
+                if (address(_rewardTokens[i]) == address(0)) {
+                    revert INVALID_REWARD_TOKEN();
+                }
+                unchecked {
+                    ++i;
+                }
+            }
         }
 
         pool = _pool;
@@ -291,10 +306,7 @@ contract MobiusStrategy is Ownable, IStrategy {
         for (uint256 i = 0; i < numRewards; ) {
             // safety check since funds don't get transferred to a extrnal protocol
             if (IERC20(_rewardTokens[i]).balanceOf(address(this)) != 0) {
-                success = _rewardTokens[i].transfer(
-                    msg.sender,
-                    _rewardTokens[i].balanceOf(address(this))
-                );
+                success = _rewardTokens[i].transfer(msg.sender, _rewardTokens[i].balanceOf(address(this)));
                 if (!success) {
                     revert TOKEN_TRANSFER_FAILURE();
                 }

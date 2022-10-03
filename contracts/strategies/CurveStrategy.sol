@@ -17,6 +17,7 @@ error INVALID_DEPOSIT_TOKEN();
 error INVALID_GAUGE();
 error INVALID_INBOUND_TOKEN_INDEX();
 error INVALID_POOL();
+error INVALID_REWARD_TOKEN();
 error TOKEN_TRANSFER_FAILURE();
 
 /**
@@ -215,12 +216,21 @@ contract CurveStrategy is Ownable, IStrategy {
             revert INVALID_INBOUND_TOKEN_INDEX();
         }
 
+        uint256 numRewards = _rewardTokens.length;
+        for (uint256 i = 0; i < numRewards; ) {
+            if (address(_rewardTokens[i]) == address(0)) {
+                revert INVALID_REWARD_TOKEN();
+            }
+            unchecked {
+                ++i;
+            }
+        }
+
         pool = _pool;
         gauge = _gauge;
         gaugeMinter = _gaugeMinter;
         poolType = _poolType;
         inboundTokenIndex = _inboundTokenIndex;
-        // wmatic in case of polygon and address(0) for non-polygon deployment
         rewardTokens = _rewardTokens;
         if (_poolType == LENDING_POOL) {
             lpToken = IERC20(_pool.lp_token());
