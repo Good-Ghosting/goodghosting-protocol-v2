@@ -12,6 +12,7 @@ const NoExternalStrategyArtifact = artifacts.require("NoExternalStrategy");
 const fs = require("fs");
 const config = require("../deploy.config");
 const providerConfig = require("../providers.config");
+const ZERO_ADDRESS = "0x0000000000000000000000000000000000000000";
 
 // used for amm strategies
 const tokenIndexMapping = {
@@ -27,6 +28,26 @@ const tokenIndexMapping = {
     wbtc: 3,
     weth: 4,
   },
+  "polygon-curve-stmatic-matic": {
+    stmatic: 0,
+    wmatic: 1,
+  },
+  "mobius-cUSD-DAI": {
+    cusd: 0,
+    dai: 1,
+  },
+  "mobius-cUSD-USDC": {
+    cusd: 0,
+    usdc: 1,
+  },
+  "mobius-celo-stCelo": {
+    celo: 0,
+    rstCelo: 1,
+  },
+  "mobius-cusd-usdcet": {
+    cusd: 0,
+    usdcet: 1,
+  },
 };
 
 module.exports = function (deployer, network, accounts) {
@@ -38,14 +59,8 @@ module.exports = function (deployer, network, accounts) {
   if (["test", "soliditycoverage"].includes(network)) return;
 
   deployer.then(async () => {
-    let maxFlexibleSegmentPaymentAmount, flexibleSegmentPayment;
-    if (network.toString().includes("local-variable")) {
-      flexibleSegmentPayment = true;
-      maxFlexibleSegmentPaymentAmount = "1000000000000000000000";
-    } else {
-      flexibleSegmentPayment = config.deployConfigs.flexibleSegmentPayment;
-      maxFlexibleSegmentPaymentAmount = config.deployConfigs.maxFlexibleSegmentPaymentAmount;
-    }
+    const maxFlexibleSegmentPaymentAmount = config.deployConfigs.maxFlexibleSegmentPaymentAmount;
+    const flexibleSegmentPayment = config.deployConfigs.flexibleSegmentPayment;
 
     const strategyConfig =
       providerConfig.providers[
@@ -73,10 +88,10 @@ module.exports = function (deployer, network, accounts) {
       ? providerConfig.providers["mumbai"].tokens[config.deployConfigs.inboundCurrencySymbol].decimals
       : providerConfig.providers["polygon"].tokens[config.deployConfigs.inboundCurrencySymbol].decimals;
     const segmentPaymentWei = (config.deployConfigs.segmentPayment * 10 ** inboundCurrencyDecimals).toString();
-    const maxFlexibleSegmentPaymentAmountWei = (
-      maxFlexibleSegmentPaymentAmount *
-      10 ** inboundCurrencyDecimals
-    ).toString();
+
+    const maxFlexibleSegmentPaymentAmountWei = new BN(maxFlexibleSegmentPaymentAmount)
+      .mul(new BN(10).pow(new BN(inboundCurrencyDecimals)))
+      .toString();
 
     let maxPlayersCount;
     if (config.deployConfigs.maxPlayersCount && config.deployConfigs.maxPlayersCount != "") {
@@ -86,14 +101,20 @@ module.exports = function (deployer, network, accounts) {
     }
     const goodGhostingContract = config.deployConfigs.isWhitelisted ? WhitelistedContract : GoodGhostingContract; // defaults to Ethereum version
     let strategyArgs;
-    if (config.deployConfigs.strategy === "mobius-cUSD-DAI" || config.deployConfigs.strategy === "mobius-cUSD-USDC") {
+    if (
+      config.deployConfigs.strategy === "mobius-cUSD-DAI" ||
+      config.deployConfigs.strategy === "mobius-cUSD-USDC" ||
+      config.deployConfigs.strategy === "mobius-celo-stCelo" ||
+      config.deployConfigs.strategy === "mobius-cusd-usdcet"
+    ) {
       strategyArgs = [
         MobiusStrategyArtifact,
         strategyConfig.pool,
         strategyConfig.gauge,
         strategyConfig.minter,
-        providerConfig.providers["celo"].tokens["mobi"].address,
-        providerConfig.providers["celo"].tokens["celo"].address,
+        strategyConfig.lpToken,
+        tokenIndexMapping[config.deployConfigs.strategy][config.deployConfigs.inboundCurrencySymbol],
+        config.deployConfigs.rewardTokens,
       ];
     } else if (config.deployConfigs.strategy === "moola") {
       strategyArgs = [
@@ -127,8 +148,8 @@ module.exports = function (deployer, network, accounts) {
         tokenIndexMapping[config.deployConfigs.strategy][config.deployConfigs.inboundCurrencySymbol],
         strategyConfig.poolType,
         strategyConfig.gauge,
-        providerConfig.providers["polygon"].tokens["wmatic"].address,
-        providerConfig.providers["polygon"].tokens["curve"].address,
+        strategyConfig.gaugeMinter,
+        config.deployConfigs.rewardTokens,
       ];
     }
     const deploymentResult = {};
@@ -140,11 +161,16 @@ module.exports = function (deployer, network, accounts) {
       deploymentResult.network = "polygon";
       const payload = await axios.get("https://gasstation-mainnet.matic.network");
       // converting to 1 eth worth of gwei
-      gasPrice = new BN(payload.data.safeLow).mul(new BN(10 ** 9));
+      gasPrice = new BN(payload.data.fastest).mul(new BN(10 ** 9));
     }
     const strategyTx = await deployer.deploy(...strategyArgs, { gasPrice: gasPrice });
     let strategyInstance;
-    if (config.deployConfigs.strategy === "mobius-cUSD-DAI" || config.deployConfigs.strategy === "mobius-cUSD-USDC")
+    if (
+      config.deployConfigs.strategy === "mobius-cUSD-DAI" ||
+      config.deployConfigs.strategy === "mobius-cUSD-USDC" ||
+      config.deployConfigs.strategy === "mobius-celo-stCelo" ||
+      config.deployConfigs.strategy === "mobius-cusd-usdcet"
+    )
       strategyInstance = await MobiusStrategyArtifact.deployed();
     else if (
       config.deployConfigs.strategy === "moola" ||
@@ -162,7 +188,7 @@ module.exports = function (deployer, network, accounts) {
     // Prepares deployment arguments
     let deploymentArgs = [
       goodGhostingContract,
-      inboundCurrencyAddress,
+      config.deployConfigs.isTransactionalToken ? ZERO_ADDRESS : inboundCurrencyAddress,
       maxFlexibleSegmentPaymentAmountWei,
       config.deployConfigs.depositCount,
       config.deployConfigs.segmentLength,
@@ -177,7 +203,7 @@ module.exports = function (deployer, network, accounts) {
     ];
 
     // Deploys the Pool Contract
-    const poolTx = await deployer.deploy(...deploymentArgs, { gasPrice: gasPrice });
+    const poolTx = await deployer.deploy(...deploymentArgs);
     const ggInstance = await goodGhostingContract.deployed();
 
     if (
@@ -244,8 +270,8 @@ module.exports = function (deployer, network, accounts) {
       "bool", // isTransactionalToken
     ];
     var poolParameterValues = [
-      inboundCurrencyAddress,
-      maxFlexibleSegmentPaymentAmount,
+      config.deployConfigs.isTransactionalToken ? ZERO_ADDRESS : inboundCurrencyAddress,
+      maxFlexibleSegmentPaymentAmountWei,
       config.deployConfigs.depositCount,
       config.deployConfigs.segmentLength,
       config.deployConfigs.waitingRoundSegmentLength,
@@ -259,20 +285,27 @@ module.exports = function (deployer, network, accounts) {
     ];
     deploymentResult.poolEncodedParameters = abi.rawEncode(poolParameterTypes, poolParameterValues).toString("hex");
 
-    if (config.deployConfigs.strategy === "mobius-cUSD-DAI" || config.deployConfigs.strategy === "mobius-cUSD-USDC") {
+    if (
+      config.deployConfigs.strategy === "mobius-cUSD-DAI" ||
+      config.deployConfigs.strategy === "mobius-cUSD-USDC" ||
+      config.deployConfigs.strategy === "mobius-celo-stCelo" ||
+      config.deployConfigs.strategy === "mobius-cusd-usdcet"
+    ) {
       deploymentResult.mobiusPoolAddress = strategyConfig.pool;
       deploymentResult.mobiusGaugeAddress = strategyConfig.gauge;
       deploymentResult.mobiusMinterAddress = strategyConfig.minter;
-      deploymentResult.strategyMobiAddress = providerConfig.providers["celo"].tokens["mobi"].address;
-      deploymentResult.strategyCeloAddress = providerConfig.providers["celo"].tokens["celo"].address;
-      var mobiusStrategyParameterTypes = ["address", "address", "address", "address", "address"];
+      deploymentResult.strategyLPTokenAddress = strategyConfig.lpToken;
+      deploymentResult.strategyTokenIndex =
+        tokenIndexMapping[config.deployConfigs.strategy][config.deployConfigs.inboundCurrencySymbol];
+      var mobiusStrategyParameterTypes = ["address", "address", "address", "address", "uint", "address[]"];
 
       var mobiusStrategyValues = [
         deploymentResult.mobiusPoolAddress,
         deploymentResult.mobiusGaugeAddress,
         deploymentResult.mobiusMinterAddress,
-        deploymentResult.strategyMobiAddress,
-        deploymentResult.strategyCeloAddress,
+        deploymentResult.strategyLPTokenAddress,
+        deploymentResult.strategyTokenIndex,
+        deploymentResult.rewardTokenAdddresses,
       ];
 
       deploymentResult.strategyEncodedParameters = abi
@@ -327,17 +360,15 @@ module.exports = function (deployer, network, accounts) {
       deploymentResult.strategyTokenIndex =
         tokenIndexMapping[config.deployConfigs.strategy][config.deployConfigs.inboundCurrencySymbol];
       deploymentResult.strategyPoolType = strategyConfig.poolType;
-      deploymentResult.strategyRewardTokenAddress = providerConfig.providers["polygon"].tokens["wmatic"].address;
-      deploymentResult.strategyCurveTokenAddress = providerConfig.providers["polygon"].tokens["curve"].address;
-
-      var curveStrategyParameterTypes = ["address", "address", "uint", "uint", "address", "address"];
+      deploymentResult.gaugeMinterAddress = strategyConfig.gaugeMinter;
+      var curveStrategyParameterTypes = ["address", "address", "uint", "uint", "address", "address[]"];
       var curveStrategyValues = [
         deploymentResult.curvePoolAddress,
         deploymentResult.curveGaugeAddress,
         deploymentResult.strategyTokenIndex,
         deploymentResult.strategyPoolType,
-        deploymentResult.strategyRewardTokenAddress,
-        deploymentResult.strategyCurveTokenAddress,
+        deploymentResult.gaugeMinterAddress,
+        deploymentResult.rewardTokenAdddresses,
       ];
       deploymentResult.strategyEncodedParameters = abi
         .rawEncode(curveStrategyParameterTypes, curveStrategyValues)

@@ -72,7 +72,7 @@ contract WhitelistedPool is Pool, MerkleValidator {
     @dev does not allow to initialize the pool
     @param _incentiveToken Incentive token address
     */
-    function initialize(IERC20 _incentiveToken) public override onlyOwner whenNotPaused {
+    function initialize(IERC20 _incentiveToken) public view override onlyOwner whenNotPaused {
         revert("Whitelisting enabled - use initializePool(bytes32) instead");
     }
 

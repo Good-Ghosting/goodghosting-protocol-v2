@@ -17,6 +17,10 @@ exports.providers = {
         address: "0x172370d5cd63279efa6d502dab29171933a610af",
         decimals: 18,
       },
+      ldo: {
+        address: "0xc3c7d422809852031b44ab29eec9f1eff2a58756",
+        decimals: 18,
+      },
       weth: {
         address: "0x7ceB23fD6bC0adD59E62ac25578270cFf1b9f619",
         decimals: 18,
@@ -41,13 +45,21 @@ exports.providers = {
       },
       "polygon-curve-aave": {
         pool: "0x445FE580eF8d70FF569aB36e80c647af338db351",
-        gauge: "0x19793B454D3AfC7b454F206Ffe95aDE26cA6912c",
+        gauge: "0x20759F567BB3EcDB55c817c9a1d13076aB215EdC",
         poolType: 0, // Aave Pool
+        gaugeMinter: "0xabC000d88f23Bb45525E447528DBF656A9D55bf5",
       },
       "polygon-curve-atricrypto": {
         pool: "0x1d8b86e3d88cdb2d34688e87e72f388cb541b7c8",
-        gauge: "0x3b6b158a76fd8ccc297538f454ce7b4787778c7c",
-        poolType: 1, // Aave Pool
+        gauge: "0xBb1B19495B8FE7C402427479B9aC14886cbbaaeE",
+        poolType: 1, // Atricrypto Pool
+        gaugeMinter: "0xabC000d88f23Bb45525E447528DBF656A9D55bf5",
+      },
+      "polygon-curve-stmatic-matic": {
+        pool: "0xfb6fe7802ba9290ef8b00ca16af4bc26eb663a28",
+        gauge: "0x9633e0749faa6ec6d992265368b88698d6a93ac0",
+        poolType: 2, // Stmatic-Matic Pool
+        gaugeMinter: "0x0000000000000000000000000000000000000000",
       },
       //"no-external-strategy": {}, // REWARD TOKENS MUST BE CONFIGURED IN `deploy.configs.js` file
     },
@@ -108,6 +120,14 @@ exports.providers = {
         address: "0x471EcE3750Da237f93B8E339c536989b8978a438",
         decimals: 18,
       },
+      stCelo: {
+        address: "0xC668583dcbDc9ae6FA3CE46462758188adfdfC24",
+        decimals: 18,
+      },
+      rstCelo: {
+        address: "0xDc5762753043327d74e0a538199c1488FC1F44cf",
+        decimals: 18,
+      },
       creal: {
         address: "0xe8537a3d056DA446677B9E9d6c5dB704EaAb4787",
         decimals: 18,
@@ -150,11 +170,31 @@ exports.providers = {
         pool: "0xF3f65dFe0c8c8f2986da0FEc159ABE6fd4E700B4",
         gauge: "0xE1f9D952EecC07cfEFa69df9fBB0cEF260957119",
         minter: "0x5F0200CA03196D5b817E2044a0Bb0D837e0A7823",
+        lpToken: "0x0000000000000000000000000000000000000000",
       },
       "mobius-cUSD-USDC": {
         pool: "0x9906589Ea8fd27504974b7e8201DF5bBdE986b03",
         gauge: "0xc96AeeaFF32129da934149F6134Aa7bf291a754E",
         minter: "0x5F0200CA03196D5b817E2044a0Bb0D837e0A7823",
+        lpToken: "0x0000000000000000000000000000000000000000",
+      },
+      "mobius-celo-stCelo": {
+        pool: "0xEBf0536356256f8FF2a5Eb6C65800839801d8B95",
+        gauge: "0x70AE7265545f001cb015399D672B85D8f2CaCA72",
+        minter: "0x0000000000000000000000000000000000000000",
+        lpToken: "0x4730ff6bC3008a40cf74D660D3f20d5b51646dA3",
+      },
+      "mobius-mento": {
+        pool: "0xFa3df877F98ac5ecd87456a7AcCaa948462412f0",
+        gauge: "0x0000000000000000000000000000000000000000",
+        minter: "0x0000000000000000000000000000000000000000",
+        lpToken: "0x552b9AA0eEe500c60f09456e49FBc1096322714C",
+      },
+      "mobius-cusd-usdcet": {
+        pool: "0xc0ba93d4aaf90d39924402162ee4a213300d1d60",
+        gauge: "0x7ed927E685d7196Ff2e7Bc48c5cB5e8af88c9332",
+        minter: "0x5F0200CA03196D5b817E2044a0Bb0D837e0A7823",
+        lpToken: "0x0000000000000000000000000000000000000000",
       },
       //"no-external-strategy": {}, // REWARD TOKENS MUST BE CONFIGURED IN `deploy.configs.js` file
     },

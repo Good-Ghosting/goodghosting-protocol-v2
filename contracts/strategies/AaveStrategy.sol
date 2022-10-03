@@ -104,6 +104,23 @@ contract AaveStrategy is Ownable, IStrategy {
         return tokens;
     }
 
+    /** 
+    @notice
+    Returns the lp token amount received (for amm strategies)
+    */
+    function getLPTokenAmount(uint256 _amount) external pure override returns (uint256) {
+        return _amount;
+    }
+
+    /** 
+    @notice
+    Returns the fee (for amm strategies)
+    */
+    function getFee() external pure override returns (uint256) {
+        return 0;
+    }
+
+
     //*********************************************************************//
     // -------------------------- constructor ---------------------------- //
     //*********************************************************************//

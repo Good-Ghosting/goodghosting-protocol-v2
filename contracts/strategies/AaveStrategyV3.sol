@@ -103,14 +103,34 @@ contract AaveStrategyV3 is Ownable, IStrategy {
     Returns the instance of the reward token
     */
     function getRewardTokens() external view override returns (IERC20[] memory) {
-        IERC20[] memory rewardTokenInstances = new IERC20[](rewardTokens.length);
-        for (uint256 i = 0; i < rewardTokens.length; ) {
-            rewardTokenInstances[i] = IERC20(rewardTokens[i]);
+        // avoid multiple SLOADS
+        address[] memory _rewardTokens = rewardTokens;
+        uint256 numRewards = _rewardTokens.length;
+        
+        IERC20[] memory rewardTokenInstances = new IERC20[](numRewards);
+        for (uint256 i = 0; i < numRewards; ) {
+            rewardTokenInstances[i] = IERC20(_rewardTokens[i]);
             unchecked {
                 ++i;
             }
         }
         return rewardTokenInstances;
+    }
+
+    /** 
+    @notice
+    Returns the lp token amount received (for amm strategies)
+    */
+    function getLPTokenAmount(uint256 _amount) external pure override returns (uint256) {
+        return _amount;
+    }
+
+    /** 
+    @notice
+    Returns the fee (for amm strategies)
+    */
+    function getFee() external pure override returns (uint256) {
+        return 0;
     }
 
     //*********************************************************************//
@@ -258,11 +278,15 @@ contract AaveStrategyV3 is Ownable, IStrategy {
             if (address(rewardsController) != address(0)) {
                 rewardsController.claimAllRewardsToSelf(assets);
             }
-            for (uint256 i = 0; i < rewardTokens.length; ) {
-                if (IERC20(rewardTokens[i]).balanceOf(address(this)) != 0) {
-                    bool success = IERC20(rewardTokens[i]).transfer(
+
+            // avoid multiple SLOADS
+            address[] memory _rewardTokens = rewardTokens;
+            uint256 numRewards = _rewardTokens.length;
+            for (uint256 i = 0; i < numRewards; ) {
+                if (IERC20(_rewardTokens[i]).balanceOf(address(this)) != 0) {
+                    bool success = IERC20(_rewardTokens[i]).transfer(
                         msg.sender,
-                        IERC20(rewardTokens[i]).balanceOf(address(this))
+                        IERC20(_rewardTokens[i]).balanceOf(address(this))
                     );
                     if (!success) {
                         revert TOKEN_TRANSFER_FAILURE();

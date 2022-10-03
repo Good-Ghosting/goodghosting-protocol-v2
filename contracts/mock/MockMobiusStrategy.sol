@@ -7,9 +7,10 @@ contract MockMobiusStrategy is MobiusStrategy {
         IMobiPool _pool,
         IMobiGauge _gauge,
         IMinter _minter,
-        IERC20 _mobi,
-        IERC20 _celo
-    ) MobiusStrategy(_pool, _gauge, _minter, _mobi, _celo) {}
+        IERC20 _lpToken,
+        uint8 _inboundTokenIndex,
+        IERC20[] memory _rewardTokens
+    ) MobiusStrategy(_pool, _gauge, _minter, _lpToken, _inboundTokenIndex, _rewardTokens) {}
 
     function getTotalAmount() external view override returns (uint256) {
         // this method mocks the strategy method to cover a scneario where the interest reduces but stays > 0
@@ -22,7 +23,7 @@ contract MockMobiusStrategy is MobiusStrategy {
         } else {
             gaugeBalance = 400000000000000;
         }
-        uint256 totalAccumulatedAmount = pool.calculateRemoveLiquidityOneToken(address(this), gaugeBalance, 0);
+        uint256 totalAccumulatedAmount = pool.calculateRemoveLiquidityOneToken(address(this), gaugeBalance, uint8(inboundTokenIndex));
         return totalAccumulatedAmount;
     }
 }

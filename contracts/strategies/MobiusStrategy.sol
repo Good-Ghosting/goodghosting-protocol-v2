@@ -13,12 +13,12 @@ import "./IStrategy.sol";
 // --------------------------- custom errors ------------------------- //
 //*********************************************************************//
 error CANNOT_ACCEPT_TRANSACTIONAL_TOKEN();
-error INVALID_CELO_TOKEN();
 error INVALID_DEPOSIT_TOKEN();
 error INVALID_GAUGE();
+error INVALID_LP_TOKEN();
 error INVALID_MINTER();
-error INVALID_MOBI_TOKEN();
 error INVALID_POOL();
+error INVALID_REWARD_TOKEN();
 error TOKEN_TRANSFER_FAILURE();
 
 /**
@@ -35,17 +35,17 @@ contract MobiusStrategy is Ownable, IStrategy {
     /// @notice gauge address
     IMinter public immutable minter;
 
-    /// @notice mobi token
-    IERC20 public immutable mobi;
+    /// @notice pool address
+    IMobiPool public immutable pool;
 
-    /// @notice celo token
-    IERC20 public immutable celo;
+    /// @notice token index in the pool.
+    uint8 public immutable inboundTokenIndex;
 
     /// @notice mobi lp token
     IERC20 public lpToken;
 
-    /// @notice pool address
-    IMobiPool public pool;
+    /// @notice reward token address
+    IERC20[] public rewardTokens;
 
     //*********************************************************************//
     // ------------------------- external views -------------------------- //
@@ -66,13 +66,23 @@ contract MobiusStrategy is Ownable, IStrategy {
     @return Total accumulated amount.
     */
     function getTotalAmount() external view virtual override returns (uint256) {
-        uint256 gaugeBalance = gauge.balanceOf(address(this));
-        if (gaugeBalance != 0) {
-            uint256 totalAccumulatedAmount = pool.calculateRemoveLiquidityOneToken(address(this), gaugeBalance, 0);
-            return totalAccumulatedAmount;
+        uint256 liquidityBalance;
+        if (address(gauge) != address(0)) {
+            liquidityBalance = gauge.balanceOf(address(this));
         } else {
-            return 0;
+            liquidityBalance = lpToken.balanceOf(address(this));
         }
+
+        if (liquidityBalance != 0) {
+            uint256 totalAccumulatedAmount = pool.calculateRemoveLiquidityOneToken(
+                address(this),
+                liquidityBalance,
+                inboundTokenIndex
+            );
+            return totalAccumulatedAmount;
+        }
+
+        return 0;
     }
 
     /** 
@@ -82,9 +92,9 @@ contract MobiusStrategy is Ownable, IStrategy {
     */
     function getNetDepositAmount(uint256 _amount) external view override returns (uint256) {
         uint256[] memory amounts = new uint256[](2);
-        amounts[0] = _amount;
+        amounts[inboundTokenIndex] = _amount;
         uint256 poolWithdrawAmount = pool.calculateTokenAmount(address(this), amounts, true);
-        return pool.calculateRemoveLiquidityOneToken(address(this), poolWithdrawAmount, 0);
+        return pool.calculateRemoveLiquidityOneToken(address(this), poolWithdrawAmount, inboundTokenIndex);
     }
 
     /** 
@@ -94,18 +104,34 @@ contract MobiusStrategy is Ownable, IStrategy {
     */
     // UPDATE - A4 Audit Report
     function getUnderlyingAsset() external view override returns (address) {
-        return address(pool.getToken(0));
+        return address(pool.getToken(inboundTokenIndex));
     }
 
     /** 
     @notice
-    Returns the instance of the reward token
+    Returns the instances of the reward tokens
     */
     function getRewardTokens() external view override returns (IERC20[] memory) {
-        IERC20[] memory tokens = new IERC20[](2);
-        tokens[0] = celo;
-        tokens[1] = mobi;
-        return tokens;
+        return rewardTokens;
+    }
+
+    /** 
+    @notice
+    Returns the lp token amount received (for amm strategies)
+    */
+    function getLPTokenAmount(uint256 _amount) external view override returns (uint256) {
+        uint256[] memory amounts = new uint256[](2);
+        amounts[inboundTokenIndex] = _amount;
+        return pool.calculateTokenAmount(address(this), amounts, true);
+    }
+
+    /** 
+    @notice
+    Returns the fee (for amm strategies)
+    */
+    function getFee() external view override returns (uint256) {
+        (, , , , uint256 swapFee, , , , , ) = pool.swapStorage();
+        return swapFee;
     }
 
     //*********************************************************************//
@@ -116,38 +142,46 @@ contract MobiusStrategy is Ownable, IStrategy {
     @param _pool Mobius Pool Contract.
     @param _gauge Mobius Gauge Contract.
     @param _minter Mobius Minter Contract used for getting mobi rewards.
-    @param _mobi Mobi Contract.
-    @param _celo Celo Contract.
     */
     constructor(
         IMobiPool _pool,
         IMobiGauge _gauge,
         IMinter _minter,
-        IERC20 _mobi,
-        IERC20 _celo
+        IERC20 _lpToken,
+        uint8 _inboundTokenIndex,
+        IERC20[] memory _rewardTokens
     ) {
         if (address(_pool) == address(0)) {
             revert INVALID_POOL();
         }
-        if (address(_gauge) == address(0)) {
-            revert INVALID_GAUGE();
-        }
-        if (address(_minter) == address(0)) {
-            revert INVALID_MINTER();
-        }
-        if (address(_mobi) == address(0)) {
-            revert INVALID_MOBI_TOKEN();
-        }
-        if (address(_celo) == address(0)) {
-            revert INVALID_CELO_TOKEN();
+
+        if (address(_gauge) == address(0) && _rewardTokens.length > 0) {
+            revert INVALID_REWARD_TOKEN();
+        } else {
+            uint256 numRewards = _rewardTokens.length;
+            for (uint256 i = 0; i < numRewards; ) {
+                if (address(_rewardTokens[i]) == address(0)) {
+                    revert INVALID_REWARD_TOKEN();
+                }
+                unchecked {
+                    ++i;
+                }
+            }
         }
 
         pool = _pool;
         gauge = _gauge;
         minter = _minter;
-        mobi = _mobi;
-        celo = _celo;
-        lpToken = IERC20(pool.getLpToken());
+        rewardTokens = _rewardTokens;
+        inboundTokenIndex = _inboundTokenIndex;
+        if (address(_gauge) != address(0)) {
+            lpToken = IERC20(_pool.getLpToken());
+        } else {
+            if (address(_lpToken) == address(0)) {
+                revert INVALID_LP_TOKEN();
+            }
+            lpToken = _lpToken;
+        }
     }
 
     /**
@@ -161,19 +195,23 @@ contract MobiusStrategy is Ownable, IStrategy {
         if (msg.value != 0) {
             revert CANNOT_ACCEPT_TRANSACTIONAL_TOKEN();
         }
-        if (address(pool.getToken(0)) != _inboundCurrency) {
+        if (address(pool.getToken(inboundTokenIndex)) != _inboundCurrency) {
             revert INVALID_DEPOSIT_TOKEN();
         }
         uint256 contractBalance = IERC20(_inboundCurrency).balanceOf(address(this));
         IERC20(_inboundCurrency).approve(address(pool), contractBalance);
 
         uint256[] memory amounts = new uint256[](2);
-        amounts[0] = contractBalance;
+        amounts[inboundTokenIndex] = contractBalance;
 
         pool.addLiquidity(amounts, _minAmount, block.timestamp + 1000);
 
-        lpToken.approve(address(gauge), lpToken.balanceOf(address(this)));
-        gauge.deposit(lpToken.balanceOf(address(this)));
+        if (address(gauge) != address(0)) {
+            // avoid multiple SLOADS
+            IERC20 _lpToken = lpToken;
+            _lpToken.approve(address(gauge), _lpToken.balanceOf(address(this)));
+            gauge.deposit(_lpToken.balanceOf(address(this)));
+        }
     }
 
     /**
@@ -190,21 +228,22 @@ contract MobiusStrategy is Ownable, IStrategy {
     ) external override onlyOwner {
         // not checking for validity of deposit token here since with pool contract as the owner of the strategy the only way to transfer pool funds is by invest method so the check there is sufficient
         uint256[] memory amounts = new uint256[](2);
-        amounts[0] = _amount;
+        amounts[inboundTokenIndex] = _amount;
 
-        uint256 gaugeBalance = gauge.balanceOf(address(this));
         uint256 poolWithdrawAmount = pool.calculateTokenAmount(address(this), amounts, true);
+        if (address(gauge) != address(0)) {
+            uint256 gaugeBalance = gauge.balanceOf(address(this));
 
-        // safety check
-        // the amm mock contracts are common for all kinds of scenariuo's and it is not possible to mock this particular scenario, this is a very rare scenario to occur in production and hasn't been observed in the fork tests.
-        if (gaugeBalance < poolWithdrawAmount) {
-            poolWithdrawAmount = gaugeBalance;
+            // safety check
+            // the amm mock contracts are common for all kinds of scenariuo's and it is not possible to mock this particular scenario, this is a very rare scenario to occur in production and hasn't been observed in the fork tests.
+            if (gaugeBalance < poolWithdrawAmount) {
+                poolWithdrawAmount = gaugeBalance;
+            }
+
+            gauge.withdraw(poolWithdrawAmount, false);
         }
-
-        gauge.withdraw(poolWithdrawAmount, false);
         lpToken.approve(address(pool), poolWithdrawAmount);
-
-        pool.removeLiquidityOneToken(poolWithdrawAmount, 0, _minAmount, block.timestamp + 1000);
+        pool.removeLiquidityOneToken(poolWithdrawAmount, inboundTokenIndex, _minAmount, block.timestamp + 1000);
 
         // check for impermanent loss (safety check)
         if (IERC20(_inboundCurrency).balanceOf(address(this)) < _amount) {
@@ -231,19 +270,22 @@ contract MobiusStrategy is Ownable, IStrategy {
         uint256 _minAmount,
         bool disableRewardTokenClaim
     ) external override onlyOwner {
-        // not checking for validity of deposit token here since with pool contract as the owner of the strategy the only way to transfer pool funds is by invest method so the check there is sufficient
-        bool claimRewards = true;
-        if (disableRewardTokenClaim) {
-            claimRewards = false;
-        } else {
-            minter.mint(address(gauge));
-        }
-        if (_amount != 0) {
+        uint256[] memory amounts = new uint256[](2);
+        amounts[inboundTokenIndex] = _amount;
+        uint256 poolWithdrawAmount = pool.calculateTokenAmount(address(this), amounts, true);
+
+        if (address(gauge) != address(0)) {
+            // not checking for validity of deposit token here since with pool contract as the owner of the strategy the only way to transfer pool funds is by invest method so the check there is sufficient
+            bool claimRewards = true;
+            if (disableRewardTokenClaim) {
+                claimRewards = false;
+            } else {
+                if (address(minter) != address(0)) {
+                    // fetch rewards
+                    minter.mint(address(gauge));
+                }
+            }
             uint256 gaugeBalance = gauge.balanceOf(address(this));
-            // if (variableDeposits) {
-            uint256[] memory amounts = new uint256[](2);
-            amounts[0] = _amount;
-            uint256 poolWithdrawAmount = pool.calculateTokenAmount(address(this), amounts, true);
 
             // safety check
             // the amm mock contracts are common for all kinds of scenariuo's and it is not possible to mock this particular scenario, this is a very rare scenario to occur in production and hasn't been observed in the fork tests.
@@ -252,19 +294,26 @@ contract MobiusStrategy is Ownable, IStrategy {
             }
 
             gauge.withdraw(poolWithdrawAmount, claimRewards);
-            lpToken.approve(address(pool), poolWithdrawAmount);
-
-            pool.removeLiquidityOneToken(poolWithdrawAmount, 0, _minAmount, block.timestamp + 1000);
         }
 
-        bool success = mobi.transfer(msg.sender, mobi.balanceOf(address(this)));
-        if (!success) {
-            revert TOKEN_TRANSFER_FAILURE();
-        }
+        lpToken.approve(address(pool), poolWithdrawAmount);
+        pool.removeLiquidityOneToken(poolWithdrawAmount, inboundTokenIndex, _minAmount, block.timestamp + 1000);
 
-        success = celo.transfer(msg.sender, celo.balanceOf(address(this)));
-        if (!success) {
-            revert TOKEN_TRANSFER_FAILURE();
+        // avoid multiple SLOADS
+        IERC20[] memory _rewardTokens = rewardTokens;
+        bool success;
+        uint256 numRewards = _rewardTokens.length;
+        for (uint256 i = 0; i < numRewards; ) {
+            // safety check since funds don't get transferred to a extrnal protocol
+            if (IERC20(_rewardTokens[i]).balanceOf(address(this)) != 0) {
+                success = _rewardTokens[i].transfer(msg.sender, _rewardTokens[i].balanceOf(address(this)));
+                if (!success) {
+                    revert TOKEN_TRANSFER_FAILURE();
+                }
+            }
+            unchecked {
+                ++i;
+            }
         }
 
         success = IERC20(_inboundCurrency).transfer(msg.sender, IERC20(_inboundCurrency).balanceOf(address(this)));
@@ -283,15 +332,16 @@ contract MobiusStrategy is Ownable, IStrategy {
         override
         returns (uint256[] memory)
     {
-        uint256 amount = 0;
-        uint256 additionalAmount = 0;
+        // avoid multiple SLOADS
+        IERC20[] memory _rewardTokens = rewardTokens;
+        uint256[] memory amounts = new uint256[](_rewardTokens.length);
         if (!disableRewardTokenClaim) {
-            amount = gauge.claimable_reward(address(this), address(celo));
-            additionalAmount = gauge.claimable_tokens(address(this));
+            if (address(gauge) != address(0)) {
+                // fetches claimable reward amounts
+                amounts[0] = gauge.claimable_reward(address(this), address(_rewardTokens[0])); //celo
+                amounts[1] = gauge.claimable_tokens(address(this)); //mobi
+            }
         }
-        uint256[] memory amounts = new uint256[](2);
-        amounts[0] = amount;
-        amounts[1] = additionalAmount;
         return amounts;
     }
 }

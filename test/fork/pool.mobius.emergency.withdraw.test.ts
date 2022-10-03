@@ -3,8 +3,8 @@ const MobiusStrategy = artifacts.require("MobiusStrategy");
 const timeMachine = require("ganache-time-traveler");
 const truffleAssert = require("truffle-assertions");
 const wmatic = require("../../artifacts/contracts/mock/MintableERC20.sol/MintableERC20.json");
+const rstCelo = require("../../abi-external/mobius-rstCelo-abi.json");
 const mobiusPool = require("../../artifacts/contracts/mobius/IMobiPool.sol/IMobiPool.json");
-const mobiusGauge = require("../../artifacts/contracts/mobius/IMobiGauge.sol/IMobiGauge.json");
 const configs = require("../../deploy.config");
 const providerConfig = require("../../providers.config");
 
@@ -14,7 +14,12 @@ contract("Pool with Mobius Strategy when admin enables early game completion", a
     return;
   }
 
-  if (configs.deployConfigs.strategy !== "mobius-cUSD-DAI" && configs.deployConfigs.strategy !== "mobius-cUSD-USDC") {
+  if (
+    configs.deployConfigs.strategy !== "mobius-cUSD-DAI" &&
+    configs.deployConfigs.strategy !== "mobius-cUSD-USDC" &&
+    configs.deployConfigs.strategy !== "mobius-celo-stCelo" &&
+    configs.deployConfigs.strategy !== "mobius-cusd-usdcet"
+  ) {
     return;
   }
 
@@ -23,17 +28,23 @@ contract("Pool with Mobius Strategy when admin enables early game completion", a
   let GoodGhostingArtifact: any;
   let mobi: any;
   let celo: any;
+  let stCeloToken: any;
+  let tokenIndex: any;
   GoodGhostingArtifact = Pool;
 
   if (configs.deployConfigs.strategy === "mobius-cUSD-DAI") {
     providersConfigs = providerConfig.providers.celo.strategies["mobius-cUSD-DAI"];
-  } else {
+  } else if (configs.deployConfigs.strategy === "mobius-cUSD-USDC") {
     providersConfigs = providerConfig.providers.celo.strategies["mobius-cUSD-USDC"];
+  } else if (configs.deployConfigs.strategy !== "mobius-celo-stCelo") {
+    providersConfigs = providerConfig.providers.celo.strategies["mobius-celo-stCelo"];
+  } else {
+    providersConfigs = providerConfig.providers.celo.strategies["mobius-cusd-usdcet"];
   }
+
   const { depositCount, segmentLength, segmentPayment: segmentPaymentInt, adminFee } = configs.deployConfigs;
   let token: any;
   let pool: any;
-  let gaugeToken: any;
   let mobiusStrategy: any;
   let admin = accounts[0];
   const players = accounts.slice(1, 6); // 5 players
@@ -45,31 +56,61 @@ contract("Pool with Mobius Strategy when admin enables early game completion", a
     it("initializes contract instances and transfers Inbound Token to players", async () => {
       pool = new web3.eth.Contract(mobiusPool.abi, providersConfigs.pool);
 
+      let tokenAbi;
+      if (configs.deployConfigs.strategy === "mobius-celo-stCelo") {
+        tokenAbi = rstCelo;
+      } else {
+        tokenAbi = wmatic.abi;
+      }
       token = new web3.eth.Contract(
-        wmatic.abi,
+        tokenAbi,
         providerConfig.providers["celo"].tokens[configs.deployConfigs.inboundCurrencySymbol].address,
       );
+
       mobi = new web3.eth.Contract(wmatic.abi, providerConfig.providers["celo"].tokens["mobi"].address);
       celo = new web3.eth.Contract(wmatic.abi, providerConfig.providers["celo"].tokens["celo"].address);
+      stCeloToken = new web3.eth.Contract(wmatic.abi, providerConfig.providers["celo"].tokens["stCelo"].address);
 
       goodGhosting = await GoodGhostingArtifact.deployed();
       mobiusStrategy = await MobiusStrategy.deployed();
-      gaugeToken = new web3.eth.Contract(mobiusGauge.abi, providersConfigs.gauge);
+      tokenIndex = await mobiusStrategy.inboundTokenIndex();
+      tokenIndex = tokenIndex.toString();
 
-      const unlockedBalance = await token.methods.balanceOf(unlockedDaiAccount).call({ from: admin });
-      const daiAmount = segmentPayment.mul(web3.utils.toBN(depositCount)).toString();
-      console.log("unlockedBalance: ", web3.utils.fromWei(unlockedBalance));
-      console.log("daiAmountToTransfer", web3.utils.fromWei(daiAmount));
-      for (let i = 0; i < players.length; i++) {
-        const player = players[i];
-        let transferAmount = daiAmount;
-        if (i === 1) {
-          // Player 1 needs additional funds to rejoin
-          transferAmount = web3.utils.toBN(daiAmount).add(segmentPayment).toString();
+      if (configs.deployConfigs.strategy === "mobius-celo-stCelo") {
+        let unlockedBalance = await stCeloToken.methods.balanceOf(unlockedDaiAccount).call({ from: admin });
+        console.log(unlockedBalance.toString());
+
+        for (let i = 0; i < players.length; i++) {
+          const player = players[i];
+          const transferAmount = segmentPayment.mul(web3.utils.toBN(depositCount * 3)).toString();
+          await stCeloToken.methods.transfer(player, transferAmount).send({ from: unlockedDaiAccount });
+          await stCeloToken.methods
+            .approve(
+              providerConfig.providers["celo"].tokens[configs.deployConfigs.inboundCurrencySymbol].address,
+              unlockedBalance,
+            )
+            .send({ from: player });
+          await token.methods.deposit(transferAmount).send({ from: player });
+          const playerBalance = await token.methods.balanceOf(player).call({ from: admin });
+          console.log(`player${i + 1}DAIBalance`, web3.utils.fromWei(playerBalance));
         }
-        await token.methods.transfer(player, transferAmount).send({ from: unlockedDaiAccount });
-        const playerBalance = await token.methods.balanceOf(player).call({ from: admin });
-        console.log(`player${i + 1}DAIBalance`, web3.utils.fromWei(playerBalance));
+      } else {
+        const unlockedBalance = await token.methods.balanceOf(unlockedDaiAccount).call({ from: admin });
+        const daiAmount = segmentPayment.mul(web3.utils.toBN(depositCount * 10)).toString();
+        console.log("unlockedBalance: ", web3.utils.fromWei(unlockedBalance));
+        console.log("daiAmountToTransfer", web3.utils.fromWei(daiAmount));
+        for (let i = 0; i < players.length; i++) {
+          const player = players[i];
+          let transferAmount = daiAmount;
+          if (i === 1) {
+            // Player 1 needs additional funds to rejoin
+
+            transferAmount = web3.utils.toBN(daiAmount).add(segmentPayment).toString();
+          }
+          await token.methods.transfer(player, transferAmount).send({ from: unlockedDaiAccount });
+          const playerBalance = await token.methods.balanceOf(player).call({ from: admin });
+          console.log(`player${i + 1}DAIBalance`, web3.utils.fromWei(playerBalance));
+        }
       }
     });
 
@@ -88,9 +129,15 @@ contract("Pool with Mobius Strategy when admin enables early game completion", a
           segmentPayment.mul(web3.utils.toBN(userSlippageOptions[i].toString())).div(web3.utils.toBN(100)),
         );
 
-        slippageFromContract = await pool.methods
-          .calculateTokenAmount(mobiusStrategy.address, [segmentPayment.toString(), 0, 0], true)
-          .call();
+        let amounts: any = new Array(2);
+        if (configs.deployConfigs.strategy === "mobius-celo-stCelo") {
+          amounts[0] = "0";
+          amounts[tokenIndex] = segmentPayment.toString();
+        } else {
+          amounts[tokenIndex] = segmentPayment.toString();
+          amounts[1] = "0";
+        }
+        slippageFromContract = await pool.methods.calculateTokenAmount(mobiusStrategy.address, amounts, true).call();
 
         minAmountWithFees =
           parseInt(userProvidedMinAmount.toString()) > parseInt(slippageFromContract.toString())
@@ -127,7 +174,7 @@ contract("Pool with Mobius Strategy when admin enables early game completion", a
 
     it("players withdraw from contract", async () => {
       // starts from 2, since player1 (loser), requested an early withdraw and player 2 withdrew after the last segment
-      for (let i = 0; i < players.length - 1; i++) {
+      for (let i = 0; i < players.length; i++) {
         const player = players[i];
         let mobiRewardBalanceBefore = web3.utils.toBN(0);
         let mobiRewardBalanceAfter = web3.utils.toBN(0);
@@ -160,12 +207,19 @@ contract("Pool with Mobius Strategy when admin enables early game completion", a
           // very minor diff
           assert(difference.lte(netAmountPaid), "expected balance diff to be more than paid amount");
         }
-        assert(
-          mobiRewardBalanceAfter.gt(mobiRewardBalanceBefore),
-          "expected mobi balance after withdrawal to be greater than before withdrawal",
-        );
 
-        // for some reason forking mainnet we don't get back celo rewards
+        if (
+          configs.deployConfigs.strategy === "mobius-cUSD-DAI" &&
+          configs.deployConfigs.strategy === "mobius-cUSD-USDC" &&
+          configs.deployConfigs.strategy === "mobius-cusd-usdcet"
+        ) {
+          assert(
+            mobiRewardBalanceAfter.gt(mobiRewardBalanceBefore),
+            "expected mobi balance after withdrawal to be greater than before withdrawal",
+          );
+        }
+
+        // for some reason forking mainnet we don't get back celo rewards since celo is considered as a native token while forking
         assert(
           celoRewardBalanceAfter.lte(celoRewardBalanceBefore),
           "expected celo balance after withdrawal to be equal to before withdrawal",
@@ -195,13 +249,20 @@ contract("Pool with Mobius Strategy when admin enables early game completion", a
         mobiRewardBalanceAfter = web3.utils.toBN(await mobi.methods.balanceOf(admin).call({ from: admin }));
         celoRewardBalanceAfter = web3.utils.toBN(await celo.methods.balanceOf(admin).call({ from: admin }));
 
+        if (
+          configs.deployConfigs.strategy === "mobius-cUSD-DAI" &&
+          configs.deployConfigs.strategy === "mobius-cUSD-USDC" &&
+          configs.deployConfigs.strategy === "mobius-cusd-usdcet"
+        ) {
+          assert(
+            mobiRewardBalanceAfter.gt(mobiRewardBalanceBefore),
+            "expected mobi balance after withdrawal to be greater than before withdrawal",
+          );
+        }
+
+        // for some reason forking mainnet we don't get back celo rewards since celo is considered as a native token while forking
         assert(
-          mobiRewardBalanceAfter.gt(mobiRewardBalanceBefore),
-          "expected mobi balance after withdrawal to be greater than before withdrawal",
-        );
-        // for some reason forking mainnet we don't get back celo rewards
-        assert(
-          celoRewardBalanceAfter.gt(celoRewardBalanceBefore),
+          celoRewardBalanceAfter.gte(celoRewardBalanceBefore),
           "expected celo balance after withdrawal to be equal to before withdrawal",
         );
       }
