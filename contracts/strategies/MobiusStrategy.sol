@@ -240,7 +240,7 @@ contract MobiusStrategy is Ownable, IStrategy {
                 poolWithdrawAmount = gaugeBalance;
             }
 
-            gauge.withdraw(poolWithdrawAmount, false);
+            gauge.withdraw(poolWithdrawAmount);
         }
         lpToken.approve(address(pool), poolWithdrawAmount);
         pool.removeLiquidityOneToken(poolWithdrawAmount, inboundTokenIndex, _minAmount, block.timestamp + 1000);
@@ -276,11 +276,8 @@ contract MobiusStrategy is Ownable, IStrategy {
 
         if (address(gauge) != address(0)) {
             // not checking for validity of deposit token here since with pool contract as the owner of the strategy the only way to transfer pool funds is by invest method so the check there is sufficient
-            bool claimRewards = true;
-            if (disableRewardTokenClaim) {
-                claimRewards = false;
-            } else {
-                if (address(minter) != address(0)) {
+            if (!disableRewardTokenClaim) {
+                 if (address(minter) != address(0)) {
                     // fetch rewards
                     minter.mint(address(gauge));
                 }
@@ -293,7 +290,7 @@ contract MobiusStrategy is Ownable, IStrategy {
                 poolWithdrawAmount = gaugeBalance;
             }
 
-            gauge.withdraw(poolWithdrawAmount, claimRewards);
+            gauge.withdraw(poolWithdrawAmount);
         }
 
         lpToken.approve(address(pool), poolWithdrawAmount);

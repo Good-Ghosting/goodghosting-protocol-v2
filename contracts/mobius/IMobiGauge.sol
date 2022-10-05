@@ -5,6 +5,8 @@ interface IMobiGauge {
 
     function withdraw(uint256 _value, bool _claim_rewards) external;
 
+    function withdraw(uint256 _value) external;
+
     function claim_rewards() external;
 
     function balanceOf(address user) external view returns (uint256);

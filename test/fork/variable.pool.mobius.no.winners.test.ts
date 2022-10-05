@@ -271,8 +271,9 @@ contract("Variable Deposit Pool with Mobius Strategy with no winners", accounts 
         assert(difference.lte(netAmountPaid), "expected balance diff to be more than paid amount");
 
         if (
-          configs.deployConfigs.strategy === "mobius-cUSD-DAI" &&
-          configs.deployConfigs.strategy === "mobius-cUSD-USDC"
+          configs.deployConfigs.strategy === "mobius-cUSD-DAI" ||
+          configs.deployConfigs.strategy === "mobius-cUSD-USDC" ||
+          configs.deployConfigs.strategy === "mobius-cusd-usdcet"
         ) {
           assert(
             mobiRewardBalanceAfter.eq(mobiRewardBalanceBefore),
@@ -314,8 +315,9 @@ contract("Variable Deposit Pool with Mobius Strategy with no winners", accounts 
         celoRewardBalanceAfter = web3.utils.toBN(await celo.methods.balanceOf(admin).call({ from: admin }));
 
         if (
-          configs.deployConfigs.strategy === "mobius-cUSD-DAI" &&
-          configs.deployConfigs.strategy === "mobius-cUSD-USDC"
+          configs.deployConfigs.strategy === "mobius-cUSD-DAI" ||
+          configs.deployConfigs.strategy === "mobius-cUSD-USDC" ||
+          configs.deployConfigs.strategy === "mobius-cusd-usdcet"
         ) {
           assert(
             mobiRewardBalanceAfter.gt(mobiRewardBalanceBefore),

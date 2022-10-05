@@ -415,8 +415,8 @@ contract("Variable Deposit Pool with Mobius Strategy with incentives sent same a
         assert(inboundTokenBalanceAfter.gt(inboundTokenBalanceBefore));
 
         if (
-          configs.deployConfigs.strategy === "mobius-cUSD-DAI" &&
-          configs.deployConfigs.strategy === "mobius-cUSD-USDC" &&
+          configs.deployConfigs.strategy === "mobius-cUSD-DAI" ||
+          configs.deployConfigs.strategy === "mobius-cUSD-USDC" ||
           configs.deployConfigs.strategy === "mobius-cusd-usdcet"
         ) {
           assert(
@@ -460,8 +460,8 @@ contract("Variable Deposit Pool with Mobius Strategy with incentives sent same a
         assert(difference.gt(netAmountPaid), "expected balance diff to be more than paid amount");
 
         if (
-          configs.deployConfigs.strategy === "mobius-cUSD-DAI" &&
-          configs.deployConfigs.strategy === "mobius-cUSD-USDC" &&
+          configs.deployConfigs.strategy === "mobius-cUSD-DAI" ||
+          configs.deployConfigs.strategy === "mobius-cUSD-USDC" ||
           configs.deployConfigs.strategy === "mobius-cusd-usdcet"
         ) {
           assert(
