@@ -209,8 +209,8 @@ contract("Pool with Mobius Strategy when admin enables early game completion", a
         }
 
         if (
-          configs.deployConfigs.strategy === "mobius-cUSD-DAI" &&
-          configs.deployConfigs.strategy === "mobius-cUSD-USDC" &&
+          configs.deployConfigs.strategy === "mobius-cUSD-DAI" ||
+          configs.deployConfigs.strategy === "mobius-cUSD-USDC" ||
           configs.deployConfigs.strategy === "mobius-cusd-usdcet"
         ) {
           assert(
@@ -250,8 +250,8 @@ contract("Pool with Mobius Strategy when admin enables early game completion", a
         celoRewardBalanceAfter = web3.utils.toBN(await celo.methods.balanceOf(admin).call({ from: admin }));
 
         if (
-          configs.deployConfigs.strategy === "mobius-cUSD-DAI" &&
-          configs.deployConfigs.strategy === "mobius-cUSD-USDC" &&
+          configs.deployConfigs.strategy === "mobius-cUSD-DAI" ||
+          configs.deployConfigs.strategy === "mobius-cUSD-USDC" ||
           configs.deployConfigs.strategy === "mobius-cusd-usdcet"
         ) {
           assert(

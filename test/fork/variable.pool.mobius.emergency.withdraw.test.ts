@@ -272,8 +272,8 @@ contract("Variable Deposit Pool with Mobius Strategy when admin enables early ga
         assert(difference.gt(netAmountPaid), "expected balance diff to be more than paid amount");
 
         if (
-          configs.deployConfigs.strategy === "mobius-cUSD-DAI" &&
-          configs.deployConfigs.strategy === "mobius-cUSD-USDC" &&
+          configs.deployConfigs.strategy === "mobius-cUSD-DAI" ||
+          configs.deployConfigs.strategy === "mobius-cUSD-USDC" ||
           configs.deployConfigs.strategy === "mobius-cusd-usdcet"
         ) {
           assert(
@@ -307,8 +307,8 @@ contract("Variable Deposit Pool with Mobius Strategy when admin enables early ga
         celoRewardBalanceAfter = web3.utils.toBN(await celo.methods.balanceOf(admin).call({ from: admin }));
 
         if (
-          configs.deployConfigs.strategy === "mobius-cUSD-DAI" &&
-          configs.deployConfigs.strategy === "mobius-cUSD-USDC" &&
+          configs.deployConfigs.strategy === "mobius-cUSD-DAI" ||
+          configs.deployConfigs.strategy === "mobius-cUSD-USDC" ||
           configs.deployConfigs.strategy === "mobius-cusd-usdcet"
         ) {
           assert(

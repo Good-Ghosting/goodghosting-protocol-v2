@@ -398,8 +398,8 @@ contract("Pool with Mobius Strategy", accounts => {
         assert(difference.gt(netAmountPaid), "expected balance diff to be more than paid amount");
 
         if (
-          configs.deployConfigs.strategy === "mobius-cUSD-DAI" &&
-          configs.deployConfigs.strategy === "mobius-cUSD-USDC" &&
+          configs.deployConfigs.strategy === "mobius-cUSD-DAI" ||
+          configs.deployConfigs.strategy === "mobius-cUSD-USDC" ||
           configs.deployConfigs.strategy === "mobius-cusd-usdcet"
         ) {
           assert(
@@ -446,8 +446,8 @@ contract("Pool with Mobius Strategy", accounts => {
         assert(inboundTokenBalanceAfterWithdraw.gt(inboundTokenBalanceBeforeWithdraw));
 
         if (
-          configs.deployConfigs.strategy === "mobius-cUSD-DAI" &&
-          configs.deployConfigs.strategy === "mobius-cUSD-USDC" &&
+          configs.deployConfigs.strategy === "mobius-cUSD-DAI" ||
+          configs.deployConfigs.strategy === "mobius-cUSD-USDC" ||
           configs.deployConfigs.strategy === "mobius-cusd-usdcet"
         ) {
           assert(
