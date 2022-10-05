@@ -338,8 +338,7 @@ contract MobiusStrategy is Ownable, IStrategy {
         if (!disableRewardTokenClaim) {
             if (address(gauge) != address(0)) {
                 // fetches claimable reward amounts
-                amounts[0] = gauge.claimable_reward(address(this), address(_rewardTokens[0])); //celo
-                amounts[1] = gauge.claimable_tokens(address(this)); //mobi
+                amounts[0] = gauge.claimable_tokens(address(this)); //mobi
             }
         }
         return amounts;
