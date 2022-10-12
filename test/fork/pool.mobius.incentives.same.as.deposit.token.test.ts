@@ -61,7 +61,9 @@ contract("Pool with Mobius Strategy with incentives sent same as deposit token",
   const loser = players[0];
   const ZERO_ADDRESS = "0x0000000000000000000000000000000000000000";
   const userWithdrawingAfterLastSegment = players[1];
-  const daiDecimals = web3.utils.toBN(1000000000000000000);
+  const daiDecimals = web3.utils.toBN(
+    10 ** providerConfig.providers["polygon"].tokens[configs.deployConfigs.inboundCurrencySymbol].decimals,
+  );
   const segmentPayment = daiDecimals.mul(web3.utils.toBN(segmentPaymentInt)); // equivalent to 10 Inbound Token
   let goodGhosting: any;
 
@@ -107,13 +109,16 @@ contract("Pool with Mobius Strategy with incentives sent same as deposit token",
             .send({ from: player });
           await token.methods.deposit(transferAmount).send({ from: player });
           const playerBalance = await token.methods.balanceOf(player).call({ from: admin });
-          console.log(`player${i + 1}DAIBalance`, web3.utils.fromWei(playerBalance));
+          console.log(
+            `player${i + 1}DAIBalance`,
+            web3.utils.toBN(playerBalance).div(web3.utils.toBN(daiDecimals)).toString(),
+          );
         }
       } else {
         const unlockedBalance = await token.methods.balanceOf(unlockedDaiAccount).call({ from: admin });
         const daiAmount = segmentPayment.mul(web3.utils.toBN(depositCount * 10)).toString();
-        console.log("unlockedBalance: ", web3.utils.fromWei(unlockedBalance));
-        console.log("daiAmountToTransfer", web3.utils.fromWei(daiAmount));
+        console.log("unlockedBalance: ", web3.utils.toBN(unlockedBalance).div(web3.utils.toBN(daiDecimals)).toString());
+        console.log("daiAmountToTransfer", web3.utils.toBN(daiAmount).div(web3.utils.toBN(daiDecimals)).toString());
         for (let i = 0; i < players.length; i++) {
           const player = players[i];
           let transferAmount = daiAmount;
@@ -124,7 +129,10 @@ contract("Pool with Mobius Strategy with incentives sent same as deposit token",
           }
           await token.methods.transfer(player, transferAmount).send({ from: unlockedDaiAccount });
           const playerBalance = await token.methods.balanceOf(player).call({ from: admin });
-          console.log(`player${i + 1}DAIBalance`, web3.utils.fromWei(playerBalance));
+          console.log(
+            `player${i + 1}DAIBalance`,
+            web3.utils.toBN(playerBalance).div(web3.utils.toBN(daiDecimals)).toString(),
+          );
         }
         await token.methods
           .transfer(goodGhosting.address, web3.utils.toWei("90").toString())

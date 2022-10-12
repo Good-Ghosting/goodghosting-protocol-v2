@@ -46,7 +46,9 @@ contract(
     let tokenIndex: any;
     let admin = accounts[0];
     const players = accounts.slice(1, 6); // 5 players
-    const daiDecimals = web3.utils.toBN(1000000000000000000);
+    const daiDecimals = web3.utils.toBN(
+      10 ** providerConfig.providers["polygon"].tokens[configs.deployConfigs.inboundCurrencySymbol].decimals,
+    );
     const segmentPayment = daiDecimals.mul(web3.utils.toBN(segmentPaymentInt)); // equivalent to 10 Inbound Token
     let goodGhosting: any;
 
@@ -79,8 +81,11 @@ contract(
         if (configs.deployConfigs.strategy !== "polygon-curve-stmatic-matic") {
           const unlockedBalance = await token.methods.balanceOf(unlockedDaiAccount).call({ from: admin });
           const daiAmount = segmentPayment.mul(web3.utils.toBN(depositCount * 20)).toString();
-          console.log("unlockedBalance: ", web3.utils.fromWei(unlockedBalance));
-          console.log("daiAmountToTransfer", web3.utils.fromWei(daiAmount));
+          console.log(
+            "unlockedBalance: ",
+            web3.utils.toBN(unlockedBalance).div(web3.utils.toBN(daiDecimals)).toString(),
+          );
+          console.log("daiAmountToTransfer", web3.utils.toBN(daiAmount).div(web3.utils.toBN(daiDecimals)).toString());
           for (let i = 0; i < players.length; i++) {
             const player = players[i];
             let transferAmount = daiAmount;
@@ -90,7 +95,10 @@ contract(
             }
             await token.methods.transfer(player, transferAmount).send({ from: unlockedDaiAccount });
             const playerBalance = await token.methods.balanceOf(player).call({ from: admin });
-            console.log(`player${i + 1}DAIBalance`, web3.utils.fromWei(playerBalance));
+            console.log(
+              `player${i + 1}DAIBalance`,
+              web3.utils.toBN(playerBalance).div(web3.utils.toBN(daiDecimals)).toString(),
+            );
           }
           await token.methods
             .transfer(goodGhosting.address, web3.utils.toWei("100").toString())
@@ -102,7 +110,10 @@ contract(
             const player = players[i];
             await token.methods.deposit().send({ from: player, value: daiAmount });
             const playerBalance = await token.methods.balanceOf(player).call({ from: admin });
-            console.log(`player${i + 1}DAIBalance`, web3.utils.fromWei(playerBalance));
+            console.log(
+              `player${i + 1}DAIBalance`,
+              web3.utils.toBN(playerBalance).div(web3.utils.toBN(daiDecimals)).toString(),
+            );
           }
 
           await token.methods.deposit().send({ from: unlockedDaiAccount, value: web3.utils.toWei("100").toString() });
