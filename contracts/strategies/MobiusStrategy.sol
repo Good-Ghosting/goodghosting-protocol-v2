@@ -277,7 +277,7 @@ contract MobiusStrategy is Ownable, IStrategy {
         if (address(gauge) != address(0)) {
             // not checking for validity of deposit token here since with pool contract as the owner of the strategy the only way to transfer pool funds is by invest method so the check there is sufficient
             if (!disableRewardTokenClaim) {
-                 if (address(minter) != address(0)) {
+                if (address(minter) != address(0)) {
                     // fetch rewards
                     minter.mint(address(gauge));
                 }
@@ -332,10 +332,24 @@ contract MobiusStrategy is Ownable, IStrategy {
         // avoid multiple SLOADS
         IERC20[] memory _rewardTokens = rewardTokens;
         uint256[] memory amounts = new uint256[](_rewardTokens.length);
+        uint256 numRewards = _rewardTokens.length;
+
         if (!disableRewardTokenClaim) {
             if (address(gauge) != address(0)) {
                 // fetches claimable reward amounts
-                amounts[0] = gauge.claimable_tokens(address(this)); //mobi
+                for (uint256 i = 0; i < numRewards; ) {
+                    amounts[i] = gauge.claimable_tokens(address(this)) + _rewardTokens[i].balanceOf(address(this));
+                    unchecked {
+                        ++i;
+                    }
+                }
+            } else {
+                for (uint256 i = 0; i < numRewards; ) {
+                    amounts[i] = _rewardTokens[i].balanceOf(address(this));
+                    unchecked {
+                        ++i;
+                    }
+                }
             }
         }
         return amounts;

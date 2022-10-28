@@ -165,15 +165,14 @@ contract CurveStrategy is Ownable, IStrategy {
         }
     }
 
-
     /** 
     @notice
     Returns the fee (for amm strategies)
     */
     function getFee() external view override returns (uint256) {
-       if (poolType == LENDING_POOL || poolType == GENERIC_POOL) {
-          return pool.fee();
-       }
+        if (poolType == LENDING_POOL || poolType == GENERIC_POOL) {
+            return pool.fee();
+        }
         address undderlyingPool = pool.pool();
         return ICurvePool(undderlyingPool).fee();
     }
@@ -208,10 +207,10 @@ contract CurveStrategy is Ownable, IStrategy {
         }
 
         if (
-            (_inboundTokenIndex < 0)
-            || (_poolType == LENDING_POOL && uint128(_inboundTokenIndex) >= NUM_AAVE_TOKENS)
-            || (_poolType == DEPOSIT_ZAP && uint128(_inboundTokenIndex) >= NUM_ATRI_CRYPTO_TOKENS)
-            || (_poolType == GENERIC_POOL && uint128(_inboundTokenIndex) >= NUM_MATIC_POOL_TOKENS)
+            (_inboundTokenIndex < 0) ||
+            (_poolType == LENDING_POOL && uint128(_inboundTokenIndex) >= NUM_AAVE_TOKENS) ||
+            (_poolType == DEPOSIT_ZAP && uint128(_inboundTokenIndex) >= NUM_ATRI_CRYPTO_TOKENS) ||
+            (_poolType == GENERIC_POOL && uint128(_inboundTokenIndex) >= NUM_MATIC_POOL_TOKENS)
         ) {
             revert INVALID_INBOUND_TOKEN_INDEX();
         }
@@ -252,7 +251,10 @@ contract CurveStrategy is Ownable, IStrategy {
         }
         if (poolType == GENERIC_POOL && pool.coins(uint256(uint128(inboundTokenIndex))) != _inboundCurrency) {
             revert INVALID_DEPOSIT_TOKEN();
-        } else if ((poolType == DEPOSIT_ZAP || poolType == LENDING_POOL) && pool.underlying_coins(uint256(uint128(inboundTokenIndex))) != _inboundCurrency) {
+        } else if (
+            (poolType == DEPOSIT_ZAP || poolType == LENDING_POOL) &&
+            pool.underlying_coins(uint256(uint128(inboundTokenIndex))) != _inboundCurrency
+        ) {
             revert INVALID_DEPOSIT_TOKEN();
         }
 
@@ -279,7 +281,7 @@ contract CurveStrategy is Ownable, IStrategy {
             amounts[uint256(uint128(inboundTokenIndex))] = contractBalance;
             pool.add_liquidity(amounts, _minAmount);
         }
-        
+
         // avoid multiple SLOADS
         IERC20 _lpToken = lpToken;
         _lpToken.approve(address(gauge), _lpToken.balanceOf(address(this)));
@@ -389,11 +391,12 @@ contract CurveStrategy is Ownable, IStrategy {
     ) external override onlyOwner {
         // not checking for validity of deposit token here since with pool contract as the owner of the strategy the only way to transfer pool funds is by invest method so the check there is sufficient
         if (!disableRewardTokenClaim) {
-            // claim rewards
-            gauge.claim_rewards();
             if (address(gaugeMinter) != address(0)) {
                 // gauge minter for getting rewards
                 gaugeMinter.mint(address(gauge));
+            } else {
+                // claim rewards in case minter is not set
+                gauge.claim_rewards();
             }
         }
         uint256 gaugeBalance = gauge.balanceOf(address(this));
@@ -467,10 +470,7 @@ contract CurveStrategy is Ownable, IStrategy {
         for (uint256 i = 0; i < numRewards; ) {
             // safety check since funds don't get transferred to a extrnal protocol
             if (_rewardTokens[i].balanceOf(address(this)) != 0) {
-                success = _rewardTokens[i].transfer(
-                    msg.sender,
-                    _rewardTokens[i].balanceOf(address(this))
-                );
+                success = _rewardTokens[i].transfer(msg.sender, _rewardTokens[i].balanceOf(address(this)));
                 if (!success) {
                     revert TOKEN_TRANSFER_FAILURE();
                 }
@@ -493,7 +493,6 @@ contract CurveStrategy is Ownable, IStrategy {
     */
     function getAccumulatedRewardTokenAmounts(bool disableRewardTokenClaim)
         external
-        view
         override
         returns (uint256[] memory)
     {
@@ -505,14 +504,14 @@ contract CurveStrategy is Ownable, IStrategy {
         if (!disableRewardTokenClaim) {
             if (poolType == DEPOSIT_ZAP || poolType == LENDING_POOL) {
                 for (uint256 i = 0; i < numRewards; ) {
-                    amounts[i] = gauge.integrate_fraction(address(this)) - gaugeMinter.minted(address(this), address(gauge));
+                    amounts[i] = gauge.claimable_tokens(address(this)) + _rewardTokens[i].balanceOf(address(this));
                     unchecked {
                         ++i;
                     }
                 }
             } else {
                 for (uint256 i = 0; i < numRewards; ) {
-                    amounts[i] = gauge.claimable_reward(address(this), address(_rewardTokens[i]));
+                    amounts[i] = gauge.claimable_reward(address(this), address(_rewardTokens[i])) + _rewardTokens[i].balanceOf(address(this));
                     unchecked {
                         ++i;
                     }

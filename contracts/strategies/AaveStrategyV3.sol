@@ -106,7 +106,7 @@ contract AaveStrategyV3 is Ownable, IStrategy {
         // avoid multiple SLOADS
         address[] memory _rewardTokens = rewardTokens;
         uint256 numRewards = _rewardTokens.length;
-        
+
         IERC20[] memory rewardTokenInstances = new IERC20[](numRewards);
         for (uint256 i = 0; i < numRewards; ) {
             rewardTokenInstances[i] = IERC20(_rewardTokens[i]);
@@ -325,12 +325,28 @@ contract AaveStrategyV3 is Ownable, IStrategy {
         override
         returns (uint256[] memory)
     {
-        if (!disableRewardTokenClaim && address(rewardsController) != address(0)) {
-            // Claims the rewards from the external pool
-            address[] memory assets = new address[](1);
-            assets[0] = address(aToken);
-            (, uint256[] memory unclaimedAmounts) = rewardsController.getAllUserRewards(assets, address(this));
-            return unclaimedAmounts;
+        if (!disableRewardTokenClaim) {
+            // avoid multiple SLOADS
+            address[] memory _rewardTokens = rewardTokens;
+            uint256 numRewards = _rewardTokens.length;
+
+            if (address(rewardsController) != address(0)) {
+                // Claims the rewards from the external pool
+                address[] memory assets = new address[](1);
+                assets[0] = address(aToken);
+                (, uint256[] memory unclaimedAmounts) = rewardsController.getAllUserRewards(assets, address(this));
+
+                for (uint256 i = 0; i < numRewards; ) {
+                    unclaimedAmounts[i] += IERC20(_rewardTokens[i]).balanceOf(address(this));
+                }
+                return unclaimedAmounts;
+            } else {
+                uint256[] memory amounts = new uint256[](numRewards);
+                for (uint256 i = 0; i < numRewards; ) {
+                    amounts[i] = IERC20(_rewardTokens[i]).balanceOf(address(this));
+                }
+                return amounts;
+            }
         } else {
             uint256[] memory amounts = new uint256[](rewardTokens.length);
             return amounts;
