@@ -292,16 +292,10 @@ contract(
 
           assert(difference.lte(netAmountPaid), "expected balance diff to be more than paid amount");
 
-          if (
-            configs.deployConfigs.strategy === "mobius-cUSD-DAI" ||
-            configs.deployConfigs.strategy === "mobius-cUSD-USDC" ||
-            configs.deployConfigs.strategy === "mobius-cusd-usdcet"
-          ) {
-            assert(
-              mobiRewardBalanceAfter.eq(mobiRewardBalanceBefore),
-              "expected mobi balance after withdrawal to be greater than before withdrawal",
-            );
-          }
+          assert(
+            mobiRewardBalanceAfter.eq(mobiRewardBalanceBefore),
+            "expected mobi balance after withdrawal to be greater than before withdrawal",
+          );
 
           // for some reason forking mainnet we don't get back celo rewards since celo is considered as a native token while forking
           assert(
@@ -336,16 +330,10 @@ contract(
           mobiRewardBalanceAfter = web3.utils.toBN(await mobi.methods.balanceOf(admin).call({ from: admin }));
           celoRewardBalanceAfter = web3.utils.toBN(await celo.methods.balanceOf(admin).call({ from: admin }));
 
-          if (
-            configs.deployConfigs.strategy === "mobius-cUSD-DAI" ||
-            configs.deployConfigs.strategy === "mobius-cUSD-USDC" ||
-            configs.deployConfigs.strategy === "mobius-cusd-usdcet"
-          ) {
-            assert(
-              mobiRewardBalanceAfter.gt(mobiRewardBalanceBefore),
-              "expected mobi balance after withdrawal to be greater than before withdrawal",
-            );
-          }
+          assert(
+            mobiRewardBalanceAfter.gt(mobiRewardBalanceBefore),
+            "expected mobi balance after withdrawal to be greater than before withdrawal",
+          );
 
           // for some reason forking mainnet we don't get back celo rewards since celo is considered as a native token while forking
           assert(

@@ -427,19 +427,13 @@ contract("Variable Deposit Pool with Mobius Strategy with extra reward tokens se
           assert(difference.lte(netAmountPaid), "expected balance diff to be more than paid amount");
         }
 
-        if (
-          configs.deployConfigs.strategy === "mobius-cUSD-DAI" ||
-          configs.deployConfigs.strategy === "mobius-cUSD-USDC" ||
-          configs.deployConfigs.strategy === "mobius-cusd-usdcet"
-        ) {
-          if (i == 2) {
-            assert(
-              mobiRewardBalanceAfter.gt(mobiRewardBalanceBefore),
-              "expected mobi balance after withdrawal to be greater than before withdrawal",
-            );
-          } else {
-            assert(mobiRewardBalanceAfter.eq(mobiRewardBalanceBefore));
-          }
+        if (i == 2) {
+          assert(
+            mobiRewardBalanceAfter.gt(mobiRewardBalanceBefore),
+            "expected mobi balance after withdrawal to be greater than before withdrawal",
+          );
+        } else {
+          assert(mobiRewardBalanceAfter.eq(mobiRewardBalanceBefore));
         }
 
         // for some reason forking mainnet we don't get back celo rewards since celo is considered as a native token while forking
@@ -481,23 +475,17 @@ contract("Variable Deposit Pool with Mobius Strategy with extra reward tokens se
 
         assert(inboundTokenBalanceAfter.gt(inboundTokenBalanceBefore));
 
-        if (
-          configs.deployConfigs.strategy === "mobius-cUSD-DAI" ||
-          configs.deployConfigs.strategy === "mobius-cUSD-USDC" ||
-          configs.deployConfigs.strategy === "mobius-cusd-usdcet"
-        ) {
-          assert(
-            mobiRewardBalanceAfter.gt(mobiRewardBalanceBefore),
-            "expected mobi balance after withdrawal to be greater than before withdrawal",
-          );
+        assert(
+          mobiRewardBalanceAfter.gt(mobiRewardBalanceBefore),
+          "expected mobi balance after withdrawal to be greater than before withdrawal",
+        );
 
-          const inboundTokenRewardPoolBalance = web3.utils.toBN(
-            await mobi.methods.balanceOf(goodGhosting.address).call({ from: admin }),
-          );
-          console.log("BAL", inboundTokenRewardPoolBalance.toString());
-          // accounting for some dust amount checks the balance is less than the extra amount we added i.e 0.5
-          assert(inboundTokenRewardPoolBalance.lt(web3.utils.toBN("500000000000000000")));
-        }
+        const inboundTokenRewardPoolBalance = web3.utils.toBN(
+          await mobi.methods.balanceOf(goodGhosting.address).call({ from: admin }),
+        );
+        console.log("BAL", inboundTokenRewardPoolBalance.toString());
+        // accounting for some dust amount checks the balance is less than the extra amount we added i.e 0.5
+        assert(inboundTokenRewardPoolBalance.lt(web3.utils.toBN("500000000000000000")));
 
         // for some reason forking mainnet we don't get back celo rewards since celo is considered as a native token while forking
         assert(
