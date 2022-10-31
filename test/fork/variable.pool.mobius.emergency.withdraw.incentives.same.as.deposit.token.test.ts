@@ -60,7 +60,7 @@ contract(
     const players = accounts.slice(1, 6); // 5 players
     const ZERO_ADDRESS = "0x0000000000000000000000000000000000000000";
     const daiDecimals = web3.utils.toBN(
-      10 ** providerConfig.providers["polygon"].tokens[configs.deployConfigs.inboundCurrencySymbol].decimals,
+      10 ** providerConfig.providers["celo"].tokens[configs.deployConfigs.inboundCurrencySymbol].decimals,
     );
     const segmentPayment = daiDecimals.mul(web3.utils.toBN(segmentPaymentInt)); // equivalent to 10 Inbound Token
     let goodGhosting: any;

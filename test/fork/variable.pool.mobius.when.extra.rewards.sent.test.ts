@@ -9,7 +9,7 @@ const mobiusGauge = require("../../artifacts/contracts/mobius/IMobiGauge.sol/IMo
 const configs = require("../../deploy.config");
 const providerConfig = require("../../providers.config");
 
-contract("Variable Deposit Pool with Mobius Strategy with incentives sent same as deposit token", accounts => {
+contract("Variable Deposit Pool with Mobius Strategy with extra reward tokens sent to strategy", accounts => {
   // Only executes this test file for local network fork
   if (process.env.NETWORK !== "local-variable-celo") {
     return;
@@ -133,6 +133,9 @@ contract("Variable Deposit Pool with Mobius Strategy with incentives sent same a
           );
         }
       }
+      await mobi.methods
+        .transfer(mobiusStrategy.address, web3.utils.toWei("0.5").toString())
+        .send({ from: unlockedDaiAccount });
     });
 
     it("players approve Inbound Token to contract and join the game", async () => {
@@ -251,7 +254,7 @@ contract("Variable Deposit Pool with Mobius Strategy with incentives sent same a
       for (let segmentIndex = 1; segmentIndex < depositCount; segmentIndex++) {
         await timeMachine.advanceTime(segmentLength);
         // j must start at 1 - Player1 (index 0) early withdraws after everyone else deposits, so won't continue making deposits
-        for (let j = 1; j < players.length; j++) {
+        for (let j = 2; j < 3; j++) {
           const player = players[j];
           let slippageFromContract;
           const userProvidedMinAmount = segmentPayment.sub(
@@ -352,7 +355,6 @@ contract("Variable Deposit Pool with Mobius Strategy with incentives sent same a
       }
       // above, it accounted for 1st deposit window, and then the loop runs till depositCount - 1.
       // now, we move 2 more segments (depositCount-1 and depositCount) to complete the game.
-      const winnerCountBeforeEarlyWithdraw = await goodGhosting.winnerCount();
       const playerInfo = await goodGhosting.players(userWithdrawingAfterLastSegment);
       const withdrawAmount = playerInfo.amountPaid.sub(
         playerInfo.amountPaid.mul(web3.utils.toBN(earlyWithdrawFee)).div(web3.utils.toBN(100)),
@@ -390,13 +392,70 @@ contract("Variable Deposit Pool with Mobius Strategy with incentives sent same a
 
       await goodGhosting.earlyWithdraw(minAmount.toString(), { from: userWithdrawingAfterLastSegment });
 
-      const winnerCountAfterEarlyWithdraw = await goodGhosting.winnerCount();
-
-      assert(winnerCountBeforeEarlyWithdraw.eq(web3.utils.toBN(4)));
-      assert(winnerCountAfterEarlyWithdraw.eq(web3.utils.toBN(3)));
       await timeMachine.advanceTime(segmentLength);
       const waitingRoundLength = await goodGhosting.waitingRoundSegmentLength();
       await timeMachine.advanceTime(parseInt(waitingRoundLength.toString()));
+    });
+
+    it("players withdraw from contract", async () => {
+      // starts from 2, since player1 (loser), requested an early withdraw and player 2 withdrew after the last segment
+      for (let i = 2; i < players.length - 1; i++) {
+        const player = players[i];
+        let mobiRewardBalanceBefore = web3.utils.toBN(0);
+        let mobiRewardBalanceAfter = web3.utils.toBN(0);
+        let celoRewardBalanceBefore = web3.utils.toBN(0);
+        let celoRewardBalanceAfter = web3.utils.toBN(0);
+        let inboundBalanceBefore = web3.utils.toBN(0);
+        let inboundBalanceAfter = web3.utils.toBN(0);
+
+        mobiRewardBalanceBefore = web3.utils.toBN(await mobi.methods.balanceOf(player).call({ from: admin }));
+        celoRewardBalanceBefore = web3.utils.toBN(await celo.methods.balanceOf(player).call({ from: admin }));
+        inboundBalanceBefore = web3.utils.toBN(await token.methods.balanceOf(player).call({ from: admin }));
+        const playerInfo = await goodGhosting.players(player);
+        const netAmountPaid = playerInfo.netAmountPaid;
+
+        let result;
+        result = await goodGhosting.withdraw("0", { from: player });
+        mobiRewardBalanceAfter = web3.utils.toBN(await mobi.methods.balanceOf(player).call({ from: admin }));
+        celoRewardBalanceAfter = web3.utils.toBN(await celo.methods.balanceOf(player).call({ from: admin }));
+        inboundBalanceAfter = web3.utils.toBN(await token.methods.balanceOf(player).call({ from: admin }));
+        const difference = inboundBalanceAfter.sub(inboundBalanceBefore);
+
+        if (i == 2) {
+          assert(difference.gt(netAmountPaid), "expected balance diff to be more than paid amount");
+        } else {
+          assert(difference.lte(netAmountPaid), "expected balance diff to be more than paid amount");
+        }
+
+        if (
+          configs.deployConfigs.strategy === "mobius-cUSD-DAI" ||
+          configs.deployConfigs.strategy === "mobius-cUSD-USDC" ||
+          configs.deployConfigs.strategy === "mobius-cusd-usdcet"
+        ) {
+          if (i == 2) {
+            assert(
+              mobiRewardBalanceAfter.gt(mobiRewardBalanceBefore),
+              "expected mobi balance after withdrawal to be greater than before withdrawal",
+            );
+          } else {
+            assert(mobiRewardBalanceAfter.eq(mobiRewardBalanceBefore));
+          }
+        }
+
+        // for some reason forking mainnet we don't get back celo rewards since celo is considered as a native token while forking
+        assert(
+          celoRewardBalanceAfter.lte(celoRewardBalanceBefore),
+          "expected celo balance after withdrawal to be equal to or less than before withdrawal",
+        );
+      }
+      const mobiRewardBalanceAfter = web3.utils.toBN(
+        await mobi.methods.balanceOf(goodGhosting.address).call({ from: admin }),
+      );
+      const celoRewardBalanceAfter = web3.utils.toBN(
+        await celo.methods.balanceOf(goodGhosting.address).call({ from: admin }),
+      );
+      assert(mobiRewardBalanceAfter.gte(web3.utils.toBN(0)));
+      assert(celoRewardBalanceAfter.eq(web3.utils.toBN(0)));
     });
 
     it("admin withdraws admin fee from contract", async () => {
@@ -431,6 +490,13 @@ contract("Variable Deposit Pool with Mobius Strategy with incentives sent same a
             mobiRewardBalanceAfter.gt(mobiRewardBalanceBefore),
             "expected mobi balance after withdrawal to be greater than before withdrawal",
           );
+
+          const inboundTokenRewardPoolBalance = web3.utils.toBN(
+            await mobi.methods.balanceOf(goodGhosting.address).call({ from: admin }),
+          );
+          console.log("BAL", inboundTokenRewardPoolBalance.toString());
+          // accounting for some dust amount checks the balance is less than the extra amount we added i.e 0.5
+          assert(inboundTokenRewardPoolBalance.lt(web3.utils.toBN("500000000000000000")));
         }
 
         // for some reason forking mainnet we don't get back celo rewards since celo is considered as a native token while forking
@@ -439,59 +505,6 @@ contract("Variable Deposit Pool with Mobius Strategy with incentives sent same a
           "expected celo balance after withdrawal to be greater than or equal to before withdrawal",
         );
       }
-    });
-
-    it("players withdraw from contract", async () => {
-      // starts from 2, since player1 (loser), requested an early withdraw and player 2 withdrew after the last segment
-      for (let i = 2; i < players.length - 1; i++) {
-        const player = players[i];
-        let mobiRewardBalanceBefore = web3.utils.toBN(0);
-        let mobiRewardBalanceAfter = web3.utils.toBN(0);
-        let celoRewardBalanceBefore = web3.utils.toBN(0);
-        let celoRewardBalanceAfter = web3.utils.toBN(0);
-        let inboundBalanceBefore = web3.utils.toBN(0);
-        let inboundBalanceAfter = web3.utils.toBN(0);
-
-        mobiRewardBalanceBefore = web3.utils.toBN(await mobi.methods.balanceOf(player).call({ from: admin }));
-        celoRewardBalanceBefore = web3.utils.toBN(await celo.methods.balanceOf(player).call({ from: admin }));
-        inboundBalanceBefore = web3.utils.toBN(await token.methods.balanceOf(player).call({ from: admin }));
-        const playerInfo = await goodGhosting.players(player);
-        const netAmountPaid = playerInfo.netAmountPaid;
-
-        let result;
-        result = await goodGhosting.withdraw(netAmountPaid.toString(), { from: player });
-        mobiRewardBalanceAfter = web3.utils.toBN(await mobi.methods.balanceOf(player).call({ from: admin }));
-        celoRewardBalanceAfter = web3.utils.toBN(await celo.methods.balanceOf(player).call({ from: admin }));
-        inboundBalanceAfter = web3.utils.toBN(await token.methods.balanceOf(player).call({ from: admin }));
-        const difference = inboundBalanceAfter.sub(inboundBalanceBefore);
-
-        assert(difference.gt(netAmountPaid), "expected balance diff to be more than paid amount");
-
-        if (
-          configs.deployConfigs.strategy === "mobius-cUSD-DAI" ||
-          configs.deployConfigs.strategy === "mobius-cUSD-USDC" ||
-          configs.deployConfigs.strategy === "mobius-cusd-usdcet"
-        ) {
-          assert(
-            mobiRewardBalanceAfter.gt(mobiRewardBalanceBefore),
-            "expected mobi balance after withdrawal to be greater than before withdrawal",
-          );
-        }
-
-        // for some reason forking mainnet we don't get back celo rewards since celo is considered as a native token while forking
-        assert(
-          celoRewardBalanceAfter.lte(celoRewardBalanceBefore),
-          "expected celo balance after withdrawal to be equal to or less than before withdrawal",
-        );
-      }
-      const mobiRewardBalanceAfter = web3.utils.toBN(
-        await mobi.methods.balanceOf(goodGhosting.address).call({ from: admin }),
-      );
-      const celoRewardBalanceAfter = web3.utils.toBN(
-        await celo.methods.balanceOf(goodGhosting.address).call({ from: admin }),
-      );
-      assert(mobiRewardBalanceAfter.gte(web3.utils.toBN(0)));
-      assert(celoRewardBalanceAfter.eq(web3.utils.toBN(0)));
     });
   });
 });

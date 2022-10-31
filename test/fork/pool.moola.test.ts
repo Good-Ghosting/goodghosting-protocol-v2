@@ -28,7 +28,7 @@ contract("Pool with Moola Strategy", accounts => {
   const loser = players[0];
   const userWithdrawingAfterLastSegment = players[1];
   const daiDecimals = web3.utils.toBN(
-    10 ** providerConfig.providers["polygon"].tokens[configs.deployConfigs.inboundCurrencySymbol].decimals,
+    10 ** providerConfig.providers["celo"].tokens[configs.deployConfigs.inboundCurrencySymbol].decimals,
   );
   const segmentPayment = daiDecimals.mul(web3.utils.toBN(segmentPaymentInt)); // equivalent to 10 Inbound Token
   let goodGhosting: any;
