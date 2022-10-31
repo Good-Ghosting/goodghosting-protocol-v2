@@ -504,6 +504,7 @@ contract CurveStrategy is Ownable, IStrategy {
         if (!disableRewardTokenClaim) {
             if (poolType == DEPOSIT_ZAP || poolType == LENDING_POOL) {
                 for (uint256 i = 0; i < numRewards; ) {
+                    // using the curve method which is using the same logic so better to use that and this method is a non-view hence
                     amounts[i] = gauge.claimable_tokens(address(this)) + _rewardTokens[i].balanceOf(address(this));
                     unchecked {
                         ++i;

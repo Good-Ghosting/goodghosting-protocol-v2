@@ -338,12 +338,18 @@ contract AaveStrategyV3 is Ownable, IStrategy {
 
                 for (uint256 i = 0; i < numRewards; ) {
                     unclaimedAmounts[i] += IERC20(_rewardTokens[i]).balanceOf(address(this));
+                    unchecked {
+                        ++ i;
+                    }
                 }
                 return unclaimedAmounts;
             } else {
                 uint256[] memory amounts = new uint256[](numRewards);
                 for (uint256 i = 0; i < numRewards; ) {
                     amounts[i] = IERC20(_rewardTokens[i]).balanceOf(address(this));
+                    unchecked {
+                        ++ i;
+                    }
                 }
                 return amounts;
             }
