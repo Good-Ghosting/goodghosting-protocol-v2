@@ -1,3 +1,5 @@
+import { constants } from "ethers";
+
 const Pool = artifacts.require("Pool");
 const MobiusStrategy = artifacts.require("MobiusStrategy");
 const timeMachine = require("ganache-time-traveler");
@@ -9,9 +11,9 @@ const mobiusGauge = require("../../artifacts/contracts/mobius/IMobiGauge.sol/IMo
 const configs = require("../../deploy.config");
 const providerConfig = require("../../providers.config");
 
-contract("Variable Deposit Pool with Mobius Strategy", accounts => {
+contract("Pool with Mobius Strategy with incentive tokens sent to pool", accounts => {
   // Only executes this test file for local network fork
-  if (process.env.NETWORK !== "local-variable-celo") {
+  if (process.env.NETWORK !== "local-celo") {
     return;
   }
 
@@ -52,18 +54,18 @@ contract("Variable Deposit Pool with Mobius Strategy", accounts => {
   let token: any;
   let pool: any;
   let gaugeToken: any;
+  let incentiveToken: any;
   let mobiusStrategy: any;
   let tokenIndex: any;
   let admin = accounts[0];
   const players = accounts.slice(1, 6); // 5 players
-  const ZERO_ADDRESS = "0x0000000000000000000000000000000000000000";
   const loser = players[0];
+  const ZERO_ADDRESS = "0x0000000000000000000000000000000000000000";
   const userWithdrawingAfterLastSegment = players[1];
   const daiDecimals = web3.utils.toBN(
     10 ** providerConfig.providers["celo"].tokens[configs.deployConfigs.inboundCurrencySymbol].decimals,
   );
   const segmentPayment = daiDecimals.mul(web3.utils.toBN(segmentPaymentInt)); // equivalent to 10 Inbound Token
-
   let goodGhosting: any;
 
   describe("simulates a full game with 5 players and 4 of them winning the game and with admin fee % as 0", async () => {
@@ -82,12 +84,13 @@ contract("Variable Deposit Pool with Mobius Strategy", accounts => {
       mobi = new web3.eth.Contract(wmatic.abi, providerConfig.providers["celo"].tokens["mobi"].address);
       celo = new web3.eth.Contract(wmatic.abi, providerConfig.providers["celo"].tokens["celo"].address);
       stCeloToken = new web3.eth.Contract(wmatic.abi, providerConfig.providers["celo"].tokens["stCelo"].address);
+      incentiveToken = new web3.eth.Contract(wmatic.abi, configs.deployConfigs.incentiveToken);
 
       goodGhosting = await GoodGhostingArtifact.deployed();
       mobiusStrategy = await MobiusStrategy.deployed();
-
       tokenIndex = await mobiusStrategy.inboundTokenIndex();
       tokenIndex = tokenIndex.toString();
+
       if (providersConfigs.gauge !== ZERO_ADDRESS) {
         gaugeToken = new web3.eth.Contract(mobiusGauge.abi, providersConfigs.gauge);
       }
@@ -98,7 +101,7 @@ contract("Variable Deposit Pool with Mobius Strategy", accounts => {
 
         for (let i = 0; i < players.length; i++) {
           const player = players[i];
-          const transferAmount = segmentPayment.mul(web3.utils.toBN(depositCount * 40)).toString();
+          const transferAmount = segmentPayment.mul(web3.utils.toBN(depositCount * 3)).toString();
           await stCeloToken.methods.transfer(player, transferAmount).send({ from: unlockedDaiAccount });
           await stCeloToken.methods
             .approve(
@@ -115,15 +118,16 @@ contract("Variable Deposit Pool with Mobius Strategy", accounts => {
         }
       } else {
         const unlockedBalance = await token.methods.balanceOf(unlockedDaiAccount).call({ from: admin });
-        const daiAmount = segmentPayment.mul(web3.utils.toBN(depositCount * 20)).toString();
+        const daiAmount = segmentPayment.mul(web3.utils.toBN(depositCount * 10)).toString();
         console.log("unlockedBalance: ", web3.utils.toBN(unlockedBalance).div(web3.utils.toBN(daiDecimals)).toString());
         console.log("daiAmountToTransfer", web3.utils.toBN(daiAmount).div(web3.utils.toBN(daiDecimals)).toString());
         for (let i = 0; i < players.length; i++) {
           const player = players[i];
           let transferAmount = daiAmount;
-          if (i === 2) {
-            // Player 2 needs additional funds
-            transferAmount = web3.utils.toBN(daiAmount).add(segmentPayment).mul(web3.utils.toBN(6)).toString();
+          if (i === 1) {
+            // Player 1 needs additional funds to rejoin
+
+            transferAmount = web3.utils.toBN(daiAmount).add(segmentPayment).toString();
           }
           await token.methods.transfer(player, transferAmount).send({ from: unlockedDaiAccount });
           const playerBalance = await token.methods.balanceOf(player).call({ from: admin });
@@ -133,13 +137,19 @@ contract("Variable Deposit Pool with Mobius Strategy", accounts => {
           );
         }
       }
+
+      await incentiveToken.methods
+        .transfer(goodGhosting.address, web3.utils.toWei("10").toString())
+        .send({ from: unlockedDaiAccount });
     });
 
     it("players approve Inbound Token to contract and join the game", async () => {
       const userSlippageOptions = [1, 3, 4, 2, 1];
       for (let i = 0; i < players.length; i++) {
         const player = players[i];
-        await token.methods.approve(goodGhosting.address, web3.utils.toWei("200").toString()).send({ from: player });
+        await token.methods
+          .approve(goodGhosting.address, segmentPayment.mul(web3.utils.toBN(depositCount)).toString())
+          .send({ from: player });
         let playerEvent = "";
         let paymentEvent = 0;
         let result, slippageFromContract;
@@ -147,7 +157,6 @@ contract("Variable Deposit Pool with Mobius Strategy", accounts => {
         const userProvidedMinAmount = segmentPayment.sub(
           segmentPayment.mul(web3.utils.toBN(userSlippageOptions[i].toString())).div(web3.utils.toBN(100)),
         );
-
         let amounts = new Array(2);
         if (configs.deployConfigs.strategy === "mobius-celo-stCelo") {
           amounts[0] = "0";
@@ -156,6 +165,7 @@ contract("Variable Deposit Pool with Mobius Strategy", accounts => {
           amounts[tokenIndex] = segmentPayment.toString();
           amounts[1] = "0";
         }
+
         slippageFromContract = await pool.methods.calculateTokenAmount(mobiusStrategy.address, amounts, true).call();
 
         minAmountWithFees =
@@ -164,42 +174,16 @@ contract("Variable Deposit Pool with Mobius Strategy", accounts => {
                 .toBN(slippageFromContract)
                 .sub(web3.utils.toBN(slippageFromContract).mul(web3.utils.toBN("10")).div(web3.utils.toBN("10000")))
             : userProvidedMinAmount.sub(userProvidedMinAmount.mul(web3.utils.toBN("10")).div(web3.utils.toBN("10000")));
-        if (i == 2) {
-          result = await goodGhosting.joinGame(minAmountWithFees.toString(), web3.utils.toWei("23"), { from: player });
-          // got logs not defined error when keep the event assertion check outside of the if-else
-          truffleAssert.eventEmitted(
-            result,
-            "JoinedGame",
-            (ev: any) => {
-              playerEvent = ev.player;
-              paymentEvent = ev.amount;
-              return (
-                playerEvent === player && web3.utils.toBN(paymentEvent).toString() == web3.utils.toWei("23").toString()
-              );
-            },
-            `JoinedGame event should be emitted when an user joins the game with params\n
-                                      player: expected ${player}; got ${playerEvent}\n
-                                      paymentAmount: expected ${web3.utils
-                                        .toWei("23")
-                                        .toString()}; got ${paymentEvent.toString()}`,
-          );
-        } else {
-          result = await goodGhosting.joinGame(minAmountWithFees.toString(), web3.utils.toWei("5"), { from: player });
-          truffleAssert.eventEmitted(result, "JoinedGame", (ev: any) => {
-            playerEvent = ev.player;
-            paymentEvent = ev.amount;
-            return (
-              playerEvent === player && web3.utils.toBN(paymentEvent).toString() == web3.utils.toWei("5").toString()
-            );
-          });
-        }
-        // player 2 early withdraws in segment 0 and joins again
-        if (i == 2) {
+
+        result = await goodGhosting.joinGame(minAmountWithFees.toString(), 0, { from: player });
+        // player 1 early withdraws in segment 0 and joins again
+        if (i == 1) {
           const withdrawAmount = segmentPayment.sub(
             segmentPayment.mul(web3.utils.toBN(earlyWithdrawFee)).div(web3.utils.toBN(100)),
           );
+          let lpTokenAmount;
 
-          let amounts = new Array(2);
+          let amounts: any = new Array(2);
           if (configs.deployConfigs.strategy === "mobius-celo-stCelo") {
             amounts[0] = "0";
             amounts[tokenIndex] = withdrawAmount.toString();
@@ -207,7 +191,6 @@ contract("Variable Deposit Pool with Mobius Strategy", accounts => {
             amounts[tokenIndex] = withdrawAmount.toString();
             amounts[1] = "0";
           }
-          let lpTokenAmount;
           lpTokenAmount = await pool.methods.calculateTokenAmount(mobiusStrategy.address, amounts, true).call();
 
           if (gaugeToken) {
@@ -235,11 +218,27 @@ contract("Variable Deposit Pool with Mobius Strategy", accounts => {
           await goodGhosting.earlyWithdraw(minAmount.toString(), { from: player });
 
           await token.methods
-            .approve(goodGhosting.address, web3.utils.toWei("200").toString().toString())
+            .approve(goodGhosting.address, segmentPayment.mul(web3.utils.toBN(depositCount)).toString())
             .send({ from: player });
 
-          await goodGhosting.joinGame(minAmountWithFees.toString(), web3.utils.toWei("23"), { from: player });
+          await goodGhosting.joinGame(minAmountWithFees.toString(), 0, { from: player });
         }
+
+        // got logs not defined error when keep the event assertion check outside of the if-else
+        truffleAssert.eventEmitted(
+          result,
+          "JoinedGame",
+          (ev: any) => {
+            playerEvent = ev.player;
+            paymentEvent = ev.amount;
+            return (
+              playerEvent === player && web3.utils.toBN(paymentEvent).eq(web3.utils.toBN(segmentPayment.toString()))
+            );
+          },
+          `JoinedGame event should be emitted when an user joins the game with params\n
+                            player: expected ${player}; got ${playerEvent}\n
+                            paymentAmount: expected ${segmentPayment}; got ${paymentEvent}`,
+        );
       }
     });
 
@@ -251,14 +250,15 @@ contract("Variable Deposit Pool with Mobius Strategy", accounts => {
       for (let segmentIndex = 1; segmentIndex < depositCount; segmentIndex++) {
         await timeMachine.advanceTime(segmentLength);
         // j must start at 1 - Player1 (index 0) early withdraws after everyone else deposits, so won't continue making deposits
-        for (let j = 1; j < players.length; j++) {
+        for (let j = 2; j < 3; j++) {
           const player = players[j];
           let slippageFromContract;
           const userProvidedMinAmount = segmentPayment.sub(
             segmentPayment.mul(web3.utils.toBN(userSlippageOptions[j].toString())).div(web3.utils.toBN(100)),
           );
 
-          let amounts = new Array(2);
+          let amounts: any = new Array(2);
+
           if (configs.deployConfigs.strategy === "mobius-celo-stCelo") {
             amounts[0] = "0";
             amounts[tokenIndex] = segmentPayment.toString();
@@ -276,29 +276,14 @@ contract("Variable Deposit Pool with Mobius Strategy", accounts => {
               : userProvidedMinAmount.sub(
                   userProvidedMinAmount.mul(web3.utils.toBN("10")).div(web3.utils.toBN("1000")),
                 );
+          depositResult = await goodGhosting.makeDeposit(minAmountWithFees.toString(), 0, { from: player });
 
-          if (j == 2) {
-            depositResult = await goodGhosting.makeDeposit(minAmountWithFees.toString(), web3.utils.toWei("23"), {
-              from: player,
-            });
-            // got logs not defined error when keep the event assertion check outside of the if-else
-            truffleAssert.eventEmitted(
-              depositResult,
-              "Deposit",
-              (ev: any) => ev.player === player && ev.segment.toNumber() === segmentIndex,
-              `player ${j} unable to deposit for segment ${segmentIndex}`,
-            );
-          } else {
-            depositResult = await goodGhosting.makeDeposit(minAmountWithFees.toString(), web3.utils.toWei("5"), {
-              from: player,
-            });
-            truffleAssert.eventEmitted(
-              depositResult,
-              "Deposit",
-              (ev: any) => ev.player === player && ev.segment.toNumber() === segmentIndex,
-              `player ${j} unable to deposit for segment ${segmentIndex}`,
-            );
-          }
+          truffleAssert.eventEmitted(
+            depositResult,
+            "Deposit",
+            (ev: any) => ev.player === player && ev.segment.toNumber() === segmentIndex,
+            `player ${j} unable to deposit for segment ${segmentIndex}`,
+          );
         }
 
         // Player 1 (index 0 - loser), performs an early withdraw on first segment.
@@ -310,7 +295,8 @@ contract("Variable Deposit Pool with Mobius Strategy", accounts => {
             playerInfo.amountPaid.mul(web3.utils.toBN(earlyWithdrawFee)).div(web3.utils.toBN(100)),
           );
 
-          let amounts = new Array(2);
+          let amounts: any = new Array(2);
+
           if (configs.deployConfigs.strategy === "mobius-celo-stCelo") {
             amounts[0] = "0";
             amounts[tokenIndex] = withdrawAmount.toString();
@@ -323,7 +309,6 @@ contract("Variable Deposit Pool with Mobius Strategy", accounts => {
 
           if (gaugeToken) {
             const gaugeTokenBalance = await gaugeToken.methods.balanceOf(mobiusStrategy.address).call();
-
             if (parseInt(gaugeTokenBalance.toString()) < parseInt(lpTokenAmount.toString())) {
               lpTokenAmount = gaugeTokenBalance;
             }
@@ -352,13 +337,12 @@ contract("Variable Deposit Pool with Mobius Strategy", accounts => {
       }
       // above, it accounted for 1st deposit window, and then the loop runs till depositCount - 1.
       // now, we move 2 more segments (depositCount-1 and depositCount) to complete the game.
-      const winnerCountBeforeEarlyWithdraw = await goodGhosting.winnerCount();
       const playerInfo = await goodGhosting.players(userWithdrawingAfterLastSegment);
       const withdrawAmount = playerInfo.amountPaid.sub(
         playerInfo.amountPaid.mul(web3.utils.toBN(earlyWithdrawFee)).div(web3.utils.toBN(100)),
       );
 
-      let amounts = new Array(2);
+      let amounts: any = new Array(2);
       if (configs.deployConfigs.strategy === "mobius-celo-stCelo") {
         amounts[0] = "0";
         amounts[tokenIndex] = withdrawAmount.toString();
@@ -371,7 +355,6 @@ contract("Variable Deposit Pool with Mobius Strategy", accounts => {
 
       if (gaugeToken) {
         const gaugeTokenBalance = await gaugeToken.methods.balanceOf(mobiusStrategy.address).call();
-
         if (parseInt(gaugeTokenBalance.toString()) < parseInt(lpTokenAmount.toString())) {
           lpTokenAmount = gaugeTokenBalance;
         }
@@ -390,13 +373,54 @@ contract("Variable Deposit Pool with Mobius Strategy", accounts => {
 
       await goodGhosting.earlyWithdraw(minAmount.toString(), { from: userWithdrawingAfterLastSegment });
 
-      const winnerCountAfterEarlyWithdraw = await goodGhosting.winnerCount();
-
-      assert(winnerCountBeforeEarlyWithdraw.eq(web3.utils.toBN(4)));
-      assert(winnerCountAfterEarlyWithdraw.eq(web3.utils.toBN(3)));
       await timeMachine.advanceTime(segmentLength);
       const waitingRoundLength = await goodGhosting.waitingRoundSegmentLength();
       await timeMachine.advanceTime(parseInt(waitingRoundLength.toString()));
+    });
+
+    it("players withdraw from contract", async () => {
+      // starts from 2, since player1 (loser), requested an early withdraw and player 2 withdrew after the last segment
+      for (let i = 2; i < players.length; i++) {
+        const player = players[i];
+        let mobiRewardBalanceBefore = web3.utils.toBN(0);
+        let mobiRewardBalanceAfter = web3.utils.toBN(0);
+        let incentiveBalanceBefore = web3.utils.toBN(0);
+        let incentiveBalanceAfter = web3.utils.toBN(0);
+        let inboundBalanceBefore = web3.utils.toBN(0);
+        let inboundBalanceAfter = web3.utils.toBN(0);
+
+        mobiRewardBalanceBefore = web3.utils.toBN(await mobi.methods.balanceOf(player).call({ from: admin }));
+        incentiveBalanceBefore = web3.utils.toBN(await incentiveToken.methods.balanceOf(player).call({ from: admin }));
+        inboundBalanceBefore = web3.utils.toBN(await token.methods.balanceOf(player).call({ from: admin }));
+        const playerInfo = await goodGhosting.players(player);
+        const netAmountPaid = playerInfo.netAmountPaid;
+
+        let result;
+        // redeem already called hence passing in 0
+        result = await goodGhosting.withdraw(0, { from: player });
+
+        mobiRewardBalanceAfter = web3.utils.toBN(await mobi.methods.balanceOf(player).call({ from: admin }));
+        incentiveBalanceAfter = web3.utils.toBN(await incentiveToken.methods.balanceOf(player).call({ from: admin }));
+        inboundBalanceAfter = web3.utils.toBN(await token.methods.balanceOf(player).call({ from: admin }));
+        const difference = inboundBalanceAfter.sub(inboundBalanceBefore);
+
+        if (i == 2) {
+          assert(difference.gt(netAmountPaid), "expected balance diff to be more than paid amount");
+
+          assert(
+            mobiRewardBalanceAfter.gt(mobiRewardBalanceBefore),
+            "expected mobi balance after withdrawal to be greater than before withdrawal",
+          );
+
+          assert(
+            incentiveBalanceAfter.gt(incentiveBalanceBefore),
+            "expected incentive token balance after withdrawal to be greater than before withdrawal",
+          );
+          assert(mobiRewardBalanceAfter.gt(web3.utils.toBN(0)));
+        } else {
+          assert(difference.lte(netAmountPaid), "expected balance diff to be more than paid amount");
+        }
+      }
     });
 
     it("admin withdraws admin fee from contract", async () => {
@@ -405,10 +429,10 @@ contract("Variable Deposit Pool with Mobius Strategy", accounts => {
         let mobiRewardBalanceAfter = web3.utils.toBN(0);
         let celoRewardBalanceBefore = web3.utils.toBN(0);
         let celoRewardBalanceAfter = web3.utils.toBN(0);
-        let inboundTokenBalanceBefore = web3.utils.toBN(0);
-        let inboundTokenBalanceAfter = web3.utils.toBN(0);
+        let inboundTokenBalanceBeforeWithdraw = web3.utils.toBN(0);
+        let inboundTokenBalanceAfterWithdraw = web3.utils.toBN(0);
 
-        inboundTokenBalanceBefore = web3.utils.toBN(await token.methods.balanceOf(admin).call({ from: admin }));
+        inboundTokenBalanceBeforeWithdraw = web3.utils.toBN(await token.methods.balanceOf(admin).call({ from: admin }));
         mobiRewardBalanceBefore = web3.utils.toBN(await mobi.methods.balanceOf(admin).call({ from: admin }));
         celoRewardBalanceBefore = web3.utils.toBN(await celo.methods.balanceOf(admin).call({ from: admin }));
 
@@ -416,70 +440,40 @@ contract("Variable Deposit Pool with Mobius Strategy", accounts => {
           from: admin,
         });
 
-        inboundTokenBalanceAfter = web3.utils.toBN(await token.methods.balanceOf(admin).call({ from: admin }));
+        const inboundTokenPoolBalance = web3.utils.toBN(
+          await token.methods.balanceOf(goodGhosting.address).call({ from: admin }),
+        );
+        console.log(inboundTokenPoolBalance.toString());
+
+        inboundTokenBalanceAfterWithdraw = web3.utils.toBN(await token.methods.balanceOf(admin).call({ from: admin }));
         mobiRewardBalanceAfter = web3.utils.toBN(await mobi.methods.balanceOf(admin).call({ from: admin }));
         celoRewardBalanceAfter = web3.utils.toBN(await celo.methods.balanceOf(admin).call({ from: admin }));
 
-        assert(inboundTokenBalanceAfter.gt(inboundTokenBalanceBefore));
+        assert(inboundTokenBalanceAfterWithdraw.gt(inboundTokenBalanceBeforeWithdraw));
 
         assert(
           mobiRewardBalanceAfter.gt(mobiRewardBalanceBefore),
           "expected mobi balance after withdrawal to be greater than before withdrawal",
         );
+        const inboundTokenRewardPoolBalance = web3.utils.toBN(
+          await mobi.methods.balanceOf(goodGhosting.address).call({ from: admin }),
+        );
+        console.log("BALL", inboundTokenRewardPoolBalance.toString());
+        // accounting for some dust amount checks the balance is less than the extra amount we added i.e 0.5
+        assert(inboundTokenRewardPoolBalance.lt(web3.utils.toBN("500000000000000000")));
 
-        // for some reason forking mainnet we don't get back celo rewards since celo is considered as a native token while forking
+        const inboundincentiveTokenPoolBalance = web3.utils.toBN(
+          await incentiveToken.methods.balanceOf(goodGhosting.address).call({ from: admin }),
+        );
+        console.log("INCENTIVE BAL", inboundincentiveTokenPoolBalance.toString());
+        assert(inboundincentiveTokenPoolBalance.eq(web3.utils.toBN("0")));
+
+        // for some reason forking mainnet we don't get back celo rewards
         assert(
           celoRewardBalanceAfter.gte(celoRewardBalanceBefore),
-          "expected celo balance after withdrawal to be greater than or equal to before withdrawal",
+          "expected celo balance after withdrawal to be equal to before withdrawal",
         );
       }
-    });
-
-    it("players withdraw from contract", async () => {
-      // starts from 2, since player1 (loser), requested an early withdraw and player 2 withdrew after the last segment
-      for (let i = 2; i < players.length - 1; i++) {
-        const player = players[i];
-        let mobiRewardBalanceBefore = web3.utils.toBN(0);
-        let mobiRewardBalanceAfter = web3.utils.toBN(0);
-        let celoRewardBalanceBefore = web3.utils.toBN(0);
-        let celoRewardBalanceAfter = web3.utils.toBN(0);
-        let inboundBalanceBefore = web3.utils.toBN(0);
-        let inboundBalanceAfter = web3.utils.toBN(0);
-
-        mobiRewardBalanceBefore = web3.utils.toBN(await mobi.methods.balanceOf(player).call({ from: admin }));
-        celoRewardBalanceBefore = web3.utils.toBN(await celo.methods.balanceOf(player).call({ from: admin }));
-        inboundBalanceBefore = web3.utils.toBN(await token.methods.balanceOf(player).call({ from: admin }));
-        const playerInfo = await goodGhosting.players(player);
-        const netAmountPaid = playerInfo.netAmountPaid;
-
-        let result;
-        result = await goodGhosting.withdraw(netAmountPaid.toString(), { from: player });
-        mobiRewardBalanceAfter = web3.utils.toBN(await mobi.methods.balanceOf(player).call({ from: admin }));
-        celoRewardBalanceAfter = web3.utils.toBN(await celo.methods.balanceOf(player).call({ from: admin }));
-        inboundBalanceAfter = web3.utils.toBN(await token.methods.balanceOf(player).call({ from: admin }));
-        const difference = inboundBalanceAfter.sub(inboundBalanceBefore);
-
-        assert(difference.gt(netAmountPaid), "expected balance diff to be more than paid amount");
-
-        assert(
-          mobiRewardBalanceAfter.gt(mobiRewardBalanceBefore),
-          "expected mobi balance after withdrawal to be greater than before withdrawal",
-        );
-
-        // for some reason forking mainnet we don't get back celo rewards since celo is considered as a native token while forking
-        assert(
-          celoRewardBalanceAfter.lte(celoRewardBalanceBefore),
-          "expected celo balance after withdrawal to be equal to or less than before withdrawal",
-        );
-      }
-      const mobiRewardBalanceAfter = web3.utils.toBN(
-        await mobi.methods.balanceOf(goodGhosting.address).call({ from: admin }),
-      );
-      const celoRewardBalanceAfter = web3.utils.toBN(
-        await celo.methods.balanceOf(goodGhosting.address).call({ from: admin }),
-      );
-      assert(mobiRewardBalanceAfter.gte(web3.utils.toBN(0)));
-      assert(celoRewardBalanceAfter.eq(web3.utils.toBN(0)));
     });
   });
 });

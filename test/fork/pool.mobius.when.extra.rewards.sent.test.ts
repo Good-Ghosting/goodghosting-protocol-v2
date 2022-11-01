@@ -402,29 +402,23 @@ contract("Pool with Mobius Strategy with extra reward tokens sent to strategy", 
         inboundBalanceAfter = web3.utils.toBN(await token.methods.balanceOf(player).call({ from: admin }));
         const difference = inboundBalanceAfter.sub(inboundBalanceBefore);
 
-        if (
-          configs.deployConfigs.strategy === "mobius-cUSD-DAI" ||
-          configs.deployConfigs.strategy === "mobius-cUSD-USDC" ||
-          configs.deployConfigs.strategy === "mobius-cusd-usdcet"
-        ) {
-          if (i == 2) {
-            assert(difference.gt(netAmountPaid), "expected balance diff to be more than paid amount");
+        if (i == 2) {
+          assert(difference.gt(netAmountPaid), "expected balance diff to be more than paid amount");
 
-            assert(
-              mobiRewardBalanceAfter.gt(mobiRewardBalanceBefore),
-              "expected mobi balance after withdrawal to be greater than before withdrawal",
-            );
-            assert(mobiRewardBalanceAfter.gt(web3.utils.toBN(0)));
-          } else {
-            assert(difference.lte(netAmountPaid), "expected balance diff to be more than paid amount");
-          }
-
-          // for some reason forking mainnet we don't get back celo rewards
           assert(
-            celoRewardBalanceAfter.lte(celoRewardBalanceBefore),
-            "expected celo balance after withdrawal to be equal to before withdrawal",
+            mobiRewardBalanceAfter.gt(mobiRewardBalanceBefore),
+            "expected mobi balance after withdrawal to be greater than before withdrawal",
           );
+          assert(mobiRewardBalanceAfter.gt(web3.utils.toBN(0)));
+        } else {
+          assert(difference.lte(netAmountPaid), "expected balance diff to be more than paid amount");
         }
+
+        // for some reason forking mainnet we don't get back celo rewards
+        assert(
+          celoRewardBalanceAfter.lte(celoRewardBalanceBefore),
+          "expected celo balance after withdrawal to be equal to before withdrawal",
+        );
       }
     });
 
@@ -456,22 +450,16 @@ contract("Pool with Mobius Strategy with extra reward tokens sent to strategy", 
 
         assert(inboundTokenBalanceAfterWithdraw.gt(inboundTokenBalanceBeforeWithdraw));
 
-        if (
-          configs.deployConfigs.strategy === "mobius-cUSD-DAI" ||
-          configs.deployConfigs.strategy === "mobius-cUSD-USDC" ||
-          configs.deployConfigs.strategy === "mobius-cusd-usdcet"
-        ) {
-          assert(
-            mobiRewardBalanceAfter.gt(mobiRewardBalanceBefore),
-            "expected mobi balance after withdrawal to be greater than before withdrawal",
-          );
-          const inboundTokenRewardPoolBalance = web3.utils.toBN(
-            await mobi.methods.balanceOf(goodGhosting.address).call({ from: admin }),
-          );
-          console.log("BALL", inboundTokenRewardPoolBalance.toString());
-          // accounting for some dust amount checks the balance is less than the extra amount we added i.e 0.5
-          assert(inboundTokenRewardPoolBalance.lt(web3.utils.toBN("500000000000000000")));
-        }
+        assert(
+          mobiRewardBalanceAfter.gt(mobiRewardBalanceBefore),
+          "expected mobi balance after withdrawal to be greater than before withdrawal",
+        );
+        const inboundTokenRewardPoolBalance = web3.utils.toBN(
+          await mobi.methods.balanceOf(goodGhosting.address).call({ from: admin }),
+        );
+        console.log("BALL", inboundTokenRewardPoolBalance.toString());
+        // accounting for some dust amount checks the balance is less than the extra amount we added i.e 0.5
+        assert(inboundTokenRewardPoolBalance.lt(web3.utils.toBN("500000000000000000")));
         // for some reason forking mainnet we don't get back celo rewards
         assert(
           celoRewardBalanceAfter.gte(celoRewardBalanceBefore),

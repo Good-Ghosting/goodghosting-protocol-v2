@@ -408,17 +408,11 @@ contract("Pool with Mobius Strategy with incentives sent same as deposit token",
 
         assert(difference.gt(netAmountPaid), "expected balance diff to be more than paid amount");
 
-        if (
-          configs.deployConfigs.strategy === "mobius-cUSD-DAI" ||
-          configs.deployConfigs.strategy === "mobius-cUSD-USDC" ||
-          configs.deployConfigs.strategy === "mobius-cusd-usdcet"
-        ) {
-          assert(
-            mobiRewardBalanceAfter.gt(mobiRewardBalanceBefore),
-            "expected mobi balance after withdrawal to be greater than before withdrawal",
-          );
-          assert(mobiRewardBalanceAfter.gt(web3.utils.toBN(0)));
-        }
+        assert(
+          mobiRewardBalanceAfter.gt(mobiRewardBalanceBefore),
+          "expected mobi balance after withdrawal to be greater than before withdrawal",
+        );
+        assert(mobiRewardBalanceAfter.gt(web3.utils.toBN(0)));
 
         // for some reason forking mainnet we don't get back celo rewards
         assert(
@@ -448,7 +442,6 @@ contract("Pool with Mobius Strategy with incentives sent same as deposit token",
         const inboundTokenPoolBalance = web3.utils.toBN(
           await token.methods.balanceOf(goodGhosting.address).call({ from: admin }),
         );
-        console.log(inboundTokenPoolBalance.toString());
 
         inboundTokenBalanceAfterWithdraw = web3.utils.toBN(await token.methods.balanceOf(admin).call({ from: admin }));
         mobiRewardBalanceAfter = web3.utils.toBN(await mobi.methods.balanceOf(admin).call({ from: admin }));
@@ -456,17 +449,12 @@ contract("Pool with Mobius Strategy with incentives sent same as deposit token",
 
         assert(inboundTokenBalanceAfterWithdraw.gt(inboundTokenBalanceBeforeWithdraw));
 
-        if (
-          configs.deployConfigs.strategy === "mobius-cUSD-DAI" ||
-          configs.deployConfigs.strategy === "mobius-cUSD-USDC" ||
-          configs.deployConfigs.strategy === "mobius-cusd-usdcet"
-        ) {
-          assert(
-            mobiRewardBalanceAfter.gt(mobiRewardBalanceBefore),
-            "expected mobi balance after withdrawal to be greater than before withdrawal",
-          );
-          assert(mobiRewardBalanceAfter.gt(web3.utils.toBN(0)));
-        }
+        assert(
+          mobiRewardBalanceAfter.gt(mobiRewardBalanceBefore),
+          "expected mobi balance after withdrawal to be greater than before withdrawal",
+        );
+        assert(mobiRewardBalanceAfter.gt(web3.utils.toBN(0)));
+
         // for some reason forking mainnet we don't get back celo rewards
         assert(
           celoRewardBalanceAfter.gte(celoRewardBalanceBefore),

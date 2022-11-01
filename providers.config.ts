@@ -185,7 +185,7 @@ exports.providers = {
       "mobius-celo-stCelo": {
         pool: "0xEBf0536356256f8FF2a5Eb6C65800839801d8B95",
         gauge: "0x70AE7265545f001cb015399D672B85D8f2CaCA72",
-        minter: "0x0000000000000000000000000000000000000000",
+        minter: "0x5F0200CA03196D5b817E2044a0Bb0D837e0A7823",
         lpToken: "0x4730ff6bC3008a40cf74D660D3f20d5b51646dA3",
       },
       "mobius-mento": {

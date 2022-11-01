@@ -11,7 +11,7 @@ const maticpoolABI = require("../../abi-external/curve-matic-pool-abi.json");
 const configs = require("../../deploy.config");
 const providerConfig = require("../../providers.config");
 
-contract("Pool with Curve Strategy with extra reward tokens sent to strategy", accounts => {
+contract("Pool with Curve Strategy with incentive tokens sent to pool", accounts => {
   // Only executes this test file for local network fork
   if (!["local-polygon"].includes(process.env.NETWORK ? process.env.NETWORK : "")) return;
 
@@ -42,6 +42,7 @@ contract("Pool with Curve Strategy with extra reward tokens sent to strategy", a
   let pool: any;
   let gaugeToken: any;
   let curveStrategy: any;
+  let incentiveToken: any;
   let tokenIndex: any;
   let admin = accounts[0];
   const players = accounts.slice(1, 6); // 5 players
@@ -73,6 +74,8 @@ contract("Pool with Curve Strategy with extra reward tokens sent to strategy", a
         curve = new web3.eth.Contract(wmaticABI, providerConfig.providers["polygon"].tokens["curve"].address);
       }
       wmatic = new web3.eth.Contract(wmaticABI, providerConfig.providers["polygon"].tokens["wmatic"].address);
+
+      incentiveToken = new web3.eth.Contract(wmaticABI, configs.deployConfigs.incentiveToken);
 
       goodGhosting = await GoodGhostingArtifact.deployed();
       curveStrategy = await CurveStrategy.deployed();
@@ -112,8 +115,8 @@ contract("Pool with Curve Strategy with extra reward tokens sent to strategy", a
         }
       }
 
-      await curve.methods
-        .transfer(curveStrategy.address, web3.utils.toWei("0.5").toString())
+      await incentiveToken.methods
+        .transfer(goodGhosting.address, web3.utils.toWei("10").toString())
         .send({ from: unlockedDaiAccount });
     });
 
@@ -342,13 +345,13 @@ contract("Pool with Curve Strategy with extra reward tokens sent to strategy", a
         const player = players[i];
         let curveRewardBalanceBefore = web3.utils.toBN(0);
         let curveRewardBalanceAfter = web3.utils.toBN(0);
-        let wmaticRewardBalanceBefore = web3.utils.toBN(0);
-        let wmaticRewardBalanceAfter = web3.utils.toBN(0);
+        let incentiveBalanceBefore = web3.utils.toBN(0);
+        let incentiveBalanceAfter = web3.utils.toBN(0);
 
         let inboundTokenBalanceBeforeRedeem = await token.methods.balanceOf(player).call();
 
         curveRewardBalanceBefore = web3.utils.toBN(await curve.methods.balanceOf(player).call({ from: admin }));
-        wmaticRewardBalanceBefore = web3.utils.toBN(await wmatic.methods.balanceOf(player).call({ from: admin }));
+        incentiveBalanceBefore = web3.utils.toBN(await incentiveToken.methods.balanceOf(player).call({ from: admin }));
         const playerInfo = await goodGhosting.players(player);
         const netAmountPaid = playerInfo.netAmountPaid;
 
@@ -356,7 +359,7 @@ contract("Pool with Curve Strategy with extra reward tokens sent to strategy", a
 
         let inboundTokenBalanceAfterRedeem = await token.methods.balanceOf(player).call();
         curveRewardBalanceAfter = web3.utils.toBN(await curve.methods.balanceOf(player).call({ from: admin }));
-        wmaticRewardBalanceAfter = web3.utils.toBN(await wmatic.methods.balanceOf(player).call({ from: admin }));
+        incentiveBalanceAfter = web3.utils.toBN(await incentiveToken.methods.balanceOf(player).call({ from: admin }));
 
         const difference = web3.utils
           .toBN(inboundTokenBalanceAfterRedeem)
@@ -366,6 +369,11 @@ contract("Pool with Curve Strategy with extra reward tokens sent to strategy", a
           assert(
             curveRewardBalanceAfter.gt(curveRewardBalanceBefore),
             "expected curve balance after withdrawal to be greater than before withdrawal",
+          );
+
+          assert(
+            incentiveBalanceAfter.gt(incentiveBalanceBefore),
+            "expected incentive token balance after withdrawal to be greater than before withdrawal",
           );
 
           assert(difference.gt(netAmountPaid), "expected balance diff to be more than paid amount");
@@ -379,12 +387,12 @@ contract("Pool with Curve Strategy with extra reward tokens sent to strategy", a
       if (adminFee > 0) {
         let curveRewardBalanceBefore = web3.utils.toBN(0);
         let curveRewardBalanceAfter = web3.utils.toBN(0);
-        let wmaticRewardBalanceBefore = web3.utils.toBN(0);
-        let wmaticRewardBalanceAfter = web3.utils.toBN(0);
+        let incentiveBalanceBefore = web3.utils.toBN(0);
+        let incentiveBalanceAfter = web3.utils.toBN(0);
 
         let inboundTokenBalanceBefore = web3.utils.toBN(await token.methods.balanceOf(admin).call({ from: admin }));
         curveRewardBalanceBefore = web3.utils.toBN(await curve.methods.balanceOf(admin).call({ from: admin }));
-        wmaticRewardBalanceBefore = web3.utils.toBN(await wmatic.methods.balanceOf(admin).call({ from: admin }));
+        incentiveBalanceBefore = web3.utils.toBN(await incentiveToken.methods.balanceOf(admin).call({ from: admin }));
 
         await goodGhosting.adminFeeWithdraw(0, {
           from: admin,
@@ -395,10 +403,14 @@ contract("Pool with Curve Strategy with extra reward tokens sent to strategy", a
         assert(inboundTokenBalanceAfter.gt(inboundTokenBalanceBefore));
 
         curveRewardBalanceAfter = web3.utils.toBN(await curve.methods.balanceOf(admin).call({ from: admin }));
-        wmaticRewardBalanceAfter = web3.utils.toBN(await wmatic.methods.balanceOf(admin).call({ from: admin }));
+        incentiveBalanceAfter = web3.utils.toBN(await incentiveToken.methods.balanceOf(admin).call({ from: admin }));
 
         const inboundcrvTokenPoolBalance = web3.utils.toBN(
           await curve.methods.balanceOf(goodGhosting.address).call({ from: admin }),
+        );
+
+        const inboundincentiveTokenPoolBalance = web3.utils.toBN(
+          await incentiveToken.methods.balanceOf(goodGhosting.address).call({ from: admin }),
         );
 
         assert(
@@ -408,13 +420,12 @@ contract("Pool with Curve Strategy with extra reward tokens sent to strategy", a
 
         console.log("BAL", inboundcrvTokenPoolBalance.toString());
 
+        console.log("INCENTIVE BAL", inboundincentiveTokenPoolBalance.toString());
+
         // accounting for some dust amount checks the balance is less than the extra amount we added i.e 0.5
         assert(inboundcrvTokenPoolBalance.lt(web3.utils.toBN("500000000000000000")));
-        // for some reason forking mainnet we don't get back wmatic rewards(wamtic rewards were stopped from curve's end IMO)
-        assert(
-          wmaticRewardBalanceAfter.gte(wmaticRewardBalanceBefore),
-          "expected wmatic balance after withdrawal to be equal to or greater than before withdrawal",
-        );
+
+        assert(inboundincentiveTokenPoolBalance.eq(web3.utils.toBN("0")));
       }
     });
   });
