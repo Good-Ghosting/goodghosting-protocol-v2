@@ -49,4 +49,8 @@ contract MockCurveGauge is MintableERC20 {
     function claimable_reward_write(address _addr, address _token) external returns (uint256) {
         return IERC20(_token).balanceOf(address(this));
     }
+
+    function claimable_tokens(address addr) external returns (uint256) {
+        return curve.balanceOf(address(this));
+    }
 }
