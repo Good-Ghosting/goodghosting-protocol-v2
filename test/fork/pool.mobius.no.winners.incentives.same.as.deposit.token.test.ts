@@ -298,7 +298,6 @@ contract("Deposit Pool with Mobius Strategy with no winners with incentives sent
         const inboundTokenPoolBalance = web3.utils.toBN(
           await token.methods.balanceOf(goodGhosting.address).call({ from: admin }),
         );
-        console.log(inboundTokenPoolBalance.toString());
 
         mobiRewardBalanceAfter = web3.utils.toBN(await mobi.methods.balanceOf(admin).call({ from: admin }));
         celoRewardBalanceAfter = web3.utils.toBN(await celo.methods.balanceOf(admin).call({ from: admin }));
