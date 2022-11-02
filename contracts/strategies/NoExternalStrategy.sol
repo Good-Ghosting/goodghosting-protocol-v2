@@ -191,10 +191,7 @@ contract NoExternalStrategy is Ownable, IStrategy {
             for (uint256 i = 0; i < numRewards; ) {
                 // safety check since funds don't get transferred to a extrnal protocol
                 if (_rewardTokens[i].balanceOf(address(this)) != 0) {
-                    bool success = _rewardTokens[i].transfer(
-                        msg.sender,
-                        _rewardTokens[i].balanceOf(address(this))
-                    );
+                    bool success = _rewardTokens[i].transfer(msg.sender, _rewardTokens[i].balanceOf(address(this)));
                     if (!success) {
                         revert TOKEN_TRANSFER_FAILURE();
                     }

@@ -215,7 +215,7 @@ contract Pool is Ownable, Pausable, ReentrancyGuard {
         address indexed player,
         uint256 totalBalance,
         uint256 totalGamePrincipal,
-        uint256 netTotalGamePrincipal, 
+        uint256 netTotalGamePrincipal,
         uint256 totalGameInterest,
         uint256 totalIncentiveAmount,
         uint256[] totalRewardAmounts,
@@ -538,15 +538,12 @@ contract Pool is Ownable, Pausable, ReentrancyGuard {
 
         _payout = players[msg.sender].netAmountPaid;
 
-
         // calculate _playerDepositAmountSharePercentage for each player for waiting round calculations depending on how much deposit share the player has.
         // have a safety check players[msg.sender].netAmountPaid > totalWinnerDepositsPerSegment[segment] in case of a impermanent loss
         // in case of a impermanent loss although we probably won't need it since we reduce player's netAmountPaid too but just in case.
-        _playerDepositAmountSharePercentage = _payout >
-            totalWinnerDepositsPerSegment[_segment]
+        _playerDepositAmountSharePercentage = _payout > totalWinnerDepositsPerSegment[_segment]
             ? MULTIPLIER // UPDATE - H3 Audit Report
             : (_payout * MULTIPLIER) / totalWinnerDepositsPerSegment[_segment];
-
 
         // update storage vars since each winner withdraws only funds entitled to them.
         if (totalWinnerDepositsPerSegment[_segment] < _payout) {
@@ -559,11 +556,11 @@ contract Pool is Ownable, Pausable, ReentrancyGuard {
         if (_impermanentLossShare != 0) {
             // new payput in case of impermanent loss
             _payout = (_payout * _impermanentLossShare) / 100;
-            
+
             // update netAmountPaid in case of impermanent loss
-             players[msg.sender].netAmountPaid = _payout;
+            players[msg.sender].netAmountPaid = _payout;
         }
-    
+
         // checking for impermenent loss
         // save gas by checking the interest before entering in the if block
         if (_impermanentLossShare == 0 && totalGameInterest != 0) {
@@ -1139,10 +1136,11 @@ contract Pool is Ownable, Pausable, ReentrancyGuard {
                         : _player.mostRecentSegmentPaid >= (_depositCountMemory - 1)
                 ));
     }
+
     /**
        Returns the maximum amount that can be redeemed from a strategy for a player/admin
      */
-    function getRedemptionValue(uint256 _amountToRedeem, uint256 _totalAmount) internal returns(uint256) {
+    function getRedemptionValue(uint256 _amountToRedeem, uint256 _totalAmount) internal returns (uint256) {
         if (_amountToRedeem > _totalAmount) {
             return _totalAmount;
         }
@@ -1248,11 +1246,7 @@ contract Pool is Ownable, Pausable, ReentrancyGuard {
             revert INVALID_EARLY_WITHDRAW_FEE();
         }
         earlyWithdrawalFee = _newEarlyWithdrawFee;
-        emit EarlyWithdrawalFeeChanged(
-            getCurrentSegment(),
-            currentFee,
-            _newEarlyWithdrawFee
-        );
+        emit EarlyWithdrawalFeeChanged(getCurrentSegment(), currentFee, _newEarlyWithdrawFee);
     }
 
     /// @dev Allows the admin to withdraw the performance fee, if applicable. This function can be called only by the contract's admin.
@@ -1360,7 +1354,7 @@ contract Pool is Ownable, Pausable, ReentrancyGuard {
         uint256 _totalBalance = isTransactionalToken
             ? address(this).balance + strategy.getTotalAmount()
             : IERC20(inboundToken).balanceOf(address(this)) + strategy.getTotalAmount();
-        
+
         uint256 withdrawAmount = player.netAmountPaid - ((player.netAmountPaid * earlyWithdrawalFee) / 100);
         if (_totalBalance < netTotalGamePrincipal) {
             // handling impermanent loss case
@@ -1467,7 +1461,6 @@ contract Pool is Ownable, Pausable, ReentrancyGuard {
 
             // calculating winners share of the reward earned from the external protocol deposits/no_strategy
             _calculateAndUpdateWinnerRewardAccounting(playerDepositAmountSharePercentage, playerIndexSharePercentage);
-
         } else {
             payout = _calculateAndUpdateNonWinnerAccounting(_impermanentLossShare, player.netAmountPaid);
             // safety check in case some incentives in the form of the deposit tokens are transferred to the pool
@@ -1504,9 +1497,7 @@ contract Pool is Ownable, Pausable, ReentrancyGuard {
 
         emit UpdateGameStats(
             msg.sender,
-            isTransactionalToken
-            ? address(this).balance
-            : IERC20(inboundToken).balanceOf(address(this)),
+            isTransactionalToken ? address(this).balance : IERC20(inboundToken).balanceOf(address(this)),
             totalGamePrincipal,
             netTotalGamePrincipal,
             totalGameInterest,

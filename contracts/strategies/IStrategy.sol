@@ -21,7 +21,7 @@ interface IStrategy {
     function getTotalAmount() external view returns (uint256);
 
     function getLPTokenAmount(uint256 _amount) external view returns (uint256);
-    
+
     function getFee() external view returns (uint256);
 
     function getNetDepositAmount(uint256 _amount) external view returns (uint256);

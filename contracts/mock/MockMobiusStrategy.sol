@@ -23,7 +23,11 @@ contract MockMobiusStrategy is MobiusStrategy {
         } else {
             gaugeBalance = 400000000000000;
         }
-        uint256 totalAccumulatedAmount = pool.calculateRemoveLiquidityOneToken(address(this), gaugeBalance, uint8(inboundTokenIndex));
+        uint256 totalAccumulatedAmount = pool.calculateRemoveLiquidityOneToken(
+            address(this),
+            gaugeBalance,
+            uint8(inboundTokenIndex)
+        );
         return totalAccumulatedAmount;
     }
 }

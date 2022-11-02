@@ -312,7 +312,9 @@ contract AaveStrategy is Ownable, IStrategy {
             // Claims the rewards from the external pool
             address[] memory assets = new address[](1);
             assets[0] = address(aToken);
-            amount = incentiveController.getRewardsBalance(assets, address(this)) + rewardToken.balanceOf(address(this));
+            amount =
+                incentiveController.getRewardsBalance(assets, address(this)) +
+                rewardToken.balanceOf(address(this));
         }
         uint256[] memory amounts = new uint256[](1);
         amounts[0] = amount;
