@@ -46,7 +46,7 @@ contract MockMobiusGauge is MintableERC20 {
             _value = reserve.balanceOf(address(this));
         }
         reserve.transfer(msg.sender, _value);
-    } 
+    }
 
     function claimable_reward(address _addr, address _token) external view returns (uint256) {
         return IERC20(_token).balanceOf(_token);
