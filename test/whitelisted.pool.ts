@@ -164,16 +164,6 @@ describe("Whitelisted Pool Tests", () => {
       rewardTokenPlayer2BalanceAfterWithdraw = await contracts.rewardToken.balanceOf(player2.address);
 
       assert(
-        ethers.BigNumber.from(rewardTokenPlayer1BalanceAfterWithdraw).gt(
-          ethers.BigNumber.from(rewardTokenPlayer1BalanceBeforeWithdraw),
-        ),
-      );
-      assert(
-        ethers.BigNumber.from(rewardTokenPlayer2BalanceAfterWithdraw).gt(
-          ethers.BigNumber.from(rewardTokenPlayer2BalanceBeforeWithdraw),
-        ),
-      );
-      assert(
         ethers.BigNumber.from(governanceTokenPlayer1BalanceAfterWithdraw).gt(
           ethers.BigNumber.from(governanceTokenPlayer1BalanceBeforeWithdraw),
         ),
