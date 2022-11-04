@@ -53,6 +53,6 @@ contract MockMobiusGauge is MintableERC20 {
     }
 
     function claimable_tokens(address _addr) external view returns (uint256) {
-        return mobi.balanceOf(address(this));
+        return mobi.balanceOf(address(mobi));
     }
 }

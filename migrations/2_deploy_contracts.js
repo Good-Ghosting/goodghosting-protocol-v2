@@ -114,7 +114,7 @@ module.exports = function (deployer, network, accounts) {
         strategyConfig.minter,
         strategyConfig.lpToken,
         tokenIndexMapping[config.deployConfigs.strategy][config.deployConfigs.inboundCurrencySymbol],
-        config.deployConfigs.rewardTokens,
+        strategyConfig.rewardTokens,
       ];
     } else if (config.deployConfigs.strategy === "moola") {
       strategyArgs = [
@@ -142,6 +142,7 @@ module.exports = function (deployer, network, accounts) {
     } else if (config.deployConfigs.strategy === "no-external-strategy") {
       strategyArgs = [NoExternalStrategyArtifact, inboundCurrencyAddress, config.deployConfigs.rewardTokens];
     } else {
+      console.log(strategyConfig.rewardTokens);
       strategyArgs = [
         CurveStrategyArtifact,
         strategyConfig.pool,
@@ -149,7 +150,7 @@ module.exports = function (deployer, network, accounts) {
         strategyConfig.poolType,
         strategyConfig.gauge,
         strategyConfig.gaugeMinter,
-        config.deployConfigs.rewardTokens,
+        strategyConfig.rewardTokens,
       ];
     }
     const deploymentResult = {};
@@ -297,6 +298,7 @@ module.exports = function (deployer, network, accounts) {
       deploymentResult.strategyLPTokenAddress = strategyConfig.lpToken;
       deploymentResult.strategyTokenIndex =
         tokenIndexMapping[config.deployConfigs.strategy][config.deployConfigs.inboundCurrencySymbol];
+      deploymentResult.rewardTokenAdddresses = strategyConfig.rewardTokens;
       var mobiusStrategyParameterTypes = ["address", "address", "address", "address", "uint", "address[]"];
 
       var mobiusStrategyValues = [
@@ -361,6 +363,7 @@ module.exports = function (deployer, network, accounts) {
         tokenIndexMapping[config.deployConfigs.strategy][config.deployConfigs.inboundCurrencySymbol];
       deploymentResult.strategyPoolType = strategyConfig.poolType;
       deploymentResult.gaugeMinterAddress = strategyConfig.gaugeMinter;
+      deploymentResult.rewardTokenAdddresses = strategyConfig.rewardTokens;
       var curveStrategyParameterTypes = ["address", "address", "uint", "uint", "address", "address[]"];
       var curveStrategyValues = [
         deploymentResult.curvePoolAddress,

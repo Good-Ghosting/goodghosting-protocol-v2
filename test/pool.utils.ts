@@ -261,9 +261,8 @@ export const deployPool = async (
 
     await rewardToken.mint(curveGauge.address, ethers.utils.parseEther("100000"));
     await curve.mint(curveGauge.address, ethers.utils.parseEther("100000"));
-    const rewardTokens = new Array(2);
-    rewardTokens[0] = rewardToken.address;
-    rewardTokens[1] = curve.address;
+    const rewardTokens = new Array();
+    rewardTokens[0] = curve.address;
 
     if (isInvestmentStrategy) {
       const curveStrategyDeployer = new CurveStrategy__factory(deployer);
@@ -273,7 +272,7 @@ export const deployPool = async (
           -1,
           curvePoolType,
           curveGauge.address,
-          gaugeminter.address,
+          ZERO_ADDRESS,
           rewardTokens,
         ),
       ).to.be.revertedWith("INVALID_INBOUND_TOKEN_INDEX()");
@@ -301,17 +300,6 @@ export const deployPool = async (
       ).to.be.revertedWith("INVALID_POOL()");
 
       await expect(
-        curveStrategyDeployer.deploy(
-          curvePool.address,
-          0,
-          curvePoolType,
-          ZERO_ADDRESS,
-          gaugeminter.address,
-          rewardTokens,
-        ),
-      ).to.be.revertedWith("INVALID_GAUGE()");
-
-      await expect(
         curveStrategyDeployer.deploy(curvePool.address, 0, curvePoolType, curveGauge.address, gaugeminter.address, [
           ZERO_ADDRESS,
         ]),
@@ -322,7 +310,7 @@ export const deployPool = async (
         0,
         curvePoolType,
         curveGauge.address,
-        gaugeminter.address,
+        ZERO_ADDRESS,
         rewardTokens,
       );
       if (isInboundToken) {
@@ -335,16 +323,14 @@ export const deployPool = async (
     const mockMobiTokenDeployer = new MintableERC20__factory(deployer);
     mobi = await mockMobiTokenDeployer.deploy("MOBI", "MOBI");
     const mockMinterTokenDeployer = new MockMobiusMinter__factory(deployer);
-    minter = await mockMinterTokenDeployer.deploy("CELO", "CELO");
+    minter = await mockMinterTokenDeployer.deploy("MOBI", "MOBI");
     const mobiPoolDeployer = new MockMobiusPool__factory(deployer);
     mobiPool = await mobiPoolDeployer.deploy("LP", "LP", inboundToken.address);
     const mobiGaugeDeployer = new MockMobiusGauge__factory(deployer);
-    mobiGauge = await mobiGaugeDeployer.deploy("LP-GAUGE", "LP-GAUGE", mobi.address, mobiPool.address);
-    await mobi.mint(mobiGauge.address, ethers.utils.parseEther("100000"));
+    mobiGauge = await mobiGaugeDeployer.deploy("LP-GAUGE", "LP-GAUGE", minter.address, mobiPool.address);
 
-    const rewardTokens = new Array(2);
+    const rewardTokens = new Array();
     rewardTokens[0] = minter.address;
-    rewardTokens[1] = mobi.address;
 
     await mobiPool.setGauge(mobiGauge.address);
     if (isInvestmentStrategy) {
@@ -533,9 +519,8 @@ export const deployPool = async (
           rewardToken.address,
         );
 
-        const rewardTokens = new Array(2);
-        rewardTokens[0] = rewardToken.address;
-        rewardTokens[1] = curve.address;
+        const rewardTokens = new Array();
+        rewardTokens[0] = curve.address;
         await curvePool.setGauge(curveGauge.address);
 
         await rewardToken.mint(curveGauge.address, ethers.utils.parseEther("100000"));
@@ -548,7 +533,7 @@ export const deployPool = async (
           0,
           curvePoolType,
           curveGauge.address,
-          gaugeminter.address,
+          ZERO_ADDRESS,
           rewardTokens,
         );
       } else if (strategyType === "mobius") {
@@ -559,12 +544,10 @@ export const deployPool = async (
         const mobiPoolDeployer = new MockMobiusPool__factory(deployer);
         const mobiPool = await mobiPoolDeployer.deploy("LP", "LP", inboundToken.address);
         const mobiGaugeDeployer = new MockMobiusGauge__factory(deployer);
-        const mobiGauge = await mobiGaugeDeployer.deploy("LP-GAUGE", "LP-GAUGE", mobi.address, mobiPool.address);
-        await mobi.mint(mobiGauge.address, ethers.utils.parseEther("100000"));
+        const mobiGauge = await mobiGaugeDeployer.deploy("LP-GAUGE", "LP-GAUGE", minter.address, mobiPool.address);
         await mobiPool.setGauge(mobiGauge.address);
-        const rewardTokens = new Array(2);
+        const rewardTokens = new Array();
         rewardTokens[0] = minter.address;
-        rewardTokens[1] = mobi.address;
         const mobiStrategyDeployer = new MobiusStrategy__factory(deployer);
 
         newStrategy = await mobiStrategyDeployer.deploy(
@@ -795,9 +778,8 @@ export const deployPoolWithMockStrategy = async (
     await rewardToken.mint(curveGauge.address, ethers.utils.parseEther("100000"));
     await curve.mint(curveGauge.address, ethers.utils.parseEther("100000"));
 
-    const rewardTokens = new Array(2);
-    rewardTokens[0] = rewardToken.address;
-    rewardTokens[1] = curve.address;
+    const rewardTokens = new Array();
+    rewardTokens[0] = curve.address;
     const mockCurveMinterDeployer = new MockCurveGaugeMinter__factory(deployer);
     const gaugeminter = await mockCurveMinterDeployer.deploy();
     const curveStrategyDeployer = new MockCurveStrategy__factory(deployer);
@@ -806,7 +788,7 @@ export const deployPoolWithMockStrategy = async (
       0,
       curvePoolType,
       curveGauge.address,
-      gaugeminter.address,
+      ZERO_ADDRESS,
       rewardTokens,
     );
   } else {
@@ -817,12 +799,10 @@ export const deployPoolWithMockStrategy = async (
     const mobiPoolDeployer = new MockMobiusPool__factory(deployer);
     mobiPool = await mobiPoolDeployer.deploy("LP", "LP", inboundToken.address);
     const mobiGaugeDeployer = new MockMobiusGauge__factory(deployer);
-    mobiGauge = await mobiGaugeDeployer.deploy("LP-GAUGE", "LP-GAUGE", mobi.address, mobiPool.address);
-    await mobi.mint(mobiGauge.address, ethers.utils.parseEther("100000"));
+    mobiGauge = await mobiGaugeDeployer.deploy("LP-GAUGE", "LP-GAUGE", minter.address, mobiPool.address);
     await mobiPool.setGauge(mobiGauge.address);
-    const rewardTokens = new Array(2);
+    const rewardTokens = new Array();
     rewardTokens[0] = minter.address;
-    rewardTokens[1] = mobi.address;
     const mobiStrategyDeployer = new MockMobiusStrategy__factory(deployer);
 
     strategy = await mobiStrategyDeployer.deploy(
