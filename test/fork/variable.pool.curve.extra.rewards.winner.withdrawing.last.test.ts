@@ -400,8 +400,7 @@ contract("Variale Deposit Pool with Curve Strategy with extra reward tokens sent
           "expected wmatic balance after withdrawal to be equal to or greater than before withdrawal",
         );
         assert(inboundTokenPoolBalance.eq(web3.utils.toBN(0)));
-        // accounting for some dust amount checks the balance is less than the extra amount we added i.e 0.5
-        assert(inboundTokenPoolRewardBalance.lt(web3.utils.toBN("500000000000000000")));
+        // since the winner is yet to withdraw so no need to check for reward balance in the pool
       }
     });
 
