@@ -492,7 +492,7 @@ contract("Pool with Mobius Strategy with extra reward tokens sent to strategy & 
       console.log("BAL", inboundcrvTokenPoolBalance.toString());
 
       // due to sol precsiion handling some dust amount is still left in
-      assert(inboundcrvTokenPoolBalance.eq(web3.utils.toBN("70000000000000000")));
+      assert(inboundcrvTokenPoolBalance.lte(web3.utils.toBN("70000000000000000")));
     });
   });
 });
