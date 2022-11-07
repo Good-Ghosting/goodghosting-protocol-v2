@@ -27,7 +27,7 @@ exports.deployConfigs = {
   maxPlayersCount: MAX_PLAYER_COUNT, // max quantity of players allowed.
   // merkleroot: "0xd566243e283f1357e5e97dd0c9ab0d78177583074b440cb07815e05f615178bf", // merkle root for 1st 4 player addresses in the fork tests
   isWhitelisted: false,
-  incentiveToken: ZERO_ADDRESS,
+  incentiveToken: ZERO_ADDRESS, // for fork tests, polygon incentive token 0x430EF9263E76DAE63c84292C3409D61c598E9682 & celo incentive token 0x46c9757c5497c5b1f2eb73ae79b6b67d119b0b58
   initialize: true,
   rewardTokens: [
     // providers.celo.tokens.symm.address,
