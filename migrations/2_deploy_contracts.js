@@ -87,7 +87,10 @@ module.exports = function (deployer, network, accounts) {
       : network.includes("test-polygon")
       ? providerConfig.providers["mumbai"].tokens[config.deployConfigs.inboundCurrencySymbol].decimals
       : providerConfig.providers["polygon"].tokens[config.deployConfigs.inboundCurrencySymbol].decimals;
-    const segmentPaymentWei = (config.deployConfigs.segmentPayment * 10 ** inboundCurrencyDecimals).toString();
+
+    const segmentPaymentWei = new BN(config.deployConfigs.segmentPayment)
+      .mul(new BN(10).pow(new BN(inboundCurrencyDecimals)))
+      .toString();
 
     const maxFlexibleSegmentPaymentAmountWei = new BN(maxFlexibleSegmentPaymentAmount)
       .mul(new BN(10).pow(new BN(inboundCurrencyDecimals)))
