@@ -81,7 +81,7 @@ contract(
 
         if (configs.deployConfigs.strategy !== "polygon-curve-stmatic-matic") {
           const unlockedBalance = await token.methods.balanceOf(unlockedDaiAccount).call({ from: admin });
-          const daiAmount = segmentPayment.mul(web3.utils.toBN(depositCount * 40)).toString();
+          const daiAmount = segmentPayment.mul(web3.utils.toBN(depositCount * 17)).toString();
           console.log(
             "unlockedBalance: ",
             web3.utils.toBN(unlockedBalance).div(web3.utils.toBN(daiDecimals)).toString(),
@@ -105,7 +105,7 @@ contract(
             .transfer(goodGhosting.address, web3.utils.toWei("100").toString())
             .send({ from: unlockedDaiAccount });
         } else {
-          const daiAmount = segmentPayment.mul(web3.utils.toBN(depositCount * 40)).toString();
+          const daiAmount = segmentPayment.mul(web3.utils.toBN(depositCount * 17)).toString();
 
           for (let i = 0; i < players.length; i++) {
             const player = players[i];
@@ -157,7 +157,7 @@ contract(
                   userProvidedMinAmount.mul(web3.utils.toBN("10")).div(web3.utils.toBN("10000")),
                 );
           if (i == 2) {
-            result = await goodGhosting.joinGame(minAmountWithFees.toString(), web3.utils.toWei("23"), {
+            result = await goodGhosting.joinGame(minAmountWithFees.toString(), web3.utils.toWei("15"), {
               from: player,
             });
             truffleAssert.eventEmitted(
@@ -168,13 +168,13 @@ contract(
                 paymentEvent = ev.amount;
                 return (
                   playerEvent === player &&
-                  web3.utils.toBN(paymentEvent).toString() == web3.utils.toWei("23").toString()
+                  web3.utils.toBN(paymentEvent).toString() == web3.utils.toWei("15").toString()
                 );
               },
               `JoinedGame event should be emitted when an user joins the game with params\n
                                                         player: expected ${player}; got ${playerEvent}\n
                                                         paymentAmount: expected ${web3.utils
-                                                          .toWei("23")
+                                                          .toWei("15")
                                                           .toString()}; got ${paymentEvent.toString()}`,
             );
           } else {
@@ -228,7 +228,7 @@ contract(
               .approve(goodGhosting.address, web3.utils.toWei("200").toString())
               .send({ from: player });
 
-            await goodGhosting.joinGame(minAmountWithFees.toString(), web3.utils.toWei("23"), { from: player });
+            await goodGhosting.joinGame(minAmountWithFees.toString(), web3.utils.toWei("15"), { from: player });
           }
         }
       });

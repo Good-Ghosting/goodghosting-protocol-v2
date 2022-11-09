@@ -81,7 +81,7 @@ contract("Variale Deposit Pool with Curve Strategy", accounts => {
 
       if (configs.deployConfigs.strategy !== "polygon-curve-stmatic-matic") {
         const unlockedBalance = await token.methods.balanceOf(unlockedDaiAccount).call({ from: admin });
-        const daiAmount = segmentPayment.mul(web3.utils.toBN(depositCount * 30)).toString();
+        const daiAmount = segmentPayment.mul(web3.utils.toBN(depositCount * 17)).toString();
         console.log("unlockedBalance: ", web3.utils.toBN(unlockedBalance).div(web3.utils.toBN(daiDecimals)).toString());
         console.log("daiAmountToTransfer", web3.utils.toBN(daiAmount).div(web3.utils.toBN(daiDecimals)).toString());
         for (let i = 0; i < players.length; i++) {
@@ -99,11 +99,21 @@ contract("Variale Deposit Pool with Curve Strategy", accounts => {
           );
         }
       } else {
-        const daiAmount = segmentPayment.mul(web3.utils.toBN(depositCount * 9)).toString();
+        const daiAmount = segmentPayment.mul(web3.utils.toBN(depositCount * 17)).toString();
+        await token.methods.deposit().send({ from: accounts[5], value: daiAmount });
+        await token.methods.deposit().send({ from: accounts[6], value: daiAmount });
+        await token.methods.deposit().send({ from: accounts[7], value: daiAmount });
+        await token.methods.deposit().send({ from: accounts[8], value: daiAmount });
+        await token.methods.deposit().send({ from: accounts[9], value: daiAmount });
+        await token.methods.transfer(players[0], daiAmount.toString()).send({ from: accounts[5] });
+        await token.methods.transfer(players[1], daiAmount.toString()).send({ from: accounts[6] });
+        await token.methods.transfer(players[2], daiAmount.toString()).send({ from: accounts[7] });
+        await token.methods.transfer(players[3], daiAmount.toString()).send({ from: accounts[8] });
+        await token.methods.transfer(players[4], daiAmount.toString()).send({ from: accounts[9] });
 
         for (let i = 0; i < players.length; i++) {
           const player = players[i];
-          await token.methods.deposit().send({ from: player, value: daiAmount });
+          // await token.methods.deposit().send({ from: player, value: daiAmount });
           const playerBalance = await token.methods.balanceOf(player).call({ from: admin });
           console.log(
             `player${i + 1}DAIBalance`,
@@ -143,7 +153,7 @@ contract("Variale Deposit Pool with Curve Strategy", accounts => {
                 .sub(web3.utils.toBN(slippageFromContract).mul(web3.utils.toBN("10")).div(web3.utils.toBN("10000")))
             : userProvidedMinAmount.sub(userProvidedMinAmount.mul(web3.utils.toBN("10")).div(web3.utils.toBN("10000")));
         if (i == 2) {
-          result = await goodGhosting.joinGame(minAmountWithFees.toString(), web3.utils.toWei("23"), { from: player });
+          result = await goodGhosting.joinGame(minAmountWithFees.toString(), web3.utils.toWei("15"), { from: player });
           truffleAssert.eventEmitted(
             result,
             "JoinedGame",
@@ -151,13 +161,13 @@ contract("Variale Deposit Pool with Curve Strategy", accounts => {
               playerEvent = ev.player;
               paymentEvent = ev.amount;
               return (
-                playerEvent === player && web3.utils.toBN(paymentEvent).toString() == web3.utils.toWei("23").toString()
+                playerEvent === player && web3.utils.toBN(paymentEvent).toString() == web3.utils.toWei("15").toString()
               );
             },
             `JoinedGame event should be emitted when an user joins the game with params\n
                                                         player: expected ${player}; got ${playerEvent}\n
                                                         paymentAmount: expected ${web3.utils
-                                                          .toWei("23")
+                                                          .toWei("15")
                                                           .toString()}; got ${paymentEvent.toString()}`,
           );
         } else {
@@ -207,7 +217,7 @@ contract("Variale Deposit Pool with Curve Strategy", accounts => {
 
           await token.methods.approve(goodGhosting.address, web3.utils.toWei("200").toString()).send({ from: player });
 
-          await goodGhosting.joinGame(minAmountWithFees.toString(), web3.utils.toWei("23"), { from: player });
+          await goodGhosting.joinGame(minAmountWithFees.toString(), web3.utils.toWei("15"), { from: player });
         }
       }
     });
@@ -246,7 +256,7 @@ contract("Variale Deposit Pool with Curve Strategy", accounts => {
                   userProvidedMinAmount.mul(web3.utils.toBN("10")).div(web3.utils.toBN("1000")),
                 );
           if (j == 2) {
-            depositResult = await goodGhosting.makeDeposit(minAmountWithFees.toString(), web3.utils.toWei("23"), {
+            depositResult = await goodGhosting.makeDeposit(minAmountWithFees.toString(), web3.utils.toWei("15"), {
               from: player,
             });
             truffleAssert.eventEmitted(

@@ -62,7 +62,7 @@ contract("Pool with Moola Strategy with no winners & with extra incentive", acco
       }
 
       await token.methods
-        .transfer(goodGhosting.address, web3.utils.toWei("100").toString())
+        .transfer(goodGhosting.address, web3.utils.toWei("500").toString())
         .send({ from: unlockedDaiAccount });
     });
 
@@ -191,7 +191,7 @@ contract("Pool with Moola Strategy with no winners & with extra incentive", acco
         const inboundTokenPoolBalance = web3.utils.toBN(
           await token.methods.balanceOf(goodGhosting.address).call({ from: admin }),
         );
-        console.log(inboundTokenPoolBalance.toString());
+        console.log("bal", inboundTokenPoolBalance.toString());
       }
     });
   });

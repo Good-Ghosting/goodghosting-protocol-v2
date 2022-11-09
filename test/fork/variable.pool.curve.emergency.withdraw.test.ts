@@ -81,7 +81,7 @@ contract("Variable Pool with Curve Strategy when admin enables early game comple
 
       if (configs.deployConfigs.strategy !== "polygon-curve-stmatic-matic") {
         const unlockedBalance = await token.methods.balanceOf(unlockedDaiAccount).call({ from: admin });
-        const daiAmount = segmentPayment.mul(web3.utils.toBN(depositCount * 15)).toString();
+        const daiAmount = segmentPayment.mul(web3.utils.toBN(depositCount * 17)).toString();
         console.log("unlockedBalance: ", web3.utils.toBN(unlockedBalance).div(web3.utils.toBN(daiDecimals)).toString());
         console.log("daiAmountToTransfer", web3.utils.toBN(daiAmount).div(web3.utils.toBN(daiDecimals)).toString());
         for (let i = 0; i < players.length; i++) {
@@ -99,7 +99,7 @@ contract("Variable Pool with Curve Strategy when admin enables early game comple
           );
         }
       } else {
-        const daiAmount = segmentPayment.mul(web3.utils.toBN(depositCount * 3)).toString();
+        const daiAmount = segmentPayment.mul(web3.utils.toBN(depositCount * 17)).toString();
 
         for (let i = 0; i < players.length; i++) {
           const player = players[i];
@@ -143,7 +143,7 @@ contract("Variable Pool with Curve Strategy when admin enables early game comple
                 .sub(web3.utils.toBN(slippageFromContract).mul(web3.utils.toBN("10")).div(web3.utils.toBN("10000")))
             : userProvidedMinAmount.sub(userProvidedMinAmount.mul(web3.utils.toBN("10")).div(web3.utils.toBN("10000")));
         if (i == 2) {
-          result = await goodGhosting.joinGame(minAmountWithFees.toString(), web3.utils.toWei("23"), { from: player });
+          result = await goodGhosting.joinGame(minAmountWithFees.toString(), web3.utils.toWei("15"), { from: player });
           truffleAssert.eventEmitted(
             result,
             "JoinedGame",
@@ -151,13 +151,13 @@ contract("Variable Pool with Curve Strategy when admin enables early game comple
               playerEvent = ev.player;
               paymentEvent = ev.amount;
               return (
-                playerEvent === player && web3.utils.toBN(paymentEvent).toString() == web3.utils.toWei("23").toString()
+                playerEvent === player && web3.utils.toBN(paymentEvent).toString() == web3.utils.toWei("15").toString()
               );
             },
             `JoinedGame event should be emitted when an user joins the game with params\n
                                                           player: expected ${player}; got ${playerEvent}\n
                                                           paymentAmount: expected ${web3.utils
-                                                            .toWei("23")
+                                                            .toWei("15")
                                                             .toString()}; got ${paymentEvent.toString()}`,
           );
         } else {
@@ -207,7 +207,7 @@ contract("Variable Pool with Curve Strategy when admin enables early game comple
 
           await token.methods.approve(goodGhosting.address, web3.utils.toWei("200").toString()).send({ from: player });
 
-          await goodGhosting.joinGame(minAmountWithFees.toString(), web3.utils.toWei("23"), { from: player });
+          await goodGhosting.joinGame(minAmountWithFees.toString(), web3.utils.toWei("15"), { from: player });
         }
       }
     });
@@ -257,7 +257,7 @@ contract("Variable Pool with Curve Strategy when admin enables early game comple
         wmaticRewardBalanceBefore = web3.utils.toBN(await wmatic.methods.balanceOf(player).call({ from: admin }));
         const playerInfo = await goodGhosting.players(player);
 
-        await goodGhosting.withdraw(playerInfo.netAmountPaid.toString(), { from: player });
+        await goodGhosting.withdraw(0, { from: player });
 
         curveRewardBalanceAfter = web3.utils.toBN(await curve.methods.balanceOf(player).call({ from: admin }));
         wmaticRewardBalanceAfter = web3.utils.toBN(await wmatic.methods.balanceOf(player).call({ from: admin }));
