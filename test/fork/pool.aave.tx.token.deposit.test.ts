@@ -167,6 +167,6 @@ describe("Aave Pool Fork Tests with the deposit token as transsactional token", 
     await pool.connect(accounts[0]).adminFeeWithdraw(0);
     const inboundTokenBalanceAfterWithdraw = await ethers.provider.getBalance(accounts[0].address);
     // some tx token spent in gas
-    assert(inboundTokenBalanceAfterWithdraw.lte(inboundTokenBalanceBeforeWithdraw));
+    assert(inboundTokenBalanceAfterWithdraw.gt(inboundTokenBalanceBeforeWithdraw));
   });
 });
