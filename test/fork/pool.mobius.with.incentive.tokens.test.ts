@@ -460,7 +460,7 @@ contract("Pool with Mobius Strategy with incentive tokens sent to pool", account
         );
         console.log("BALL", inboundTokenRewardPoolBalance.toString());
         // accounting for some dust amount checks the balance is less than the extra amount we added i.e 0.5
-        assert(inboundTokenRewardPoolBalance.lt(web3.utils.toBN("500000000000000000")));
+        assert(inboundTokenRewardPoolBalance.lt(web3.utils.toBN("1000000000000000000")));
 
         const inboundincentiveTokenPoolBalance = web3.utils.toBN(
           await incentiveToken.methods.balanceOf(goodGhosting.address).call({ from: admin }),
