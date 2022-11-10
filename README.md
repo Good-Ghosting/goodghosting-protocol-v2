@@ -255,6 +255,14 @@ test/fork/pool.aave.emergency.withdraw.test.ts:8:31 - error TS2307: Cannot find 
 
 ### Setup
 
+Before you start, make sure you ran:
+
+- `yarn install`
+- `yarn compile`
+- `npx truffle compile --all`
+
+Tests were ran using Node 17.8.x and 17.9.x
+
 To run the integrated test scenarios forking from Mainnet (Polygon or Celo) you'll have to:
 
 - Configure `WHALE_ADDRESS_FORKED_NETWORK` in your `.env` file. The file [.env.example](./.env.example) have sample whale addresses that can be used: `0x075e72a5edf65f0a5f44699c7654c1a76941ddc8` for polygon and `0x5776b4893faca32A9224F18950406c9599f3B013` for celo.
@@ -271,12 +279,12 @@ To run the integrated test scenarios forking from Mainnet (Polygon or Celo) you'
 
 - **Aave V2/V3 Strategy Based Pool** As mentioned above, we use hardhat for these tests. After doing the setup mentioned above, the next step is to set the `FORKING` var in your .env file to `true`. Next, in your [hardhat.config.ts](https://github.com/Good-Ghosting/goodghosting-protocol-v2/blob/master/hardhat.config.ts#L63) file, you have to set your desired rpc url - currently a public rpc is set. Then you have to run `yarn test`.
 
-- **Curve Strategy Based Pool** As mentioned above, we use truffle for these tests. Open a new terminal window and run `ganache-cli -f <Your Polygon RPC> -m "clutchaptain shoe salt awake harvest setup primary inmate ugly among become" -i 999 --unlock {WHALE_ADDRESS_FORKED_NETWORK}`. Then, in the second window, run `yarn test:fork:polygon` for fixed deposit pool & `yarn test:fork:variable:polygon` for variable deposit pools.
+- **Curve Strategy Based Pool** As mentioned above, we use truffle for these tests. Open a new terminal window and run `npx ganache-cli -f <Your Polygon RPC> -m "clutchaptain shoe salt awake harvest setup primary inmate ugly among become" -i 999 --unlock {WHALE_ADDRESS_FORKED_NETWORK}`. Then, in the second window, run `yarn test:fork:polygon` for fixed deposit pool & `yarn test:fork:variable:polygon` for variable deposit pools.
 
 #### Celo
 
 Since hardhat currently does not support celo, we use truffle for celo fork tests. To start open a terminal window and run
-`ganache-cli -f https://forno.celo.org/ -m "clutchaptain shoe salt awake harvest setup primary inmate ugly among become" -i 999 --unlock {WHALE_ADDRESS_FORKED_NETWORK}`. In a second terminal window run
+`npx ganache-cli -f https://forno.celo.org/ -m "clutchaptain shoe salt awake harvest setup primary inmate ugly among become" -i 999 --unlock {WHALE_ADDRESS_FORKED_NETWORK}`. In a second terminal window run
 `yarn test:fork:celo` for fixed deposit pool or `yarn test:fork:variable:celo` for variable deposit pool/
 
 # Security Tools
