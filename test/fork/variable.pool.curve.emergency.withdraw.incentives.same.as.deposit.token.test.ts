@@ -118,10 +118,10 @@ contract(
               web3.utils.toBN(playerBalance).div(web3.utils.toBN(daiDecimals)).toString(),
             );
           }
-          await token.methods.deposit().send({ from: unlockedDaiAccount, value: web3.utils.toWei("100").toString() });
+          await token.methods.deposit().send({ from: unlockedDaiAccount, value: web3.utils.toWei("60").toString() });
 
           await token.methods
-            .transfer(goodGhosting.address, web3.utils.toWei("100").toString())
+            .transfer(goodGhosting.address, web3.utils.toWei("60").toString())
             .send({ from: unlockedDaiAccount });
         }
       });

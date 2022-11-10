@@ -99,7 +99,7 @@ contract("Pool with Curve Strategy", accounts => {
           );
         }
       } else {
-        const daiAmount = segmentPayment.mul(web3.utils.toBN(depositCount * 20)).toString();
+        const daiAmount = segmentPayment.mul(web3.utils.toBN(depositCount * 8)).toString();
 
         for (let i = 0; i < players.length; i++) {
           const player = players[i];

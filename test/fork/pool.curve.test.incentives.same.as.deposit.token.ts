@@ -103,7 +103,7 @@ contract("Pool with Curve Strategy with incentives sent same as deposit token", 
           .transfer(goodGhosting.address, web3.utils.toWei("50").toString())
           .send({ from: unlockedDaiAccount });
       } else {
-        const daiAmount = segmentPayment.mul(web3.utils.toBN(depositCount * 20)).toString();
+        const daiAmount = segmentPayment.mul(web3.utils.toBN(depositCount * 8)).toString();
 
         for (let i = 0; i < players.length; i++) {
           const player = players[i];
@@ -114,10 +114,10 @@ contract("Pool with Curve Strategy with incentives sent same as deposit token", 
             web3.utils.toBN(playerBalance).div(web3.utils.toBN(daiDecimals)).toString(),
           );
         }
-        await token.methods.deposit().send({ from: unlockedDaiAccount, value: web3.utils.toWei("100").toString() });
+        await token.methods.deposit().send({ from: unlockedDaiAccount, value: web3.utils.toWei("60").toString() });
 
         await token.methods
-          .transfer(goodGhosting.address, web3.utils.toWei("50").toString())
+          .transfer(goodGhosting.address, web3.utils.toWei("60").toString())
           .send({ from: unlockedDaiAccount });
       }
     });
