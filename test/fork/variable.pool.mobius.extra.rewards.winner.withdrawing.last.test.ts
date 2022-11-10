@@ -133,9 +133,11 @@ contract("Variable Deposit Pool with Mobius Strategy with extra reward tokens se
           );
         }
       }
-      await mobi.methods
-        .transfer(mobiusStrategy.address, web3.utils.toWei("0.5").toString())
-        .send({ from: unlockedDaiAccount });
+      if (configs.deployConfigs.strategy !== "mobius-celo-stCelo") {
+        await mobi.methods
+          .transfer(mobiusStrategy.address, web3.utils.toWei("0.5").toString())
+          .send({ from: unlockedDaiAccount });
+      }
     });
 
     it("players approve Inbound Token to contract and join the game", async () => {

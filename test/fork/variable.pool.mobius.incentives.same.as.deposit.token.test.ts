@@ -98,7 +98,7 @@ contract("Variable Deposit Pool with Mobius Strategy with incentives sent same a
 
         for (let i = 0; i < players.length; i++) {
           const player = players[i];
-          const transferAmount = segmentPayment.mul(web3.utils.toBN(depositCount * 40)).toString();
+          const transferAmount = segmentPayment.mul(web3.utils.toBN(depositCount * 23)).toString();
           await stCeloToken.methods.transfer(player, transferAmount).send({ from: unlockedDaiAccount });
           await stCeloToken.methods
             .approve(
@@ -132,6 +132,9 @@ contract("Variable Deposit Pool with Mobius Strategy with incentives sent same a
             web3.utils.toBN(playerBalance).div(web3.utils.toBN(daiDecimals)).toString(),
           );
         }
+        await token.methods
+          .transfer(goodGhosting.address, web3.utils.toWei("90").toString())
+          .send({ from: unlockedDaiAccount });
       }
     });
 

@@ -135,11 +135,10 @@ contract(
               web3.utils.toBN(playerBalance).div(web3.utils.toBN(daiDecimals)).toString(),
             );
           }
+          await token.methods
+            .transfer(goodGhosting.address, web3.utils.toWei("90").toString())
+            .send({ from: unlockedDaiAccount });
         }
-
-        await token.methods
-          .transfer(goodGhosting.address, web3.utils.toWei("90").toString())
-          .send({ from: unlockedDaiAccount });
       });
 
       it("players approve Inbound Token to contract and join the game", async () => {
