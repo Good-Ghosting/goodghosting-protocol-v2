@@ -299,11 +299,7 @@ contract CurveStrategy is Ownable, IStrategy {
     @param _amount Amount to withdraw.
     @param _minAmount Slippage based amount to cover for impermanent loss scenario.
     */
-    function earlyWithdraw(
-        address _inboundCurrency,
-        uint256 _amount,
-        uint256 _minAmount
-    ) external override onlyOwner {
+    function earlyWithdraw(address _inboundCurrency, uint256 _amount, uint256 _minAmount) external override onlyOwner {
         // not checking for validity of deposit token here since with pool contract as the owner of the strategy the only way to transfer pool funds is by invest method so the check there is sufficient
         uint256 gaugeBalance;
         if (poolType == LENDING_POOL) {
@@ -512,11 +508,9 @@ contract CurveStrategy is Ownable, IStrategy {
     This method is not marked as view since in the curve gauge contract "claimable_reward_write" is not marked as view.
     @param disableRewardTokenClaim Reward claim disable flag.
     */
-    function getAccumulatedRewardTokenAmounts(bool disableRewardTokenClaim)
-        external
-        override
-        returns (uint256[] memory)
-    {
+    function getAccumulatedRewardTokenAmounts(
+        bool disableRewardTokenClaim
+    ) external override returns (uint256[] memory) {
         // avoid multiple SLOADS
         IERC20[] memory _rewardTokens = rewardTokens;
         uint256 numRewards = _rewardTokens.length;

@@ -221,11 +221,7 @@ contract MobiusStrategy is Ownable, IStrategy {
     @param _amount Amount to withdraw.
     @param _minAmount Slippage based amount to cover for impermanent loss scenario.
     */
-    function earlyWithdraw(
-        address _inboundCurrency,
-        uint256 _amount,
-        uint256 _minAmount
-    ) external override onlyOwner {
+    function earlyWithdraw(address _inboundCurrency, uint256 _amount, uint256 _minAmount) external override onlyOwner {
         // not checking for validity of deposit token here since with pool contract as the owner of the strategy the only way to transfer pool funds is by invest method so the check there is sufficient
         uint256[] memory amounts = new uint256[](2);
         amounts[inboundTokenIndex] = _amount;
@@ -324,11 +320,9 @@ contract MobiusStrategy is Ownable, IStrategy {
     Returns total accumulated reward token amount.
     @param disableRewardTokenClaim Reward claim disable flag.
     */
-    function getAccumulatedRewardTokenAmounts(bool disableRewardTokenClaim)
-        external
-        override
-        returns (uint256[] memory)
-    {
+    function getAccumulatedRewardTokenAmounts(
+        bool disableRewardTokenClaim
+    ) external override returns (uint256[] memory) {
         // avoid multiple SLOADS
         IERC20[] memory _rewardTokens = rewardTokens;
         uint256[] memory amounts = new uint256[](_rewardTokens.length);

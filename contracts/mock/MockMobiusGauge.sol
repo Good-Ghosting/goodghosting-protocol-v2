@@ -7,12 +7,7 @@ contract MockMobiusGauge is MintableERC20 {
     IERC20 public reserve;
     IERC20 public mobi;
 
-    constructor(
-        string memory name,
-        string memory symbol,
-        IERC20 _mobi,
-        IERC20 _reserve
-    ) MintableERC20(name, symbol) {
+    constructor(string memory name, string memory symbol, IERC20 _mobi, IERC20 _reserve) MintableERC20(name, symbol) {
         mobi = _mobi;
         reserve = _reserve;
     }

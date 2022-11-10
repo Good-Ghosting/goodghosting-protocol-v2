@@ -53,7 +53,7 @@ error RENOUNCE_OWNERSHIP_NOT_ALLOWED();
 */
 contract Pool is Ownable, Pausable, ReentrancyGuard {
     /// @notice Multiplier used for calculating playerIndex to avoid precision issues.
-    uint256 public constant MULTIPLIER = 10**6;
+    uint256 public constant MULTIPLIER = 10 ** 6;
 
     /// @notice Maximum Flexible Deposit Amount in case of flexible pools.
     uint256 public immutable maxFlexibleSegmentPaymentAmount;
@@ -505,13 +505,12 @@ contract Pool is Ownable, Pausable, ReentrancyGuard {
     @return _playerDepositAmountSharePercentage is the percentage share of the winners during waiting round for getting interest/rewards/incentives based on player deposits.
     @return _payout total amount to be transferred to the winners.
     */
-    function _calculateAndUpdateWinnerInterestAccounting(uint64 _segment, uint256 _impermanentLossShare)
+    function _calculateAndUpdateWinnerInterestAccounting(
+        uint64 _segment,
+        uint256 _impermanentLossShare
+    )
         internal
-        returns (
-            uint256 _playerIndexSharePercentage,
-            uint256 _playerDepositAmountSharePercentage,
-            uint256 _payout
-        )
+        returns (uint256 _playerIndexSharePercentage, uint256 _playerDepositAmountSharePercentage, uint256 _payout)
     {
         // memory variables for the player interest amount accounting for both deposits and waiting rounds.
         uint256 playerInterestAmountDuringDepositRounds;
@@ -595,10 +594,10 @@ contract Pool is Ownable, Pausable, ReentrancyGuard {
     @param _netAmountPaid net amount paid by the player.
     @return payout amount to be sent to the player.
     */
-    function _calculateAndUpdateNonWinnerAccounting(uint256 _impermanentLossShare, uint256 _netAmountPaid)
-        internal
-        returns (uint256 payout)
-    {
+    function _calculateAndUpdateNonWinnerAccounting(
+        uint256 _impermanentLossShare,
+        uint256 _netAmountPaid
+    ) internal returns (uint256 payout) {
         if (_impermanentLossShare != 0) {
             // new payput in case of impermanent loss
             payout = (_netAmountPaid * _impermanentLossShare) / 100;
@@ -805,10 +804,10 @@ contract Pool is Ownable, Pausable, ReentrancyGuard {
     @param _totalBalance Total inbound token balance in the contract.
     @param _grossRewardTokenAmount Gross reward amounts.
     */
-    function _calculateAndUpdateGameAccounting(uint256 _totalBalance, uint256[] memory _grossRewardTokenAmount)
-        internal
-        returns (uint256)
-    {
+    function _calculateAndUpdateGameAccounting(
+        uint256 _totalBalance,
+        uint256[] memory _grossRewardTokenAmount
+    ) internal returns (uint256) {
         uint256 _grossInterest = 0;
 
         if (_totalBalance >= netTotalGamePrincipal) {
@@ -852,9 +851,10 @@ contract Pool is Ownable, Pausable, ReentrancyGuard {
     @param _grossInterest Gross interest amount.
     @param _grossRewardTokenAmount Gross reward amount array.
     */
-    function _calculateAndSetAdminAccounting(uint256 _grossInterest, uint256[] memory _grossRewardTokenAmount)
-        internal
-    {
+    function _calculateAndSetAdminAccounting(
+        uint256 _grossInterest,
+        uint256[] memory _grossRewardTokenAmount
+    ) internal {
         // calculates the performance/admin fee (takes a cut - the admin percentage fee - from the pool's interest, strategy rewards).
         // calculates the "gameInterest" (net interest) that will be split among winners in the game
         // calculates the rewardTokenAmounts that will be split among winners in the game
@@ -1322,15 +1322,10 @@ contract Pool is Ownable, Pausable, ReentrancyGuard {
     @param _minAmount Slippage based amount to cover for impermanent loss scenario.
     @param _depositAmount Variable Deposit Amount in case of a variable deposit pool.
     */
-    function joinGame(uint256 _minAmount, uint256 _depositAmount)
-        external
-        payable
-        virtual
-        whenGameIsInitialized
-        whenNotPaused
-        whenGameIsNotCompleted
-        nonReentrant
-    {
+    function joinGame(
+        uint256 _minAmount,
+        uint256 _depositAmount
+    ) external payable virtual whenGameIsInitialized whenNotPaused whenGameIsNotCompleted nonReentrant {
         _joinGame(_minAmount, _depositAmount);
     }
 

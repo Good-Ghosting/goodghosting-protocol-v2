@@ -20,12 +20,10 @@ contract RewardsControllerMock is IRewardsController {
         reserve.transfer(msg.sender, reserve.balanceOf(address(this)));
     }
 
-    function getAllUserRewards(address[] calldata assets, address user)
-        external
-        view
-        override
-        returns (address[] memory rewardsList, uint256[] memory unclaimedAmounts)
-    {
+    function getAllUserRewards(
+        address[] calldata assets,
+        address user
+    ) external view override returns (address[] memory rewardsList, uint256[] memory unclaimedAmounts) {
         rewardsList = new address[](1);
         rewardsList[0] = address(reserve);
         unclaimedAmounts = new uint256[](1);

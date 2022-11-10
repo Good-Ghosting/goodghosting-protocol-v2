@@ -151,11 +151,7 @@ contract NoExternalStrategy is Ownable, IStrategy {
     @param _minAmount Used for aam strategies, since every strategy overrides from the same strategy interface hence it is defined here.
     _minAmount isn't needed in this strategy but since all strategies override from the same interface and the amm strategies need it hence it is used here.
     */
-    function earlyWithdraw(
-        address _inboundCurrency,
-        uint256 _amount,
-        uint256 _minAmount
-    ) external override onlyOwner {
+    function earlyWithdraw(address _inboundCurrency, uint256 _amount, uint256 _minAmount) external override onlyOwner {
         _transferInboundTokenToPool(_inboundCurrency, _amount);
     }
 
@@ -208,12 +204,9 @@ contract NoExternalStrategy is Ownable, IStrategy {
     Returns total accumulated reward token amount.
     @param disableRewardTokenClaim Reward claim disable flag.
     */
-    function getAccumulatedRewardTokenAmounts(bool disableRewardTokenClaim)
-        external
-        view
-        override
-        returns (uint256[] memory)
-    {
+    function getAccumulatedRewardTokenAmounts(
+        bool disableRewardTokenClaim
+    ) external view override returns (uint256[] memory) {
         // avoid multiple SLOADS
         IERC20[] memory _rewardTokens = rewardTokens;
         uint256 numRewards = _rewardTokens.length;

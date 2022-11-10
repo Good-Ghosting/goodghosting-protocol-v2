@@ -59,11 +59,7 @@ interface ICurvePool {
     @param i token index.
     @param _min_amount min amount based on slippage.
     */
-    function remove_liquidity_one_coin(
-        uint256 _token_amount,
-        uint256 i,
-        uint256 _min_amount
-    ) external;
+    function remove_liquidity_one_coin(uint256 _token_amount, uint256 i, uint256 _min_amount) external;
 
     function lp_token() external view returns (address);
 

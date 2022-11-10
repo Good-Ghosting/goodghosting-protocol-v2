@@ -7,10 +7,5 @@ interface IMerkleValidator {
     function merkleRoot() external view returns (bytes32);
 
     // Claim the given amount of the token to the given address. Reverts if the inputs are invalid.
-    function validate(
-        uint256 index,
-        address account,
-        bool isValid,
-        bytes32[] calldata merkleProof
-    ) external view;
+    function validate(uint256 index, address account, bool isValid, bytes32[] calldata merkleProof) external view;
 }

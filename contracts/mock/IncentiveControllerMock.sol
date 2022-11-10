@@ -17,11 +17,7 @@ contract IncentiveControllerMock is IncentiveController {
     }
 
     /// ILendingPool interface
-    function claimRewards(
-        address[] calldata assets,
-        uint256 amount,
-        address to
-    ) public override returns (uint256) {
+    function claimRewards(address[] calldata assets, uint256 amount, address to) public override returns (uint256) {
         reserve.transfer(msg.sender, reserve.balanceOf(address(this)));
         return amount;
     }

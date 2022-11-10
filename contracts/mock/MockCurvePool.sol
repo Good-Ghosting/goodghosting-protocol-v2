@@ -11,11 +11,7 @@ contract MockCurvePool is MintableERC20, Ownable {
 
     bool setImpermanentLoss;
 
-    constructor(
-        string memory name,
-        string memory symbol,
-        IERC20 _reserve
-    ) MintableERC20(name, symbol) {
+    constructor(string memory name, string memory symbol, IERC20 _reserve) MintableERC20(name, symbol) {
         reserve = _reserve;
         _mint(msg.sender, 1000 ether);
     }
@@ -71,11 +67,7 @@ contract MockCurvePool is MintableERC20, Ownable {
         }
     }
 
-    function remove_liquidity_one_coin(
-        uint256 _token_amount,
-        uint256 i,
-        uint256 _min_amount
-    ) external {
+    function remove_liquidity_one_coin(uint256 _token_amount, uint256 i, uint256 _min_amount) external {
         if (_min_amount == 900000000000000000) {
             reserve.transfer(msg.sender, 6000000000000000000);
         } else if (_min_amount == 9000) {

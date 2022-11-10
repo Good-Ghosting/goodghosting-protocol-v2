@@ -58,12 +58,10 @@ contract WhitelistedPool is Pool, MerkleValidator {
     @param _merkleRoot Merkle Root for whitelisted players.
     @param _incentiveToken Incentive token address
     */
-    function initializePool(bytes32 _merkleRoot, IERC20 _incentiveToken)
-        external
-        onlyOwner
-        whenGameIsNotInitialized
-        whenNotPaused
-    {
+    function initializePool(
+        bytes32 _merkleRoot,
+        IERC20 _incentiveToken
+    ) external onlyOwner whenGameIsNotInitialized whenNotPaused {
         setMerkleRoot(_merkleRoot);
         super.initialize(_incentiveToken);
     }
@@ -80,13 +78,10 @@ contract WhitelistedPool is Pool, MerkleValidator {
     /// @dev Must override function from parent contract (GoodGhosting.sol) and revert to enforce whitelisting.
     /// @param _minAmount Slippage based amount to cover for impermanent loss scenario.
     /// @param _depositAmount Variable Deposit Amount in case of a variable deposit pool.
-    function joinGame(uint256 _minAmount, uint256 _depositAmount)
-        external
-        payable
-        override
-        whenGameIsInitialized
-        whenNotPaused
-    {
+    function joinGame(
+        uint256 _minAmount,
+        uint256 _depositAmount
+    ) external payable override whenGameIsInitialized whenNotPaused {
         revert("Whitelisting enabled - use joinWhitelistedGame(uint256, bytes32[]) instead");
     }
 

@@ -5,11 +5,7 @@ import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 interface IStrategy {
     function invest(address _inboundCurrency, uint256 _minAmount) external payable;
 
-    function earlyWithdraw(
-        address _inboundCurrency,
-        uint256 _amount,
-        uint256 _minAmount
-    ) external;
+    function earlyWithdraw(address _inboundCurrency, uint256 _amount, uint256 _minAmount) external;
 
     function redeem(
         address _inboundCurrency,
