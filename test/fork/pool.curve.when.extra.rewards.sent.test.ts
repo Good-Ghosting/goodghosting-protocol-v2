@@ -390,6 +390,14 @@ contract("Pool with Curve Strategy with extra reward tokens sent to strategy", a
           from: admin,
         });
 
+        const inboundTokenPoolBalance = web3.utils.toBN(
+          await token.methods.balanceOf(goodGhosting.address).call({ from: admin }),
+        );
+
+        const curveRewardTokenPoolBalance = web3.utils.toBN(
+          await curve.methods.balanceOf(goodGhosting.address).call({ from: admin }),
+        );
+
         let inboundTokenBalanceAfter = web3.utils.toBN(await token.methods.balanceOf(admin).call({ from: admin }));
 
         assert(inboundTokenBalanceAfter.gt(inboundTokenBalanceBefore));
@@ -407,6 +415,12 @@ contract("Pool with Curve Strategy with extra reward tokens sent to strategy", a
         );
 
         console.log("BAL", inboundcrvTokenPoolBalance.toString());
+
+        const strategyTotalAmount = await curveStrategy.getTotalAmount();
+
+        console.log("POOL BAL", inboundTokenPoolBalance.toString());
+        console.log("REWARD BAL", curveRewardTokenPoolBalance.toString());
+        console.log("STRATEGY BAL", strategyTotalAmount.toString());
 
         // accounting for some dust amount checks the balance is less than the extra amount we added i.e 0.5
         assert(inboundcrvTokenPoolBalance.lt(web3.utils.toBN("500000000000000000")));

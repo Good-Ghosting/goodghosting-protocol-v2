@@ -415,6 +415,10 @@ contract("Pool with Curve Strategy with incentives sent same as deposit token", 
           await token.methods.balanceOf(goodGhosting.address).call({ from: admin }),
         );
 
+        const curveRewardTokenPoolBalance = web3.utils.toBN(
+          await curve.methods.balanceOf(goodGhosting.address).call({ from: admin }),
+        );
+
         curveRewardBalanceAfter = web3.utils.toBN(await curve.methods.balanceOf(admin).call({ from: admin }));
         wmaticRewardBalanceAfter = web3.utils.toBN(await wmatic.methods.balanceOf(admin).call({ from: admin }));
 
@@ -424,6 +428,13 @@ contract("Pool with Curve Strategy with incentives sent same as deposit token", 
           curveRewardBalanceAfter.gt(curveRewardBalanceBefore),
           "expected curve balance after withdrawal to be greater than before withdrawal",
         );
+
+        const strategyTotalAmount = await curveStrategy.getTotalAmount();
+
+        console.log("POOL BAL", inboundTokenPoolBalance.toString());
+        console.log("REWARD BAL", curveRewardTokenPoolBalance.toString());
+        console.log("STRATEGY BAL", strategyTotalAmount.toString());
+
         // for some reason forking mainnet we don't get back wmatic rewards(wamtic rewards were stopped from curve's end IMO)
         assert(
           wmaticRewardBalanceAfter.gte(wmaticRewardBalanceBefore),

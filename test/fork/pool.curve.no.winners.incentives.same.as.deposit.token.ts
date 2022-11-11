@@ -301,6 +301,12 @@ contract("Deposit Pool with Curve Strategy with no winners with incentives sent 
           wmaticRewardBalanceAfter.gte(wmaticRewardBalanceBefore),
           "expected wmatic balance after withdrawal to be equal to or greater than before withdrawal",
         );
+
+        const strategyTotalAmount = await curveStrategy.getTotalAmount();
+
+        console.log("POOL BAL", inboundTokenPoolBalance.toString());
+        console.log("REWARD BAL", curveRewardTokenPoolBalance.toString());
+        console.log("STRATEGY BAL", strategyTotalAmount.toString());
         // dust amount
         assert(inboundTokenPoolBalance.gte(web3.utils.toBN(0)));
       }

@@ -437,7 +437,7 @@ contract("Variable Deposit Pool with Mobius Strategy", accounts => {
 
     it("players withdraw from contract", async () => {
       // starts from 2, since player1 (loser), requested an early withdraw and player 2 withdrew after the last segment
-      for (let i = 2; i < players.length - 1; i++) {
+      for (let i = 2; i < players.length; i++) {
         const player = players[i];
         let mobiRewardBalanceBefore = web3.utils.toBN(0);
         let mobiRewardBalanceAfter = web3.utils.toBN(0);
@@ -480,6 +480,21 @@ contract("Variable Deposit Pool with Mobius Strategy", accounts => {
       );
       assert(mobiRewardBalanceAfter.gte(web3.utils.toBN(0)));
       assert(celoRewardBalanceAfter.eq(web3.utils.toBN(0)));
+    });
+
+    it("check balances", async () => {
+      const inboundTokenPoolBalance = web3.utils.toBN(
+        await token.methods.balanceOf(goodGhosting.address).call({ from: admin }),
+      );
+
+      const rewardTokenPoolBalance = web3.utils.toBN(
+        await mobi.methods.balanceOf(goodGhosting.address).call({ from: admin }),
+      );
+      const strategyTotalAmount = await mobiusStrategy.getTotalAmount();
+
+      console.log("BAL", inboundTokenPoolBalance.toString());
+      console.log("REWARD BAL", rewardTokenPoolBalance.toString());
+      console.log("STRATEGY BAL", strategyTotalAmount.toString());
     });
   });
 });

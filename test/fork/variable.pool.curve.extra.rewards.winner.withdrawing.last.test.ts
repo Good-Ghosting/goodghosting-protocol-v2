@@ -461,14 +461,22 @@ contract(
 
         assert(difference.gt(netAmountPaid), "expected balance diff to be more than paid amount");
 
-        const inboundcrvTokenPoolBalance = web3.utils.toBN(
+        const inboundTokenPoolBalance = web3.utils.toBN(
+          await token.methods.balanceOf(goodGhosting.address).call({ from: admin }),
+        );
+
+        const rewardokenPoolBalance = web3.utils.toBN(
           await curve.methods.balanceOf(goodGhosting.address).call({ from: admin }),
         );
 
-        console.log("BAL", inboundcrvTokenPoolBalance.toString());
+        const strategyTotalAmount = await curveStrategy.getTotalAmount();
+
+        console.log("POOL BAL", inboundTokenPoolBalance.toString());
+        console.log("REWARD BAL", rewardokenPoolBalance.toString());
+        console.log("STRATEGY BAL", strategyTotalAmount.toString());
 
         // due to sol precsiion handling some dust amount is still left in
-        assert(inboundcrvTokenPoolBalance.lt(web3.utils.toBN("6000000000000000")));
+        assert(rewardokenPoolBalance.lt(web3.utils.toBN("6000000000000000")));
       });
     });
   },

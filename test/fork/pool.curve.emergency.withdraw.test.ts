@@ -270,6 +270,10 @@ contract("Pool with Curve Strategy when admin enables early game completion", ac
           await token.methods.balanceOf(goodGhosting.address).call({ from: admin }),
         );
 
+        const rewardokenPoolBalance = web3.utils.toBN(
+          await curve.methods.balanceOf(goodGhosting.address).call({ from: admin }),
+        );
+
         inboundTokenBalanceAfter = web3.utils.toBN(await token.methods.balanceOf(admin).call({ from: admin }));
         curveRewardBalanceAfter = web3.utils.toBN(await curve.methods.balanceOf(admin).call({ from: admin }));
         wmaticRewardBalanceAfter = web3.utils.toBN(await wmatic.methods.balanceOf(admin).call({ from: admin }));
@@ -285,6 +289,12 @@ contract("Pool with Curve Strategy when admin enables early game completion", ac
           wmaticRewardBalanceAfter.gte(wmaticRewardBalanceBefore),
           "expected wmatic balance after withdrawal to be equal to or greater than before withdrawal",
         );
+
+        const strategyTotalAmount = await curveStrategy.getTotalAmount();
+
+        console.log("POOL BAL", inboundTokenPoolBalance.toString());
+        console.log("REWARD BAL", rewardokenPoolBalance.toString());
+        console.log("STRATEGY BAL", strategyTotalAmount.toString());
         assert(inboundTokenPoolBalance.eq(web3.utils.toBN(0)));
       }
     });

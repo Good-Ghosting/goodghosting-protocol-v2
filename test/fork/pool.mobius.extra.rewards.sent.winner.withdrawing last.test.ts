@@ -488,14 +488,21 @@ contract("Pool with Mobius Strategy with extra reward tokens sent to strategy & 
 
       assert(difference.gt(netAmountPaid), "expected balance diff to be more than paid amount");
 
-      const inboundcrvTokenPoolBalance = web3.utils.toBN(
-        await mobi.methods.balanceOf(goodGhosting.address).call({ from: admin }),
+      const inboundTokenPoolBalance = web3.utils.toBN(
+        await token.methods.balanceOf(goodGhosting.address).call({ from: admin }),
       );
 
-      console.log("BAL", inboundcrvTokenPoolBalance.toString());
+      const rewardTokenPoolBalance = web3.utils.toBN(
+        await mobi.methods.balanceOf(goodGhosting.address).call({ from: admin }),
+      );
+      const strategyTotalAmount = await mobiusStrategy.getTotalAmount();
+
+      console.log("BAL", inboundTokenPoolBalance.toString());
+      console.log("REWARD BAL", rewardTokenPoolBalance.toString());
+      console.log("STRATEGY BAL", strategyTotalAmount.toString());
 
       // due to sol precsiion handling some dust amount is still left in
-      assert(inboundcrvTokenPoolBalance.lte(web3.utils.toBN("1000000000000000000")));
+      assert(rewardTokenPoolBalance.lte(web3.utils.toBN("1000000000000000000")));
     });
   });
 });

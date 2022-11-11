@@ -445,6 +445,15 @@ contract("Pool with Mobius Strategy with incentives sent same as deposit token",
           await token.methods.balanceOf(goodGhosting.address).call({ from: admin }),
         );
 
+        const rewardTokenPoolBalance = web3.utils.toBN(
+          await mobi.methods.balanceOf(goodGhosting.address).call({ from: admin }),
+        );
+        const strategyTotalAmount = await mobiusStrategy.getTotalAmount();
+
+        console.log("BAL", inboundTokenPoolBalance.toString());
+        console.log("REWARD BAL", rewardTokenPoolBalance.toString());
+        console.log("STRATEGY BAL", strategyTotalAmount.toString());
+
         inboundTokenBalanceAfterWithdraw = web3.utils.toBN(await token.methods.balanceOf(admin).call({ from: admin }));
         mobiRewardBalanceAfter = web3.utils.toBN(await mobi.methods.balanceOf(admin).call({ from: admin }));
         celoRewardBalanceAfter = web3.utils.toBN(await celo.methods.balanceOf(admin).call({ from: admin }));

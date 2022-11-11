@@ -418,9 +418,17 @@ contract("Pool with Curve Strategy with incentive tokens sent to pool", accounts
           "expected curve balance after withdrawal to be greater than before withdrawal",
         );
 
-        console.log("BAL", inboundcrvTokenPoolBalance.toString());
+        const inboundTokenPoolBalance = web3.utils.toBN(
+          await token.methods.balanceOf(goodGhosting.address).call({ from: admin }),
+        );
 
         console.log("INCENTIVE BAL", inboundincentiveTokenPoolBalance.toString());
+
+        const strategyTotalAmount = await curveStrategy.getTotalAmount();
+
+        console.log("POOL BAL", inboundTokenPoolBalance.toString());
+        console.log("REWARD BAL", inboundcrvTokenPoolBalance.toString());
+        console.log("STRATEGY BAL", strategyTotalAmount.toString());
 
         // accounting for some dust amount checks the balance is less than the extra amount we added i.e 0.5
         assert(inboundcrvTokenPoolBalance.lt(web3.utils.toBN("500000000000000000")));
