@@ -440,9 +440,12 @@ contract("Pool with Curve Strategy with extra reward tokens sent to strategy & w
 
       const strategyTotalAmount = await curveStrategy.getTotalAmount();
 
+      const gaugeTokenBalance = await gaugeToken.methods.balanceOf(curveStrategy.address).call();
+
       console.log("POOL BAL", inboundTokenPoolBalance.toString());
       console.log("REWARD BAL", inboundcrvTokenPoolBalance.toString());
       console.log("STRATEGY BAL", strategyTotalAmount.toString());
+      console.log("GAUGE BAL", gaugeTokenBalance.toString());
 
       // due to sol precsiion handling some dust amount is still left in
       assert(inboundcrvTokenPoolBalance.lt(web3.utils.toBN("6000000000000000")));

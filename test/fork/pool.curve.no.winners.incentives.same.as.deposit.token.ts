@@ -304,9 +304,13 @@ contract("Deposit Pool with Curve Strategy with no winners with incentives sent 
 
         const strategyTotalAmount = await curveStrategy.getTotalAmount();
 
+        const gaugeTokenBalance = await gaugeToken.methods.balanceOf(curveStrategy.address).call();
+
         console.log("POOL BAL", inboundTokenPoolBalance.toString());
         console.log("REWARD BAL", curveRewardTokenPoolBalance.toString());
         console.log("STRATEGY BAL", strategyTotalAmount.toString());
+        console.log("GAUGE BAL", gaugeTokenBalance.toString());
+
         // dust amount
         assert(inboundTokenPoolBalance.gte(web3.utils.toBN(0)));
       }

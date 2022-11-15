@@ -422,9 +422,12 @@ contract("Pool with Curve Strategy", accounts => {
 
         const strategyTotalAmount = await curveStrategy.getTotalAmount();
 
+        const gaugeTokenBalance = await gaugeToken.methods.balanceOf(curveStrategy.address).call();
+
         console.log("POOL BAL", inboundTokenPoolBalance.toString());
         console.log("REWARD BAL", curveRewardTokenPoolBalance.toString());
         console.log("STRATEGY BAL", strategyTotalAmount.toString());
+        console.log("GAUGE BAL", gaugeTokenBalance.toString());
 
         // for some reason forking mainnet we don't get back wmatic rewards(wamtic rewards were stopped from curve's end IMO)
         assert(

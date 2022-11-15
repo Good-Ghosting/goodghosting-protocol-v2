@@ -366,9 +366,12 @@ contract(
 
           const strategyTotalAmount = await curveStrategy.getTotalAmount();
 
+          const gaugeTokenBalance = await gaugeToken.methods.balanceOf(curveStrategy.address).call();
+
           console.log("POOL BAL", inboundTokenPoolBalance.toString());
           console.log("REWARD BAL", rewardokenPoolBalance.toString());
           console.log("STRATEGY BAL", strategyTotalAmount.toString());
+          console.log("GAUGE BAL", gaugeTokenBalance.toString());
 
           curveRewardBalanceAfter = web3.utils.toBN(await curve.methods.balanceOf(admin).call({ from: admin }));
           wmaticRewardBalanceAfter = web3.utils.toBN(await wmatic.methods.balanceOf(admin).call({ from: admin }));
