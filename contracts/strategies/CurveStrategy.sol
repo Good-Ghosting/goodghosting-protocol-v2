@@ -305,7 +305,7 @@ contract CurveStrategy is Ownable, IStrategy {
         if (poolType == LENDING_POOL) {
             uint256[NUM_AAVE_TOKENS] memory amounts; // fixed-sized array is initialized w/ [0, 0, 0]
             amounts[uint256(uint128(inboundTokenIndex))] = _amount;
-            uint256 poolWithdrawAmount = pool.calc_token_amount(amounts, true);
+            uint256 poolWithdrawAmount = pool.calc_token_amount(amounts, false);
 
             if (address(gauge) != address(0)) {
                 gaugeBalance = gauge.balanceOf(address(this));
@@ -327,7 +327,7 @@ contract CurveStrategy is Ownable, IStrategy {
         } else if (poolType == DEPOSIT_ZAP) {
             uint256[NUM_ATRI_CRYPTO_TOKENS] memory amounts; // fixed-sized array is initialized w/ [0, 0, 0, 0, 0]
             amounts[uint256(uint128(inboundTokenIndex))] = _amount;
-            uint256 poolWithdrawAmount = pool.calc_token_amount(amounts, true);
+            uint256 poolWithdrawAmount = pool.calc_token_amount(amounts, false);
 
             if (address(gauge) != address(0)) {
                 gaugeBalance = gauge.balanceOf(address(this));
@@ -411,7 +411,7 @@ contract CurveStrategy is Ownable, IStrategy {
         if (poolType == LENDING_POOL) {
             uint256[NUM_AAVE_TOKENS] memory amounts; // fixed-sized array is initialized w/ [0, 0, 0]
             amounts[uint256(uint128(inboundTokenIndex))] = _amount;
-            uint256 poolWithdrawAmount = pool.calc_token_amount(amounts, true);
+            uint256 poolWithdrawAmount = pool.calc_token_amount(amounts, false);
 
             if (address(gauge) != address(0)) {
                 gaugeBalance = gauge.balanceOf(address(this));
@@ -433,7 +433,7 @@ contract CurveStrategy is Ownable, IStrategy {
         } else if (poolType == DEPOSIT_ZAP) {
             uint256[NUM_ATRI_CRYPTO_TOKENS] memory amounts; // fixed-sized array is initialized w/ [0, 0, 0, 0, 0]
             amounts[uint256(uint128(inboundTokenIndex))] = _amount;
-            uint256 poolWithdrawAmount = pool.calc_token_amount(amounts, true);
+            uint256 poolWithdrawAmount = pool.calc_token_amount(amounts, false);
 
             if (address(gauge) != address(0)) {
                 gaugeBalance = gauge.balanceOf(address(this));

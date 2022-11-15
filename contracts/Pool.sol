@@ -873,21 +873,38 @@ contract Pool is Ownable, Pausable, ReentrancyGuard {
                 totalGameInterest = _grossInterest;
                 _rewardTokenAmounts = _grossRewardTokenAmount;
             } else {
-                // if the admin hasn't withdrawn then we consider the admin fee into account while calculating the totalGameInterest/reward amounts
-                if (_grossInterest >= _adminFeeAmount[0]) {
-                    totalGameInterest = (_grossInterest - _adminFeeAmount[0]);
+                // if the admin hasn't made a withdrawal yet so we calculate the rise in interest & update the admin fee & interest
+                if (_grossInterest >= totalGameInterest) {
+                    uint256 difference = _grossInterest - totalGameInterest;
+                    uint256 adminfeeShareForDifference = (difference * adminFee) / 100;
+                    _adminFeeAmount[0] += adminfeeShareForDifference;
+                    totalGameInterest = _grossInterest - adminfeeShareForDifference;
                 } else {
-                    totalGameInterest = 0;
+                    // in case there is impermanent loss set the interest & admin fee as 0
+                    if (_grossInterest == 0) {
+                        totalGameInterest = 0;
+                       _adminFeeAmount[0] = 0;
+                    } else {
+                        // if _grossInterest is non zero then update admin fee & game interest with the new gross interest
+                        uint256 adminfeeShareForDifference = (_grossInterest * adminFee) / 100;
+                        _adminFeeAmount[0] += adminfeeShareForDifference;
+                        totalGameInterest += _grossInterest - adminfeeShareForDifference;
+                    }
                 }
 
                 // reference for array length to save gas
                 uint256 _rewardsLength = _rewardTokens.length;
                 for (uint256 i = 0; i < _rewardsLength; ) {
                     // first slot is reserved for admin interest amount, so starts at 1.
-                    if (_grossRewardTokenAmount[i] >= _adminFeeAmount[i + 1]) {
-                        _rewardTokenAmounts[i] = _grossRewardTokenAmount[i] - _adminFeeAmount[i + 1];
+                    if (_grossRewardTokenAmount[i] >= _rewardTokenAmounts[i]) {
+                        uint256 difference = _grossRewardTokenAmount[i] - _rewardTokenAmounts[i];
+                        uint256 adminfeeShareForDifference = (difference * adminFee) / 100;
+                        _adminFeeAmount[i + 1] += adminfeeShareForDifference;
+                        _rewardTokenAmounts[i] = _grossRewardTokenAmount[i] - adminfeeShareForDifference;
                     } else {
-                        _rewardTokenAmounts[i] = 0;
+                        uint256 adminfeeShareForDifference = (_grossRewardTokenAmount[i] * adminFee) / 100;
+                        _adminFeeAmount[i + 1] += adminfeeShareForDifference;
+                        _rewardTokenAmounts[i] += _grossRewardTokenAmount[i] - adminfeeShareForDifference;
                     }
                     unchecked {
                         ++i;
@@ -913,8 +930,6 @@ contract Pool is Ownable, Pausable, ReentrancyGuard {
                         ++i;
                     }
                 }
-                // avoid SSTORE in loop
-                adminFeeAmount = _adminFeeAmount;
             } else if (adminFee != 0) {
                 // if admin fee != 0 then the admin get's a share based on the adminFee %
                 _adminFeeAmount[0] = (_grossInterest * adminFee) / 100;
@@ -928,8 +943,6 @@ contract Pool is Ownable, Pausable, ReentrancyGuard {
                         ++i;
                     }
                 }
-                // avoid SSTORE in loop
-                adminFeeAmount = _adminFeeAmount;
             } else {
                 // if there are winners and there is no admin fee in that case the admin fee will always be 0
                 totalGameInterest = _grossInterest;
@@ -946,6 +959,7 @@ contract Pool is Ownable, Pausable, ReentrancyGuard {
 
         // avoid SSTORE in loop
         rewardTokenAmounts = _rewardTokenAmounts;
+        adminFeeAmount = _adminFeeAmount;
     }
 
     /**
