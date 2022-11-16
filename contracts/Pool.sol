@@ -876,20 +876,30 @@ contract Pool is Ownable, Pausable, ReentrancyGuard {
                 // if the admin hasn't made a withdrawal yet so we calculate the rise in interest & update the admin fee & interest
                 if (_grossInterest >= totalGameInterest) {
                     uint256 difference = _grossInterest - totalGameInterest;
-                    uint256 adminfeeShareForDifference = (difference * adminFee) / 100;
-                    _adminFeeAmount[0] += adminfeeShareForDifference;
-                    totalGameInterest = _grossInterest - adminfeeShareForDifference;
-                } else {
-                    // in case there is impermanent loss set the interest & admin fee as 0
-                    if (_grossInterest == 0) {
-                        totalGameInterest = 0;
-                       _adminFeeAmount[0] = 0;
+                    uint256 adminfeeShareForDifference;
+                    // if there are no winners then set the difference as the admin share & total game interest
+                    if (winnerCount == 0) {
+                        adminfeeShareForDifference = difference;
+                        totalGameInterest += difference;
                     } else {
-                        // if _grossInterest is non zero then update admin fee & game interest with the new gross interest
-                        uint256 adminfeeShareForDifference = (_grossInterest * adminFee) / 100;
-                        _adminFeeAmount[0] += adminfeeShareForDifference;
-                        totalGameInterest += _grossInterest - adminfeeShareForDifference;
+                        // if there are winners then calculate the rise in admin fee & update both admin fee & interest accordingly
+                        adminfeeShareForDifference = (difference * adminFee) / 100;
+                        totalGameInterest = _grossInterest - adminfeeShareForDifference;
                     }
+                    _adminFeeAmount[0] += adminfeeShareForDifference;
+                } else {
+                    // if _grossInterest is non zero then update admin fee & game interest with the new gross interest
+                    uint256 adminfeeShareForDifference;
+                    if (winnerCount == 0) {
+                    // if there are no winners then set the _grossInterest as the admin share & total game interest
+                        adminfeeShareForDifference = _grossInterest;
+                        totalGameInterest = _grossInterest;
+                    } else {
+                        // if there are winners then calculate the new admin fee share based on the gross interest & update both admin fee & interest
+                        adminfeeShareForDifference = (_grossInterest * adminFee) / 100;
+                        totalGameInterest = _grossInterest - adminfeeShareForDifference;
+                    }
+                    _adminFeeAmount[0] = adminfeeShareForDifference;
                 }
 
                 // reference for array length to save gas
@@ -898,13 +908,25 @@ contract Pool is Ownable, Pausable, ReentrancyGuard {
                     // first slot is reserved for admin interest amount, so starts at 1.
                     if (_grossRewardTokenAmount[i] >= _rewardTokenAmounts[i]) {
                         uint256 difference = _grossRewardTokenAmount[i] - _rewardTokenAmounts[i];
-                        uint256 adminfeeShareForDifference = (difference * adminFee) / 100;
+                        uint256 adminfeeShareForDifference;
+                        if (winnerCount == 0) {
+                           adminfeeShareForDifference = difference;
+                           _rewardTokenAmounts[i] += difference;
+                        } else {
+                           adminfeeShareForDifference = (difference * adminFee) / 100;
+                           _rewardTokenAmounts[i] = _grossRewardTokenAmount[i] - adminfeeShareForDifference;
+                        }
                         _adminFeeAmount[i + 1] += adminfeeShareForDifference;
-                        _rewardTokenAmounts[i] = _grossRewardTokenAmount[i] - adminfeeShareForDifference;
                     } else {
-                        uint256 adminfeeShareForDifference = (_grossRewardTokenAmount[i] * adminFee) / 100;
-                        _adminFeeAmount[i + 1] += adminfeeShareForDifference;
-                        _rewardTokenAmounts[i] += _grossRewardTokenAmount[i] - adminfeeShareForDifference;
+                        uint256 adminfeeShareForDifference;
+                        if (winnerCount == 0) {
+                            adminfeeShareForDifference = _grossRewardTokenAmount[i];
+                            totalGameInterest = _grossRewardTokenAmount[i];
+                        } else {
+                            adminfeeShareForDifference = (_grossRewardTokenAmount[i] * adminFee) / 100;
+                            totalGameInterest = _grossRewardTokenAmount[i] - adminfeeShareForDifference;
+                        }
+                        _adminFeeAmount[i + 1] = adminfeeShareForDifference;
                     }
                     unchecked {
                         ++i;
@@ -1497,7 +1519,6 @@ contract Pool is Ownable, Pausable, ReentrancyGuard {
         // sending the inbound token amount i.e principal + interest to the winners and just the principal in case of players
         // adding a balance safety check to ensure the tx does not revert in case of impermanent loss
         uint256 actualTransferredAmount = _transferFundsSafelyOrFail(msg.sender, payout);
-
         // We have to ignore the "check-effects-interactions" pattern here and emit the event
         // only at the end of the function, in order to emit it w/ the correct withdrawal amount.
         // In case the safety checks above are evaluated to true, payout, playerIncentive and playerReward
