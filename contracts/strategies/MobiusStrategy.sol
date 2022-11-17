@@ -226,7 +226,7 @@ contract MobiusStrategy is Ownable, IStrategy {
         uint256[] memory amounts = new uint256[](2);
         amounts[inboundTokenIndex] = _amount;
 
-        uint256 poolWithdrawAmount = pool.calculateTokenAmount(address(this), amounts, true);
+        uint256 poolWithdrawAmount = pool.calculateTokenAmount(address(this), amounts, false);
         if (address(gauge) != address(0)) {
             uint256 gaugeBalance = gauge.balanceOf(address(this));
 
@@ -268,7 +268,7 @@ contract MobiusStrategy is Ownable, IStrategy {
     ) external override onlyOwner {
         uint256[] memory amounts = new uint256[](2);
         amounts[inboundTokenIndex] = _amount;
-        uint256 poolWithdrawAmount = pool.calculateTokenAmount(address(this), amounts, true);
+        uint256 poolWithdrawAmount = pool.calculateTokenAmount(address(this), amounts, false);
 
         if (address(gauge) != address(0)) {
             // not checking for validity of deposit token here since with pool contract as the owner of the strategy the only way to transfer pool funds is by invest method so the check there is sufficient
