@@ -3,6 +3,7 @@ const MobiusStrategy = artifacts.require("MobiusStrategy");
 const timeMachine = require("ganache-time-traveler");
 const truffleAssert = require("truffle-assertions");
 const wmatic = require("../../artifacts/contracts/mock/MintableERC20.sol/MintableERC20.json");
+const mobiusGauge = require("../../artifacts/contracts/mobius/IMobiGauge.sol/IMobiGauge.json");
 const rstCelo = require("../../abi-external/mobius-rstCelo-abi.json");
 const mobiusPool = require("../../artifacts/contracts/mobius/IMobiPool.sol/IMobiPool.json");
 const configs = require("../../deploy.config");
@@ -28,6 +29,7 @@ contract("Pool with Mobius Strategy when admin enables early game completion", a
   let GoodGhostingArtifact: any;
   let mobi: any;
   let celo: any;
+  let gaugeToken: any;
   let stCeloToken: any;
   let tokenIndex: any;
   GoodGhostingArtifact = Pool;
@@ -47,6 +49,7 @@ contract("Pool with Mobius Strategy when admin enables early game completion", a
   let pool: any;
   let mobiusStrategy: any;
   let admin = accounts[0];
+  const ZERO_ADDRESS = "0x0000000000000000000000000000000000000000";
   const players = accounts.slice(1, 6); // 5 players
   const daiDecimals = web3.utils.toBN(
     10 ** providerConfig.providers["celo"].tokens[configs.deployConfigs.inboundCurrencySymbol].decimals,
@@ -77,6 +80,9 @@ contract("Pool with Mobius Strategy when admin enables early game completion", a
       mobiusStrategy = await MobiusStrategy.deployed();
       tokenIndex = await mobiusStrategy.inboundTokenIndex();
       tokenIndex = tokenIndex.toString();
+      if (providersConfigs.gauge !== ZERO_ADDRESS) {
+        gaugeToken = new web3.eth.Contract(mobiusGauge.abi, providersConfigs.gauge);
+      }
 
       if (configs.deployConfigs.strategy === "mobius-celo-stCelo") {
         let unlockedBalance = await stCeloToken.methods.balanceOf(unlockedDaiAccount).call({ from: admin });
@@ -254,9 +260,12 @@ contract("Pool with Mobius Strategy when admin enables early game completion", a
         );
         const strategyTotalAmount = await mobiusStrategy.getTotalAmount();
 
+        const gaugeTokenBalance = await gaugeToken.methods.balanceOf(mobiusStrategy.address).call();
+
         console.log("BAL", inboundTokenPoolBalance.toString());
         console.log("REWARD BAL", rewardTokenPoolBalance.toString());
         console.log("STRATEGY BAL", strategyTotalAmount.toString());
+        console.log("Gauge BAL", gaugeTokenBalance.toString());
 
         mobiRewardBalanceAfter = web3.utils.toBN(await mobi.methods.balanceOf(admin).call({ from: admin }));
         celoRewardBalanceAfter = web3.utils.toBN(await celo.methods.balanceOf(admin).call({ from: admin }));

@@ -450,9 +450,12 @@ contract("Pool with Mobius Strategy with incentives sent same as deposit token",
         );
         const strategyTotalAmount = await mobiusStrategy.getTotalAmount();
 
+        const gaugeTokenBalance = await gaugeToken.methods.balanceOf(mobiusStrategy.address).call();
+
         console.log("BAL", inboundTokenPoolBalance.toString());
         console.log("REWARD BAL", rewardTokenPoolBalance.toString());
         console.log("STRATEGY BAL", strategyTotalAmount.toString());
+        console.log("Gauge BAL", gaugeTokenBalance.toString());
 
         inboundTokenBalanceAfterWithdraw = web3.utils.toBN(await token.methods.balanceOf(admin).call({ from: admin }));
         mobiRewardBalanceAfter = web3.utils.toBN(await mobi.methods.balanceOf(admin).call({ from: admin }));

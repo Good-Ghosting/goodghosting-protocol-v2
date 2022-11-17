@@ -283,6 +283,7 @@ contract(
           let result;
           // to avoid tx revert due to slippage passing in 0
           result = await goodGhosting.withdraw(0, { from: player });
+
           mobiRewardBalanceAfter = web3.utils.toBN(await mobi.methods.balanceOf(player).call({ from: admin }));
           celoRewardBalanceAfter = web3.utils.toBN(await celo.methods.balanceOf(player).call({ from: admin }));
 

@@ -262,6 +262,7 @@ contract("Deposit Pool with Mobius Strategy with no winners with incentives sent
         let result;
         // to avoid tx revert due to slippage passing in 0
         result = await goodGhosting.withdraw(0, { from: player });
+
         mobiRewardBalanceAfter = web3.utils.toBN(await mobi.methods.balanceOf(player).call({ from: admin }));
         celoRewardBalanceAfter = web3.utils.toBN(await celo.methods.balanceOf(player).call({ from: admin }));
 
@@ -306,9 +307,12 @@ contract("Deposit Pool with Mobius Strategy with no winners with incentives sent
         );
         const strategyTotalAmount = await mobiusStrategy.getTotalAmount();
 
+        const gaugeTokenBalance = await gaugeToken.methods.balanceOf(mobiusStrategy.address).call();
+
         console.log("BAL", inboundTokenPoolBalance.toString());
         console.log("REWARD BAL", rewardTokenPoolBalance.toString());
         console.log("STRATEGY BAL", strategyTotalAmount.toString());
+        console.log("Gauge BAL", gaugeTokenBalance.toString());
 
         mobiRewardBalanceAfter = web3.utils.toBN(await mobi.methods.balanceOf(admin).call({ from: admin }));
         celoRewardBalanceAfter = web3.utils.toBN(await celo.methods.balanceOf(admin).call({ from: admin }));

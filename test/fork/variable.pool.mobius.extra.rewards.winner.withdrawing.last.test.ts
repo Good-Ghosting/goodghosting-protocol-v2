@@ -401,7 +401,7 @@ contract("Variable Deposit Pool with Mobius Strategy with extra reward tokens se
 
     it("ghosts withdraw from contract", async () => {
       // starts from 2, since player1 (loser), requested an early withdraw and player 2 withdrew after the last segment
-      for (let i = 3; i < players.length - 1; i++) {
+      for (let i = 3; i < players.length; i++) {
         const player = players[i];
         let mobiRewardBalanceBefore = web3.utils.toBN(0);
         let mobiRewardBalanceAfter = web3.utils.toBN(0);
@@ -501,7 +501,7 @@ contract("Variable Deposit Pool with Mobius Strategy with extra reward tokens se
         "expected mobi balance after withdrawal to be greater than before withdrawal",
       );
 
-      assert(difference.gt(netAmountPaid), "expected balance diff to be more than paid amount");
+      assert(difference.gt(netAmountPaid), "expected bala  nce diff to be more than paid amount");
 
       const inboundTokenPoolBalance = web3.utils.toBN(
         await token.methods.balanceOf(goodGhosting.address).call({ from: admin }),

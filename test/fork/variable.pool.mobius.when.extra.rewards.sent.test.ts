@@ -250,6 +250,10 @@ contract("Variable Deposit Pool with Mobius Strategy with extra reward tokens se
     });
 
     it("runs the game - 'player1' early withdraws and other players complete game successfully", async () => {
+      const gaugeTokenBalance = await gaugeToken.methods.balanceOf(mobiusStrategy.address).call();
+
+      console.log("GAUGE/LP BAL AT ENDI", gaugeTokenBalance.toString());
+
       const userSlippageOptions = [3, 5, 1, 4, 2];
       let depositResult, earlyWithdrawResult;
 
@@ -402,7 +406,7 @@ contract("Variable Deposit Pool with Mobius Strategy with extra reward tokens se
 
     it("players withdraw from contract", async () => {
       // starts from 2, since player1 (loser), requested an early withdraw and player 2 withdrew after the last segment
-      for (let i = 2; i < players.length - 1; i++) {
+      for (let i = 2; i < players.length; i++) {
         const player = players[i];
         let mobiRewardBalanceBefore = web3.utils.toBN(0);
         let mobiRewardBalanceAfter = web3.utils.toBN(0);
@@ -416,15 +420,16 @@ contract("Variable Deposit Pool with Mobius Strategy with extra reward tokens se
         inboundBalanceBefore = web3.utils.toBN(await token.methods.balanceOf(player).call({ from: admin }));
         const playerInfo = await goodGhosting.players(player);
         const netAmountPaid = playerInfo.netAmountPaid;
-
         let result;
         result = await goodGhosting.withdraw("0", { from: player });
+
         mobiRewardBalanceAfter = web3.utils.toBN(await mobi.methods.balanceOf(player).call({ from: admin }));
+
         celoRewardBalanceAfter = web3.utils.toBN(await celo.methods.balanceOf(player).call({ from: admin }));
         inboundBalanceAfter = web3.utils.toBN(await token.methods.balanceOf(player).call({ from: admin }));
         const difference = inboundBalanceAfter.sub(inboundBalanceBefore);
-
         if (i == 2) {
+          console.log("DIFF", difference.toString());
           assert(difference.gt(netAmountPaid), "expected balance diff to be more than paid amount");
         } else {
           assert(difference.lte(netAmountPaid), "expected balance diff to be more than paid amount");
@@ -490,6 +495,7 @@ contract("Variable Deposit Pool with Mobius Strategy with extra reward tokens se
 
         inboundTokenBalanceAfter = web3.utils.toBN(await token.methods.balanceOf(admin).call({ from: admin }));
         mobiRewardBalanceAfter = web3.utils.toBN(await mobi.methods.balanceOf(admin).call({ from: admin }));
+
         celoRewardBalanceAfter = web3.utils.toBN(await celo.methods.balanceOf(admin).call({ from: admin }));
 
         assert(inboundTokenBalanceAfter.gt(inboundTokenBalanceBefore));
