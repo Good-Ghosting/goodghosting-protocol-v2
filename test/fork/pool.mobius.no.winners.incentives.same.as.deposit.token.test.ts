@@ -1,3 +1,5 @@
+import { buildCalculateTokenAmountParameters } from "./pool.moola.utils";
+
 const Pool = artifacts.require("Pool");
 const MobiusStrategy = artifacts.require("MobiusStrategy");
 const timeMachine = require("ganache-time-traveler");
@@ -145,22 +147,17 @@ contract("Deposit Pool with Mobius Strategy with no winners with incentives sent
         await token.methods.approve(goodGhosting.address, web3.utils.toWei("200").toString()).send({ from: player });
         let playerEvent = "";
         let paymentEvent = 0;
-        let result, slippageFromContract;
+        let result;
         let minAmountWithFees: any = 0;
         const userProvidedMinAmount = segmentPayment.sub(
           segmentPayment.mul(web3.utils.toBN(userSlippageOptions[i].toString())).div(web3.utils.toBN(100)),
         );
 
-        let amounts = new Array(2);
-        if (configs.deployConfigs.strategy === "mobius-celo-stCelo") {
-          amounts[0] = "0";
-          amounts[tokenIndex] = segmentPayment.toString();
-        } else {
-          amounts[tokenIndex] = segmentPayment.toString();
-          amounts[1] = "0";
-        }
-
-        slippageFromContract = await pool.methods.calculateTokenAmount(mobiusStrategy.address, amounts, true).call();
+        const slippageFromContract = await pool.methods
+          .calculateTokenAmount(
+            ...buildCalculateTokenAmountParameters(segmentPayment, tokenIndex, mobiusStrategy.address),
+          )
+          .call();
 
         minAmountWithFees =
           parseInt(userProvidedMinAmount.toString()) > parseInt(slippageFromContract.toString())
@@ -188,16 +185,11 @@ contract("Deposit Pool with Mobius Strategy with no winners with incentives sent
           const withdrawAmount = segmentPayment.sub(
             segmentPayment.mul(web3.utils.toBN(earlyWithdrawFee)).div(web3.utils.toBN(100)),
           );
-          let lpTokenAmount;
-          let amounts: any = new Array(2);
-          if (configs.deployConfigs.strategy === "mobius-celo-stCelo") {
-            amounts[0] = "0";
-            amounts[tokenIndex] = withdrawAmount.toString();
-          } else {
-            amounts[tokenIndex] = withdrawAmount.toString();
-            amounts[1] = "0";
-          }
-          lpTokenAmount = await pool.methods.calculateTokenAmount(mobiusStrategy.address, amounts, true).call();
+          let lpTokenAmount = await pool.methods
+            .calculateTokenAmount(
+              ...buildCalculateTokenAmountParameters(withdrawAmount, tokenIndex, mobiusStrategy.address),
+            )
+            .call();
 
           if (gaugeToken) {
             const gaugeTokenBalance = await gaugeToken.methods.balanceOf(mobiusStrategy.address).call();

@@ -1,3 +1,5 @@
+import { buildCalculateTokenAmountParameters } from "./pool.moola.utils";
+
 const Pool = artifacts.require("Pool");
 const MobiusStrategy = artifacts.require("MobiusStrategy");
 const timeMachine = require("ganache-time-traveler");
@@ -142,21 +144,17 @@ contract("Variable Deposit Pool with Mobius Strategy", accounts => {
         await token.methods.approve(goodGhosting.address, web3.utils.toWei("200").toString()).send({ from: player });
         let playerEvent = "";
         let paymentEvent = 0;
-        let result, slippageFromContract;
+        let result;
         let minAmountWithFees: any = 0;
         const userProvidedMinAmount = segmentPayment.sub(
           segmentPayment.mul(web3.utils.toBN(userSlippageOptions[i].toString())).div(web3.utils.toBN(100)),
         );
 
-        let amounts = new Array(2);
-        if (configs.deployConfigs.strategy === "mobius-celo-stCelo") {
-          amounts[0] = "0";
-          amounts[tokenIndex] = segmentPayment.toString();
-        } else {
-          amounts[tokenIndex] = segmentPayment.toString();
-          amounts[1] = "0";
-        }
-        slippageFromContract = await pool.methods.calculateTokenAmount(mobiusStrategy.address, amounts, true).call();
+        const slippageFromContract = await pool.methods
+          .calculateTokenAmount(
+            ...buildCalculateTokenAmountParameters(segmentPayment, tokenIndex, mobiusStrategy.address),
+          )
+          .call();
 
         minAmountWithFees =
           parseInt(userProvidedMinAmount.toString()) > parseInt(slippageFromContract.toString())
@@ -199,16 +197,11 @@ contract("Variable Deposit Pool with Mobius Strategy", accounts => {
             segmentPayment.mul(web3.utils.toBN(earlyWithdrawFee)).div(web3.utils.toBN(100)),
           );
 
-          let amounts = new Array(2);
-          if (configs.deployConfigs.strategy === "mobius-celo-stCelo") {
-            amounts[0] = "0";
-            amounts[tokenIndex] = withdrawAmount.toString();
-          } else {
-            amounts[tokenIndex] = withdrawAmount.toString();
-            amounts[1] = "0";
-          }
-          let lpTokenAmount;
-          lpTokenAmount = await pool.methods.calculateTokenAmount(mobiusStrategy.address, amounts, true).call();
+          let lpTokenAmount = await pool.methods
+            .calculateTokenAmount(
+              ...buildCalculateTokenAmountParameters(withdrawAmount, tokenIndex, mobiusStrategy.address),
+            )
+            .call();
 
           if (gaugeToken) {
             const gaugeTokenBalance = await gaugeToken.methods.balanceOf(mobiusStrategy.address).call();
@@ -253,20 +246,16 @@ contract("Variable Deposit Pool with Mobius Strategy", accounts => {
         // j must start at 1 - Player1 (index 0) early withdraws after everyone else deposits, so won't continue making deposits
         for (let j = 1; j < players.length; j++) {
           const player = players[j];
-          let slippageFromContract;
+
           const userProvidedMinAmount = segmentPayment.sub(
             segmentPayment.mul(web3.utils.toBN(userSlippageOptions[j].toString())).div(web3.utils.toBN(100)),
           );
 
-          let amounts = new Array(2);
-          if (configs.deployConfigs.strategy === "mobius-celo-stCelo") {
-            amounts[0] = "0";
-            amounts[tokenIndex] = segmentPayment.toString();
-          } else {
-            amounts[tokenIndex] = segmentPayment.toString();
-            amounts[1] = "0";
-          }
-          slippageFromContract = await pool.methods.calculateTokenAmount(mobiusStrategy.address, amounts, true).call();
+          const slippageFromContract = await pool.methods
+            .calculateTokenAmount(
+              ...buildCalculateTokenAmountParameters(segmentPayment, tokenIndex, mobiusStrategy.address),
+            )
+            .call();
 
           const minAmountWithFees =
             parseInt(userProvidedMinAmount.toString()) > parseInt(slippageFromContract.toString())
@@ -310,16 +299,11 @@ contract("Variable Deposit Pool with Mobius Strategy", accounts => {
             playerInfo.amountPaid.mul(web3.utils.toBN(earlyWithdrawFee)).div(web3.utils.toBN(100)),
           );
 
-          let amounts = new Array(2);
-          if (configs.deployConfigs.strategy === "mobius-celo-stCelo") {
-            amounts[0] = "0";
-            amounts[tokenIndex] = withdrawAmount.toString();
-          } else {
-            amounts[tokenIndex] = withdrawAmount.toString();
-            amounts[1] = "0";
-          }
-          let lpTokenAmount;
-          lpTokenAmount = await pool.methods.calculateTokenAmount(mobiusStrategy.address, amounts, true).call();
+          let lpTokenAmount = await pool.methods
+            .calculateTokenAmount(
+              ...buildCalculateTokenAmountParameters(withdrawAmount, tokenIndex, mobiusStrategy.address),
+            )
+            .call();
 
           if (gaugeToken) {
             const gaugeTokenBalance = await gaugeToken.methods.balanceOf(mobiusStrategy.address).call();
@@ -358,16 +342,11 @@ contract("Variable Deposit Pool with Mobius Strategy", accounts => {
         playerInfo.amountPaid.mul(web3.utils.toBN(earlyWithdrawFee)).div(web3.utils.toBN(100)),
       );
 
-      let amounts = new Array(2);
-      if (configs.deployConfigs.strategy === "mobius-celo-stCelo") {
-        amounts[0] = "0";
-        amounts[tokenIndex] = withdrawAmount.toString();
-      } else {
-        amounts[tokenIndex] = withdrawAmount.toString();
-        amounts[1] = "0";
-      }
-      let lpTokenAmount;
-      lpTokenAmount = await pool.methods.calculateTokenAmount(mobiusStrategy.address, amounts, true).call();
+      let lpTokenAmount = await pool.methods
+        .calculateTokenAmount(
+          ...buildCalculateTokenAmountParameters(withdrawAmount, tokenIndex, mobiusStrategy.address),
+        )
+        .call();
 
       if (gaugeToken) {
         const gaugeTokenBalance = await gaugeToken.methods.balanceOf(mobiusStrategy.address).call();
