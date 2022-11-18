@@ -1,3 +1,5 @@
+import { buildCalcTokenAmountParameters, selectWithdrawAmount } from "./pool.curve.utils";
+
 const Pool = artifacts.require("Pool");
 const CurveStrategy = artifacts.require("CurveStrategy");
 const timeMachine = require("ganache-time-traveler");
@@ -133,21 +135,15 @@ contract("Pool with Curve Strategy with incentives sent same as deposit token", 
 
         let playerEvent = "";
         let paymentEvent = 0;
-        let result, slippageFromContract;
+        let result;
         let minAmountWithFees: any = 0;
         const userProvidedMinAmount = segmentPayment.sub(
           segmentPayment.mul(web3.utils.toBN(userSlippageOptions[i].toString())).div(web3.utils.toBN(100)),
         );
 
-        if (providersConfigs.poolType == 0) {
-          slippageFromContract = await pool.methods.calc_token_amount([segmentPayment.toString(), 0, 0], true).call();
-        } else if (providersConfigs.poolType == 1) {
-          slippageFromContract = await pool.methods
-            .calc_token_amount([segmentPayment.toString(), 0, 0, 0, 0], true)
-            .call();
-        } else {
-          slippageFromContract = await pool.methods.calc_token_amount([0, segmentPayment.toString()]).call();
-        }
+        const slippageFromContract = await pool.methods
+          .calc_token_amount(...buildCalcTokenAmountParameters(segmentPayment, tokenIndex, providersConfigs.poolType))
+          .call();
 
         minAmountWithFees =
           parseInt(userProvidedMinAmount.toString()) > parseInt(slippageFromContract.toString())
@@ -162,15 +158,11 @@ contract("Pool with Curve Strategy with incentives sent same as deposit token", 
           const withdrawAmount = segmentPayment.sub(
             segmentPayment.mul(web3.utils.toBN(earlyWithdrawFee)).div(web3.utils.toBN(100)),
           );
-          let lpTokenAmount;
 
-          if (providersConfigs.poolType == 0) {
-            lpTokenAmount = await pool.methods.calc_token_amount([withdrawAmount.toString(), 0, 0], true).call();
-          } else if (providersConfigs.poolType == 1) {
-            lpTokenAmount = await pool.methods.calc_token_amount([withdrawAmount.toString(), 0, 0, 0, 0], true).call();
-          } else {
-            lpTokenAmount = await pool.methods.calc_token_amount([0, segmentPayment.toString()]).call();
-          }
+          const toLpValue = selectWithdrawAmount(providersConfigs.poolType, withdrawAmount, segmentPayment);
+          let lpTokenAmount = await pool.methods
+            .calc_token_amount(...buildCalcTokenAmountParameters(toLpValue, tokenIndex, providersConfigs.poolType))
+            .call();
 
           const gaugeTokenBalance = await gaugeToken.methods.balanceOf(curveStrategy.address).call();
 
@@ -226,20 +218,13 @@ contract("Pool with Curve Strategy with incentives sent same as deposit token", 
         // j must start at 1 - Player1 (index 0) early withdraws after everyone else deposits, so won't continue making deposits
         for (let j = 1; j < players.length; j++) {
           const player = players[j];
-          let slippageFromContract;
           const userProvidedMinAmount = segmentPayment.sub(
             segmentPayment.mul(web3.utils.toBN(userSlippageOptions[j].toString())).div(web3.utils.toBN(100)),
           );
 
-          if (providersConfigs.poolType == 0) {
-            slippageFromContract = await pool.methods.calc_token_amount([segmentPayment.toString(), 0, 0], true).call();
-          } else if (providersConfigs.poolType == 1) {
-            slippageFromContract = await pool.methods
-              .calc_token_amount([segmentPayment.toString(), 0, 0, 0, 0], true)
-              .call();
-          } else {
-            slippageFromContract = await pool.methods.calc_token_amount([0, segmentPayment.toString()]).call();
-          }
+          const slippageFromContract = await pool.methods
+            .calc_token_amount(...buildCalcTokenAmountParameters(segmentPayment, tokenIndex, providersConfigs.poolType))
+            .call();
 
           const minAmountWithFees =
             parseInt(userProvidedMinAmount.toString()) > parseInt(slippageFromContract.toString())
@@ -267,15 +252,11 @@ contract("Pool with Curve Strategy with incentives sent same as deposit token", 
           const withdrawAmount = playerInfo.amountPaid.sub(
             playerInfo.amountPaid.mul(web3.utils.toBN(earlyWithdrawFee)).div(web3.utils.toBN(100)),
           );
-          let lpTokenAmount;
 
-          if (providersConfigs.poolType == 0) {
-            lpTokenAmount = await pool.methods.calc_token_amount([withdrawAmount.toString(), 0, 0], true).call();
-          } else if (providersConfigs.poolType == 1) {
-            lpTokenAmount = await pool.methods.calc_token_amount([withdrawAmount.toString(), 0, 0, 0, 0], true).call();
-          } else {
-            lpTokenAmount = await pool.methods.calc_token_amount([0, segmentPayment.toString()]).call();
-          }
+          const toLpValue = selectWithdrawAmount(providersConfigs.poolType, withdrawAmount, segmentPayment);
+          let lpTokenAmount = await pool.methods
+            .calc_token_amount(...buildCalcTokenAmountParameters(toLpValue, tokenIndex, providersConfigs.poolType))
+            .call();
 
           const gaugeTokenBalance = await gaugeToken.methods.balanceOf(curveStrategy.address).call();
           if (parseInt(gaugeTokenBalance.toString()) < parseInt(lpTokenAmount.toString())) {
@@ -310,14 +291,10 @@ contract("Pool with Curve Strategy with incentives sent same as deposit token", 
         playerInfo.amountPaid.mul(web3.utils.toBN(earlyWithdrawFee)).div(web3.utils.toBN(100)),
       );
 
-      let lpTokenAmount;
-      if (providersConfigs.poolType == 0) {
-        lpTokenAmount = await pool.methods.calc_token_amount([withdrawAmount.toString(), 0, 0], true).call();
-      } else if (providersConfigs.poolType == 1) {
-        lpTokenAmount = await pool.methods.calc_token_amount([withdrawAmount.toString(), 0, 0, 0, 0], true).call();
-      } else {
-        lpTokenAmount = await pool.methods.calc_token_amount([0, segmentPayment.toString()]).call();
-      }
+      const toLpValue = selectWithdrawAmount(providersConfigs.poolType, withdrawAmount, segmentPayment);
+      let lpTokenAmount = await pool.methods
+        .calc_token_amount(...buildCalcTokenAmountParameters(toLpValue, tokenIndex, providersConfigs.poolType))
+        .call();
 
       const gaugeTokenBalance = await gaugeToken.methods.balanceOf(curveStrategy.address).call();
       if (parseInt(gaugeTokenBalance.toString()) < parseInt(lpTokenAmount.toString())) {

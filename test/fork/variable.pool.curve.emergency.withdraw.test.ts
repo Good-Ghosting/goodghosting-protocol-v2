@@ -1,4 +1,5 @@
 import { ContractVersion } from "@celo/contractkit/lib/versions";
+import { buildCalcTokenAmountParameters, selectWithdrawAmount } from "./pool.curve.utils";
 
 const Pool = artifacts.require("Pool");
 const CurveStrategy = artifacts.require("CurveStrategy");
@@ -120,21 +121,15 @@ contract("Variable Pool with Curve Strategy when admin enables early game comple
         await token.methods.approve(goodGhosting.address, web3.utils.toWei("200").toString()).send({ from: player });
         let playerEvent = "";
         let paymentEvent = 0;
-        let result, slippageFromContract;
+        let result;
         let minAmountWithFees: any = 0;
         const userProvidedMinAmount = segmentPayment.sub(
           segmentPayment.mul(web3.utils.toBN(userSlippageOptions[i].toString())).div(web3.utils.toBN(100)),
         );
 
-        if (providersConfigs.poolType == 0) {
-          slippageFromContract = await pool.methods.calc_token_amount([segmentPayment.toString(), 0, 0], true).call();
-        } else if (providersConfigs.poolType == 1) {
-          slippageFromContract = await pool.methods
-            .calc_token_amount([segmentPayment.toString(), 0, 0, 0, 0], true)
-            .call();
-        } else {
-          slippageFromContract = await pool.methods.calc_token_amount([0, segmentPayment.toString()]).call();
-        }
+        const slippageFromContract = await pool.methods
+          .calc_token_amount(...buildCalcTokenAmountParameters(segmentPayment, tokenIndex, providersConfigs.poolType))
+          .call();
 
         minAmountWithFees =
           parseInt(userProvidedMinAmount.toString()) > parseInt(slippageFromContract.toString())
@@ -175,15 +170,10 @@ contract("Variable Pool with Curve Strategy when admin enables early game comple
           const withdrawAmount = segmentPayment.sub(
             segmentPayment.mul(web3.utils.toBN(earlyWithdrawFee)).div(web3.utils.toBN(100)),
           );
-          let lpTokenAmount;
-
-          if (providersConfigs.poolType == 0) {
-            lpTokenAmount = await pool.methods.calc_token_amount([withdrawAmount.toString(), 0, 0], true).call();
-          } else if (providersConfigs.poolType == 1) {
-            lpTokenAmount = await pool.methods.calc_token_amount([withdrawAmount.toString(), 0, 0, 0, 0], true).call();
-          } else {
-            lpTokenAmount = await pool.methods.calc_token_amount([0, segmentPayment.toString()]).call();
-          }
+          const toLpValue = selectWithdrawAmount(providersConfigs.poolType, withdrawAmount, segmentPayment);
+          let lpTokenAmount = await pool.methods
+            .calc_token_amount(...buildCalcTokenAmountParameters(toLpValue, tokenIndex, providersConfigs.poolType))
+            .call();
 
           const gaugeTokenBalance = await gaugeToken.methods.balanceOf(curveStrategy.address).call();
 
