@@ -1880,17 +1880,17 @@ export const shouldBehaveLikePlayersWithdrawingFromGGPool = async (strategyType:
     rewardTokenPlayer1BalanceBeforeWithdraw = await rewardTokenInstance.balanceOf(player1.address);
     rewardTokenPlayer2BalanceBeforeWithdraw = await rewardTokenInstance.balanceOf(player2.address);
 
-    const player1BeforeWithdrawBalance = await contracts.inboundToken.balanceOf(player1.address);
-    await contracts.goodGhosting.connect(player1).withdraw(0);
-    const player1PostWithdrawBalance = await contracts.inboundToken.balanceOf(player1.address);
-    const player1WithdrawAmount = player1PostWithdrawBalance.sub(player1BeforeWithdrawBalance);
-    console.log("player 1 withdraw amount", player1WithdrawAmount.toString());
-
     const player2BeforeWithdrawBalance = await contracts.inboundToken.balanceOf(player2.address);
     await contracts.goodGhosting.connect(player2).withdraw(0);
     const player2PostWithdrawBalance = await contracts.inboundToken.balanceOf(player2.address);
     const player2WithdrawAmount = player2PostWithdrawBalance.sub(player2BeforeWithdrawBalance);
     console.log("player 2 withdraw amount", player2WithdrawAmount.toString());
+
+    const player1BeforeWithdrawBalance = await contracts.inboundToken.balanceOf(player1.address);
+    await contracts.goodGhosting.connect(player1).withdraw(0);
+    const player1PostWithdrawBalance = await contracts.inboundToken.balanceOf(player1.address);
+    const player1WithdrawAmount = player1PostWithdrawBalance.sub(player1BeforeWithdrawBalance);
+    console.log("player 1 withdraw amount", player1WithdrawAmount.toString());
 
     assert(player1WithdrawAmount.gt(player2WithdrawAmount));
 
