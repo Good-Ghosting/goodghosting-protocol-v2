@@ -115,7 +115,7 @@ module.exports = {
       settings: {
         optimizer: {
           enabled: true,
-          runs: 1500,
+          runs: 10,
         },
       },
       // A version or constraint - Ex. "^0.5.0"

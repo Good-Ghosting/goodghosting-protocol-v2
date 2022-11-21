@@ -2,13 +2,24 @@
 pragma solidity 0.8.7;
 
 import "./Pool.sol";
-import "./MerkleValidator.sol";
+import "@openzeppelin/contracts/utils/cryptography/MerkleProof.sol";
 
 /**
 @notice Whitelisted version of the Pool Contract.
 @author Francis Odisi & Viraz Malhotra.
 */
-contract WhitelistedPool is Pool, MerkleValidator {
+contract WhitelistedPool is Pool {
+    error INVALID_PROOF();
+
+    /// @notice Merkle Root.
+    bytes32 public merkleRoot;
+
+
+    /// @param _merkleRoot Merkle root for the game
+    function setMerkleRoot(bytes32 _merkleRoot) internal {
+        merkleRoot = _merkleRoot;
+    }
+
     /**
         Creates a new instance of GoodGhosting game
         @param _inboundCurrency Smart contract address of inbound currency used for the game.
@@ -97,7 +108,10 @@ contract WhitelistedPool is Pool, MerkleValidator {
         uint256 _minAmount,
         uint256 _depositAmount
     ) external payable whenNotPaused {
-        validate(index, msg.sender, true, merkleProof);
+        bytes32 node = keccak256(abi.encodePacked(index, msg.sender, true));
+        if (!MerkleProof.verify(merkleProof, merkleRoot, node))
+            revert INVALID_PROOF();
+        // validate(index, msg.sender, true, merkleProof);
         _joinGame(_minAmount, _depositAmount);
     }
 }
