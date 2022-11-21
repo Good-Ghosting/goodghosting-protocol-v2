@@ -100,6 +100,9 @@ contract Pool is Ownable, Pausable, ReentrancyGuard {
     /// @notice winner counter to track no of winners.
     uint64 public winnerCount;
 
+    /// @notice counter to track no of winners lef to withdraw for admin accounting.
+    uint64 public winnersLeftToWithdraw;
+
     /// @notice the % share of interest accrued during the total duration of deposit rounds.
     /// @dev the interest/rewards/incentive accounting is divided in two phases:
     ///     a) the total duration of deposit rounds in the game
@@ -586,6 +589,7 @@ contract Pool is Ownable, Pausable, ReentrancyGuard {
             // reduce totalGameInterest since a winner only withdraws their own funds.
             totalGameInterest -= (playerInterestAmountDuringDepositRounds + playerInterestAmountDuringWaitingRounds);
         }
+        winnersLeftToWithdraw -= 1;
     }
 
     /**
@@ -830,6 +834,7 @@ contract Pool is Ownable, Pausable, ReentrancyGuard {
         }
         // this condition is added because emit is to only be emitted when adminFeeSet flag is false but this mehtod is called for every player withdrawal in variable deposit pool.
         if (!adminFeeSet) {
+            winnersLeftToWithdraw = winnerCount;
             emit EndGameStats(
                 msg.sender,
                 _totalBalance,
@@ -878,7 +883,7 @@ contract Pool is Ownable, Pausable, ReentrancyGuard {
                     uint256 difference = _grossInterest - totalGameInterest;
                     uint256 adminfeeShareForDifference;
                     // if there are no winners then set the difference as the admin share & total game interest
-                    if (winnerCount == 0) {
+                    if (winnerCount == 0 || winnersLeftToWithdraw == 0) {
                         adminfeeShareForDifference = difference;
                         totalGameInterest += difference;
                     } else {
@@ -890,7 +895,7 @@ contract Pool is Ownable, Pausable, ReentrancyGuard {
                 } else {
                     // if _grossInterest is non zero then update admin fee & game interest with the new gross interest
                     uint256 adminfeeShareForDifference;
-                    if (winnerCount == 0) {
+                    if (winnerCount == 0 || winnersLeftToWithdraw == 0) {
                     // if there are no winners then set the _grossInterest as the admin share & total game interest
                         adminfeeShareForDifference = _grossInterest;
                         totalGameInterest = _grossInterest;
@@ -909,7 +914,7 @@ contract Pool is Ownable, Pausable, ReentrancyGuard {
                     if (_grossRewardTokenAmount[i] >= _rewardTokenAmounts[i]) {
                         uint256 difference = _grossRewardTokenAmount[i] - _rewardTokenAmounts[i];
                         uint256 adminfeeShareForDifference;
-                        if (winnerCount == 0) {
+                        if (winnerCount == 0 || winnersLeftToWithdraw == 0) {
                            adminfeeShareForDifference = difference;
                            _rewardTokenAmounts[i] += difference;
                         } else {
@@ -919,7 +924,7 @@ contract Pool is Ownable, Pausable, ReentrancyGuard {
                         _adminFeeAmount[i + 1] += adminfeeShareForDifference;
                     } else {
                         uint256 adminfeeShareForDifference;
-                        if (winnerCount == 0) {
+                        if (winnerCount == 0 || winnersLeftToWithdraw == 0) {
                             adminfeeShareForDifference = _grossRewardTokenAmount[i];
                             totalGameInterest = _grossRewardTokenAmount[i];
                         } else {
