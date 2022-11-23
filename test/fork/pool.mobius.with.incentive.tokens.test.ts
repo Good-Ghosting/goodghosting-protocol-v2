@@ -12,10 +12,14 @@ const configs = require("../../deploy.config");
 const providerConfig = require("../../providers.config");
 
 contract("Pool with Mobius Strategy with incentive tokens sent to pool", accounts => {
+  const ZERO_ADDRESS = "0x0000000000000000000000000000000000000000";
+
   // Only executes this test file for local network fork
   if (process.env.NETWORK !== "local-celo") {
     return;
   }
+
+  if (configs.deployConfigs.incentiveToken === ZERO_ADDRESS) return;
 
   if (
     configs.deployConfigs.strategy !== "mobius-cUSD-DAI" &&
@@ -60,7 +64,6 @@ contract("Pool with Mobius Strategy with incentive tokens sent to pool", account
   let admin = accounts[0];
   const players = accounts.slice(1, 6); // 5 players
   const loser = players[0];
-  const ZERO_ADDRESS = "0x0000000000000000000000000000000000000000";
   const userWithdrawingAfterLastSegment = players[1];
   const daiDecimals = web3.utils.toBN(
     10 ** providerConfig.providers["celo"].tokens[configs.deployConfigs.inboundCurrencySymbol].decimals,
