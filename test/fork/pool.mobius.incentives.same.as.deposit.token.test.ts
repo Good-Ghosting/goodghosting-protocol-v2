@@ -1,5 +1,5 @@
 import { constants } from "ethers";
-import { buildCalculateTokenAmountParameters } from "./pool.moola.utils";
+import { buildCalculateTokenAmountParameters } from "./pool.mobius.utils";
 
 const Pool = artifacts.require("Pool");
 const MobiusStrategy = artifacts.require("MobiusStrategy");
