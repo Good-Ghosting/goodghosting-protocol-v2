@@ -145,7 +145,6 @@ module.exports = function (deployer, network, accounts) {
     } else if (config.deployConfigs.strategy === "no-external-strategy") {
       strategyArgs = [NoExternalStrategyArtifact, inboundCurrencyAddress, config.deployConfigs.rewardTokens];
     } else {
-      console.log(strategyConfig.rewardTokens);
       strategyArgs = [
         CurveStrategyArtifact,
         strategyConfig.pool,

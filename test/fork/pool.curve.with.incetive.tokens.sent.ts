@@ -12,10 +12,13 @@ const maticpoolABI = require("../../abi-external/curve-matic-pool-abi.json");
 
 const configs = require("../../deploy.config");
 const providerConfig = require("../../providers.config");
+const ZERO_ADDRESS = "0x0000000000000000000000000000000000000000";
 
 contract("Pool with Curve Strategy with incentive tokens sent to pool", accounts => {
   // Only executes this test file for local network fork
   if (!["local-polygon"].includes(process.env.NETWORK ? process.env.NETWORK : "")) return;
+
+  if (configs.deployConfigs.incentiveToken === ZERO_ADDRESS) return;
 
   const unlockedDaiAccount = process.env.WHALE_ADDRESS_FORKED_NETWORK;
   let providersConfigs: any;

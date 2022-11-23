@@ -29,6 +29,10 @@ exports.providers = {
         address: "0x7ceB23fD6bC0adD59E62ac25578270cFf1b9f619",
         decimals: 18,
       },
+      wbtc: {
+        address: "0x1BFD67037B42Cf73acF2047067bd4F2C47D9BfD6",
+        decimals: 8,
+      },
       ghst: {
         address: "0x385eeac5cb85a38a9a07a70c73e0a3271cfb54a7",
         decimals: 18,
