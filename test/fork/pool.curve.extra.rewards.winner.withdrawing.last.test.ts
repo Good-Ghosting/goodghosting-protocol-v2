@@ -20,6 +20,8 @@ contract("Pool with Curve Strategy with extra reward tokens sent to strategy & w
   let GoodGhostingArtifact: any;
   let curve: any;
   let wmatic: any;
+  const ZERO_ADDRESS = "0x0000000000000000000000000000000000000000";
+
   if (configs.deployConfigs.strategy === "polygon-curve-aave") {
     GoodGhostingArtifact = Pool;
     providersConfigs = providerConfig.providers["polygon"].strategies["polygon-curve-aave"];
