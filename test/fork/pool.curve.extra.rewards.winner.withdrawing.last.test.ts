@@ -384,14 +384,12 @@ contract("Pool with Curve Strategy with extra reward tokens sent to strategy & w
         curveRewardBalanceAfter = web3.utils.toBN(await curve.methods.balanceOf(admin).call({ from: admin }));
         wmaticRewardBalanceAfter = web3.utils.toBN(await wmatic.methods.balanceOf(admin).call({ from: admin }));
 
-        const inboundcrvTokenPoolBalance = web3.utils.toBN(
-          await curve.methods.balanceOf(goodGhosting.address).call({ from: admin }),
-        );
-
-        assert(
-          curveRewardBalanceAfter.gt(curveRewardBalanceBefore),
-          "expected curve balance after withdrawal to be greater than before withdrawal",
-        );
+        if (providersConfigs.gauge !== ZERO_ADDRESS) {
+          assert(
+            curveRewardBalanceAfter.gt(curveRewardBalanceBefore),
+            "expected curve balance after withdrawal to be greater than before withdrawal",
+          );
+        }
         // since winner withdraws at the end so we don't need the reward balance check here
         // for some reason forking mainnet we don't get back wmatic rewards(wamtic rewards were stopped from curve's end IMO)
         assert(
@@ -423,10 +421,12 @@ contract("Pool with Curve Strategy with extra reward tokens sent to strategy & w
 
       console.log(curveRewardBalanceAfter.toString());
 
-      assert(
-        curveRewardBalanceAfter.gt(curveRewardBalanceBefore),
-        "expected curve balance after withdrawal to be greater than before withdrawal",
-      );
+      if (providersConfigs.gauge !== ZERO_ADDRESS) {
+        assert(
+          curveRewardBalanceAfter.gt(curveRewardBalanceBefore),
+          "expected curve balance after withdrawal to be greater than before withdrawal",
+        );
+      }
 
       assert(difference.gt(netAmountPaid), "expected balance diff to be more than paid amount");
 

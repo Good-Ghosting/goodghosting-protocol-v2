@@ -369,10 +369,12 @@ contract("Pool with Curve Strategy with incentive tokens sent to pool", accounts
           .sub(web3.utils.toBN(inboundTokenBalanceBeforeRedeem));
 
         if (i == 2) {
-          assert(
-            curveRewardBalanceAfter.gt(curveRewardBalanceBefore),
-            "expected curve balance after withdrawal to be greater than before withdrawal",
-          );
+          if (providersConfigs.gauge !== ZERO_ADDRESS) {
+            assert(
+              curveRewardBalanceAfter.gt(curveRewardBalanceBefore),
+              "expected curve balance after withdrawal to be greater than before withdrawal",
+            );
+          }
 
           assert(
             incentiveBalanceAfter.gt(incentiveBalanceBefore),
@@ -416,10 +418,12 @@ contract("Pool with Curve Strategy with incentive tokens sent to pool", accounts
           await incentiveToken.methods.balanceOf(goodGhosting.address).call({ from: admin }),
         );
 
-        assert(
-          curveRewardBalanceAfter.gt(curveRewardBalanceBefore),
-          "expected curve balance after withdrawal to be greater than before withdrawal",
-        );
+        if (providersConfigs.gauge !== ZERO_ADDRESS) {
+          assert(
+            curveRewardBalanceAfter.gt(curveRewardBalanceBefore),
+            "expected curve balance after withdrawal to be greater than before withdrawal",
+          );
+        }
 
         const inboundTokenPoolBalance = web3.utils.toBN(
           await token.methods.balanceOf(goodGhosting.address).call({ from: admin }),

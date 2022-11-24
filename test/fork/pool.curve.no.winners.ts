@@ -229,10 +229,12 @@ contract("Deposit Pool with Curve Strategy with no winners", accounts => {
         curveRewardBalanceAfter = web3.utils.toBN(await curve.methods.balanceOf(player).call({ from: admin }));
         wmaticRewardBalanceAfter = web3.utils.toBN(await wmatic.methods.balanceOf(player).call({ from: admin }));
 
-        assert(
-          curveRewardBalanceAfter.eq(curveRewardBalanceBefore),
-          "expected curve balance after withdrawal to be greater than before withdrawal",
-        );
+        if (providersConfigs.gauge !== ZERO_ADDRESS) {
+          assert(
+            curveRewardBalanceAfter.eq(curveRewardBalanceBefore),
+            "expected curve balance after withdrawal to be greater than before withdrawal",
+          );
+        }
 
         // for some reason forking mainnet we don't get back wmatic rewards(wamtic rewards were stopped from curve's end IMO)
         assert(
@@ -277,17 +279,15 @@ contract("Deposit Pool with Curve Strategy with no winners", accounts => {
           await curve.methods.balanceOf(goodGhosting.address).call({ from: admin }),
         );
 
-        const wmaticRewardTokenBalance = web3.utils.toBN(
-          await wmatic.methods.balanceOf(goodGhosting.address).call({ from: admin }),
-        );
-
         curveRewardBalanceAfter = web3.utils.toBN(await curve.methods.balanceOf(admin).call({ from: admin }));
         wmaticRewardBalanceAfter = web3.utils.toBN(await wmatic.methods.balanceOf(admin).call({ from: admin }));
 
-        assert(
-          curveRewardBalanceAfter.gt(curveRewardBalanceBefore),
-          "expected curve balance after withdrawal to be greater than before withdrawal",
-        );
+        if (providersConfigs.gauge !== ZERO_ADDRESS) {
+          assert(
+            curveRewardBalanceAfter.gt(curveRewardBalanceBefore),
+            "expected curve balance after withdrawal to be greater than before withdrawal",
+          );
+        }
         // for some reason forking mainnet we don't get back wmatic rewards(wamtic rewards were stopped from curve's end IMO)
         assert(
           wmaticRewardBalanceAfter.gte(wmaticRewardBalanceBefore),

@@ -363,10 +363,12 @@ contract("Pool with Curve Strategy with extra reward tokens sent to strategy", a
           .sub(web3.utils.toBN(inboundTokenBalanceBeforeRedeem));
 
         if (i == 2) {
-          assert(
-            curveRewardBalanceAfter.gt(curveRewardBalanceBefore),
-            "expected curve balance after withdrawal to be greater than before withdrawal",
-          );
+          if (providersConfigs.gauge !== ZERO_ADDRESS) {
+            assert(
+              curveRewardBalanceAfter.gt(curveRewardBalanceBefore),
+              "expected curve balance after withdrawal to be greater than before withdrawal",
+            );
+          }
 
           assert(difference.gt(netAmountPaid), "expected balance diff to be more than paid amount");
         } else {
@@ -394,10 +396,6 @@ contract("Pool with Curve Strategy with extra reward tokens sent to strategy", a
           await token.methods.balanceOf(goodGhosting.address).call({ from: admin }),
         );
 
-        const curveRewardTokenPoolBalance = web3.utils.toBN(
-          await curve.methods.balanceOf(goodGhosting.address).call({ from: admin }),
-        );
-
         let inboundTokenBalanceAfter = web3.utils.toBN(await token.methods.balanceOf(admin).call({ from: admin }));
 
         assert(inboundTokenBalanceAfter.gt(inboundTokenBalanceBefore));
@@ -409,10 +407,12 @@ contract("Pool with Curve Strategy with extra reward tokens sent to strategy", a
           await curve.methods.balanceOf(goodGhosting.address).call({ from: admin }),
         );
 
-        assert(
-          curveRewardBalanceAfter.gt(curveRewardBalanceBefore),
-          "expected curve balance after withdrawal to be greater than before withdrawal",
-        );
+        if (providersConfigs.gauge !== ZERO_ADDRESS) {
+          assert(
+            curveRewardBalanceAfter.gt(curveRewardBalanceBefore),
+            "expected curve balance after withdrawal to be greater than before withdrawal",
+          );
+        }
 
         console.log("BAL", inboundcrvTokenPoolBalance.toString());
 

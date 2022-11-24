@@ -408,10 +408,12 @@ contract("Variale Deposit Pool with Curve Strategy with extra reward tokens sent
         console.log("BALL", curveRewardBalanceAfter.toString());
 
         if (i == 2) {
-          assert(
-            curveRewardBalanceAfter.gt(curveRewardBalanceBefore),
-            "expected curve balance after withdrawal to be greater than before withdrawal",
-          );
+          if (providersConfigs.gauge !== ZERO_ADDRESS) {
+            assert(
+              curveRewardBalanceAfter.gt(curveRewardBalanceBefore),
+              "expected curve balance after withdrawal to be greater than before withdrawal",
+            );
+          }
 
           // for some reason forking mainnet we don't get back wmatic rewards(wamtic rewards were stopped from curve's end IMO)
           assert(
@@ -508,10 +510,12 @@ contract("Variale Deposit Pool with Curve Strategy with extra reward tokens sent
 
         assert(inboundTokenBalanceAfter.gt(inboundTokenBalanceBefore));
 
-        assert(
-          curveRewardBalanceAfter.gt(curveRewardBalanceBefore),
-          "expected curve balance after withdrawal to be greater than before withdrawal",
-        );
+        if (providersConfigs.gauge !== ZERO_ADDRESS) {
+          assert(
+            curveRewardBalanceAfter.gt(curveRewardBalanceBefore),
+            "expected curve balance after withdrawal to be greater than before withdrawal",
+          );
+        }
         // for some reason forking mainnet we don't get back wmatic rewards(wamtic rewards were stopped from curve's end IMO)
         assert(
           wmaticRewardBalanceAfter.gte(wmaticRewardBalanceBefore),
