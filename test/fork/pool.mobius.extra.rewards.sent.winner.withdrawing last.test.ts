@@ -32,6 +32,8 @@ contract("Pool with Mobius Strategy with extra reward tokens sent to strategy & 
   let mobi: any;
   let celo: any;
   let stCeloToken: any;
+  let principal: any;
+
   GoodGhostingArtifact = Pool;
 
   if (configs.deployConfigs.strategy === "mobius-cUSD-DAI") {
@@ -116,7 +118,7 @@ contract("Pool with Mobius Strategy with extra reward tokens sent to strategy & 
         }
       } else {
         const unlockedBalance = await token.methods.balanceOf(unlockedDaiAccount).call({ from: admin });
-        const daiAmount = segmentPayment.mul(web3.utils.toBN(depositCount * 10)).toString();
+        const daiAmount = segmentPayment.mul(web3.utils.toBN(depositCount)).toString();
         console.log("unlockedBalance: ", web3.utils.toBN(unlockedBalance).div(web3.utils.toBN(daiDecimals)).toString());
         console.log("daiAmountToTransfer", web3.utils.toBN(daiAmount).div(web3.utils.toBN(daiDecimals)).toString());
         for (let i = 0; i < players.length; i++) {
@@ -416,6 +418,8 @@ contract("Pool with Mobius Strategy with extra reward tokens sent to strategy & 
     });
 
     it("admin withdraws admin fee from contract", async () => {
+      principal = await goodGhosting.netTotalGamePrincipal();
+
       if (adminFee > 0) {
         let mobiRewardBalanceBefore = web3.utils.toBN(0);
         let mobiRewardBalanceAfter = web3.utils.toBN(0);
@@ -499,10 +503,14 @@ contract("Pool with Mobius Strategy with extra reward tokens sent to strategy & 
 
       const gaugeTokenBalance = await gaugeToken.methods.balanceOf(mobiusStrategy.address).call();
 
+      const leftOverPercent = (parseInt(strategyTotalAmount.toString()) * 100) / parseInt(principal.toString());
+
       console.log("BAL", inboundTokenPoolBalance.toString());
+      console.log("NET PRINCIPAL", principal.toString());
       console.log("REWARD BAL", rewardTokenPoolBalance.toString());
       console.log("STRATEGY BAL", strategyTotalAmount.toString());
       console.log("Gauge BAL", gaugeTokenBalance.toString());
+      console.log("Left over %", leftOverPercent.toString());
 
       // due to sol precsiion handling some dust amount is still left in
       assert(rewardTokenPoolBalance.lte(web3.utils.toBN("1000000000000000000")));

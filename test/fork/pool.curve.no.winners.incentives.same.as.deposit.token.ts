@@ -19,6 +19,8 @@ contract("Deposit Pool with Curve Strategy with no winners with incentives sent 
   let GoodGhostingArtifact: any;
   let curve: any;
   let wmatic: any;
+  let principal: any;
+
   const ZERO_ADDRESS = "0x0000000000000000000000000000000000000000";
 
   if (configs.deployConfigs.strategy === "polygon-curve-aave") {
@@ -81,7 +83,7 @@ contract("Deposit Pool with Curve Strategy with no winners with incentives sent 
 
       if (configs.deployConfigs.strategy !== "polygon-curve-stmatic-matic") {
         const unlockedBalance = await token.methods.balanceOf(unlockedDaiAccount).call({ from: admin });
-        const daiAmount = segmentPayment.mul(web3.utils.toBN(depositCount * 20)).toString();
+        const daiAmount = segmentPayment.mul(web3.utils.toBN(depositCount)).toString();
         console.log("unlockedBalance: ", web3.utils.toBN(unlockedBalance).div(web3.utils.toBN(daiDecimals)).toString());
         console.log("daiAmountToTransfer", web3.utils.toBN(daiAmount).div(web3.utils.toBN(daiDecimals)).toString());
         for (let i = 0; i < players.length; i++) {
@@ -125,7 +127,10 @@ contract("Deposit Pool with Curve Strategy with no winners with incentives sent 
       const userSlippageOptions = [1, 3, 4, 2, 1];
       for (let i = 0; i < players.length; i++) {
         const player = players[i];
-        await token.methods.approve(goodGhosting.address, web3.utils.toWei("200").toString()).send({ from: player });
+        await token.methods
+          .approve(goodGhosting.address, segmentPayment.mul(web3.utils.toBN(depositCount)).toString())
+          .send({ from: player });
+
         let playerEvent = "";
         let paymentEvent = 0;
         let result, slippageFromContract;
@@ -200,7 +205,9 @@ contract("Deposit Pool with Curve Strategy with no winners with incentives sent 
 
           await goodGhosting.earlyWithdraw(minAmount.toString(), { from: player });
 
-          await token.methods.approve(goodGhosting.address, web3.utils.toWei("200").toString()).send({ from: player });
+          await token.methods
+            .approve(goodGhosting.address, segmentPayment.mul(web3.utils.toBN(depositCount)).toString())
+            .send({ from: player });
 
           await goodGhosting.joinGame(minAmountWithFees.toString(), 0, { from: player });
         }
@@ -219,6 +226,8 @@ contract("Deposit Pool with Curve Strategy with no winners with incentives sent 
     });
 
     it("players withdraw from contract", async () => {
+      principal = await goodGhosting.netTotalGamePrincipal();
+
       for (let i = 0; i < players.length; i++) {
         const player = players[i];
         let curveRewardBalanceBefore = web3.utils.toBN(0);
@@ -308,10 +317,14 @@ contract("Deposit Pool with Curve Strategy with no winners with incentives sent 
 
         const gaugeTokenBalance = await gaugeToken.methods.balanceOf(curveStrategy.address).call();
 
-        console.log("POOL BAL", inboundTokenPoolBalance.toString());
+        const leftOverPercent = (parseInt(strategyTotalAmount.toString()) * 100) / parseInt(principal.toString());
+
+        console.log("BAL", inboundTokenPoolBalance.toString());
+        console.log("NET PRINCIPAL", principal.toString());
         console.log("REWARD BAL", curveRewardTokenPoolBalance.toString());
         console.log("STRATEGY BAL", strategyTotalAmount.toString());
-        console.log("GAUGE BAL", gaugeTokenBalance.toString());
+        console.log("Gauge BAL", gaugeTokenBalance.toString());
+        console.log("Left over %", leftOverPercent.toString());
 
         // dust amount
         assert(inboundTokenPoolBalance.gte(web3.utils.toBN(0)));

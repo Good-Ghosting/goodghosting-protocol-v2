@@ -45,6 +45,8 @@ contract("Pool with Curve Strategy with extra reward tokens sent to strategy & w
   let gaugeToken: any;
   let curveStrategy: any;
   let tokenIndex: any;
+  let principal: any;
+
   let admin = accounts[0];
   const players = accounts.slice(1, 6); // 5 players
   const loser = players[0];
@@ -83,7 +85,7 @@ contract("Pool with Curve Strategy with extra reward tokens sent to strategy & w
       gaugeToken = new web3.eth.Contract(curveGauge.abi, providersConfigs.gauge);
       if (configs.deployConfigs.strategy !== "polygon-curve-stmatic-matic") {
         const unlockedBalance = await token.methods.balanceOf(unlockedDaiAccount).call({ from: admin });
-        const daiAmount = segmentPayment.mul(web3.utils.toBN(depositCount * 20)).toString();
+        const daiAmount = segmentPayment.mul(web3.utils.toBN(depositCount)).toString();
         console.log("unlockedBalance: ", web3.utils.toBN(unlockedBalance).div(web3.utils.toBN(daiDecimals)).toString());
         console.log("daiAmountToTransfer", web3.utils.toBN(daiAmount).div(web3.utils.toBN(daiDecimals)).toString());
         for (let i = 0; i < players.length; i++) {
@@ -340,6 +342,8 @@ contract("Pool with Curve Strategy with extra reward tokens sent to strategy & w
     });
 
     it("ghosts withdraw from contract", async () => {
+      principal = await goodGhosting.netTotalGamePrincipal();
+
       for (let i = 3; i < players.length; i++) {
         const player = players[i];
         let curveRewardBalanceBefore = web3.utils.toBN(0);
@@ -444,10 +448,14 @@ contract("Pool with Curve Strategy with extra reward tokens sent to strategy & w
 
       const gaugeTokenBalance = await gaugeToken.methods.balanceOf(curveStrategy.address).call();
 
-      console.log("POOL BAL", inboundTokenPoolBalance.toString());
+      const leftOverPercent = (parseInt(strategyTotalAmount.toString()) * 100) / parseInt(principal.toString());
+
+      console.log("BAL", inboundTokenPoolBalance.toString());
+      console.log("NET PRINCIPAL", principal.toString());
       console.log("REWARD BAL", inboundcrvTokenPoolBalance.toString());
       console.log("STRATEGY BAL", strategyTotalAmount.toString());
-      console.log("GAUGE BAL", gaugeTokenBalance.toString());
+      console.log("Gauge BAL", gaugeTokenBalance.toString());
+      console.log("Left over %", leftOverPercent.toString());
 
       // due to sol precsiion handling some dust amount is still left in
       assert(inboundcrvTokenPoolBalance.lt(web3.utils.toBN("6000000000000000")));

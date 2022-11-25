@@ -19,6 +19,8 @@ contract("Variale Deposit Pool with Curve Strategy with extra reward tokens sent
   let GoodGhostingArtifact: any;
   let curve: any;
   let wmatic: any;
+  let principal: any;
+
   const ZERO_ADDRESS = "0x0000000000000000000000000000000000000000";
 
   if (configs.deployConfigs.strategy === "polygon-curve-aave") {
@@ -133,7 +135,9 @@ contract("Variale Deposit Pool with Curve Strategy with extra reward tokens sent
       const userSlippageOptions = [1, 3, 4, 2, 1];
       for (let i = 0; i < players.length; i++) {
         const player = players[i];
-        await token.methods.approve(goodGhosting.address, web3.utils.toWei("200").toString()).send({ from: player });
+        await token.methods
+          .approve(goodGhosting.address, web3.utils.toWei("200000000000000000").toString())
+          .send({ from: player });
         let playerEvent = "";
         let paymentEvent = 0;
         let result, slippageFromContract;
@@ -221,7 +225,9 @@ contract("Variale Deposit Pool with Curve Strategy with extra reward tokens sent
 
           await goodGhosting.earlyWithdraw(minAmount.toString(), { from: player });
 
-          await token.methods.approve(goodGhosting.address, web3.utils.toWei("200").toString()).send({ from: player });
+          await token.methods
+            .approve(goodGhosting.address, web3.utils.toWei("200000000000000000").toString())
+            .send({ from: player });
 
           await goodGhosting.joinGame(minAmountWithFees.toString(), web3.utils.toWei("15"), { from: player });
         }
@@ -236,7 +242,7 @@ contract("Variale Deposit Pool with Curve Strategy with extra reward tokens sent
       for (let segmentIndex = 1; segmentIndex < depositCount; segmentIndex++) {
         await timeMachine.advanceTime(segmentLength);
         // j must start at 1 - Player1 (index 0) early withdraws after everyone else deposits, so won't continue making deposits
-        for (let j = 2; j < 3; j++) {
+        for (let j = 2; j < players.length; j++) {
           const player = players[j];
           let slippageFromContract;
           const userProvidedMinAmount = segmentPayment.sub(
@@ -364,6 +370,8 @@ contract("Variale Deposit Pool with Curve Strategy with extra reward tokens sent
     });
 
     it("players withdraw from contract", async () => {
+      principal = await goodGhosting.netTotalGamePrincipal();
+
       const largeDepositPlayerInboundTokenBalanceBefore = web3.utils.toBN(
         await token.methods.balanceOf(players[2]).call({ from: admin }),
       );
@@ -409,20 +417,18 @@ contract("Variale Deposit Pool with Curve Strategy with extra reward tokens sent
 
         console.log("BALL", curveRewardBalanceAfter.toString());
 
-        if (i == 2) {
-          if (providersConfigs.gauge !== ZERO_ADDRESS) {
-            assert(
-              curveRewardBalanceAfter.gt(curveRewardBalanceBefore),
-              "expected curve balance after withdrawal to be greater than before withdrawal",
-            );
-          }
-
-          // for some reason forking mainnet we don't get back wmatic rewards(wamtic rewards were stopped from curve's end IMO)
+        if (providersConfigs.gauge !== ZERO_ADDRESS) {
           assert(
-            wmaticRewardBalanceBefore.lte(wmaticRewardBalanceAfter),
-            "expected wmatic balance after withdrawal to be equal to or less than before withdrawal",
+            curveRewardBalanceAfter.gt(curveRewardBalanceBefore),
+            "expected curve balance after withdrawal to be greater than before withdrawal",
           );
         }
+
+        // for some reason forking mainnet we don't get back wmatic rewards(wamtic rewards were stopped from curve's end IMO)
+        assert(
+          wmaticRewardBalanceBefore.lte(wmaticRewardBalanceAfter),
+          "expected wmatic balance after withdrawal to be equal to or less than before withdrawal",
+        );
       }
 
       const largeDepositPlayerInboundTokenBalanceAfter = web3.utils.toBN(
@@ -464,7 +470,7 @@ contract("Variale Deposit Pool with Curve Strategy with extra reward tokens sent
         smallDepositPlayerWmaticRewardBalanceBefore,
       );
 
-      assert(inboundTokenBalanceDiffForPlayer2.lte(netAmountPaidForSmallDepositPlayer));
+      assert(inboundTokenBalanceDiffForPlayer2.gt(netAmountPaidForSmallDepositPlayer));
       assert(inboundTokenBalanceDiffForPlayer1.gt(netAmountPaidForLargeDepositPlayer));
 
       assert(curveBalanceDiffForPlayer1.gte(curveBalanceDiffForPlayer2));
@@ -501,10 +507,14 @@ contract("Variale Deposit Pool with Curve Strategy with extra reward tokens sent
 
         const gaugeTokenBalance = await gaugeToken.methods.balanceOf(curveStrategy.address).call();
 
-        console.log("POOL BAL", inboundTokenPoolBalance.toString());
+        const leftOverPercent = (parseInt(strategyTotalAmount.toString()) * 100) / parseInt(principal.toString());
+
+        console.log("BAL", inboundTokenPoolBalance.toString());
         console.log("REWARD BAL", rewardokenPoolBalance.toString());
+        console.log("NET PRINCIPAL", principal.toString());
         console.log("STRATEGY BAL", strategyTotalAmount.toString());
-        console.log("GAUGE BAL", gaugeTokenBalance.toString());
+        console.log("Gauge BAL", gaugeTokenBalance.toString());
+        console.log("Left over %", leftOverPercent.toString());
 
         inboundTokenBalanceAfter = web3.utils.toBN(await token.methods.balanceOf(admin).call({ from: admin }));
         curveRewardBalanceAfter = web3.utils.toBN(await curve.methods.balanceOf(admin).call({ from: admin }));
