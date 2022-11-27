@@ -19,6 +19,17 @@ import {
 } from "./pool.utils";
 
 import { MintableERC20__factory } from "../src/types";
+import {
+  getCumulativePlayerIndexSum,
+  getDepositRoundInterestSharePercentage,
+  getGameGrossInterest,
+  getMultiplier,
+  getPlayerIndexSum,
+  getPlayerInterest,
+  getPlayerNetDepositAmount,
+  getTotalWinnerDeposits,
+} from "./pool.accounting.test";
+import { BigNumber } from "ethers";
 
 chai.use(solidity);
 
@@ -2167,7 +2178,7 @@ export const shouldBehaveLikePlayersWithdrawingFromGGPool = async (strategyType:
     }
   });
 
-  it("pays a bonus to winners and losers get their principle back", async () => {
+  it.only("pays a bonus to winners and losers get their principle back", async () => {
     const accounts = await ethers.getSigners();
     const deployer = accounts[0];
 
@@ -2237,6 +2248,8 @@ export const shouldBehaveLikePlayersWithdrawingFromGGPool = async (strategyType:
     const player2PreWithdrawBalance = await contracts.inboundToken.balanceOf(player2.address);
     playerMaticBalanceBeforeWithdraw = await contracts.rewardToken.balanceOf(player2.address);
 
+    const playerExpectedInterest = await getPlayerInterest(contracts.goodGhosting, contracts.strategy, player2.address);
+
     await contracts.goodGhosting.connect(player2).withdraw(0);
     playerMaticBalanceAfterWithdraw = await contracts.rewardToken.balanceOf(player2.address);
     if (strategyType !== "curve" && strategyType !== "mobius") {
@@ -2244,13 +2257,14 @@ export const shouldBehaveLikePlayersWithdrawingFromGGPool = async (strategyType:
     }
 
     const player2PostWithdrawBalance = await contracts.inboundToken.balanceOf(player2.address);
-    const totalGameInterest = await contracts.goodGhosting.totalGameInterest.call();
-    const adminFeeAmount = ethers.BigNumber.from(1).mul(totalGameInterest).div(ethers.BigNumber.from("100"));
     const withdrawalValue = player2PostWithdrawBalance.sub(player2PreWithdrawBalance);
-
     const userDeposit = ethers.BigNumber.from(segmentPayment).mul(ethers.BigNumber.from(depositCount));
+    const playerWithdrawnInterest = withdrawalValue.sub(userDeposit);
+
+    //TODO - debug
+    assert(playerWithdrawnInterest.eq(playerExpectedInterest));
     // taking in account the pool fees 5%
-    assert(withdrawalValue.lte(userDeposit.add(ethers.utils.parseEther("100000")).sub(adminFeeAmount)));
+    //assert(withdrawalValue.lte(userDeposit.add(ethers.utils.parseEther("100000")).sub(adminFeeAmount)));
   });
 
   it("reverts if user tries to withdraw more than once", async () => {
