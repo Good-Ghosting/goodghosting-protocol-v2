@@ -1,5 +1,3 @@
-import { buildCalcTokenAmountParameters, selectWithdrawAmount } from "./pool.curve.utils";
-
 const Pool = artifacts.require("Pool");
 const CurveStrategy = artifacts.require("CurveStrategy");
 const timeMachine = require("ganache-time-traveler");
@@ -12,7 +10,7 @@ const configs = require("../../deploy.config");
 const providerConfig = require("../../providers.config");
 const maticpoolABI = require("../../abi-external/curve-matic-pool-abi.json");
 
-contract("Variale Deposit Pool with Curve Strategy with extra reward tokens sent to strategy", accounts => {
+contract("Variale Deposit Pool with Curve Strategy with whale withdrawing after the fishes", accounts => {
   // Only executes this test file for local network fork
   if (!["local-variable-polygon"].includes(process.env.NETWORK ? process.env.NETWORK : "")) return;
 
@@ -127,10 +125,6 @@ contract("Variale Deposit Pool with Curve Strategy with extra reward tokens sent
           );
         }
       }
-
-      await curve.methods
-        .transfer(curveStrategy.address, web3.utils.toWei("0.5").toString())
-        .send({ from: unlockedDaiAccount });
     });
 
     it("players approve Inbound Token to contract and join the game", async () => {
@@ -142,15 +136,21 @@ contract("Variale Deposit Pool with Curve Strategy with extra reward tokens sent
           .send({ from: player });
         let playerEvent = "";
         let paymentEvent = 0;
-        let result;
+        let result, slippageFromContract;
         let minAmountWithFees: any = 0;
         const userProvidedMinAmount = segmentPayment.sub(
           segmentPayment.mul(web3.utils.toBN(userSlippageOptions[i].toString())).div(web3.utils.toBN(100)),
         );
 
-        const slippageFromContract = await pool.methods
-          .calc_token_amount(...buildCalcTokenAmountParameters(segmentPayment, tokenIndex, providersConfigs.poolType))
-          .call();
+        if (providersConfigs.poolType == 0) {
+          slippageFromContract = await pool.methods.calc_token_amount([segmentPayment.toString(), 0, 0], true).call();
+        } else if (providersConfigs.poolType == 1) {
+          slippageFromContract = await pool.methods
+            .calc_token_amount([segmentPayment.toString(), 0, 0, 0, 0], true)
+            .call();
+        } else {
+          slippageFromContract = await pool.methods.calc_token_amount([0, segmentPayment.toString()]).call();
+        }
 
         minAmountWithFees =
           parseInt(userProvidedMinAmount.toString()) > parseInt(slippageFromContract.toString())
@@ -191,10 +191,15 @@ contract("Variale Deposit Pool with Curve Strategy with extra reward tokens sent
           const withdrawAmount = segmentPayment.sub(
             segmentPayment.mul(web3.utils.toBN(earlyWithdrawFee)).div(web3.utils.toBN(100)),
           );
-          const toLpValue = selectWithdrawAmount(providersConfigs.poolType, withdrawAmount, segmentPayment);
-          let lpTokenAmount = await pool.methods
-            .calc_token_amount(...buildCalcTokenAmountParameters(toLpValue, tokenIndex, providersConfigs.poolType))
-            .call();
+          let lpTokenAmount;
+
+          if (providersConfigs.poolType == 0) {
+            lpTokenAmount = await pool.methods.calc_token_amount([withdrawAmount.toString(), 0, 0], true).call();
+          } else if (providersConfigs.poolType == 1) {
+            lpTokenAmount = await pool.methods.calc_token_amount([withdrawAmount.toString(), 0, 0, 0, 0], true).call();
+          } else {
+            lpTokenAmount = await pool.methods.calc_token_amount([0, segmentPayment.toString()]).call();
+          }
 
           const gaugeTokenBalance = await gaugeToken.methods.balanceOf(curveStrategy.address).call();
 
@@ -233,15 +238,22 @@ contract("Variale Deposit Pool with Curve Strategy with extra reward tokens sent
       for (let segmentIndex = 1; segmentIndex < depositCount; segmentIndex++) {
         await timeMachine.advanceTime(segmentLength);
         // j must start at 1 - Player1 (index 0) early withdraws after everyone else deposits, so won't continue making deposits
-        for (let j = 2; j < players.length; j++) {
+        for (let j = 1; j < players.length; j++) {
           const player = players[j];
+          let slippageFromContract;
           const userProvidedMinAmount = segmentPayment.sub(
             segmentPayment.mul(web3.utils.toBN(userSlippageOptions[j].toString())).div(web3.utils.toBN(100)),
           );
 
-          const slippageFromContract = await pool.methods
-            .calc_token_amount(...buildCalcTokenAmountParameters(segmentPayment, tokenIndex, providersConfigs.poolType))
-            .call();
+          if (providersConfigs.poolType == 0) {
+            slippageFromContract = await pool.methods.calc_token_amount([segmentPayment.toString(), 0, 0], true).call();
+          } else if (providersConfigs.poolType == 1) {
+            slippageFromContract = await pool.methods
+              .calc_token_amount([segmentPayment.toString(), 0, 0, 0, 0], true)
+              .call();
+          } else {
+            slippageFromContract = await pool.methods.calc_token_amount([0, segmentPayment.toString()]).call();
+          }
 
           const minAmountWithFees =
             parseInt(userProvidedMinAmount.toString()) > parseInt(slippageFromContract.toString())
@@ -282,10 +294,15 @@ contract("Variale Deposit Pool with Curve Strategy with extra reward tokens sent
           const withdrawAmount = playerInfo.amountPaid.sub(
             playerInfo.amountPaid.mul(web3.utils.toBN(earlyWithdrawFee)).div(web3.utils.toBN(100)),
           );
-          const toLpValue = selectWithdrawAmount(providersConfigs.poolType, withdrawAmount, segmentPayment);
-          let lpTokenAmount = await pool.methods
-            .calc_token_amount(...buildCalcTokenAmountParameters(toLpValue, tokenIndex, providersConfigs.poolType))
-            .call();
+          let lpTokenAmount;
+
+          if (providersConfigs.poolType == 0) {
+            lpTokenAmount = await pool.methods.calc_token_amount([withdrawAmount.toString(), 0, 0], true).call();
+          } else if (providersConfigs.poolType == 1) {
+            lpTokenAmount = await pool.methods.calc_token_amount([withdrawAmount.toString(), 0, 0, 0, 0], true).call();
+          } else {
+            lpTokenAmount = await pool.methods.calc_token_amount([0, segmentPayment.toString()]).call();
+          }
 
           const gaugeTokenBalance = await gaugeToken.methods.balanceOf(curveStrategy.address).call();
           if (parseInt(gaugeTokenBalance.toString()) < parseInt(lpTokenAmount.toString())) {
@@ -314,14 +331,19 @@ contract("Variale Deposit Pool with Curve Strategy with extra reward tokens sent
       }
       // above, it accounted for 1st deposit window, and then the loop runs till depositCount - 1.
       // now, we move 2 more segments (depositCount-1 and depositCount) to complete the game.
+      const winnerCountBeforeEarlyWithdraw = await goodGhosting.winnerCount();
       const playerInfo = await goodGhosting.players(userWithdrawingAfterLastSegment);
       const withdrawAmount = playerInfo.amountPaid.sub(
         playerInfo.amountPaid.mul(web3.utils.toBN(earlyWithdrawFee)).div(web3.utils.toBN(100)),
       );
-      const toLpValue = selectWithdrawAmount(providersConfigs.poolType, withdrawAmount, segmentPayment);
-      let lpTokenAmount = await pool.methods
-        .calc_token_amount(...buildCalcTokenAmountParameters(toLpValue, tokenIndex, providersConfigs.poolType))
-        .call();
+      let lpTokenAmount;
+      if (providersConfigs.poolType == 0) {
+        lpTokenAmount = await pool.methods.calc_token_amount([withdrawAmount.toString(), 0, 0], true).call();
+      } else if (providersConfigs.poolType == 1) {
+        lpTokenAmount = await pool.methods.calc_token_amount([withdrawAmount.toString(), 0, 0, 0, 0], true).call();
+      } else {
+        lpTokenAmount = await pool.methods.calc_token_amount([0, segmentPayment.toString()]).call();
+      }
 
       const gaugeTokenBalance = await gaugeToken.methods.balanceOf(curveStrategy.address).call();
       if (parseInt(gaugeTokenBalance.toString()) < parseInt(lpTokenAmount.toString())) {
@@ -339,6 +361,11 @@ contract("Variale Deposit Pool with Curve Strategy with extra reward tokens sent
       }
 
       await goodGhosting.earlyWithdraw(minAmount.toString(), { from: userWithdrawingAfterLastSegment });
+
+      const winnerCountAfterEarlyWithdraw = await goodGhosting.winnerCount();
+
+      assert(winnerCountBeforeEarlyWithdraw.eq(web3.utils.toBN(4)));
+      assert(winnerCountAfterEarlyWithdraw.eq(web3.utils.toBN(3)));
       await timeMachine.advanceTime(segmentLength);
       const waitingRoundLength = await goodGhosting.waitingRoundSegmentLength();
       await timeMachine.advanceTime(parseInt(waitingRoundLength.toString()));
@@ -373,7 +400,7 @@ contract("Variale Deposit Pool with Curve Strategy with extra reward tokens sent
       const netAmountPaidForSmallDepositPlayer = playerInfoForSmallDepositPlayer.netAmountPaid;
 
       // starts from 2, since player1 (loser), requested an early withdraw and player 2 withdrew after the last segment
-      for (let i = 2; i < players.length; i++) {
+      for (let i = 3; i < players.length; i++) {
         const player = players[i];
         let curveRewardBalanceBefore = web3.utils.toBN(0);
         let curveRewardBalanceAfter = web3.utils.toBN(0);
@@ -384,13 +411,10 @@ contract("Variale Deposit Pool with Curve Strategy with extra reward tokens sent
         wmaticRewardBalanceBefore = web3.utils.toBN(await wmatic.methods.balanceOf(player).call({ from: admin }));
         const playerInfo = await goodGhosting.players(player);
 
-        await goodGhosting.withdraw("0", { from: player });
+        await goodGhosting.withdraw(playerInfo.netAmountPaid.toString(), { from: player });
 
         curveRewardBalanceAfter = web3.utils.toBN(await curve.methods.balanceOf(player).call({ from: admin }));
-
         wmaticRewardBalanceAfter = web3.utils.toBN(await wmatic.methods.balanceOf(player).call({ from: admin }));
-
-        console.log("BALL", curveRewardBalanceAfter.toString());
 
         if (providersConfigs.gauge !== ZERO_ADDRESS) {
           assert(
@@ -405,6 +429,35 @@ contract("Variale Deposit Pool with Curve Strategy with extra reward tokens sent
           "expected wmatic balance after withdrawal to be equal to or less than before withdrawal",
         );
       }
+
+      // whale withdrawing after the fishes
+      const player = players[2];
+      let curveRewardBalanceBefore = web3.utils.toBN(0);
+      let curveRewardBalanceAfter = web3.utils.toBN(0);
+      let wmaticRewardBalanceBefore = web3.utils.toBN(0);
+      let wmaticRewardBalanceAfter = web3.utils.toBN(0);
+
+      curveRewardBalanceBefore = web3.utils.toBN(await curve.methods.balanceOf(player).call({ from: admin }));
+      wmaticRewardBalanceBefore = web3.utils.toBN(await wmatic.methods.balanceOf(player).call({ from: admin }));
+      const playerInfo = await goodGhosting.players(player);
+
+      await goodGhosting.withdraw(playerInfo.netAmountPaid.toString(), { from: player });
+
+      curveRewardBalanceAfter = web3.utils.toBN(await curve.methods.balanceOf(player).call({ from: admin }));
+      wmaticRewardBalanceAfter = web3.utils.toBN(await wmatic.methods.balanceOf(player).call({ from: admin }));
+
+      if (providersConfigs.gauge !== ZERO_ADDRESS) {
+        assert(
+          curveRewardBalanceAfter.gt(curveRewardBalanceBefore),
+          "expected curve balance after withdrawal to be greater than before withdrawal",
+        );
+      }
+
+      // for some reason forking mainnet we don't get back wmatic rewards(wamtic rewards were stopped from curve's end IMO)
+      assert(
+        wmaticRewardBalanceBefore.lte(wmaticRewardBalanceAfter),
+        "expected wmatic balance after withdrawal to be equal to or less than before withdrawal",
+      );
 
       const largeDepositPlayerInboundTokenBalanceAfter = web3.utils.toBN(
         await token.methods.balanceOf(players[2]).call({ from: admin }),
@@ -509,8 +562,6 @@ contract("Variale Deposit Pool with Curve Strategy with extra reward tokens sent
           "expected wmatic balance after withdrawal to be equal to or greater than before withdrawal",
         );
         assert(inboundTokenPoolBalance.eq(web3.utils.toBN(0)));
-        // accounting for some dust amount checks the balance is less than the extra amount we added i.e 0.5
-        assert(rewardokenPoolBalance.lt(web3.utils.toBN("500000000000000000")));
       }
     });
   });

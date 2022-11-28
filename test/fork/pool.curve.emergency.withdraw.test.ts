@@ -21,6 +21,10 @@ contract("Pool with Curve Strategy when admin enables early game completion", ac
   let GoodGhostingArtifact: any;
   let curve: any;
   let wmatic: any;
+  let principal: any;
+
+  const ZERO_ADDRESS = "0x0000000000000000000000000000000000000000";
+
   if (configs.deployConfigs.strategy === "polygon-curve-aave") {
     GoodGhostingArtifact = Pool;
     providersConfigs = providerConfig.providers["polygon"].strategies["polygon-curve-aave"];
@@ -80,7 +84,7 @@ contract("Pool with Curve Strategy when admin enables early game completion", ac
 
       if (configs.deployConfigs.strategy !== "polygon-curve-stmatic-matic") {
         const unlockedBalance = await token.methods.balanceOf(unlockedDaiAccount).call({ from: admin });
-        const daiAmount = segmentPayment.mul(web3.utils.toBN(depositCount * 20)).toString();
+        const daiAmount = segmentPayment.mul(web3.utils.toBN(depositCount)).toString();
         console.log("unlockedBalance: ", web3.utils.toBN(unlockedBalance).div(web3.utils.toBN(daiDecimals)).toString());
         console.log("daiAmountToTransfer", web3.utils.toBN(daiAmount).div(web3.utils.toBN(daiDecimals)).toString());
         for (let i = 0; i < players.length; i++) {
@@ -116,7 +120,10 @@ contract("Pool with Curve Strategy when admin enables early game completion", ac
       const userSlippageOptions = [1, 3, 4, 2, 1];
       for (let i = 0; i < players.length; i++) {
         const player = players[i];
-        await token.methods.approve(goodGhosting.address, web3.utils.toWei("200").toString()).send({ from: player });
+        await token.methods
+          .approve(goodGhosting.address, segmentPayment.mul(web3.utils.toBN(depositCount)).toString())
+          .send({ from: player });
+
         let playerEvent = "";
         let paymentEvent = 0;
         let result;
@@ -180,7 +187,9 @@ contract("Pool with Curve Strategy when admin enables early game completion", ac
 
           await goodGhosting.earlyWithdraw(minAmount.toString(), { from: player });
 
-          await token.methods.approve(goodGhosting.address, web3.utils.toWei("200").toString()).send({ from: player });
+          await token.methods
+            .approve(goodGhosting.address, segmentPayment.mul(web3.utils.toBN(depositCount)).toString())
+            .send({ from: player });
 
           await goodGhosting.joinGame(minAmountWithFees.toString(), 0, { from: player });
         }
@@ -195,6 +204,8 @@ contract("Pool with Curve Strategy when admin enables early game completion", ac
     });
 
     it("players withdraw from contract", async () => {
+      principal = await goodGhosting.netTotalGamePrincipal();
+
       for (let i = 0; i < players.length; i++) {
         const player = players[i];
         let curveRewardBalanceBefore = web3.utils.toBN(0);
@@ -215,10 +226,12 @@ contract("Pool with Curve Strategy when admin enables early game completion", ac
         curveRewardBalanceAfter = web3.utils.toBN(await curve.methods.balanceOf(player).call({ from: admin }));
         wmaticRewardBalanceAfter = web3.utils.toBN(await wmatic.methods.balanceOf(player).call({ from: admin }));
 
-        assert(
-          curveRewardBalanceAfter.gt(curveRewardBalanceBefore),
-          "expected curve balance after withdrawal to be greater than before withdrawal",
-        );
+        if (providersConfigs.gauge !== ZERO_ADDRESS) {
+          assert(
+            curveRewardBalanceAfter.gt(curveRewardBalanceBefore),
+            "expected curve balance after withdrawal to be greater than before withdrawal",
+          );
+        }
 
         // for some reason forking mainnet we don't get back wmatic rewards(wamtic rewards were stopped from curve's end IMO)
         assert(
@@ -272,10 +285,12 @@ contract("Pool with Curve Strategy when admin enables early game completion", ac
 
         assert(inboundTokenBalanceAfter.gt(inboundTokenBalanceBefore));
 
-        assert(
-          curveRewardBalanceAfter.gt(curveRewardBalanceBefore),
-          "expected curve balance after withdrawal to be greater than before withdrawal",
-        );
+        if (providersConfigs.gauge !== ZERO_ADDRESS) {
+          assert(
+            curveRewardBalanceAfter.gt(curveRewardBalanceBefore),
+            "expected curve balance after withdrawal to be greater than before withdrawal",
+          );
+        }
         // for some reason forking mainnet we don't get back wmatic rewards(wamtic rewards were stopped from curve's end IMO)
         assert(
           wmaticRewardBalanceAfter.gte(wmaticRewardBalanceBefore),
@@ -286,10 +301,14 @@ contract("Pool with Curve Strategy when admin enables early game completion", ac
 
         const gaugeTokenBalance = await gaugeToken.methods.balanceOf(curveStrategy.address).call();
 
-        console.log("POOL BAL", inboundTokenPoolBalance.toString());
+        const leftOverPercent = (parseInt(strategyTotalAmount.toString()) * 100) / parseInt(principal.toString());
+
+        console.log("BAL", inboundTokenPoolBalance.toString());
+        console.log("NET PRINCIPAL", principal.toString());
         console.log("REWARD BAL", rewardokenPoolBalance.toString());
         console.log("STRATEGY BAL", strategyTotalAmount.toString());
-        console.log("GAUGE BAL", gaugeTokenBalance.toString());
+        console.log("Gauge BAL", gaugeTokenBalance.toString());
+        console.log("Left over %", leftOverPercent.toString());
         assert(inboundTokenPoolBalance.eq(web3.utils.toBN(0)));
       }
     });

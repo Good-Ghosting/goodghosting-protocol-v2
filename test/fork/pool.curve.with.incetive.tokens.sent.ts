@@ -25,6 +25,8 @@ contract("Pool with Curve Strategy with incentive tokens sent to pool", accounts
   let GoodGhostingArtifact: any;
   let curve: any;
   let wmatic: any;
+  let principal: any;
+
   if (configs.deployConfigs.strategy === "polygon-curve-aave") {
     GoodGhostingArtifact = Pool;
     providersConfigs = providerConfig.providers["polygon"].strategies["polygon-curve-aave"];
@@ -89,7 +91,7 @@ contract("Pool with Curve Strategy with incentive tokens sent to pool", accounts
       gaugeToken = new web3.eth.Contract(curveGauge.abi, providersConfigs.gauge);
       if (configs.deployConfigs.strategy !== "polygon-curve-stmatic-matic") {
         const unlockedBalance = await token.methods.balanceOf(unlockedDaiAccount).call({ from: admin });
-        const daiAmount = segmentPayment.mul(web3.utils.toBN(depositCount * 20)).toString();
+        const daiAmount = segmentPayment.mul(web3.utils.toBN(depositCount)).toString();
         console.log("unlockedBalance: ", web3.utils.toBN(unlockedBalance).div(web3.utils.toBN(daiDecimals)).toString());
         console.log("daiAmountToTransfer", web3.utils.toBN(daiAmount).div(web3.utils.toBN(daiDecimals)).toString());
         for (let i = 0; i < players.length; i++) {
@@ -217,7 +219,7 @@ contract("Pool with Curve Strategy with incentive tokens sent to pool", accounts
         await timeMachine.advanceTime(segmentLength);
         // j must start at 1 - Player1 (index 0) early withdraws after everyone else deposits, so won't continue making deposits
         // only 1 player wins rest all players are ghosts
-        for (let j = 2; j < 3; j++) {
+        for (let j = 2; j < players.length; j++) {
           const player = players[j];
           const userProvidedMinAmount = segmentPayment.sub(
             segmentPayment.mul(web3.utils.toBN(userSlippageOptions[j].toString())).div(web3.utils.toBN(100)),
@@ -319,6 +321,8 @@ contract("Pool with Curve Strategy with incentive tokens sent to pool", accounts
     });
 
     it("players withdraw from contract", async () => {
+      principal = await goodGhosting.netTotalGamePrincipal();
+
       for (let i = 2; i < players.length; i++) {
         const player = players[i];
         let curveRewardBalanceBefore = web3.utils.toBN(0);
@@ -343,21 +347,23 @@ contract("Pool with Curve Strategy with incentive tokens sent to pool", accounts
           .toBN(inboundTokenBalanceAfterRedeem)
           .sub(web3.utils.toBN(inboundTokenBalanceBeforeRedeem));
 
-        if (i == 2) {
+        // if (i == 2) {
+        if (providersConfigs.gauge !== ZERO_ADDRESS) {
           assert(
             curveRewardBalanceAfter.gt(curveRewardBalanceBefore),
             "expected curve balance after withdrawal to be greater than before withdrawal",
           );
-
-          assert(
-            incentiveBalanceAfter.gt(incentiveBalanceBefore),
-            "expected incentive token balance after withdrawal to be greater than before withdrawal",
-          );
-
-          assert(difference.gt(netAmountPaid), "expected balance diff to be more than paid amount");
-        } else {
-          assert(difference.lte(netAmountPaid), "expected balance diff to be more than paid amount");
         }
+
+        assert(
+          incentiveBalanceAfter.gt(incentiveBalanceBefore),
+          "expected incentive token balance after withdrawal to be greater than before withdrawal",
+        );
+
+        assert(difference.gt(netAmountPaid), "expected balance diff to be more than paid amount");
+        // } else {
+        //   assert(difference.lte(netAmountPaid), "expected balance diff to be more than paid amount");
+        // }
       }
     });
 
@@ -391,10 +397,12 @@ contract("Pool with Curve Strategy with incentive tokens sent to pool", accounts
           await incentiveToken.methods.balanceOf(goodGhosting.address).call({ from: admin }),
         );
 
-        assert(
-          curveRewardBalanceAfter.gt(curveRewardBalanceBefore),
-          "expected curve balance after withdrawal to be greater than before withdrawal",
-        );
+        if (providersConfigs.gauge !== ZERO_ADDRESS) {
+          assert(
+            curveRewardBalanceAfter.gt(curveRewardBalanceBefore),
+            "expected curve balance after withdrawal to be greater than before withdrawal",
+          );
+        }
 
         const inboundTokenPoolBalance = web3.utils.toBN(
           await token.methods.balanceOf(goodGhosting.address).call({ from: admin }),
@@ -406,10 +414,14 @@ contract("Pool with Curve Strategy with incentive tokens sent to pool", accounts
 
         const gaugeTokenBalance = await gaugeToken.methods.balanceOf(curveStrategy.address).call();
 
-        console.log("POOL BAL", inboundTokenPoolBalance.toString());
+        const leftOverPercent = (parseInt(strategyTotalAmount.toString()) * 100) / parseInt(principal.toString());
+
+        console.log("BAL", inboundTokenPoolBalance.toString());
+        console.log("NET PRINCIPAL", principal.toString());
         console.log("REWARD BAL", inboundcrvTokenPoolBalance.toString());
         console.log("STRATEGY BAL", strategyTotalAmount.toString());
-        console.log("GAUGE BAL", gaugeTokenBalance.toString());
+        console.log("Gauge BAL", gaugeTokenBalance.toString());
+        console.log("Left over %", leftOverPercent.toString());
 
         // accounting for some dust amount checks the balance is less than the extra amount we added i.e 0.5
         assert(inboundcrvTokenPoolBalance.lt(web3.utils.toBN("500000000000000000")));

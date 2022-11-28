@@ -22,6 +22,8 @@ contract("Pool with Curve Strategy with incentives sent same as deposit token", 
   let GoodGhostingArtifact: any;
   let curve: any;
   let wmatic: any;
+  const ZERO_ADDRESS = "0x0000000000000000000000000000000000000000";
+
   if (configs.deployConfigs.strategy === "polygon-curve-aave") {
     GoodGhostingArtifact = Pool;
     providersConfigs = providerConfig.providers["polygon"].strategies["polygon-curve-aave"];
@@ -45,6 +47,8 @@ contract("Pool with Curve Strategy with incentives sent same as deposit token", 
   let gaugeToken: any;
   let curveStrategy: any;
   let tokenIndex: any;
+  let principal: any;
+
   let admin = accounts[0];
   const players = accounts.slice(1, 6); // 5 players
   const loser = players[0];
@@ -84,7 +88,7 @@ contract("Pool with Curve Strategy with incentives sent same as deposit token", 
 
       if (configs.deployConfigs.strategy !== "polygon-curve-stmatic-matic") {
         const unlockedBalance = await token.methods.balanceOf(unlockedDaiAccount).call({ from: admin });
-        const daiAmount = segmentPayment.mul(web3.utils.toBN(depositCount * 20)).toString();
+        const daiAmount = segmentPayment.mul(web3.utils.toBN(depositCount)).toString();
         console.log("unlockedBalance: ", web3.utils.toBN(unlockedBalance).div(web3.utils.toBN(daiDecimals)).toString());
         console.log("daiAmountToTransfer", web3.utils.toBN(daiAmount).div(web3.utils.toBN(daiDecimals)).toString());
         for (let i = 0; i < players.length; i++) {
@@ -323,6 +327,8 @@ contract("Pool with Curve Strategy with incentives sent same as deposit token", 
     });
 
     it("players withdraw from contract", async () => {
+      principal = await goodGhosting.netTotalGamePrincipal();
+
       for (let i = 2; i < players.length; i++) {
         const player = players[i];
         let curveRewardBalanceBefore = web3.utils.toBN(0);
@@ -343,10 +349,12 @@ contract("Pool with Curve Strategy with incentives sent same as deposit token", 
         curveRewardBalanceAfter = web3.utils.toBN(await curve.methods.balanceOf(player).call({ from: admin }));
         wmaticRewardBalanceAfter = web3.utils.toBN(await wmatic.methods.balanceOf(player).call({ from: admin }));
 
-        assert(
-          curveRewardBalanceAfter.gt(curveRewardBalanceBefore),
-          "expected curve balance after withdrawal to be greater than before withdrawal",
-        );
+        if (providersConfigs.gauge !== ZERO_ADDRESS) {
+          assert(
+            curveRewardBalanceAfter.gt(curveRewardBalanceBefore),
+            "expected curve balance after withdrawal to be greater than before withdrawal",
+          );
+        }
 
         // for some reason forking mainnet we don't get back wmatic rewards(wamtic rewards were stopped from curve's end IMO)
         assert(
@@ -401,19 +409,25 @@ contract("Pool with Curve Strategy with incentives sent same as deposit token", 
 
         assert(inboundTokenPoolBalance.eq(web3.utils.toBN(0)));
 
-        assert(
-          curveRewardBalanceAfter.gt(curveRewardBalanceBefore),
-          "expected curve balance after withdrawal to be greater than before withdrawal",
-        );
+        if (providersConfigs.gauge !== ZERO_ADDRESS) {
+          assert(
+            curveRewardBalanceAfter.gt(curveRewardBalanceBefore),
+            "expected curve balance after withdrawal to be greater than before withdrawal",
+          );
+        }
 
         const strategyTotalAmount = await curveStrategy.getTotalAmount();
 
         const gaugeTokenBalance = await gaugeToken.methods.balanceOf(curveStrategy.address).call();
 
-        console.log("POOL BAL", inboundTokenPoolBalance.toString());
+        const leftOverPercent = (parseInt(strategyTotalAmount.toString()) * 100) / parseInt(principal.toString());
+
+        console.log("BAL", inboundTokenPoolBalance.toString());
+        console.log("NET PRINCIPAL", principal.toString());
         console.log("REWARD BAL", curveRewardTokenPoolBalance.toString());
         console.log("STRATEGY BAL", strategyTotalAmount.toString());
-        console.log("GAUGE BAL", gaugeTokenBalance.toString());
+        console.log("Gauge BAL", gaugeTokenBalance.toString());
+        console.log("Left over %", leftOverPercent.toString());
 
         // for some reason forking mainnet we don't get back wmatic rewards(wamtic rewards were stopped from curve's end IMO)
         assert(

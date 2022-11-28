@@ -21,6 +21,10 @@ contract("Variale Deposit Pool with Curve Strategy with incentives sent same as 
   let GoodGhostingArtifact: any;
   let curve: any;
   let wmatic: any;
+  let principal: any;
+
+  const ZERO_ADDRESS = "0x0000000000000000000000000000000000000000";
+
   if (configs.deployConfigs.strategy === "polygon-curve-aave") {
     GoodGhostingArtifact = Pool;
     providersConfigs = providerConfig.providers["polygon"].strategies["polygon-curve-aave"];
@@ -138,7 +142,9 @@ contract("Variale Deposit Pool with Curve Strategy with incentives sent same as 
       const userSlippageOptions = [1, 3, 4, 2, 1];
       for (let i = 0; i < players.length; i++) {
         const player = players[i];
-        await token.methods.approve(goodGhosting.address, web3.utils.toWei("200").toString()).send({ from: player });
+        await token.methods
+          .approve(goodGhosting.address, web3.utils.toWei("200000000000000000").toString())
+          .send({ from: player });
         let playerEvent = "";
         let paymentEvent = 0;
         let result;
@@ -215,7 +221,9 @@ contract("Variale Deposit Pool with Curve Strategy with incentives sent same as 
 
           await goodGhosting.earlyWithdraw(minAmount.toString(), { from: player });
 
-          await token.methods.approve(goodGhosting.address, web3.utils.toWei("200").toString()).send({ from: player });
+          await token.methods
+            .approve(goodGhosting.address, web3.utils.toWei("200000000000000000").toString())
+            .send({ from: player });
 
           await goodGhosting.joinGame(minAmountWithFees.toString(), web3.utils.toWei("15"), { from: player });
         }
@@ -348,6 +356,8 @@ contract("Variale Deposit Pool with Curve Strategy with incentives sent same as 
     });
 
     it("players withdraw from contract", async () => {
+      principal = await goodGhosting.netTotalGamePrincipal();
+
       const largeDepositPlayerInboundTokenBalanceBefore = web3.utils.toBN(
         await token.methods.balanceOf(players[2]).call({ from: admin }),
       );
@@ -390,10 +400,12 @@ contract("Variale Deposit Pool with Curve Strategy with incentives sent same as 
         curveRewardBalanceAfter = web3.utils.toBN(await curve.methods.balanceOf(player).call({ from: admin }));
         wmaticRewardBalanceAfter = web3.utils.toBN(await wmatic.methods.balanceOf(player).call({ from: admin }));
 
-        assert(
-          curveRewardBalanceAfter.gt(curveRewardBalanceBefore),
-          "expected curve balance after withdrawal to be greater than before withdrawal",
-        );
+        if (providersConfigs.gauge !== ZERO_ADDRESS) {
+          assert(
+            curveRewardBalanceAfter.gt(curveRewardBalanceBefore),
+            "expected curve balance after withdrawal to be greater than before withdrawal",
+          );
+        }
 
         // for some reason forking mainnet we don't get back wmatic rewards(wamtic rewards were stopped from curve's end IMO)
         assert(
@@ -478,10 +490,14 @@ contract("Variale Deposit Pool with Curve Strategy with incentives sent same as 
 
         const gaugeTokenBalance = await gaugeToken.methods.balanceOf(curveStrategy.address).call();
 
-        console.log("POOL BAL", inboundTokenPoolBalance.toString());
+        const leftOverPercent = (parseInt(strategyTotalAmount.toString()) * 100) / parseInt(principal.toString());
+
+        console.log("BAL", inboundTokenPoolBalance.toString());
         console.log("REWARD BAL", rewardokenPoolBalance.toString());
+        console.log("NET PRINCIPAL", principal.toString());
         console.log("STRATEGY BAL", strategyTotalAmount.toString());
-        console.log("GAUGE BAL", gaugeTokenBalance.toString());
+        console.log("Gauge BAL", gaugeTokenBalance.toString());
+        console.log("Left over %", leftOverPercent.toString());
 
         inboundTokenBalanceAfter = web3.utils.toBN(await token.methods.balanceOf(admin).call({ from: admin }));
         curveRewardBalanceAfter = web3.utils.toBN(await curve.methods.balanceOf(admin).call({ from: admin }));
@@ -489,10 +505,12 @@ contract("Variale Deposit Pool with Curve Strategy with incentives sent same as 
 
         assert(inboundTokenBalanceAfter.gt(inboundTokenBalanceBefore));
 
-        assert(
-          curveRewardBalanceAfter.gt(curveRewardBalanceBefore),
-          "expected curve balance after withdrawal to be greater than before withdrawal",
-        );
+        if (providersConfigs.gauge !== ZERO_ADDRESS) {
+          assert(
+            curveRewardBalanceAfter.gt(curveRewardBalanceBefore),
+            "expected curve balance after withdrawal to be greater than before withdrawal",
+          );
+        }
         // for some reason forking mainnet we don't get back wmatic rewards(wamtic rewards were stopped from curve's end IMO)
         assert(
           wmaticRewardBalanceAfter.gte(wmaticRewardBalanceBefore),

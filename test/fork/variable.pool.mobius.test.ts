@@ -32,6 +32,8 @@ contract("Variable Deposit Pool with Mobius Strategy", accounts => {
   let mobi: any;
   let celo: any;
   let stCeloToken: any;
+  let principal: any;
+
   GoodGhostingArtifact = Pool;
 
   if (configs.deployConfigs.strategy === "mobius-cUSD-DAI") {
@@ -141,7 +143,9 @@ contract("Variable Deposit Pool with Mobius Strategy", accounts => {
       const userSlippageOptions = [1, 3, 4, 2, 1];
       for (let i = 0; i < players.length; i++) {
         const player = players[i];
-        await token.methods.approve(goodGhosting.address, web3.utils.toWei("200").toString()).send({ from: player });
+        await token.methods
+          .approve(goodGhosting.address, web3.utils.toWei("200000000000000000").toString())
+          .send({ from: player });
         let playerEvent = "";
         let paymentEvent = 0;
         let result;
@@ -228,7 +232,7 @@ contract("Variable Deposit Pool with Mobius Strategy", accounts => {
           await goodGhosting.earlyWithdraw(minAmount.toString(), { from: player });
 
           await token.methods
-            .approve(goodGhosting.address, web3.utils.toWei("200").toString().toString())
+            .approve(goodGhosting.address, web3.utils.toWei("200000000000000000").toString().toString())
             .send({ from: player });
 
           await goodGhosting.joinGame(minAmountWithFees.toString(), web3.utils.toWei("23"), { from: player });
@@ -415,6 +419,8 @@ contract("Variable Deposit Pool with Mobius Strategy", accounts => {
     });
 
     it("players withdraw from contract", async () => {
+      principal = await goodGhosting.netTotalGamePrincipal();
+
       // starts from 2, since player1 (loser), requested an early withdraw and player 2 withdrew after the last segment
       for (let i = 2; i < players.length; i++) {
         const player = players[i];
@@ -473,10 +479,14 @@ contract("Variable Deposit Pool with Mobius Strategy", accounts => {
 
       const gaugeTokenBalance = await gaugeToken.methods.balanceOf(mobiusStrategy.address).call();
 
+      const leftOverPercent = (parseInt(strategyTotalAmount.toString()) * 100) / parseInt(principal.toString());
+
       console.log("BAL", inboundTokenPoolBalance.toString());
+      console.log("NET PRINCIPAL", principal.toString());
       console.log("REWARD BAL", rewardTokenPoolBalance.toString());
       console.log("STRATEGY BAL", strategyTotalAmount.toString());
       console.log("Gauge BAL", gaugeTokenBalance.toString());
+      console.log("Left over %", leftOverPercent.toString());
     });
   });
 });

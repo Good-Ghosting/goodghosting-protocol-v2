@@ -56,6 +56,8 @@ contract("Pool with Mobius Strategy", accounts => {
   let gaugeToken: any;
   let mobiusStrategy: any;
   let tokenIndex: any;
+  let principal: any;
+
   let admin = accounts[0];
   const players = accounts.slice(1, 6); // 5 players
   const loser = players[0];
@@ -116,7 +118,7 @@ contract("Pool with Mobius Strategy", accounts => {
         }
       } else {
         const unlockedBalance = await token.methods.balanceOf(unlockedDaiAccount).call({ from: admin });
-        const daiAmount = segmentPayment.mul(web3.utils.toBN(depositCount * 10)).toString();
+        const daiAmount = segmentPayment.mul(web3.utils.toBN(depositCount)).toString();
         console.log("unlockedBalance: ", web3.utils.toBN(unlockedBalance).div(web3.utils.toBN(daiDecimals)).toString());
         console.log("daiAmountToTransfer", web3.utils.toBN(daiAmount).div(web3.utils.toBN(daiDecimals)).toString());
         for (let i = 0; i < players.length; i++) {
@@ -351,6 +353,8 @@ contract("Pool with Mobius Strategy", accounts => {
     });
 
     it("players withdraw from contract", async () => {
+      principal = await goodGhosting.netTotalGamePrincipal();
+
       // starts from 2, since player1 (loser), requested an early withdraw and player 2 withdrew after the last segment
       for (let i = 2; i < players.length; i++) {
         const player = players[i];
@@ -420,10 +424,14 @@ contract("Pool with Mobius Strategy", accounts => {
 
         const gaugeTokenBalance = await gaugeToken.methods.balanceOf(mobiusStrategy.address).call();
 
+        const leftOverPercent = (parseInt(strategyTotalAmount.toString()) * 100) / parseInt(principal.toString());
+
         console.log("BAL", inboundTokenPoolBalance.toString());
+        console.log("NET PRINCIPAL", principal.toString());
         console.log("REWARD BAL", rewardTokenPoolBalance.toString());
         console.log("STRATEGY BAL", strategyTotalAmount.toString());
         console.log("Gauge BAL", gaugeTokenBalance.toString());
+        console.log("Left over %", leftOverPercent.toString());
 
         inboundTokenBalanceAfterWithdraw = web3.utils.toBN(await token.methods.balanceOf(admin).call({ from: admin }));
         mobiRewardBalanceAfter = web3.utils.toBN(await mobi.methods.balanceOf(admin).call({ from: admin }));
