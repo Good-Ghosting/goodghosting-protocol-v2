@@ -5,6 +5,7 @@ import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/security/Pausable.sol";
 import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+// import "hardhat/console.sol";
 import "./strategies/IStrategy.sol";
 
 //*********************************************************************//
@@ -878,9 +879,11 @@ contract Pool is Ownable, Pausable, ReentrancyGuard {
                 totalGameInterest = _grossInterest;
                 _rewardTokenAmounts = _grossRewardTokenAmount;
             } else {
+                uint256 _interestIncludingFee = totalGameInterest + _adminFeeAmount[0];
                 // if the admin hasn't made a withdrawal yet so we calculate the rise in interest & update the admin fee & interest
-                if (_grossInterest >= totalGameInterest) {
-                    uint256 difference = _grossInterest - totalGameInterest;
+                if (_grossInterest >= _interestIncludingFee) {
+                    uint256 difference = _grossInterest - _interestIncludingFee;
+
                     uint256 adminfeeShareForDifference;
                     // if there are no winners then set the difference as the admin share & total game interest
                     if (winnerCount == 0 || winnersLeftToWithdraw == 0) {
@@ -889,7 +892,7 @@ contract Pool is Ownable, Pausable, ReentrancyGuard {
                     } else {
                         // if there are winners then calculate the rise in admin fee & update both admin fee & interest accordingly
                         adminfeeShareForDifference = (difference * adminFee) / 100;
-                        totalGameInterest = _grossInterest - adminfeeShareForDifference;
+                        totalGameInterest = difference > 0 ? _grossInterest - adminfeeShareForDifference : totalGameInterest;
                     }
                     _adminFeeAmount[0] += adminfeeShareForDifference;
                 } else {
@@ -919,17 +922,17 @@ contract Pool is Ownable, Pausable, ReentrancyGuard {
                            _rewardTokenAmounts[i] += difference;
                         } else {
                            adminfeeShareForDifference = (difference * adminFee) / 100;
-                           _rewardTokenAmounts[i] = _grossRewardTokenAmount[i] - adminfeeShareForDifference;
+                           _rewardTokenAmounts[i] = difference > 0 ? _grossRewardTokenAmount[i] - adminfeeShareForDifference : _rewardTokenAmounts[i];
                         }
                         _adminFeeAmount[i + 1] += adminfeeShareForDifference;
                     } else {
                         uint256 adminfeeShareForDifference;
                         if (winnerCount == 0 || winnersLeftToWithdraw == 0) {
                             adminfeeShareForDifference = _grossRewardTokenAmount[i];
-                            totalGameInterest = _grossRewardTokenAmount[i];
+                            _rewardTokenAmounts[i] = _grossRewardTokenAmount[i];
                         } else {
                             adminfeeShareForDifference = (_grossRewardTokenAmount[i] * adminFee) / 100;
-                            totalGameInterest = _grossRewardTokenAmount[i] - adminfeeShareForDifference;
+                            _rewardTokenAmounts[i] = _grossRewardTokenAmount[i] - adminfeeShareForDifference;
                         }
                         _adminFeeAmount[i + 1] = adminfeeShareForDifference;
                     }
