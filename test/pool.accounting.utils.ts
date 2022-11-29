@@ -35,7 +35,7 @@ async function getCurrentDepositSegment(contract: Pool) {
   ]);
 
   if (emergencyWithdraw) {
-    return currentSegment;
+    return currentSegment.sub(BigNumber.from("1"));
   }
 
   const lastPaymentSegmentIndex = paymentSegments.sub(1);
@@ -70,7 +70,7 @@ export async function getGameGrossInterest(
   strategyContract: IStrategy,
 ): Promise<BigNumber> {
   const contractBalance = await strategyContract.getTotalAmount();
-  const totalGamePrincipal = await goodGhostingContract.totalGamePrincipal();
+  const totalGamePrincipal = await goodGhostingContract.netTotalGamePrincipal();
 
   const feeAdmin = await goodGhostingContract.adminFee();
   const interestAdminFeeAmount = await goodGhostingContract.adminFeeAmount(0);
@@ -92,9 +92,13 @@ export async function getPlayerInterest(
   const multiplier = await getMultiplier(goodGhostingContract);
   const playerIndexSum = await getPlayerIndexSum(goodGhostingContract, playerAddress);
   const cumulativePlayersIndexesSum = await getCumulativePlayerIndexSum(goodGhostingContract);
+  console.log("pindex", playerIndexSum.toString());
+  console.log("cindex", cumulativePlayersIndexesSum.toString());
 
   const gameDepositRoundSharePercentage = await getDepositRoundInterestSharePercentage(goodGhostingContract);
   const gameWaitRoundSharePercentage = multiplier.sub(gameDepositRoundSharePercentage);
+  console.log("share", gameDepositRoundSharePercentage.toString());
+  console.log("whhare", gameWaitRoundSharePercentage.toString());
 
   const playerNetDepositAmount = await getPlayerNetDepositAmount(goodGhostingContract, playerAddress);
   const totalWinnersDeposits = await getTotalWinnerDeposits(goodGhostingContract);
