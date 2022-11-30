@@ -1,5 +1,5 @@
 import { BigNumber } from "ethers";
-import { IStrategy, Pool } from "../src/types";
+import { IERC20, IStrategy, Pool } from "../src/types";
 
 async function mapForEachSegment<T>(contract: Pool, mapFunc: (contract: Pool, segment: number) => Promise<T>) {
   const segmentCount = await contract.depositCount();
@@ -84,21 +84,13 @@ export async function getGameGrossInterest(
   }
 }
 
-export async function getPlayerInterest(
-  goodGhostingContract: Pool,
-  strategyContract: IStrategy,
-  playerAddress: string,
-) {
+export async function getPlayerShare(goodGhostingContract: Pool, playerAddress: string) {
   const multiplier = await getMultiplier(goodGhostingContract);
   const playerIndexSum = await getPlayerIndexSum(goodGhostingContract, playerAddress);
   const cumulativePlayersIndexesSum = await getCumulativePlayerIndexSum(goodGhostingContract);
-  console.log("pindex", playerIndexSum.toString());
-  console.log("cindex", cumulativePlayersIndexesSum.toString());
 
   const gameDepositRoundSharePercentage = await getDepositRoundInterestSharePercentage(goodGhostingContract);
   const gameWaitRoundSharePercentage = multiplier.sub(gameDepositRoundSharePercentage);
-  console.log("share", gameDepositRoundSharePercentage.toString());
-  console.log("whhare", gameWaitRoundSharePercentage.toString());
 
   const playerNetDepositAmount = await getPlayerNetDepositAmount(goodGhostingContract, playerAddress);
   const totalWinnersDeposits = await getTotalWinnerDeposits(goodGhostingContract);
@@ -111,9 +103,64 @@ export async function getPlayerInterest(
 
   const totalPlayerShare = playerWaitingRoundInterestShare.add(playerDepositInterestShare);
 
+  return totalPlayerShare;
+}
+
+export async function getPlayerInterest(
+  goodGhostingContract: Pool,
+  strategyContract: IStrategy,
+  playerAddress: string,
+) {
+  const multiplier = await getMultiplier(goodGhostingContract);
+  const totalPlayerShare = await getPlayerShare(goodGhostingContract, playerAddress);
   const gameInterest = await getGameGrossInterest(goodGhostingContract, strategyContract);
 
   const playerInterest = gameInterest.mul(totalPlayerShare).div(multiplier).div(multiplier);
 
   return playerInterest;
+}
+
+export async function getRewardBalance(
+  goodGhostingContract: Pool,
+  strategyContract: IStrategy,
+  rewardTokenContract: IERC20,
+) {
+  const gameRewards = await strategyContract.callStatic.getAccumulatedRewardTokenAmounts(false);
+  const gameRewardsAddresses = await strategyContract.getRewardTokens();
+  const rewardIndex = gameRewardsAddresses.findIndex(
+    address => address.toLowerCase() === rewardTokenContract.address.toLowerCase(),
+  );
+
+  const gameRewardsSentToStrategy = await rewardTokenContract.balanceOf(strategyContract.address);
+  const gameRewardsSentToPool = await rewardTokenContract.balanceOf(goodGhostingContract.address);
+
+  const isRedeemed = await goodGhostingContract.adminFeeSet();
+
+  const rewardBalance = (gameRewards[rewardIndex] ?? BigNumber.from(0))
+    .add(gameRewardsSentToStrategy)
+    .add(gameRewardsSentToPool);
+
+  if (isRedeemed) {
+    const rewardAdminFeeAmount = await goodGhostingContract.adminFeeAmount(rewardIndex + 1);
+    return rewardBalance.sub(rewardAdminFeeAmount);
+  } else {
+    const feeAdmin = await goodGhostingContract.adminFee();
+    return rewardBalance.mul(BigNumber.from(100).sub(feeAdmin)).div(100);
+  }
+}
+
+export async function getPlayerReward(
+  goodGhostingContract: Pool,
+  strategyContract: IStrategy,
+  rewardTokenContract: IERC20,
+  playerAddress: string,
+): Promise<BigNumber> {
+  const multiplier = await getMultiplier(goodGhostingContract);
+  const totalPlayerShare = await getPlayerShare(goodGhostingContract, playerAddress);
+
+  const contractRewardBalance = await getRewardBalance(goodGhostingContract, strategyContract, rewardTokenContract);
+
+  const playerReward = contractRewardBalance.mul(totalPlayerShare).div(multiplier).div(multiplier);
+
+  return playerReward;
 }
