@@ -98,8 +98,8 @@ export async function getPlayerShare(goodGhostingContract: Pool, playerAddress: 
   const playerIndexSharePercentage = playerIndexSum.mul(multiplier).div(cumulativePlayersIndexesSum);
   const playerDepositSharePercentage = playerNetDepositAmount.mul(multiplier).div(totalWinnersDeposits);
 
-  const playerDepositInterestShare = playerDepositSharePercentage.mul(gameDepositRoundSharePercentage);
-  const playerWaitingRoundInterestShare = playerIndexSharePercentage.mul(gameWaitRoundSharePercentage);
+  const playerDepositInterestShare = playerIndexSharePercentage.mul(gameDepositRoundSharePercentage);
+  const playerWaitingRoundInterestShare = playerDepositSharePercentage.mul(gameWaitRoundSharePercentage);
 
   const totalPlayerShare = playerWaitingRoundInterestShare.add(playerDepositInterestShare);
 
