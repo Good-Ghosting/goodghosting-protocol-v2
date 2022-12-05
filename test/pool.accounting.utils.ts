@@ -24,6 +24,21 @@ export async function getPlayerIndexSum(contract: Pool, playerAddress: string): 
 
 export async function getCumulativePlayerIndexSum(contract: Pool): Promise<BigNumber> {
   const currentSegment = await getCurrentDepositSegment(contract);
+
+  console.log("currentSegment", currentSegment.toString());
+  console.log(
+    `contract.cumulativePlayerIndexSum(${currentSegment.toString()})`,
+    await (await contract.cumulativePlayerIndexSum(currentSegment)).toString(),
+  );
+  console.log(
+    `contract.cumulativePlayerIndexSum(${currentSegment.add(1).toString()})`,
+    await (await contract.cumulativePlayerIndexSum(currentSegment.add(1))).toString(),
+  );
+  console.log(
+    `contract.cumulativePlayerIndexSum(${currentSegment.sub(1).toString()})`,
+    await (await contract.cumulativePlayerIndexSum(currentSegment.sub(1))).toString(),
+  );
+
   return contract.cumulativePlayerIndexSum(currentSegment);
 }
 
@@ -35,7 +50,7 @@ async function getCurrentDepositSegment(contract: Pool) {
   ]);
 
   if (emergencyWithdraw) {
-    return currentSegment.sub(BigNumber.from("1"));
+    return paymentSegments.sub(BigNumber.from("1"));
   }
 
   const lastPaymentSegmentIndex = paymentSegments.sub(1);
@@ -98,10 +113,15 @@ export async function getPlayerShare(goodGhostingContract: Pool, playerAddress: 
   const playerIndexSharePercentage = playerIndexSum.mul(multiplier).div(cumulativePlayersIndexesSum);
   const playerDepositSharePercentage = playerNetDepositAmount.mul(multiplier).div(totalWinnersDeposits);
 
+  console.log("playerIndexSharePercentage", cumulativePlayersIndexesSum.toString());
+  console.log("playerAddress", playerAddress);
+
   const playerDepositInterestShare = playerIndexSharePercentage.mul(gameDepositRoundSharePercentage);
   const playerWaitingRoundInterestShare = playerDepositSharePercentage.mul(gameWaitRoundSharePercentage);
 
   const totalPlayerShare = playerWaitingRoundInterestShare.add(playerDepositInterestShare);
+
+  console.log("totalPlayerShare", totalPlayerShare.toString());
 
   return totalPlayerShare;
 }
@@ -114,6 +134,8 @@ export async function getPlayerInterest(
   const multiplier = await getMultiplier(goodGhostingContract);
   const totalPlayerShare = await getPlayerShare(goodGhostingContract, playerAddress);
   const gameInterest = await getGameGrossInterest(goodGhostingContract, strategyContract);
+
+  console.log("gameInterest", gameInterest.toString());
 
   const playerInterest = gameInterest.mul(totalPlayerShare).div(multiplier).div(multiplier);
 
@@ -168,4 +190,21 @@ export async function getPlayerReward(
   const playerReward = contractRewardBalance.mul(totalPlayerShare).div(multiplier).div(multiplier);
 
   return playerReward;
+}
+
+export type GameContracts = {
+  goodGhostingContract: Pool;
+  strategyContract: IStrategy;
+  rewardsTokenContract: Array<IERC20>;
+};
+
+export async function getPlayerMultipleRewards(
+  { goodGhostingContract, strategyContract, rewardsTokenContract }: GameContracts,
+  playerAddress: string,
+): Promise<Array<BigNumber>> {
+  const playerRewards = rewardsTokenContract.map(rewardContract =>
+    getPlayerReward(goodGhostingContract, strategyContract, rewardContract, playerAddress),
+  );
+
+  return Promise.all(playerRewards);
 }
