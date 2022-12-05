@@ -131,6 +131,10 @@ export async function getRewardBalance(
     address => address.toLowerCase() === rewardTokenContract.address.toLowerCase(),
   );
 
+  if (rewardIndex < 0) {
+    return BigNumber.from(0);
+  }
+
   const gameRewardsSentToStrategy = await rewardTokenContract.balanceOf(strategyContract.address);
   const gameRewardsSentToPool = await rewardTokenContract.balanceOf(goodGhostingContract.address);
 
@@ -145,6 +149,7 @@ export async function getRewardBalance(
     return rewardBalance.sub(rewardAdminFeeAmount);
   } else {
     const feeAdmin = await goodGhostingContract.adminFee();
+
     return rewardBalance.mul(BigNumber.from(100).sub(feeAdmin)).div(100);
   }
 }

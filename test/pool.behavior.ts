@@ -1,7 +1,7 @@
 const { ethers } = require("hardhat");
 import * as chai from "chai";
 import { assert } from "chai";
-import { deployMockContract, solidity } from "ethereum-waffle";
+import { solidity } from "ethereum-waffle";
 import { ERC20__factory } from "../src/types";
 import {
   mintTokens,
@@ -19,18 +19,7 @@ import {
 } from "./pool.utils";
 
 import { MintableERC20__factory } from "../src/types";
-import {
-  getCumulativePlayerIndexSum,
-  getDepositRoundInterestSharePercentage,
-  getGameGrossInterest,
-  getMultiplier,
-  getPlayerIndexSum,
-  getPlayerInterest,
-  getPlayerNetDepositAmount,
-  getTotalWinnerDeposits,
-} from "./pool.accounting.utils";
-import { BigNumber } from "ethers";
-import { Console } from "console";
+import { getPlayerInterest, getPlayerReward } from "./pool.accounting.utils";
 
 chai.use(solidity);
 
@@ -663,25 +652,24 @@ export const shouldBehaveLikeJoiningGGPool = async (strategyType: string) => {
       governanceTokenPlayer2BalanceAfterWithdraw = await contracts.minter.balanceOf(player2.address);
     }
 
-    if (strategyType !== "curve" && strategyType !== "mobius") {
-      rewardTokenPlayer1BalanceAfterWithdraw = await rewardTokenInstance.balanceOf(player1.address);
-      rewardTokenPlayer2BalanceAfterWithdraw = await rewardTokenInstance.balanceOf(player2.address);
+    rewardTokenPlayer1BalanceAfterWithdraw = await rewardTokenInstance.balanceOf(player1.address);
+    rewardTokenPlayer2BalanceAfterWithdraw = await rewardTokenInstance.balanceOf(player2.address);
 
-      console.log(rewardTokenPlayer1BalanceAfterWithdraw);
-      console.log(rewardTokenPlayer1BalanceAfterWithdraw);
+    console.log(rewardTokenPlayer1BalanceAfterWithdraw);
+    console.log(rewardTokenPlayer1BalanceAfterWithdraw);
 
-      assert(
-        ethers.BigNumber.from(rewardTokenPlayer1BalanceAfterWithdraw).gt(
-          ethers.BigNumber.from(rewardTokenPlayer1BalanceBeforeWithdraw),
-        ),
-      );
+    assert(
+      ethers.BigNumber.from(rewardTokenPlayer1BalanceAfterWithdraw).gt(
+        ethers.BigNumber.from(rewardTokenPlayer1BalanceBeforeWithdraw),
+      ),
+    );
 
-      assert(
-        ethers.BigNumber.from(rewardTokenPlayer2BalanceAfterWithdraw).gt(
-          ethers.BigNumber.from(rewardTokenPlayer2BalanceBeforeWithdraw),
-        ),
-      );
-    }
+    assert(
+      ethers.BigNumber.from(rewardTokenPlayer2BalanceAfterWithdraw).gt(
+        ethers.BigNumber.from(rewardTokenPlayer2BalanceBeforeWithdraw),
+      ),
+    );
+
     if (strategyType === "curve" || strategyType === "mobius") {
       assert(
         ethers.BigNumber.from(governanceTokenPlayer1BalanceAfterWithdraw).gt(
@@ -1808,37 +1796,34 @@ export const shouldBehaveLikePlayersWithdrawingFromGGPool = async (strategyType:
       governanceTokenPlayer2BalanceAfterWithdraw = await contracts.minter.balanceOf(player2.address);
     }
 
-    if (strategyType !== "curve" && strategyType !== "mobius") {
-      rewardTokenPlayer1BalanceAfterWithdraw = await rewardTokenInstance.balanceOf(player1.address);
-      rewardTokenPlayer2BalanceAfterWithdraw = await rewardTokenInstance.balanceOf(player2.address);
+    rewardTokenPlayer1BalanceAfterWithdraw = await rewardTokenInstance.balanceOf(player1.address);
+    rewardTokenPlayer2BalanceAfterWithdraw = await rewardTokenInstance.balanceOf(player2.address);
 
-      assert(
-        ethers.BigNumber.from(rewardTokenPlayer1BalanceAfterWithdraw).gt(
-          ethers.BigNumber.from(rewardTokenPlayer1BalanceBeforeWithdraw),
-        ),
-      );
+    assert(
+      ethers.BigNumber.from(rewardTokenPlayer1BalanceAfterWithdraw).gt(
+        ethers.BigNumber.from(rewardTokenPlayer1BalanceBeforeWithdraw),
+      ),
+    );
 
-      assert(
-        ethers.BigNumber.from(rewardTokenPlayer2BalanceAfterWithdraw).gt(
-          ethers.BigNumber.from(rewardTokenPlayer2BalanceBeforeWithdraw),
-        ),
-      );
-    }
-    if (strategyType === "curve" || strategyType === "mobius") {
-      assert(
-        ethers.BigNumber.from(governanceTokenPlayer1BalanceAfterWithdraw).gt(
-          ethers.BigNumber.from(governanceTokenPlayer1BalanceBeforeWithdraw),
-        ),
-      );
-      assert(
-        ethers.BigNumber.from(governanceTokenPlayer2BalanceAfterWithdraw).gt(
-          ethers.BigNumber.from(governanceTokenPlayer2BalanceBeforeWithdraw),
-        ),
-      );
-    }
+    assert(
+      ethers.BigNumber.from(rewardTokenPlayer2BalanceAfterWithdraw).gt(
+        ethers.BigNumber.from(rewardTokenPlayer2BalanceBeforeWithdraw),
+      ),
+    );
+
+    assert(
+      ethers.BigNumber.from(governanceTokenPlayer1BalanceAfterWithdraw).gt(
+        ethers.BigNumber.from(governanceTokenPlayer1BalanceBeforeWithdraw),
+      ),
+    );
+    assert(
+      ethers.BigNumber.from(governanceTokenPlayer2BalanceAfterWithdraw).gt(
+        ethers.BigNumber.from(governanceTokenPlayer2BalanceBeforeWithdraw),
+      ),
+    );
   });
 
-  it.only("allows players to withdraw early after admin enables early game completion during waiting round, there is interest generated & one of the winners deposits in a additional segment", async () => {
+  it("allows players to withdraw early after admin enables early game completion during waiting round, there is interest generated & one of the winners deposits in a additional segment", async () => {
     const accounts = await ethers.getSigners();
     const deployer = accounts[0];
     const player1 = accounts[2];
@@ -1969,34 +1954,31 @@ export const shouldBehaveLikePlayersWithdrawingFromGGPool = async (strategyType:
       governanceTokenPlayer2BalanceAfterWithdraw = await contracts.minter.balanceOf(player2.address);
     }
 
-    if (strategyType !== "curve" && strategyType !== "mobius") {
-      rewardTokenPlayer1BalanceAfterWithdraw = await rewardTokenInstance.balanceOf(player1.address);
-      rewardTokenPlayer2BalanceAfterWithdraw = await rewardTokenInstance.balanceOf(player2.address);
+    rewardTokenPlayer1BalanceAfterWithdraw = await rewardTokenInstance.balanceOf(player1.address);
+    rewardTokenPlayer2BalanceAfterWithdraw = await rewardTokenInstance.balanceOf(player2.address);
 
-      assert(
-        ethers.BigNumber.from(rewardTokenPlayer1BalanceAfterWithdraw).gt(
-          ethers.BigNumber.from(rewardTokenPlayer1BalanceBeforeWithdraw),
-        ),
-      );
+    assert(
+      ethers.BigNumber.from(rewardTokenPlayer1BalanceAfterWithdraw).gt(
+        ethers.BigNumber.from(rewardTokenPlayer1BalanceBeforeWithdraw),
+      ),
+    );
 
-      assert(
-        ethers.BigNumber.from(rewardTokenPlayer2BalanceAfterWithdraw).gt(
-          ethers.BigNumber.from(rewardTokenPlayer2BalanceBeforeWithdraw),
-        ),
-      );
-    }
-    if (strategyType === "curve" || strategyType === "mobius") {
-      assert(
-        ethers.BigNumber.from(governanceTokenPlayer1BalanceAfterWithdraw).gt(
-          ethers.BigNumber.from(governanceTokenPlayer1BalanceBeforeWithdraw),
-        ),
-      );
-      assert(
-        ethers.BigNumber.from(governanceTokenPlayer2BalanceAfterWithdraw).gt(
-          ethers.BigNumber.from(governanceTokenPlayer2BalanceBeforeWithdraw),
-        ),
-      );
-    }
+    assert(
+      ethers.BigNumber.from(rewardTokenPlayer2BalanceAfterWithdraw).gt(
+        ethers.BigNumber.from(rewardTokenPlayer2BalanceBeforeWithdraw),
+      ),
+    );
+
+    assert(
+      ethers.BigNumber.from(governanceTokenPlayer1BalanceAfterWithdraw).gt(
+        ethers.BigNumber.from(governanceTokenPlayer1BalanceBeforeWithdraw),
+      ),
+    );
+    assert(
+      ethers.BigNumber.from(governanceTokenPlayer2BalanceAfterWithdraw).gt(
+        ethers.BigNumber.from(governanceTokenPlayer2BalanceBeforeWithdraw),
+      ),
+    );
   });
 
   it("allows players to withdraw early after admin enables early game completion when there are ghosts", async () => {
@@ -2048,33 +2030,30 @@ export const shouldBehaveLikePlayersWithdrawingFromGGPool = async (strategyType:
       governanceTokenPlayer2BalanceAfterWithdraw = await contracts.minter.balanceOf(player2.address);
     }
 
-    if (strategyType !== "curve" && strategyType !== "mobius") {
-      rewardTokenPlayer1BalanceAfterWithdraw = await rewardTokenInstance.balanceOf(player1.address);
-      rewardTokenPlayer2BalanceAfterWithdraw = await rewardTokenInstance.balanceOf(player2.address);
+    rewardTokenPlayer1BalanceAfterWithdraw = await rewardTokenInstance.balanceOf(player1.address);
+    rewardTokenPlayer2BalanceAfterWithdraw = await rewardTokenInstance.balanceOf(player2.address);
 
-      assert(
-        ethers.BigNumber.from(rewardTokenPlayer1BalanceAfterWithdraw).gt(
-          ethers.BigNumber.from(rewardTokenPlayer1BalanceBeforeWithdraw),
-        ),
-      );
-      assert(
-        ethers.BigNumber.from(rewardTokenPlayer2BalanceAfterWithdraw).eq(
-          ethers.BigNumber.from(rewardTokenPlayer2BalanceBeforeWithdraw),
-        ),
-      );
-    }
-    if (strategyType === "curve" || strategyType === "mobius") {
-      assert(
-        ethers.BigNumber.from(governanceTokenPlayer1BalanceAfterWithdraw).gt(
-          ethers.BigNumber.from(governanceTokenPlayer1BalanceBeforeWithdraw),
-        ),
-      );
-      assert(
-        ethers.BigNumber.from(governanceTokenPlayer2BalanceAfterWithdraw).eq(
-          ethers.BigNumber.from(governanceTokenPlayer2BalanceBeforeWithdraw),
-        ),
-      );
-    }
+    assert(
+      ethers.BigNumber.from(rewardTokenPlayer1BalanceAfterWithdraw).gt(
+        ethers.BigNumber.from(rewardTokenPlayer1BalanceBeforeWithdraw),
+      ),
+    );
+    assert(
+      ethers.BigNumber.from(rewardTokenPlayer2BalanceAfterWithdraw).eq(
+        ethers.BigNumber.from(rewardTokenPlayer2BalanceBeforeWithdraw),
+      ),
+    );
+
+    assert(
+      ethers.BigNumber.from(governanceTokenPlayer1BalanceAfterWithdraw).gt(
+        ethers.BigNumber.from(governanceTokenPlayer1BalanceBeforeWithdraw),
+      ),
+    );
+    assert(
+      ethers.BigNumber.from(governanceTokenPlayer2BalanceAfterWithdraw).eq(
+        ethers.BigNumber.from(governanceTokenPlayer2BalanceBeforeWithdraw),
+      ),
+    );
   });
 
   it("allows players to withdraw early after admin enables early game completion when admin enables the withdraw ", async () => {
@@ -2129,33 +2108,30 @@ export const shouldBehaveLikePlayersWithdrawingFromGGPool = async (strategyType:
       governanceTokenPlayer2BalanceAfterWithdraw = await contracts.minter.balanceOf(player2.address);
     }
 
-    if (strategyType !== "curve" && strategyType !== "mobius") {
-      rewardTokenPlayer1BalanceAfterWithdraw = await rewardTokenInstance.balanceOf(player1.address);
-      rewardTokenPlayer2BalanceAfterWithdraw = await rewardTokenInstance.balanceOf(player2.address);
+    rewardTokenPlayer1BalanceAfterWithdraw = await rewardTokenInstance.balanceOf(player1.address);
+    rewardTokenPlayer2BalanceAfterWithdraw = await rewardTokenInstance.balanceOf(player2.address);
 
-      assert(
-        ethers.BigNumber.from(rewardTokenPlayer1BalanceAfterWithdraw).gt(
-          ethers.BigNumber.from(rewardTokenPlayer1BalanceBeforeWithdraw),
-        ),
-      );
-      assert(
-        ethers.BigNumber.from(rewardTokenPlayer2BalanceAfterWithdraw).gt(
-          ethers.BigNumber.from(rewardTokenPlayer2BalanceBeforeWithdraw),
-        ),
-      );
-    }
-    if (strategyType === "curve" || strategyType === "mobius") {
-      assert(
-        ethers.BigNumber.from(governanceTokenPlayer1BalanceAfterWithdraw).gt(
-          ethers.BigNumber.from(governanceTokenPlayer1BalanceBeforeWithdraw),
-        ),
-      );
-      assert(
-        ethers.BigNumber.from(governanceTokenPlayer2BalanceAfterWithdraw).gt(
-          ethers.BigNumber.from(governanceTokenPlayer2BalanceBeforeWithdraw),
-        ),
-      );
-    }
+    assert(
+      ethers.BigNumber.from(rewardTokenPlayer1BalanceAfterWithdraw).gt(
+        ethers.BigNumber.from(rewardTokenPlayer1BalanceBeforeWithdraw),
+      ),
+    );
+    assert(
+      ethers.BigNumber.from(rewardTokenPlayer2BalanceAfterWithdraw).gt(
+        ethers.BigNumber.from(rewardTokenPlayer2BalanceBeforeWithdraw),
+      ),
+    );
+
+    assert(
+      ethers.BigNumber.from(governanceTokenPlayer1BalanceAfterWithdraw).gt(
+        ethers.BigNumber.from(governanceTokenPlayer1BalanceBeforeWithdraw),
+      ),
+    );
+    assert(
+      ethers.BigNumber.from(governanceTokenPlayer2BalanceAfterWithdraw).gt(
+        ethers.BigNumber.from(governanceTokenPlayer2BalanceBeforeWithdraw),
+      ),
+    );
   });
 
   it("allows players to withdraw early after admin enables early game completion", async () => {
@@ -2204,36 +2180,34 @@ export const shouldBehaveLikePlayersWithdrawingFromGGPool = async (strategyType:
       governanceTokenPlayer1BalanceAfterWithdraw = await contracts.minter.balanceOf(player1.address);
       governanceTokenPlayer2BalanceAfterWithdraw = await contracts.minter.balanceOf(player2.address);
     }
-    if (strategyType !== "curve" && strategyType !== "mobius") {
-      rewardTokenPlayer1BalanceAfterWithdraw = await rewardTokenInstance.balanceOf(player1.address);
-      rewardTokenPlayer2BalanceAfterWithdraw = await rewardTokenInstance.balanceOf(player2.address);
 
-      assert(
-        ethers.BigNumber.from(rewardTokenPlayer1BalanceAfterWithdraw).gt(
-          ethers.BigNumber.from(rewardTokenPlayer1BalanceBeforeWithdraw),
-        ),
-      );
-      assert(
-        ethers.BigNumber.from(rewardTokenPlayer2BalanceAfterWithdraw).gt(
-          ethers.BigNumber.from(rewardTokenPlayer2BalanceBeforeWithdraw),
-        ),
-      );
-    }
-    if (strategyType === "curve" || strategyType === "mobius") {
-      assert(
-        ethers.BigNumber.from(governanceTokenPlayer1BalanceAfterWithdraw).gt(
-          ethers.BigNumber.from(governanceTokenPlayer1BalanceBeforeWithdraw),
-        ),
-      );
-      assert(
-        ethers.BigNumber.from(governanceTokenPlayer2BalanceAfterWithdraw).gt(
-          ethers.BigNumber.from(governanceTokenPlayer2BalanceBeforeWithdraw),
-        ),
-      );
-    }
+    rewardTokenPlayer1BalanceAfterWithdraw = await rewardTokenInstance.balanceOf(player1.address);
+    rewardTokenPlayer2BalanceAfterWithdraw = await rewardTokenInstance.balanceOf(player2.address);
+
+    assert(
+      ethers.BigNumber.from(rewardTokenPlayer1BalanceAfterWithdraw).gt(
+        ethers.BigNumber.from(rewardTokenPlayer1BalanceBeforeWithdraw),
+      ),
+    );
+    assert(
+      ethers.BigNumber.from(rewardTokenPlayer2BalanceAfterWithdraw).gt(
+        ethers.BigNumber.from(rewardTokenPlayer2BalanceBeforeWithdraw),
+      ),
+    );
+
+    assert(
+      ethers.BigNumber.from(governanceTokenPlayer1BalanceAfterWithdraw).gt(
+        ethers.BigNumber.from(governanceTokenPlayer1BalanceBeforeWithdraw),
+      ),
+    );
+    assert(
+      ethers.BigNumber.from(governanceTokenPlayer2BalanceAfterWithdraw).gt(
+        ethers.BigNumber.from(governanceTokenPlayer2BalanceBeforeWithdraw),
+      ),
+    );
   });
 
-  it.only("pays a bonus to winners and losers get their principle back", async () => {
+  it("pays a bonus to winners and losers get their principle back", async () => {
     const accounts = await ethers.getSigners();
     const deployer = accounts[0];
 
@@ -2303,15 +2277,22 @@ export const shouldBehaveLikePlayersWithdrawingFromGGPool = async (strategyType:
     const player2PreWithdrawBalance = await contracts.inboundToken.balanceOf(player2.address);
     playerMaticBalanceBeforeWithdraw = await contracts.rewardToken.balanceOf(player2.address);
 
+    console.log("strategyType", strategyType);
     const playerExpectedInterest = await getPlayerInterest(contracts.goodGhosting, contracts.strategy, player2.address);
+    const playerExpectedRewards = await getPlayerReward(
+      contracts.goodGhosting,
+      contracts.strategy,
+      contracts.rewardToken,
+      player2.address,
+    );
     const playerInfo = await contracts.goodGhosting.players(player2.address);
 
     await contracts.goodGhosting.connect(player2).withdraw(0);
 
     playerMaticBalanceAfterWithdraw = await contracts.rewardToken.balanceOf(player2.address);
-    if (strategyType !== "curve" && strategyType !== "mobius") {
-      assert(playerMaticBalanceAfterWithdraw.gt(playerMaticBalanceBeforeWithdraw));
-    }
+
+    const playerReceivedRewards = playerMaticBalanceAfterWithdraw.sub(playerMaticBalanceBeforeWithdraw);
+    assert(playerReceivedRewards.eq(playerExpectedRewards));
 
     const player2PostWithdrawBalance = await contracts.inboundToken.balanceOf(player2.address);
     const withdrawalValue = player2PostWithdrawBalance.sub(player2PreWithdrawBalance);
@@ -2544,15 +2525,14 @@ export const shouldBehaveLikePlayersWithdrawingFromGGPool = async (strategyType:
       assert(governanceTokenBalanceDiffFroPlayer2.gt(governanceTokenBalanceDiffFroPlayer1));
     }
 
-    if (strategyType !== "curve" && strategyType !== "mobius") {
-      const rewardBalanceDiffFroPlayer1 = rewardTokenPlayer1BalanceAfterWithdraw.sub(
-        rewardTokenPlayer1BalanceBeforeWithdraw,
-      );
-      const rewardBalanceDiffFroPlayer2 = rewardTokenPlayer2BalanceAfterWithdraw.sub(
-        rewardTokenPlayer2BalanceBeforeWithdraw,
-      );
-      assert(rewardBalanceDiffFroPlayer2.gt(rewardBalanceDiffFroPlayer1));
-    }
+    const rewardBalanceDiffFroPlayer1 = rewardTokenPlayer1BalanceAfterWithdraw.sub(
+      rewardTokenPlayer1BalanceBeforeWithdraw,
+    );
+    const rewardBalanceDiffFroPlayer2 = rewardTokenPlayer2BalanceAfterWithdraw.sub(
+      rewardTokenPlayer2BalanceBeforeWithdraw,
+    );
+    assert(rewardBalanceDiffFroPlayer2.gt(rewardBalanceDiffFroPlayer1));
+
     // both players are winners, but player 2 made deposits before player 1 so it gets slightly higher interest.
     if (strategyType !== "no_strategy") {
       assert(player2WithdrawAmount.lt(player1WithdrawAmount));
@@ -3324,15 +3304,13 @@ export const shouldBehaveLikePlayersWithdrawingFromGGPool = async (strategyType:
         .toString();
     }
 
-    if (strategyType !== "curve" && strategyType !== "mobius") {
-      const rewardTokenBalance = rewardAmounts[0];
-      const adminRewardTokenFee = ethers.BigNumber.from(rewardTokenBalance)
-        .mul(ethers.BigNumber.from(1))
-        .div(ethers.BigNumber.from(100));
-      playerRewardAmounts[0] = ethers.BigNumber.from(rewardTokenBalance)
-        .sub(ethers.BigNumber.from(adminRewardTokenFee))
-        .toString();
-    }
+    const rewardTokenBalance = rewardAmounts[0];
+    const adminRewardTokenFee = ethers.BigNumber.from(rewardTokenBalance)
+      .mul(ethers.BigNumber.from(1))
+      .div(ethers.BigNumber.from(100));
+    playerRewardAmounts[0] = ethers.BigNumber.from(rewardTokenBalance)
+      .sub(ethers.BigNumber.from(adminRewardTokenFee))
+      .toString();
 
     const result = await contracts.goodGhosting.connect(player1).withdraw(0);
 
@@ -4648,23 +4626,19 @@ export const shouldBehaveLikeAdminWithdrawingFeesFromGGPoolWithFeePercentMoreTha
       governanceTokenAdminBalanceAfterWithdraw = await contracts.minter.balanceOf(player1.address);
     }
 
-    if (strategyType !== "curve" && strategyType !== "mobius") {
-      rewardTokenAdminBalanceAfterWithdraw = await rewardTokenInstance.balanceOf(player1.address);
+    rewardTokenAdminBalanceAfterWithdraw = await rewardTokenInstance.balanceOf(player1.address);
 
-      assert(
-        ethers.BigNumber.from(rewardTokenAdminBalanceAfterWithdraw).gt(
-          ethers.BigNumber.from(rewardTokenAdminBalanceBeforeWithdraw),
-        ),
-      );
-    }
+    assert(
+      ethers.BigNumber.from(rewardTokenAdminBalanceAfterWithdraw).gt(
+        ethers.BigNumber.from(rewardTokenAdminBalanceBeforeWithdraw),
+      ),
+    );
 
-    if (strategyType === "curve" || strategyType === "mobius") {
-      assert(
-        ethers.BigNumber.from(governanceTokenAdminBalanceAfterWithdraw).gt(
-          ethers.BigNumber.from(governanceTokenAdminBalanceBeforeWithdraw),
-        ),
-      );
-    }
+    assert(
+      ethers.BigNumber.from(governanceTokenAdminBalanceAfterWithdraw).gt(
+        ethers.BigNumber.from(governanceTokenAdminBalanceBeforeWithdraw),
+      ),
+    );
   });
 
   it("when admin tries to withdraw fees again", async () => {
@@ -4776,15 +4750,15 @@ export const shouldBehaveLikeAdminWithdrawingFeesFromGGPoolWithFeePercentMoreTha
 
       // There's no winner, so admin takes it all
       let reward;
-      if (strategyType !== "curve" && strategyType !== "mobius") {
-        reward = contracts.rewardToken;
-      } else {
-        if (strategyType == "curve") {
-          reward = contracts.curve;
-        } else {
-          reward = contracts.minter;
-        }
+
+      reward = contracts.rewardToken;
+
+      if (strategyType == "curve") {
+        reward = contracts.curve;
+      } else if (strategyType == "mobius") {
+        reward = contracts.minter;
       }
+
       let adminMaticBalanceBeforeWithdraw = await reward.balanceOf(deployer.address);
       const result = await contracts.goodGhosting.adminFeeWithdraw(0);
 
@@ -4799,10 +4773,6 @@ export const shouldBehaveLikeAdminWithdrawingFeesFromGGPoolWithFeePercentMoreTha
       await expect(result)
         .emit(contracts.goodGhosting, "AdminWithdrawal")
         .withArgs(deployer.address, grossInterest, ethers.BigNumber.from(0), fee);
-
-      if (strategyType !== "curve" && strategyType !== "mobius") {
-      } else {
-      }
 
       let adminMaticBalanceAfterWithdraw = await reward.balanceOf(deployer.address);
       // no external deposits
@@ -4867,15 +4837,15 @@ export const shouldBehaveLikeAdminWithdrawingFeesFromGGPoolWithFeePercentMoreTha
 
       // There's no winner, so admin takes it all
       let reward;
-      if (strategyType !== "curve" && strategyType !== "mobius") {
-        reward = contracts.rewardToken;
-      } else {
-        if (strategyType == "curve") {
-          reward = contracts.curve;
-        } else {
-          reward = contracts.minter;
-        }
+
+      reward = contracts.rewardToken;
+
+      if (strategyType == "curve") {
+        reward = contracts.curve;
+      } else if (strategyType == "mobius") {
+        reward = contracts.minter;
       }
+
       let adminMaticBalanceBeforeWithdraw = await reward.balanceOf(deployer.address);
 
       const contractBalance = await contracts.strategy.getTotalAmount();
@@ -4955,15 +4925,13 @@ export const shouldBehaveLikeAdminWithdrawingFeesFromGGPoolWithFeePercentMoreTha
       const grossInterest = contractBalance.sub(totalGamePrincipal);
       // There's no winner, so admin takes it all
       let reward;
-      if (strategyType !== "curve" && strategyType !== "mobius") {
-        reward = contracts.rewardToken;
-      } else {
-        if (strategyType == "curve") {
-          reward = contracts.curve;
-        } else {
-          reward = contracts.minter;
-        }
+      reward = contracts.rewardToken;
+      if (strategyType === "curve") {
+        reward = contracts.curve;
+      } else if (strategyType === "mobius") {
+        reward = contracts.minter;
       }
+
       let adminMaticBalanceBeforeWithdraw = await reward.balanceOf(deployer.address);
 
       const result = await contracts.goodGhosting.adminFeeWithdraw(0);
@@ -5041,14 +5009,11 @@ export const shouldBehaveLikeAdminWithdrawingFeesFromGGPoolWithFeePercentMoreTha
       const regularAdminFee = grossInterest.mul(ethers.BigNumber.from(1)).div(ethers.BigNumber.from(100));
       // There's no winner, so admin takes it all
       let reward;
-      if (strategyType !== "curve" && strategyType !== "mobius") {
-        reward = contracts.rewardToken;
-      } else {
-        if (strategyType == "curve") {
-          reward = contracts.curve;
-        } else {
-          reward = contracts.minter;
-        }
+      reward = contracts.rewardToken;
+      if (strategyType === "curve") {
+        reward = contracts.curve;
+      } else if (strategyType === "mobius") {
+        reward = contracts.minter;
       }
       let adminMaticBalanceBeforeWithdraw = await reward.balanceOf(deployer.address);
 
@@ -5137,14 +5102,11 @@ export const shouldBehaveLikeAdminWithdrawingFeesFromGGPoolWithFeePercentMoreTha
       const regularAdminFee = grossInterest.mul(ethers.BigNumber.from(1)).div(ethers.BigNumber.from(100));
       // There's no winner, so admin takes it all
       let reward;
-      if (strategyType !== "curve" && strategyType !== "mobius") {
-        reward = contracts.rewardToken;
-      } else {
-        if (strategyType == "curve") {
-          reward = contracts.curve;
-        } else {
-          reward = contracts.minter;
-        }
+      reward = contracts.rewardToken;
+      if (strategyType === "curve") {
+        reward = contracts.curve;
+      } else if (strategyType === "mobius") {
+        reward = contracts.minter;
       }
       let adminMaticBalanceBeforeWithdraw = await reward.balanceOf(deployer.address);
 
@@ -5231,14 +5193,11 @@ export const shouldBehaveLikeAdminWithdrawingFeesFromGGPoolWithFeePercentMoreTha
       const regularAdminFee = grossInterest.mul(ethers.BigNumber.from(1)).div(ethers.BigNumber.from(100));
       // There's no winner, so admin takes it all
       let reward;
-      if (strategyType !== "curve" && strategyType !== "mobius") {
-        reward = contracts.rewardToken;
-      } else {
-        if (strategyType == "curve") {
-          reward = contracts.curve;
-        } else {
-          reward = contracts.minter;
-        }
+      reward = contracts.rewardToken;
+      if (strategyType === "curve") {
+        reward = contracts.curve;
+      } else if (strategyType === "mobius") {
+        reward = contracts.minter;
       }
       let adminMaticBalanceBeforeWithdraw = await reward.balanceOf(deployer.address);
 
@@ -5432,15 +5391,13 @@ export const shouldBehaveLikeVariableDepositPool = async (strategyType: string) 
       governanceTokenAdminBalanceAfterWithdraw = await contracts.minter.balanceOf(player1.address);
     }
 
-    if (strategyType !== "curve" && strategyType !== "mobius") {
-      rewardTokenAdminBalanceAfterWithdraw = await rewardTokenInstance.balanceOf(player1.address);
+    rewardTokenAdminBalanceAfterWithdraw = await rewardTokenInstance.balanceOf(player1.address);
 
-      assert(
-        ethers.BigNumber.from(rewardTokenAdminBalanceAfterWithdraw).gt(
-          ethers.BigNumber.from(rewardTokenAdminBalanceBeforeWithdraw),
-        ),
-      );
-    }
+    assert(
+      ethers.BigNumber.from(rewardTokenAdminBalanceAfterWithdraw).gt(
+        ethers.BigNumber.from(rewardTokenAdminBalanceBeforeWithdraw),
+      ),
+    );
 
     if (strategyType === "curve" || strategyType === "mobius") {
       assert(
@@ -5527,21 +5484,20 @@ export const shouldBehaveLikeVariableDepositPool = async (strategyType: string) 
       governanceTokenPlayer2BalanceAfterWithdraw = await contracts.minter.balanceOf(player2.address);
     }
 
-    if (strategyType !== "curve" && strategyType !== "mobius") {
-      rewardTokenPlayer1BalanceAfterWithdraw = await contracts.rewardToken.balanceOf(player1.address);
-      rewardTokenPlayer2BalanceAfterWithdraw = await contracts.rewardToken.balanceOf(player2.address);
+    rewardTokenPlayer1BalanceAfterWithdraw = await contracts.rewardToken.balanceOf(player1.address);
+    rewardTokenPlayer2BalanceAfterWithdraw = await contracts.rewardToken.balanceOf(player2.address);
 
-      assert(
-        ethers.BigNumber.from(rewardTokenPlayer1BalanceAfterWithdraw).gt(
-          ethers.BigNumber.from(rewardTokenPlayer1BalanceBeforeWithdraw),
-        ),
-      );
-      assert(
-        ethers.BigNumber.from(rewardTokenPlayer2BalanceAfterWithdraw).gt(
-          ethers.BigNumber.from(rewardTokenPlayer2BalanceBeforeWithdraw),
-        ),
-      );
-    }
+    assert(
+      ethers.BigNumber.from(rewardTokenPlayer1BalanceAfterWithdraw).gt(
+        ethers.BigNumber.from(rewardTokenPlayer1BalanceBeforeWithdraw),
+      ),
+    );
+    assert(
+      ethers.BigNumber.from(rewardTokenPlayer2BalanceAfterWithdraw).gt(
+        ethers.BigNumber.from(rewardTokenPlayer2BalanceBeforeWithdraw),
+      ),
+    );
+
     if (strategyType === "curve" || strategyType === "mobius") {
       assert(
         ethers.BigNumber.from(governanceTokenPlayer1BalanceAfterWithdraw).gt(
@@ -6161,11 +6117,10 @@ export const shouldBehaveLikeVariableDepositPool = async (strategyType: string) 
       const player1Deposit = ethers.BigNumber.from(player1Info.amountPaid);
 
       const playerRewardAmounts: any = [];
-      if (strategyType !== "curve" && strategyType !== "mobius") {
-        playerRewardAmounts[0] = rewardDifferenceForPlayer1.toString();
-      } else {
-        playerRewardAmounts[0] = governanceTokenBalanceDifferenceForPlayer1.toString();
-      }
+
+      playerRewardAmounts[0] = rewardDifferenceForPlayer1.toString();
+
+      // playerRewardAmounts[0] = governanceTokenBalanceDifferenceForPlayer1.toString();
 
       await expect(result)
         .to.emit(contracts.goodGhosting, "WithdrawInboundTokens")
@@ -6201,18 +6156,14 @@ export const shouldBehaveLikeVariableDepositPool = async (strategyType: string) 
       const differenceForPlayer2 = player2BalanceAfterWithdraw.sub(player2BalanceBeforeWithdraw);
       const interestEarnedByPlayer2 = differenceForPlayer2.sub(ethers.BigNumber.from(player2Info.amountPaid));
       assert(interestEarnedByPlayer2.gt(interestEarnedByPlayer1));
-      if (strategyType !== "curve" && strategyType !== "mobius") {
-        assert(rewardDifferenceForPlayer2.gt(rewardDifferenceForPlayer1));
-      } else {
-        assert(governanceTokenBalanceDifferenceForPlayer2.gt(governanceTokenBalanceDifferenceForPlayer1));
-      }
+
+      assert(rewardDifferenceForPlayer2.gt(rewardDifferenceForPlayer1));
+      // assert(governanceTokenBalanceDifferenceForPlayer2.gt(governanceTokenBalanceDifferenceForPlayer1));
 
       const rewardAmounts: any = [];
-      if (strategyType !== "curve" && strategyType !== "mobius") {
-        rewardAmounts[0] = rewardDifferenceForPlayer2.toString();
-      } else {
-        rewardAmounts[0] = governanceTokenBalanceDifferenceForPlayer2.toString();
-      }
+
+      rewardAmounts[0] = rewardDifferenceForPlayer2.toString();
+      // rewardAmounts[0] = governanceTokenBalanceDifferenceForPlayer2.toString();
 
       await expect(result)
         .to.emit(contracts.goodGhosting, "WithdrawInboundTokens")
@@ -6418,14 +6369,11 @@ export const shouldBehaveLikeVariableDepositPool = async (strategyType: string) 
 
       const adminBalanceBeforeWithdraw = await contracts.inboundToken.balanceOf(deployer.address);
       let reward;
-      if (strategyType !== "curve" && strategyType !== "mobius") {
-        reward = contracts.rewardToken;
-      } else {
-        if (strategyType == "curve") {
-          reward = contracts.curve;
-        } else {
-          reward = contracts.minter;
-        }
+      reward = contracts.rewardToken;
+      if (strategyType === "curve") {
+        reward = contracts.curve;
+      } else if (strategyType === "mobius") {
+        reward = contracts.minter;
       }
 
       const adminRewardBalanceBeforeWithdraw = await reward.balanceOf(deployer.address);
@@ -6683,9 +6631,8 @@ export const shouldBehaveLikeVariableDepositPool = async (strategyType: string) 
     const player1BalanceBeforeWithdraw = await contracts.inboundToken.balanceOf(player1.address);
     let player1RewardBalanceAfterWithdraw, player1RewardBalanceBeforeWithdraw, rewardDifferenceForPlayer1;
 
-    if (strategyType !== "curve" && strategyType !== "mobius") {
-      player1RewardBalanceBeforeWithdraw = await contracts.rewardToken.balanceOf(player1.address);
-    }
+    player1RewardBalanceBeforeWithdraw = await contracts.rewardToken.balanceOf(player1.address);
+
     let player1GovernanceTokenBalanceBeforeWithdraw = ethers.BigNumber.from(0);
     if (strategyType === "curve") {
       player1GovernanceTokenBalanceBeforeWithdraw = await contracts.curve.balanceOf(player1.address);
@@ -6703,10 +6650,9 @@ export const shouldBehaveLikeVariableDepositPool = async (strategyType: string) 
       player1GovernanceTokenBalanceAfterWithdraw = await contracts.minter.balanceOf(player1.address);
     }
 
-    if (strategyType !== "curve" && strategyType !== "mobius") {
-      player1RewardBalanceAfterWithdraw = await contracts.rewardToken.balanceOf(player1.address);
-      rewardDifferenceForPlayer1 = player1RewardBalanceAfterWithdraw.sub(player1RewardBalanceBeforeWithdraw);
-    }
+    player1RewardBalanceAfterWithdraw = await contracts.rewardToken.balanceOf(player1.address);
+    rewardDifferenceForPlayer1 = player1RewardBalanceAfterWithdraw.sub(player1RewardBalanceBeforeWithdraw);
+
     const governanceTokenBalanceDifferenceForPlayer1 = player1GovernanceTokenBalanceAfterWithdraw.sub(
       player1GovernanceTokenBalanceBeforeWithdraw,
     );
@@ -6716,11 +6662,10 @@ export const shouldBehaveLikeVariableDepositPool = async (strategyType: string) 
 
     const player1Deposit = ethers.BigNumber.from(player1Info.amountPaid);
     const rewardAmounts: any = [];
-    if (strategyType !== "curve" && strategyType !== "mobius") {
-      rewardAmounts[0] = rewardDifferenceForPlayer1.toString();
-    } else {
-      rewardAmounts[0] = governanceTokenBalanceDifferenceForPlayer1.toString();
-    }
+
+    rewardAmounts[0] = rewardDifferenceForPlayer1.toString();
+
+    //rewardAmounts[0] = governanceTokenBalanceDifferenceForPlayer1.toString();
 
     await expect(result)
       .to.emit(contracts.goodGhosting, "WithdrawInboundTokens")
@@ -6738,9 +6683,8 @@ export const shouldBehaveLikeVariableDepositPool = async (strategyType: string) 
     let player2RewardBalanceAfterWithdraw, player2RewardBalanceBeforeWithdraw, rewardDifferenceForPlayer2;
 
     const player2BalanceBeforeWithdraw = await contracts.inboundToken.balanceOf(player2.address);
-    if (strategyType !== "curve" && strategyType !== "mobius") {
-      player2RewardBalanceBeforeWithdraw = await contracts.rewardToken.balanceOf(player2.address);
-    }
+
+    player2RewardBalanceBeforeWithdraw = await contracts.rewardToken.balanceOf(player2.address);
 
     let player2GovernanceTokenBalanceBeforeWithdraw = ethers.BigNumber.from(0);
     if (strategyType === "curve") {
@@ -6750,10 +6694,9 @@ export const shouldBehaveLikeVariableDepositPool = async (strategyType: string) 
     }
     result = await contracts.goodGhosting.connect(player2).withdraw("800000000000000000");
 
-    if (strategyType !== "curve" && strategyType !== "mobius") {
-      player2RewardBalanceAfterWithdraw = await contracts.rewardToken.balanceOf(player2.address);
-      rewardDifferenceForPlayer2 = player2RewardBalanceAfterWithdraw.sub(player2RewardBalanceBeforeWithdraw);
-    }
+    player2RewardBalanceAfterWithdraw = await contracts.rewardToken.balanceOf(player2.address);
+    rewardDifferenceForPlayer2 = player2RewardBalanceAfterWithdraw.sub(player2RewardBalanceBeforeWithdraw);
+
     const player2BalanceAfterWithdraw = await contracts.inboundToken.balanceOf(player2.address);
     let player2GovernanceTokenBalanceAfterWithdraw = ethers.BigNumber.from(0);
     if (strategyType === "curve") {
@@ -6774,12 +6717,11 @@ export const shouldBehaveLikeVariableDepositPool = async (strategyType: string) 
     }
 
     const playerRewardAmounts: any = [];
-    if (strategyType !== "curve" && strategyType !== "mobius") {
-      playerRewardAmounts[0] = rewardDifferenceForPlayer2.toString();
-      assert(rewardDifferenceForPlayer2.gt(rewardDifferenceForPlayer1));
-    } else {
-      playerRewardAmounts[0] = governanceTokenBalanceDifferenceForPlayer2.toString();
-    }
+
+    playerRewardAmounts[0] = rewardDifferenceForPlayer2.toString();
+    assert(rewardDifferenceForPlayer2.gt(rewardDifferenceForPlayer1));
+
+    //playerRewardAmounts[0] = governanceTokenBalanceDifferenceForPlayer2.toString();
 
     await expect(result)
       .to.emit(contracts.goodGhosting, "WithdrawInboundTokens")
@@ -6934,11 +6876,9 @@ export const shouldBehaveLikeVariableDepositPool = async (strategyType: string) 
 
     const player1Deposit = ethers.BigNumber.from(player1Info.amountPaid);
     const rewardAmounts: any = [];
-    if (strategyType !== "curve" && strategyType !== "mobius") {
-      rewardAmounts[0] = rewardDifferenceForPlayer1.toString();
-    } else {
-      rewardAmounts[0] = governanceTokenBalanceDifferenceForPlayer1.toString();
-    }
+
+    rewardAmounts[0] = rewardDifferenceForPlayer1.toString();
+    //rewardAmounts[0] = governanceTokenBalanceDifferenceForPlayer1.toString();
 
     await expect(result)
       .to.emit(contracts.goodGhosting, "WithdrawInboundTokens")
@@ -7021,15 +6961,13 @@ export const shouldBehaveLikeVariableDepositPool = async (strategyType: string) 
       assert(interestEarnedByPlayer2.eq(interestEarnedByPlayer1));
     }
 
-    if (strategyType !== "curve" && strategyType !== "mobius")
-      assert(rewardDifferenceForPlayer2.lt(rewardDifferenceForPlayer1));
+    assert(rewardDifferenceForPlayer2.lt(rewardDifferenceForPlayer1));
 
     const playerRewardAmounts: any = [];
-    if (strategyType !== "curve" && strategyType !== "mobius") {
-      rewardAmounts[0] = rewardDifferenceForPlayer2.toString();
-    } else {
-      rewardAmounts[0] = governanceTokenBalanceDifferenceForPlayer2.toString();
-    }
+
+    rewardAmounts[0] = rewardDifferenceForPlayer2.toString();
+
+    //rewardAmounts[0] = governanceTokenBalanceDifferenceForPlayer2.toString();
 
     await expect(result)
       .to.emit(contracts.goodGhosting, "WithdrawInboundTokens")
@@ -7284,15 +7222,15 @@ export const shouldBehaveLikeVariableDepositPool = async (strategyType: string) 
     }
     const adminBalanceBeforeWithdraw = await contracts.inboundToken.balanceOf(deployer.address);
     let reward;
-    if (strategyType !== "curve" && strategyType !== "mobius") {
-      reward = contracts.rewardToken;
-    } else {
-      if (strategyType === "curve") {
-        reward = contracts.curve;
-      } else {
-        reward = contracts.minter;
-      }
+
+    reward = contracts.rewardToken;
+
+    if (strategyType === "curve") {
+      reward = contracts.curve;
+    } else if (strategyType === "mobius") {
+      reward = contracts.minter;
     }
+
     const adminRewardBalanceBeforeWithdraw = await reward.balanceOf(deployer.address);
     let adminGovernanceTokenBalanceBeforeWithdraw = ethers.BigNumber.from(0);
     if (strategyType === "curve") {
