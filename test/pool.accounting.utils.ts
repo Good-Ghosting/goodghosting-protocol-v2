@@ -128,20 +128,20 @@ export async function getRewardBalance(
   const gameRewards = await strategyContract.callStatic.getAccumulatedRewardTokenAmounts(false);
   const gameRewardsAddresses = await strategyContract.getRewardTokens();
   const rewardIndex = gameRewardsAddresses.findIndex(
-    address => address.toLowerCase() === rewardTokenContract.address.toLowerCase(),
+    address => address.toLowerCase() === rewardTokenContract?.address?.toLowerCase(),
   );
 
   if (rewardIndex < 0) {
     return BigNumber.from(0);
   }
 
-  const gameRewardsSentToStrategy = await rewardTokenContract.balanceOf(strategyContract.address);
-  const gameRewardsSentToPool = await rewardTokenContract.balanceOf(goodGhostingContract.address);
+  //const gameRewardsSentToStrategy = await rewardTokenContract.balanceOf(strategyContract.address);
 
+  const gameRewardsSentToPool = await rewardTokenContract.balanceOf(goodGhostingContract.address);
   const isRedeemed = await goodGhostingContract.adminFeeSet();
 
   const rewardBalance = (gameRewards[rewardIndex] ?? BigNumber.from(0))
-    .add(gameRewardsSentToStrategy)
+    //.add(gameRewardsSentToStrategy)
     .add(gameRewardsSentToPool);
 
   if (isRedeemed) {

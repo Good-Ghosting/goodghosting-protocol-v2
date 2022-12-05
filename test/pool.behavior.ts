@@ -1738,14 +1738,13 @@ export const shouldBehaveLikePlayersWithdrawingFromGGPool = async (strategyType:
       .to.emit(contracts.goodGhosting, "EmergencyWithdrawalEnabled")
       .withArgs(currentSegment, winnetCount, depositRoundInterestSharePercentage);
 
-    if (strategyType === "curve") {
-      governanceTokenPlayer1BalanceBeforeWithdraw = await contracts.curve.balanceOf(player1.address);
-      governanceTokenPlayer2BalanceBeforeWithdraw = await contracts.curve.balanceOf(player2.address);
-    } else if (strategyType === "mobius") {
-      governanceTokenPlayer1BalanceBeforeWithdraw = await contracts.minter.balanceOf(player1.address);
-      governanceTokenPlayer2BalanceBeforeWithdraw = await contracts.minter.balanceOf(player2.address);
-    }
+    const governanceRewardTokenContract = strategyType === "curve" ? contracts.curve : contracts.minter;
+    const isCurveOrMobius = strategyType === "curve" || strategyType === "mobius";
 
+    if (isCurveOrMobius) {
+      governanceTokenPlayer1BalanceBeforeWithdraw = await governanceRewardTokenContract.balanceOf(player1.address);
+      governanceTokenPlayer2BalanceBeforeWithdraw = await governanceRewardTokenContract.balanceOf(player2.address);
+    }
     const rewardTokenInstance = await getRewardTokenInstance(contracts.strategy, player1);
 
     rewardTokenPlayer1BalanceBeforeWithdraw = await rewardTokenInstance.balanceOf(player1.address);
@@ -1762,11 +1761,39 @@ export const shouldBehaveLikePlayersWithdrawingFromGGPool = async (strategyType:
       player1.address,
     );
 
+    const player1ExpectedRewards = await getPlayerReward(
+      contracts.goodGhosting,
+      contracts.strategy,
+      rewardTokenInstance,
+      player1.address,
+    );
+
+    const player1ExpectedGovernanceRewards = await getPlayerReward(
+      contracts.goodGhosting,
+      contracts.strategy,
+      governanceRewardTokenContract,
+      player1.address,
+    );
+
     await contracts.goodGhosting.connect(player1).withdraw(0);
 
     const player2ExpectedInterest = await getPlayerInterest(
       contracts.goodGhosting,
       contracts.strategy,
+      player2.address,
+    );
+
+    const player2ExpectedRewards = await getPlayerReward(
+      contracts.goodGhosting,
+      contracts.strategy,
+      rewardTokenInstance,
+      player2.address,
+    );
+
+    const player2ExpectedGovernanceRewards = await getPlayerReward(
+      contracts.goodGhosting,
+      contracts.strategy,
+      governanceRewardTokenContract,
       player2.address,
     );
 
@@ -1788,39 +1815,32 @@ export const shouldBehaveLikePlayersWithdrawingFromGGPool = async (strategyType:
     assert(player1ExpectedInterest.eq(player1WithdrawnInterest));
     assert(player2ExpectedInterest.eq(player2WithdrawnInterest));
 
-    if (strategyType === "curve") {
-      governanceTokenPlayer1BalanceAfterWithdraw = await contracts.curve.balanceOf(player1.address);
-      governanceTokenPlayer2BalanceAfterWithdraw = await contracts.curve.balanceOf(player2.address);
-    } else if (strategyType === "mobius") {
-      governanceTokenPlayer1BalanceAfterWithdraw = await contracts.minter.balanceOf(player1.address);
-      governanceTokenPlayer2BalanceAfterWithdraw = await contracts.minter.balanceOf(player2.address);
+    if (isCurveOrMobius) {
+      governanceTokenPlayer1BalanceAfterWithdraw = await governanceRewardTokenContract.balanceOf(player1.address);
+      governanceTokenPlayer2BalanceAfterWithdraw = await governanceRewardTokenContract.balanceOf(player2.address);
     }
 
     rewardTokenPlayer1BalanceAfterWithdraw = await rewardTokenInstance.balanceOf(player1.address);
     rewardTokenPlayer2BalanceAfterWithdraw = await rewardTokenInstance.balanceOf(player2.address);
 
-    assert(
-      ethers.BigNumber.from(rewardTokenPlayer1BalanceAfterWithdraw).gt(
-        ethers.BigNumber.from(rewardTokenPlayer1BalanceBeforeWithdraw),
-      ),
+    const player1ReceivedReward = ethers.BigNumber.from(rewardTokenPlayer1BalanceAfterWithdraw).sub(
+      ethers.BigNumber.from(rewardTokenPlayer1BalanceBeforeWithdraw),
+    );
+    const player2ReceivedReward = ethers.BigNumber.from(rewardTokenPlayer2BalanceAfterWithdraw).sub(
+      ethers.BigNumber.from(rewardTokenPlayer2BalanceBeforeWithdraw),
+    );
+    assert(player1ExpectedRewards.eq(player1ReceivedReward));
+    assert(player2ExpectedRewards.eq(player2ReceivedReward));
+
+    const player1ReceivedGorvernanceReward = ethers.BigNumber.from(governanceTokenPlayer1BalanceAfterWithdraw).sub(
+      ethers.BigNumber.from(governanceTokenPlayer1BalanceBeforeWithdraw),
+    );
+    const player2ReceivedGovernanceReward = ethers.BigNumber.from(governanceTokenPlayer2BalanceAfterWithdraw).sub(
+      ethers.BigNumber.from(governanceTokenPlayer2BalanceBeforeWithdraw),
     );
 
-    assert(
-      ethers.BigNumber.from(rewardTokenPlayer2BalanceAfterWithdraw).gt(
-        ethers.BigNumber.from(rewardTokenPlayer2BalanceBeforeWithdraw),
-      ),
-    );
-
-    assert(
-      ethers.BigNumber.from(governanceTokenPlayer1BalanceAfterWithdraw).gt(
-        ethers.BigNumber.from(governanceTokenPlayer1BalanceBeforeWithdraw),
-      ),
-    );
-    assert(
-      ethers.BigNumber.from(governanceTokenPlayer2BalanceAfterWithdraw).gt(
-        ethers.BigNumber.from(governanceTokenPlayer2BalanceBeforeWithdraw),
-      ),
-    );
+    assert(player1ExpectedGovernanceRewards.eq(player1ReceivedGorvernanceReward));
+    assert(player2ExpectedGovernanceRewards.eq(player2ReceivedGovernanceReward));
   });
 
   it("allows players to withdraw early after admin enables early game completion during waiting round, there is interest generated & one of the winners deposits in a additional segment", async () => {
@@ -2277,7 +2297,6 @@ export const shouldBehaveLikePlayersWithdrawingFromGGPool = async (strategyType:
     const player2PreWithdrawBalance = await contracts.inboundToken.balanceOf(player2.address);
     playerMaticBalanceBeforeWithdraw = await contracts.rewardToken.balanceOf(player2.address);
 
-    console.log("strategyType", strategyType);
     const playerExpectedInterest = await getPlayerInterest(contracts.goodGhosting, contracts.strategy, player2.address);
     const playerExpectedRewards = await getPlayerReward(
       contracts.goodGhosting,
