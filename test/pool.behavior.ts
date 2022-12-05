@@ -5431,12 +5431,12 @@ export const shouldBehaveLikeVariableDepositPool = async (strategyType: string) 
     const accounts = await ethers.getSigners();
     let governanceTokenPlayer1BalanceAfterWithdraw = 0,
       governanceTokenPlayer2BalanceAfterWithdraw = 0,
-      rewardTokenPlayer1BalanceAfterWithdraw = 0,
-      rewardTokenPlayer2BalanceAfterWithdraw = 0,
+      rewardTokenPlayer1BalanceAfterWithdraw,
+      rewardTokenPlayer2BalanceAfterWithdraw,
       governanceTokenPlayer1BalanceBeforeWithdraw = 0,
       governanceTokenPlayer2BalanceBeforeWithdraw = 0,
-      rewardTokenPlayer1BalanceBeforeWithdraw = 0,
-      rewardTokenPlayer2BalanceBeforeWithdraw = 0;
+      rewardTokenPlayer1BalanceBeforeWithdraw,
+      rewardTokenPlayer2BalanceBeforeWithdraw;
 
     const player1 = accounts[2];
     const player2 = accounts[3];
@@ -5491,7 +5491,21 @@ export const shouldBehaveLikeVariableDepositPool = async (strategyType: string) 
     rewardTokenPlayer1BalanceBeforeWithdraw = await contracts.rewardToken.balanceOf(player1.address);
     rewardTokenPlayer2BalanceBeforeWithdraw = await contracts.rewardToken.balanceOf(player2.address);
 
+    const rewardEarnedPlayer1 = await getPlayerReward(
+      contracts.goodGhosting,
+      contracts.strategy,
+      contracts.rewardToken,
+      player1.address,
+    );
+
     await contracts.goodGhosting.connect(player1).withdraw(0);
+
+    const rewardEarnedPlayer2 = await getPlayerReward(
+      contracts.goodGhosting,
+      contracts.strategy,
+      contracts.rewardToken,
+      player2.address,
+    );
     await contracts.goodGhosting.connect(player2).withdraw(0);
 
     if (strategyType === "curve") {
@@ -5506,16 +5520,11 @@ export const shouldBehaveLikeVariableDepositPool = async (strategyType: string) 
     rewardTokenPlayer1BalanceAfterWithdraw = await contracts.rewardToken.balanceOf(player1.address);
     rewardTokenPlayer2BalanceAfterWithdraw = await contracts.rewardToken.balanceOf(player2.address);
 
-    assert(
-      ethers.BigNumber.from(rewardTokenPlayer1BalanceAfterWithdraw).gt(
-        ethers.BigNumber.from(rewardTokenPlayer1BalanceBeforeWithdraw),
-      ),
-    );
-    assert(
-      ethers.BigNumber.from(rewardTokenPlayer2BalanceAfterWithdraw).gt(
-        ethers.BigNumber.from(rewardTokenPlayer2BalanceBeforeWithdraw),
-      ),
-    );
+    const rewardDiffPlayer1 = rewardTokenPlayer1BalanceAfterWithdraw.sub(rewardTokenPlayer1BalanceBeforeWithdraw);
+    const rewardDiffPlayer2 = rewardTokenPlayer2BalanceAfterWithdraw.sub(rewardTokenPlayer2BalanceBeforeWithdraw);
+
+    assert(rewardDiffPlayer1.eq(rewardEarnedPlayer1));
+    assert(rewardDiffPlayer2.eq(rewardEarnedPlayer2));
 
     if (strategyType === "curve" || strategyType === "mobius") {
       assert(
@@ -6106,17 +6115,22 @@ export const shouldBehaveLikeVariableDepositPool = async (strategyType: string) 
       }
 
       const player1BalanceBeforeWithdraw = await contracts.inboundToken.balanceOf(player1.address);
-      const player1RewardBalanceBeforeWithdraw = await contracts.rewardToken.balanceOf(player1.address);
+      const player1RewardBalanceBeforeWithdraw = await contracts.curve.balanceOf(player1.address);
       let player1GovernanceTokenBalanceBeforeWithdraw = ethers.BigNumber.from(0);
       if (strategyType === "curve") {
         player1GovernanceTokenBalanceBeforeWithdraw = await contracts.curve.balanceOf(player1.address);
       } else if (strategyType === "mobius") {
         player1GovernanceTokenBalanceBeforeWithdraw = await contracts.minter.balanceOf(player1.address);
       }
+      const player1ExpectedInterest = await getPlayerInterest(
+        contracts.goodGhosting,
+        contracts.strategy,
+        player1.address,
+      );
 
       let result = await contracts.goodGhosting.connect(player1).withdraw(0);
 
-      const player1RewardBalanceAfterWithdraw = await contracts.rewardToken.balanceOf(player1.address);
+      const player1RewardBalanceAfterWithdraw = await contracts.curve.balanceOf(player1.address);
       const player1BalanceAfterWithdraw = await contracts.inboundToken.balanceOf(player1.address);
       let player1GovernanceTokenBalanceAfterWithdraw = ethers.BigNumber.from(0);
       if (strategyType === "curve") {
@@ -6131,6 +6145,9 @@ export const shouldBehaveLikeVariableDepositPool = async (strategyType: string) 
       );
 
       const differenceForPlayer1 = player1BalanceAfterWithdraw.sub(player1BalanceBeforeWithdraw);
+      const interestRecvdPlayer1 = differenceForPlayer1.sub(player1Info.amountPaid);
+
+      assert(interestRecvdPlayer1.eq(player1ExpectedInterest));
       const interestEarnedByPlayer1 = differenceForPlayer1.sub(ethers.BigNumber.from(player1Info.amountPaid));
 
       const player1Deposit = ethers.BigNumber.from(player1Info.amountPaid);
@@ -6156,13 +6173,18 @@ export const shouldBehaveLikeVariableDepositPool = async (strategyType: string) 
       const player2Deposit = ethers.BigNumber.from(player2Info.amountPaid);
 
       const player2BalanceBeforeWithdraw = await contracts.inboundToken.balanceOf(player2.address);
-      const player2RewardBalanceBeforeWithdraw = await contracts.rewardToken.balanceOf(player2.address);
+      const player2RewardBalanceBeforeWithdraw = await contracts.curve.balanceOf(player2.address);
       let player2GovernanceTokenBalanceBeforeWithdraw = ethers.BigNumber.from(0);
       player2GovernanceTokenBalanceBeforeWithdraw = await contracts.curve.balanceOf(player2.address);
 
+      const player2ExpectedInterest = await getPlayerInterest(
+        contracts.goodGhosting,
+        contracts.strategy,
+        player2.address,
+      );
       result = await contracts.goodGhosting.connect(player2).withdraw("800000000000000000");
 
-      const player2RewardBalanceAfterWithdraw = await contracts.rewardToken.balanceOf(player2.address);
+      const player2RewardBalanceAfterWithdraw = await contracts.curve.balanceOf(player2.address);
       const player2BalanceAfterWithdraw = await contracts.inboundToken.balanceOf(player2.address);
       let player2GovernanceTokenBalanceAfterWithdraw = ethers.BigNumber.from(0);
       player2GovernanceTokenBalanceAfterWithdraw = await contracts.curve.balanceOf(player2.address);
@@ -6174,6 +6196,10 @@ export const shouldBehaveLikeVariableDepositPool = async (strategyType: string) 
       const rewardDifferenceForPlayer2 = player2RewardBalanceAfterWithdraw.sub(player2RewardBalanceBeforeWithdraw);
       const differenceForPlayer2 = player2BalanceAfterWithdraw.sub(player2BalanceBeforeWithdraw);
       const interestEarnedByPlayer2 = differenceForPlayer2.sub(ethers.BigNumber.from(player2Info.amountPaid));
+
+      const interestRecvdPlayer2 = differenceForPlayer2.sub(player2Info.amountPaid);
+
+      assert(interestRecvdPlayer2.eq(player2ExpectedInterest));
       assert(interestEarnedByPlayer2.gt(interestEarnedByPlayer1));
 
       assert(rewardDifferenceForPlayer2.gt(rewardDifferenceForPlayer1));
@@ -6300,11 +6326,32 @@ export const shouldBehaveLikeVariableDepositPool = async (strategyType: string) 
       assert(cummalativePlayer1IndexBeforeWithdraw.lt(cummalativePlayer2IndexBeforeWithdraw));
 
       const player1BalanceBeforeWithdraw = await contracts.inboundToken.balanceOf(player1.address);
+      const player1ExpectedInterest = await getPlayerInterest(
+        contracts.goodGhosting,
+        contracts.strategy,
+        player1.address,
+      );
+
       await contracts.goodGhosting.connect(player1).withdraw(0);
+
       const player1BalanceAfterWithdraw = await contracts.inboundToken.balanceOf(player1.address);
+      const differenceForPlayer1 = player1BalanceAfterWithdraw.sub(player1BalanceBeforeWithdraw);
+      const interestEarnedByPlayer1 = differenceForPlayer1.sub(ethers.BigNumber.from(player1Info.amountPaid));
+
+      assert(player1ExpectedInterest.eq(interestEarnedByPlayer1));
+
       const player2BalanceBeforeWithdraw = await contracts.inboundToken.balanceOf(player2.address);
+      const player2ExpectedInterest = await getPlayerInterest(
+        contracts.goodGhosting,
+        contracts.strategy,
+        player2.address,
+      );
       await contracts.goodGhosting.connect(player2).withdraw("800000000000000000");
       const player2BalanceAfterWithdraw = await contracts.inboundToken.balanceOf(player2.address);
+      const differenceForPlayer2 = player2BalanceAfterWithdraw.sub(player2BalanceBeforeWithdraw);
+      const interestEarnedByPlayer2 = differenceForPlayer2.sub(ethers.BigNumber.from(player2Info.amountPaid));
+
+      assert(player2ExpectedInterest.eq(interestEarnedByPlayer2));
       const adminCalculatedFee = await contracts.goodGhosting.adminFeeAmount(0);
       const adminBalanceBeforeWithdraw = await contracts.inboundToken.balanceOf(deployer.address);
       await contracts.goodGhosting.connect(deployer).adminFeeWithdraw(0);
@@ -6524,17 +6571,36 @@ export const shouldBehaveLikeVariableDepositPool = async (strategyType: string) 
     assert(cummalativePlayer1IndexBeforeWithdraw.lt(cummalativePlayer2IndexBeforeWithdraw));
 
     const player1BalanceBeforeWithdraw = await contracts.inboundToken.balanceOf(player1.address);
+    const player1ExpectedInterest = await getPlayerInterest(
+      contracts.goodGhosting,
+      contracts.strategy,
+      player1.address,
+    );
     await contracts.goodGhosting.connect(player1).withdraw(0);
     const player1BalanceAfterWithdraw = await contracts.inboundToken.balanceOf(player1.address);
-    const player2BalanceBeforeWithdraw = await contracts.inboundToken.balanceOf(player2.address);
+    const differenceForPlayer1 = player1BalanceAfterWithdraw.sub(player1BalanceBeforeWithdraw);
+    const interestEarnedByPlayer1 = differenceForPlayer1.sub(ethers.BigNumber.from(player1Info.amountPaid));
+
+    assert(interestEarnedByPlayer1.eq(player1ExpectedInterest));
+
+    const player2BalBeforeWithdraw = await contracts.inboundToken.balanceOf(player2.address);
+    const player2ExpectedInterest = await getPlayerInterest(
+      contracts.goodGhosting,
+      contracts.strategy,
+      player2.address,
+    );
     await contracts.goodGhosting.connect(player2).withdraw("800000000000000000");
-    const player2BalanceAfterWithdraw = await contracts.inboundToken.balanceOf(player2.address);
+    const player2BalAfterWithdraw = await contracts.inboundToken.balanceOf(player2.address);
+    const differenceForPlayer2 = player2BalAfterWithdraw.sub(player2BalBeforeWithdraw);
+    const interestEarnedByPlayer2 = differenceForPlayer2.sub(ethers.BigNumber.from(player2Info.amountPaid));
+
+    assert(player2ExpectedInterest.eq(interestEarnedByPlayer2));
 
     // since player1 deposited high amount it get's more interest
     assert(
       player1BalanceAfterWithdraw
         .sub(player1BalanceBeforeWithdraw)
-        .lt(player2BalanceAfterWithdraw.sub(player2BalanceBeforeWithdraw)),
+        .lt(player2BalAfterWithdraw.sub(player2BalBeforeWithdraw)),
     );
   });
 
