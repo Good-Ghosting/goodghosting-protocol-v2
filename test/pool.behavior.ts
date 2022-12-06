@@ -8293,16 +8293,62 @@ export const shouldBehaveLikeGGPoolWithTransactionalToken = async (strategyType:
     await ethers.provider.send("evm_increaseTime", [parseInt(waitingRoundLength.toString())]);
     await ethers.provider.send("evm_mine", []);
 
+    const player1Info = await contracts.goodGhosting.players(player1.address);
+    const player2Info = await contracts.goodGhosting.players(player2.address);
+
     const transactionalTokenBalanceBeforeWithdraw = await ethers.provider.getBalance(player1.address);
     const rewardTokenBalanceBeforeWithdraw = await contracts.rewardToken.balanceOf(player1.address);
     const transactionalTokenPlayer2BalanceBeforeWithdraw = await ethers.provider.getBalance(player2.address);
     const rewardTokenPlayer2BalanceBeforeWithdraw = await contracts.rewardToken.balanceOf(player2.address);
+    const player1ExpectedInterest = await getPlayerInterest(
+      contracts.goodGhosting,
+      contracts.strategy,
+      player1.address,
+    );
+    const rewardEarnedPlayer1 = await getPlayerReward(
+      contracts.goodGhosting,
+      contracts.strategy,
+      contracts.rewardToken,
+      player1.address,
+    );
     await contracts.goodGhosting.connect(player1).withdraw(0);
+
+    const player2ExpectedInterest = await getPlayerInterest(
+      contracts.goodGhosting,
+      contracts.strategy,
+      player2.address,
+    );
+    const rewardEarnedPlayer2 = await getPlayerReward(
+      contracts.goodGhosting,
+      contracts.strategy,
+      contracts.rewardToken,
+      player2.address,
+    );
     await contracts.goodGhosting.connect(player2).withdraw(0);
     const transactionalTokenPlayer2BalanceAfterWithdraw = await ethers.provider.getBalance(player2.address);
     const rewardTokenPlayer2BalanceAfterWithdraw = await contracts.rewardToken.balanceOf(player2.address);
     const rewardTokenBalanceAfterWithdraw = await contracts.rewardToken.balanceOf(player1.address);
     const transactionalTokenBalanceAfterWithdraw = await ethers.provider.getBalance(player1.address);
+
+    const differenceRewardsForPlayer1 = rewardTokenBalanceAfterWithdraw.sub(rewardTokenBalanceBeforeWithdraw);
+    const differenceForPlayer1 = transactionalTokenBalanceAfterWithdraw.sub(transactionalTokenBalanceBeforeWithdraw);
+    const interestEarnedByPlayer1 = differenceForPlayer1.sub(ethers.BigNumber.from(player1Info.amountPaid));
+
+    const differenceRewardsForPlayer2 = rewardTokenPlayer2BalanceAfterWithdraw.sub(
+      rewardTokenPlayer2BalanceBeforeWithdraw,
+    );
+    const differenceForPlayer2 = transactionalTokenPlayer2BalanceAfterWithdraw.sub(
+      transactionalTokenPlayer2BalanceBeforeWithdraw,
+    );
+    const interestEarnedByPlayer2 = differenceForPlayer2.sub(ethers.BigNumber.from(player2Info.amountPaid));
+
+    // accounting for gas
+    assert(interestEarnedByPlayer2.lte(player2ExpectedInterest));
+    assert(interestEarnedByPlayer1.lte(player1ExpectedInterest));
+
+    assert(differenceRewardsForPlayer2.eq(rewardEarnedPlayer2));
+    assert(differenceRewardsForPlayer1.eq(rewardEarnedPlayer1));
+
     assert(transactionalTokenBalanceAfterWithdraw.gt(transactionalTokenBalanceBeforeWithdraw));
     assert(rewardTokenBalanceAfterWithdraw.gt(rewardTokenBalanceBeforeWithdraw));
     assert(transactionalTokenPlayer2BalanceAfterWithdraw.gt(transactionalTokenPlayer2BalanceBeforeWithdraw));
