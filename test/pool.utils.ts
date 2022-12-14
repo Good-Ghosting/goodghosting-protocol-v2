@@ -992,9 +992,11 @@ export const makeDeposit = async (
   const isTransactionalToken = await goodGhosting.isTransactionalToken();
   if (!isTransactionalToken) {
     await approveToken(inboundToken, player, goodGhosting.address, amount);
-    await goodGhosting.connect(player).makeDeposit(0, depositAmount);
+    const T = await goodGhosting.connect(player).makeDeposit(0, depositAmount);
+    await T.wait();
   } else {
-    await goodGhosting.connect(player).makeDeposit(0, depositAmount, { value: depositAmount });
+    const T = await goodGhosting.connect(player).makeDeposit(0, depositAmount, { value: depositAmount });
+    await T.wait();
   }
 };
 
