@@ -392,7 +392,7 @@ contract Pool is Ownable, Pausable, ReentrancyGuard {
         if (_customFee > 100) {
             revert INVALID_CUSTOM_FEE();
         }
-        if (_earlyWithdrawalFee > 100) {
+        if (_earlyWithdrawalFee > 99) {
             revert INVALID_EARLY_WITHDRAW_FEE();
         }
         if (_maxPlayersCount == 0) {

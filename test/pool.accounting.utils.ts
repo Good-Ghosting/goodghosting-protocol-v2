@@ -172,7 +172,7 @@ export async function getGameImpermanentLossShare(
     return BigNumberJS(100);
   }
 
-  return contractBalanceWithPrecision.div(grossTotalGamePrincipalWithPrecision);
+  return contractBalanceWithPrecision.div(netTotalGamePrincipalWithPrecision);
 }
 
 export async function getPlayerShare(goodGhostingContract: Pool, playerAddress: string) {
@@ -438,6 +438,9 @@ export function assertExpectedInterestEqualReceivedInterest(
   playerBeforeAccounting: PlayerBeforeWithdrawAccounting,
   playerAfterAccounting: PlayerAfterWithdrawAccounting,
 ) {
+  // console.log("playerBeforeAccounting.playerExpectedInterest", playerBeforeAccounting.playerExpectedInterest.toString());
+  //console.log("playerAfterAccounting.playerReceivedInterest", playerAfterAccounting.playerReceivedInterest.toString());
+
   assert(playerBeforeAccounting.playerExpectedInterest.eq(playerAfterAccounting.playerReceivedInterest));
 }
 
