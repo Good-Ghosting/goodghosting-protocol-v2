@@ -319,6 +319,7 @@ export const deployPool = async (
         );
       }
     }
+    rewardToken = curve;
   } else if (strategyType === "mobius") {
     const mockMobiTokenDeployer = new MintableERC20__factory(deployer);
     mobi = await mockMobiTokenDeployer.deploy("MOBI", "MOBI");
@@ -507,7 +508,7 @@ export const deployPool = async (
         const mockCurveTokenDeployer = new MintableERC20__factory(deployer);
         const curve = await mockCurveTokenDeployer.deploy("CURVE", "CURVE");
         const rewardTokenDeployer = new MintableERC20__factory(deployer);
-        const rewardToken = await rewardTokenDeployer.deploy("TOKEN_NAME", "TOKEN_SYMBOL");
+        let rewardToken = await rewardTokenDeployer.deploy("TOKEN_NAME", "TOKEN_SYMBOL");
         const curvePoolDeployer = new MockCurvePool__factory(deployer);
         const curvePool = await curvePoolDeployer.deploy("LP", "LP", inboundToken.address);
         const curveGaugeDeployer = new MockCurveGauge__factory(deployer);
@@ -536,6 +537,7 @@ export const deployPool = async (
           ZERO_ADDRESS,
           rewardTokens,
         );
+        rewardToken = curve;
       } else if (strategyType === "mobius") {
         const mockMobiTokenDeployer = new MintableERC20__factory(deployer);
         const mobi = await mockMobiTokenDeployer.deploy("MOBI", "MOBI");
@@ -791,6 +793,7 @@ export const deployPoolWithMockStrategy = async (
       ZERO_ADDRESS,
       rewardTokens,
     );
+    rewardToken = curve;
   } else {
     const mockMobiTokenDeployer = new MintableERC20__factory(deployer);
     mobi = await mockMobiTokenDeployer.deploy("MOBI", "MOBI");
@@ -989,9 +992,11 @@ export const makeDeposit = async (
   const isTransactionalToken = await goodGhosting.isTransactionalToken();
   if (!isTransactionalToken) {
     await approveToken(inboundToken, player, goodGhosting.address, amount);
-    await goodGhosting.connect(player).makeDeposit(0, depositAmount);
+    const T = await goodGhosting.connect(player).makeDeposit(0, depositAmount);
+    await T.wait();
   } else {
-    await goodGhosting.connect(player).makeDeposit(0, depositAmount, { value: depositAmount });
+    const T = await goodGhosting.connect(player).makeDeposit(0, depositAmount, { value: depositAmount });
+    await T.wait();
   }
 };
 

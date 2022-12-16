@@ -103,6 +103,7 @@
     "@celo/contractkit": "^1.5.0",
     "@truffle/hdwallet-provider": "^2.0.2",
     "axios": "^0.27.2",
+    "bignumber.js": "^9.1.1",
     "bn.js": "^5.2.1",
     "ethereumjs-abi": "^0.6.8",
     "fs": "^0.0.1-security",

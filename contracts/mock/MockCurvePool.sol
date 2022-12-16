@@ -3,11 +3,13 @@ pragma solidity 0.8.7;
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "./MintableERC20.sol";
+import "hardhat/console.sol";
+import "./MockCurveGauge.sol";
 
 contract MockCurvePool is MintableERC20, Ownable {
     IERC20 public reserve;
 
-    address gauge;
+    MockCurveGauge gauge;
 
     bool setImpermanentLoss;
 
@@ -20,7 +22,7 @@ contract MockCurvePool is MintableERC20, Ownable {
         setImpermanentLoss = true;
     }
 
-    function setGauge(address _gauge) external {
+    function setGauge(MockCurveGauge _gauge) external {
         gauge = _gauge;
     }
 
@@ -64,6 +66,11 @@ contract MockCurvePool is MintableERC20, Ownable {
                 _token_amount = reserve.balanceOf(address(this));
             }
             reserve.transfer(msg.sender, _token_amount);
+
+            if (setImpermanentLoss) {
+                uint256 burnAmount = (gauge.balanceOf(msg.sender) + _token_amount) / 2;
+                gauge.burnFrom(msg.sender, burnAmount);
+            }
         }
     }
 
@@ -77,6 +84,11 @@ contract MockCurvePool is MintableERC20, Ownable {
                 _token_amount = reserve.balanceOf(address(this));
             }
             reserve.transfer(msg.sender, _token_amount);
+
+            if (setImpermanentLoss) {
+                uint256 burnAmount = (gauge.balanceOf(msg.sender) + _token_amount) / 2;
+                gauge.burnFrom(msg.sender, burnAmount);
+            }
         }
     }
 

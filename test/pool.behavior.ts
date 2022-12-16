@@ -1,7 +1,7 @@
 const { ethers } = require("hardhat");
 import * as chai from "chai";
 import { assert } from "chai";
-import { deployMockContract, solidity } from "ethereum-waffle";
+import { solidity } from "ethereum-waffle";
 import { ERC20__factory } from "../src/types";
 import {
   mintTokens,
@@ -19,6 +19,18 @@ import {
 } from "./pool.utils";
 
 import { MintableERC20__factory } from "../src/types";
+import {
+  assertExpectedInterestAndRewardsEqualToReceived,
+  assertExpectedRewardsEqualReceivedRewards,
+  GameContracts,
+  getCumulativePlayerIndexSum,
+  getExpectedFeeAdminRewardAmount,
+  getPlayerAfterWithdrawAccounting,
+  getPlayerBeforeWithdrawAccounting,
+  getPlayerInterest,
+  getPlayerMultipleRewards,
+  getPlayerReward,
+} from "./pool.accounting.utils";
 
 chai.use(solidity);
 
@@ -145,13 +157,13 @@ export const shouldBehaveLikeGGPool = async (strategyType: string) => {
     await expect(contracts.goodGhosting.enableEmergencyWithdraw()).to.be.revertedWith("GAME_COMPLETED()");
   });
 
-  it("reverts if the contract is deployed with more than 100% early withdraw fee", async () => {
+  it("reverts if the contract is deployed with more than 99% early withdraw fee", async () => {
     await expect(
       deployPool(
         depositCount,
         segmentLength,
         segmentPayment,
-        101,
+        100,
         0,
         maxPlayersCount,
         true,
@@ -651,25 +663,24 @@ export const shouldBehaveLikeJoiningGGPool = async (strategyType: string) => {
       governanceTokenPlayer2BalanceAfterWithdraw = await contracts.minter.balanceOf(player2.address);
     }
 
-    if (strategyType !== "curve" && strategyType !== "mobius") {
-      rewardTokenPlayer1BalanceAfterWithdraw = await rewardTokenInstance.balanceOf(player1.address);
-      rewardTokenPlayer2BalanceAfterWithdraw = await rewardTokenInstance.balanceOf(player2.address);
+    rewardTokenPlayer1BalanceAfterWithdraw = await rewardTokenInstance.balanceOf(player1.address);
+    rewardTokenPlayer2BalanceAfterWithdraw = await rewardTokenInstance.balanceOf(player2.address);
 
-      console.log(rewardTokenPlayer1BalanceAfterWithdraw);
-      console.log(rewardTokenPlayer1BalanceAfterWithdraw);
+    console.log(rewardTokenPlayer1BalanceAfterWithdraw);
+    console.log(rewardTokenPlayer1BalanceAfterWithdraw);
 
-      assert(
-        ethers.BigNumber.from(rewardTokenPlayer1BalanceAfterWithdraw).gt(
-          ethers.BigNumber.from(rewardTokenPlayer1BalanceBeforeWithdraw),
-        ),
-      );
+    assert(
+      ethers.BigNumber.from(rewardTokenPlayer1BalanceAfterWithdraw).gt(
+        ethers.BigNumber.from(rewardTokenPlayer1BalanceBeforeWithdraw),
+      ),
+    );
 
-      assert(
-        ethers.BigNumber.from(rewardTokenPlayer2BalanceAfterWithdraw).gt(
-          ethers.BigNumber.from(rewardTokenPlayer2BalanceBeforeWithdraw),
-        ),
-      );
-    }
+    assert(
+      ethers.BigNumber.from(rewardTokenPlayer2BalanceAfterWithdraw).gt(
+        ethers.BigNumber.from(rewardTokenPlayer2BalanceBeforeWithdraw),
+      ),
+    );
+
     if (strategyType === "curve" || strategyType === "mobius") {
       assert(
         ethers.BigNumber.from(governanceTokenPlayer1BalanceAfterWithdraw).gt(
@@ -1691,6 +1702,11 @@ export const shouldBehaveLikePlayersWithdrawingFromGGPool = async (strategyType:
       rewardTokenPlayer1BalanceBeforeWithdraw = 0,
       rewardTokenPlayer2BalanceBeforeWithdraw = 0;
 
+    let inboundTokenPlayer1BalanceBeforeWithdraw,
+      inboundTokenPlayer2BalanceBeforeWithdraw,
+      inboundTokenPlayer2BalanceAftereWithdraw,
+      inboundTokenPlayer1BalanceAfterWithdraw;
+
     await joinGame(contracts.goodGhosting, contracts.inboundToken, player2, segmentPayment, segmentPayment);
     await joinGame(contracts.goodGhosting, contracts.inboundToken, player1, segmentPayment, segmentPayment);
     for (let index = 1; index < depositCount; index++) {
@@ -1733,12 +1749,12 @@ export const shouldBehaveLikePlayersWithdrawingFromGGPool = async (strategyType:
       .to.emit(contracts.goodGhosting, "EmergencyWithdrawalEnabled")
       .withArgs(currentSegment, winnetCount, depositRoundInterestSharePercentage);
 
-    if (strategyType === "curve") {
-      governanceTokenPlayer1BalanceBeforeWithdraw = await contracts.curve.balanceOf(player1.address);
-      governanceTokenPlayer2BalanceBeforeWithdraw = await contracts.curve.balanceOf(player2.address);
-    } else if (strategyType === "mobius") {
-      governanceTokenPlayer1BalanceBeforeWithdraw = await contracts.minter.balanceOf(player1.address);
-      governanceTokenPlayer2BalanceBeforeWithdraw = await contracts.minter.balanceOf(player2.address);
+    const governanceRewardTokenContract = strategyType === "curve" ? contracts.curve : contracts.minter;
+    const isCurveOrMobius = strategyType === "curve" || strategyType === "mobius";
+
+    if (isCurveOrMobius) {
+      governanceTokenPlayer1BalanceBeforeWithdraw = await governanceRewardTokenContract.balanceOf(player1.address);
+      governanceTokenPlayer2BalanceBeforeWithdraw = await governanceRewardTokenContract.balanceOf(player2.address);
     }
 
     const rewardTokenInstance = await getRewardTokenInstance(contracts.strategy, player1);
@@ -1746,49 +1762,85 @@ export const shouldBehaveLikePlayersWithdrawingFromGGPool = async (strategyType:
     rewardTokenPlayer1BalanceBeforeWithdraw = await rewardTokenInstance.balanceOf(player1.address);
     rewardTokenPlayer2BalanceBeforeWithdraw = await rewardTokenInstance.balanceOf(player2.address);
 
-    console.log("entered withdraw player 1");
+    inboundTokenPlayer1BalanceBeforeWithdraw = await contracts.inboundToken.balanceOf(player1.address);
+    inboundTokenPlayer2BalanceBeforeWithdraw = await contracts.inboundToken.balanceOf(player2.address);
+    const player1Info = await contracts.goodGhosting.players(player1.address);
+    const player2Info = await contracts.goodGhosting.players(player2.address);
+
+    const player1ExpectedInterest = await getPlayerInterest(
+      contracts.goodGhosting,
+      contracts.strategy,
+      player1.address,
+    );
+
+    const gameContracts: GameContracts = {
+      goodGhostingContract: contracts.goodGhosting,
+      strategyContract: contracts.strategy,
+      rewardsTokenContract: [rewardTokenInstance, governanceRewardTokenContract],
+    };
+
+    const [player1ExpectedRewards, player1ExpectedGovernanceRewards] = await getPlayerMultipleRewards(
+      gameContracts,
+      player1.address,
+    );
 
     await contracts.goodGhosting.connect(player1).withdraw(0);
-    console.log("entered withdraw player 2");
+
+    const player2ExpectedInterest = await getPlayerInterest(
+      contracts.goodGhosting,
+      contracts.strategy,
+      player2.address,
+    );
+
+    const [player2ExpectedRewards, player2ExpectedGovernanceRewards] = await getPlayerMultipleRewards(
+      gameContracts,
+      player2.address,
+    );
 
     await contracts.goodGhosting.connect(player2).withdraw(0);
 
-    if (strategyType === "curve") {
-      governanceTokenPlayer1BalanceAfterWithdraw = await contracts.curve.balanceOf(player1.address);
-      governanceTokenPlayer2BalanceAfterWithdraw = await contracts.curve.balanceOf(player2.address);
-    } else if (strategyType === "mobius") {
-      governanceTokenPlayer1BalanceAfterWithdraw = await contracts.minter.balanceOf(player1.address);
-      governanceTokenPlayer2BalanceAfterWithdraw = await contracts.minter.balanceOf(player2.address);
+    inboundTokenPlayer1BalanceAfterWithdraw = await contracts.inboundToken.balanceOf(player1.address);
+    inboundTokenPlayer2BalanceAftereWithdraw = await contracts.inboundToken.balanceOf(player2.address);
+
+    const withdrawalValuePlayer2 = inboundTokenPlayer2BalanceAftereWithdraw.sub(
+      inboundTokenPlayer2BalanceBeforeWithdraw,
+    );
+    const player2WithdrawnInterest = withdrawalValuePlayer2.sub(player2Info.netAmountPaid);
+
+    const withdrawalValuePlayer1 = inboundTokenPlayer1BalanceAfterWithdraw.sub(
+      inboundTokenPlayer1BalanceBeforeWithdraw,
+    );
+    const player1WithdrawnInterest = withdrawalValuePlayer1.sub(player1Info.netAmountPaid);
+
+    assert(player1ExpectedInterest.eq(player1WithdrawnInterest));
+    assert(player2ExpectedInterest.eq(player2WithdrawnInterest));
+
+    if (isCurveOrMobius) {
+      governanceTokenPlayer1BalanceAfterWithdraw = await governanceRewardTokenContract.balanceOf(player1.address);
+      governanceTokenPlayer2BalanceAfterWithdraw = await governanceRewardTokenContract.balanceOf(player2.address);
     }
 
-    if (strategyType !== "curve" && strategyType !== "mobius") {
-      rewardTokenPlayer1BalanceAfterWithdraw = await rewardTokenInstance.balanceOf(player1.address);
-      rewardTokenPlayer2BalanceAfterWithdraw = await rewardTokenInstance.balanceOf(player2.address);
+    rewardTokenPlayer1BalanceAfterWithdraw = await rewardTokenInstance.balanceOf(player1.address);
+    rewardTokenPlayer2BalanceAfterWithdraw = await rewardTokenInstance.balanceOf(player2.address);
 
-      assert(
-        ethers.BigNumber.from(rewardTokenPlayer1BalanceAfterWithdraw).gt(
-          ethers.BigNumber.from(rewardTokenPlayer1BalanceBeforeWithdraw),
-        ),
-      );
+    const player1ReceivedReward = ethers.BigNumber.from(rewardTokenPlayer1BalanceAfterWithdraw).sub(
+      ethers.BigNumber.from(rewardTokenPlayer1BalanceBeforeWithdraw),
+    );
+    const player2ReceivedReward = ethers.BigNumber.from(rewardTokenPlayer2BalanceAfterWithdraw).sub(
+      ethers.BigNumber.from(rewardTokenPlayer2BalanceBeforeWithdraw),
+    );
+    assert(player1ExpectedRewards.eq(player1ReceivedReward));
+    assert(player2ExpectedRewards.eq(player2ReceivedReward));
 
-      assert(
-        ethers.BigNumber.from(rewardTokenPlayer2BalanceAfterWithdraw).gt(
-          ethers.BigNumber.from(rewardTokenPlayer2BalanceBeforeWithdraw),
-        ),
-      );
-    }
-    if (strategyType === "curve" || strategyType === "mobius") {
-      assert(
-        ethers.BigNumber.from(governanceTokenPlayer1BalanceAfterWithdraw).gt(
-          ethers.BigNumber.from(governanceTokenPlayer1BalanceBeforeWithdraw),
-        ),
-      );
-      assert(
-        ethers.BigNumber.from(governanceTokenPlayer2BalanceAfterWithdraw).gt(
-          ethers.BigNumber.from(governanceTokenPlayer2BalanceBeforeWithdraw),
-        ),
-      );
-    }
+    const player1ReceivedGorvernanceReward = ethers.BigNumber.from(governanceTokenPlayer1BalanceAfterWithdraw).sub(
+      ethers.BigNumber.from(governanceTokenPlayer1BalanceBeforeWithdraw),
+    );
+    const player2ReceivedGovernanceReward = ethers.BigNumber.from(governanceTokenPlayer2BalanceAfterWithdraw).sub(
+      ethers.BigNumber.from(governanceTokenPlayer2BalanceBeforeWithdraw),
+    );
+
+    assert(player1ExpectedGovernanceRewards.eq(player1ReceivedGorvernanceReward));
+    assert(player2ExpectedGovernanceRewards.eq(player2ReceivedGovernanceReward));
   });
 
   it("allows players to withdraw early after admin enables early game completion during waiting round, there is interest generated & one of the winners deposits in a additional segment", async () => {
@@ -1866,13 +1918,12 @@ export const shouldBehaveLikePlayersWithdrawingFromGGPool = async (strategyType:
         .transfer(contracts.strategy.address, ethers.utils.parseEther("100000"));
     }
 
-    if (strategyType === "curve") {
-      governanceTokenPlayer1BalanceBeforeWithdraw = await contracts.curve.balanceOf(player1.address);
-      governanceTokenPlayer2BalanceBeforeWithdraw = await contracts.curve.balanceOf(player2.address);
-    } else if (strategyType === "mobius") {
-      contracts.rewardToken = contracts.minter;
-      governanceTokenPlayer1BalanceBeforeWithdraw = await contracts.minter.balanceOf(player1.address);
-      governanceTokenPlayer2BalanceBeforeWithdraw = await contracts.minter.balanceOf(player2.address);
+    const governanceRewardTokenContract = strategyType === "curve" ? contracts.curve : contracts.minter;
+    const isCurveOrMobius = strategyType === "curve" || strategyType === "mobius";
+
+    if (isCurveOrMobius) {
+      governanceTokenPlayer1BalanceBeforeWithdraw = await governanceRewardTokenContract.balanceOf(player1.address);
+      governanceTokenPlayer2BalanceBeforeWithdraw = await governanceRewardTokenContract.balanceOf(player2.address);
     }
 
     const rewardTokenInstance = await getRewardTokenInstance(contracts.strategy, player1);
@@ -1881,56 +1932,85 @@ export const shouldBehaveLikePlayersWithdrawingFromGGPool = async (strategyType:
     rewardTokenPlayer2BalanceBeforeWithdraw = await rewardTokenInstance.balanceOf(player2.address);
 
     const player2BeforeWithdrawBalance = await contracts.inboundToken.balanceOf(player2.address);
+
+    const player2ExpectedInterest = await getPlayerInterest(
+      contracts.goodGhosting,
+      contracts.strategy,
+      player2.address,
+    );
+
+    const gameContracts: GameContracts = {
+      goodGhostingContract: contracts.goodGhosting,
+      strategyContract: contracts.strategy,
+      rewardsTokenContract: [rewardTokenInstance, governanceRewardTokenContract],
+    };
+
+    const [player2ExpectedRewards, player2ExpectedGovernanceRewards] = await getPlayerMultipleRewards(
+      gameContracts,
+      player2.address,
+    );
+
     await contracts.goodGhosting.connect(player2).withdraw(0);
+
     const player2PostWithdrawBalance = await contracts.inboundToken.balanceOf(player2.address);
     const player2WithdrawAmount = player2PostWithdrawBalance.sub(player2BeforeWithdrawBalance);
-    console.log("player 2 withdraw amount", player2WithdrawAmount.toString());
+
+    const player1ExpectedInterest = await getPlayerInterest(
+      contracts.goodGhosting,
+      contracts.strategy,
+      player1.address,
+    );
+
+    const [player1ExpectedRewards, player1ExpectedGovernanceRewards] = await getPlayerMultipleRewards(
+      gameContracts,
+      player1.address,
+    );
 
     const player1BeforeWithdrawBalance = await contracts.inboundToken.balanceOf(player1.address);
+
     await contracts.goodGhosting.connect(player1).withdraw(0);
+
     const player1PostWithdrawBalance = await contracts.inboundToken.balanceOf(player1.address);
     const player1WithdrawAmount = player1PostWithdrawBalance.sub(player1BeforeWithdrawBalance);
-    console.log("player 1 withdraw amount", player1WithdrawAmount.toString());
+
+    const player1Info = await contracts.goodGhosting.players(player1.address);
+    const player2Info = await contracts.goodGhosting.players(player2.address);
+    const player2WithdrawnInterest = player2WithdrawAmount.sub(player2Info.netAmountPaid);
+    const player1WithdrawnInterest = player1WithdrawAmount.sub(player1Info.netAmountPaid);
+
+    await getCumulativePlayerIndexSum(contracts.goodGhosting);
+
+    assert(player1ExpectedInterest.eq(player1WithdrawnInterest));
+    assert(player2ExpectedInterest.eq(player2WithdrawnInterest));
 
     assert(player1WithdrawAmount.gt(player2WithdrawAmount));
 
-    if (strategyType === "curve") {
-      governanceTokenPlayer1BalanceAfterWithdraw = await contracts.curve.balanceOf(player1.address);
-      governanceTokenPlayer2BalanceAfterWithdraw = await contracts.curve.balanceOf(player2.address);
-    } else if (strategyType === "mobius") {
-      contracts.rewardToken = contracts.minter;
-      governanceTokenPlayer1BalanceAfterWithdraw = await contracts.minter.balanceOf(player1.address);
-      governanceTokenPlayer2BalanceAfterWithdraw = await contracts.minter.balanceOf(player2.address);
+    if (isCurveOrMobius) {
+      governanceTokenPlayer1BalanceAfterWithdraw = await governanceRewardTokenContract.balanceOf(player1.address);
+      governanceTokenPlayer2BalanceAfterWithdraw = await governanceRewardTokenContract.balanceOf(player2.address);
     }
 
-    if (strategyType !== "curve" && strategyType !== "mobius") {
-      rewardTokenPlayer1BalanceAfterWithdraw = await rewardTokenInstance.balanceOf(player1.address);
-      rewardTokenPlayer2BalanceAfterWithdraw = await rewardTokenInstance.balanceOf(player2.address);
+    rewardTokenPlayer1BalanceAfterWithdraw = await rewardTokenInstance.balanceOf(player1.address);
+    rewardTokenPlayer2BalanceAfterWithdraw = await rewardTokenInstance.balanceOf(player2.address);
 
-      assert(
-        ethers.BigNumber.from(rewardTokenPlayer1BalanceAfterWithdraw).gt(
-          ethers.BigNumber.from(rewardTokenPlayer1BalanceBeforeWithdraw),
-        ),
-      );
+    const player1ReceivedReward = ethers.BigNumber.from(rewardTokenPlayer1BalanceAfterWithdraw).sub(
+      ethers.BigNumber.from(rewardTokenPlayer1BalanceBeforeWithdraw),
+    );
+    const player2ReceivedReward = ethers.BigNumber.from(rewardTokenPlayer2BalanceAfterWithdraw).sub(
+      ethers.BigNumber.from(rewardTokenPlayer2BalanceBeforeWithdraw),
+    );
+    assert(player1ExpectedRewards.eq(player1ReceivedReward));
+    assert(player2ExpectedRewards.eq(player2ReceivedReward));
 
-      assert(
-        ethers.BigNumber.from(rewardTokenPlayer2BalanceAfterWithdraw).gt(
-          ethers.BigNumber.from(rewardTokenPlayer2BalanceBeforeWithdraw),
-        ),
-      );
-    }
-    if (strategyType === "curve" || strategyType === "mobius") {
-      assert(
-        ethers.BigNumber.from(governanceTokenPlayer1BalanceAfterWithdraw).gt(
-          ethers.BigNumber.from(governanceTokenPlayer1BalanceBeforeWithdraw),
-        ),
-      );
-      assert(
-        ethers.BigNumber.from(governanceTokenPlayer2BalanceAfterWithdraw).gt(
-          ethers.BigNumber.from(governanceTokenPlayer2BalanceBeforeWithdraw),
-        ),
-      );
-    }
+    const player1ReceivedGorvernanceReward = ethers.BigNumber.from(governanceTokenPlayer1BalanceAfterWithdraw).sub(
+      ethers.BigNumber.from(governanceTokenPlayer1BalanceBeforeWithdraw),
+    );
+    const player2ReceivedGovernanceReward = ethers.BigNumber.from(governanceTokenPlayer2BalanceAfterWithdraw).sub(
+      ethers.BigNumber.from(governanceTokenPlayer2BalanceBeforeWithdraw),
+    );
+
+    assert(player1ExpectedGovernanceRewards.eq(player1ReceivedGorvernanceReward));
+    assert(player2ExpectedGovernanceRewards.eq(player2ReceivedGovernanceReward));
   });
 
   it("allows players to withdraw early after admin enables early game completion when there are ghosts", async () => {
@@ -1956,71 +2036,69 @@ export const shouldBehaveLikePlayersWithdrawingFromGGPool = async (strategyType:
     }
     // emergency withdraw in last deposit segment
     await contracts.goodGhosting.enableEmergencyWithdraw();
-    if (strategyType === "curve") {
-      governanceTokenPlayer1BalanceBeforeWithdraw = await contracts.curve.balanceOf(player1.address);
-      governanceTokenPlayer2BalanceBeforeWithdraw = await contracts.curve.balanceOf(player2.address);
-    } else if (strategyType === "mobius") {
-      contracts.rewardToken = contracts.minter;
-      governanceTokenPlayer1BalanceBeforeWithdraw = await contracts.minter.balanceOf(player1.address);
-      governanceTokenPlayer2BalanceBeforeWithdraw = await contracts.minter.balanceOf(player2.address);
-    }
 
+    const governanceRewardTokenContract = strategyType === "curve" ? contracts.curve : contracts.minter;
+    const isCurveOrMobius = strategyType === "curve" || strategyType === "mobius";
+
+    if (isCurveOrMobius) {
+      governanceTokenPlayer1BalanceBeforeWithdraw = await governanceRewardTokenContract.balanceOf(player1.address);
+      governanceTokenPlayer2BalanceBeforeWithdraw = await governanceRewardTokenContract.balanceOf(player2.address);
+    }
     const rewardTokenInstance = await getRewardTokenInstance(contracts.strategy, player1);
 
     rewardTokenPlayer1BalanceBeforeWithdraw = await rewardTokenInstance.balanceOf(player1.address);
     rewardTokenPlayer2BalanceBeforeWithdraw = await rewardTokenInstance.balanceOf(player2.address);
 
+    const gameContracts: GameContracts = {
+      goodGhostingContract: contracts.goodGhosting,
+      strategyContract: contracts.strategy,
+      rewardsTokenContract: [rewardTokenInstance, governanceRewardTokenContract],
+    };
+
+    const [player1ExpectedRewards, player1ExpectedGovernanceRewards] = await getPlayerMultipleRewards(
+      gameContracts,
+      player1.address,
+    );
+
+    const [player2ExpectedRewards, player2ExpectedGovernanceRewards] = await getPlayerMultipleRewards(
+      gameContracts,
+      player2.address,
+    );
+
     await contracts.goodGhosting.connect(player1).withdraw(0);
     await contracts.goodGhosting.connect(player2).withdraw(0);
 
-    if (strategyType === "curve") {
-      governanceTokenPlayer1BalanceAfterWithdraw = await contracts.curve.balanceOf(player1.address);
-      governanceTokenPlayer2BalanceAfterWithdraw = await contracts.curve.balanceOf(player2.address);
-    } else if (strategyType === "mobius") {
-      contracts.rewardToken = contracts.minter;
-      governanceTokenPlayer1BalanceAfterWithdraw = await contracts.minter.balanceOf(player1.address);
-      governanceTokenPlayer2BalanceAfterWithdraw = await contracts.minter.balanceOf(player2.address);
+    if (isCurveOrMobius) {
+      governanceTokenPlayer1BalanceAfterWithdraw = await governanceRewardTokenContract.balanceOf(player1.address);
+      governanceTokenPlayer2BalanceAfterWithdraw = await governanceRewardTokenContract.balanceOf(player2.address);
     }
 
-    if (strategyType !== "curve" && strategyType !== "mobius") {
-      rewardTokenPlayer1BalanceAfterWithdraw = await rewardTokenInstance.balanceOf(player1.address);
-      rewardTokenPlayer2BalanceAfterWithdraw = await rewardTokenInstance.balanceOf(player2.address);
+    rewardTokenPlayer1BalanceAfterWithdraw = await rewardTokenInstance.balanceOf(player1.address);
+    rewardTokenPlayer2BalanceAfterWithdraw = await rewardTokenInstance.balanceOf(player2.address);
 
-      assert(
-        ethers.BigNumber.from(rewardTokenPlayer1BalanceAfterWithdraw).gt(
-          ethers.BigNumber.from(rewardTokenPlayer1BalanceBeforeWithdraw),
-        ),
-      );
-      assert(
-        ethers.BigNumber.from(rewardTokenPlayer2BalanceAfterWithdraw).eq(
-          ethers.BigNumber.from(rewardTokenPlayer2BalanceBeforeWithdraw),
-        ),
-      );
-    }
-    if (strategyType === "curve" || strategyType === "mobius") {
-      assert(
-        ethers.BigNumber.from(governanceTokenPlayer1BalanceAfterWithdraw).gt(
-          ethers.BigNumber.from(governanceTokenPlayer1BalanceBeforeWithdraw),
-        ),
-      );
-      assert(
-        ethers.BigNumber.from(governanceTokenPlayer2BalanceAfterWithdraw).eq(
-          ethers.BigNumber.from(governanceTokenPlayer2BalanceBeforeWithdraw),
-        ),
-      );
-    }
+    const player1ReceivedReward = ethers.BigNumber.from(rewardTokenPlayer1BalanceAfterWithdraw).sub(
+      ethers.BigNumber.from(rewardTokenPlayer1BalanceBeforeWithdraw),
+    );
+    const player2ReceivedReward = ethers.BigNumber.from(rewardTokenPlayer2BalanceAfterWithdraw).sub(
+      ethers.BigNumber.from(rewardTokenPlayer2BalanceBeforeWithdraw),
+    );
+
+    assert(player1ExpectedRewards.eq(player1ReceivedReward));
+    assert(player2ExpectedRewards.eq(player2ReceivedReward));
+
+    const player1ReceivedGorvernanceReward = ethers.BigNumber.from(governanceTokenPlayer1BalanceAfterWithdraw).sub(
+      ethers.BigNumber.from(governanceTokenPlayer1BalanceBeforeWithdraw),
+    );
+    const player2ReceivedGovernanceReward = ethers.BigNumber.from(governanceTokenPlayer2BalanceAfterWithdraw).sub(
+      ethers.BigNumber.from(governanceTokenPlayer2BalanceBeforeWithdraw),
+    );
+
+    assert(player1ExpectedGovernanceRewards.eq(player1ReceivedGorvernanceReward));
+    assert(player2ExpectedGovernanceRewards.eq(player2ReceivedGovernanceReward));
   });
 
   it("allows players to withdraw early after admin enables early game completion when admin enables the withdraw ", async () => {
     const accounts = await ethers.getSigners();
-    let governanceTokenPlayer1BalanceAfterWithdraw = 0,
-      governanceTokenPlayer2BalanceAfterWithdraw = 0,
-      rewardTokenPlayer1BalanceAfterWithdraw = 0,
-      rewardTokenPlayer2BalanceAfterWithdraw = 0,
-      governanceTokenPlayer1BalanceBeforeWithdraw = 0,
-      governanceTokenPlayer2BalanceBeforeWithdraw = 0,
-      rewardTokenPlayer1BalanceBeforeWithdraw = 0,
-      rewardTokenPlayer2BalanceBeforeWithdraw = 0;
 
     const player1 = accounts[2];
     const player2 = accounts[3];
@@ -2039,69 +2117,21 @@ export const shouldBehaveLikePlayersWithdrawingFromGGPool = async (strategyType:
       }
     }
 
-    if (strategyType === "curve") {
-      governanceTokenPlayer1BalanceBeforeWithdraw = await contracts.curve.balanceOf(player1.address);
-      governanceTokenPlayer2BalanceBeforeWithdraw = await contracts.curve.balanceOf(player2.address);
-    } else if (strategyType === "mobius") {
-      governanceTokenPlayer1BalanceBeforeWithdraw = await contracts.minter.balanceOf(player1.address);
-      governanceTokenPlayer2BalanceBeforeWithdraw = await contracts.minter.balanceOf(player2.address);
-    }
-
-    const rewardTokenInstance = await getRewardTokenInstance(contracts.strategy, player1);
-
-    rewardTokenPlayer1BalanceBeforeWithdraw = await rewardTokenInstance.balanceOf(player1.address);
-    rewardTokenPlayer2BalanceBeforeWithdraw = await rewardTokenInstance.balanceOf(player2.address);
-
+    const player1BeforeWithdrawAccounting = await getPlayerBeforeWithdrawAccounting(player1, strategyType, contracts);
     await contracts.goodGhosting.connect(player1).withdraw(0);
+
+    const player2BeforeWithdrawAccounting = await getPlayerBeforeWithdrawAccounting(player2, strategyType, contracts);
     await contracts.goodGhosting.connect(player2).withdraw(0);
 
-    if (strategyType === "curve") {
-      governanceTokenPlayer1BalanceAfterWithdraw = await contracts.curve.balanceOf(player1.address);
-      governanceTokenPlayer2BalanceAfterWithdraw = await contracts.curve.balanceOf(player2.address);
-    } else if (strategyType === "mobius") {
-      governanceTokenPlayer1BalanceAfterWithdraw = await contracts.minter.balanceOf(player1.address);
-      governanceTokenPlayer2BalanceAfterWithdraw = await contracts.minter.balanceOf(player2.address);
-    }
+    const player1AfterWithdrawAccounting = await getPlayerAfterWithdrawAccounting(player1BeforeWithdrawAccounting);
+    const player2AfterWithdrawAccounting = await getPlayerAfterWithdrawAccounting(player2BeforeWithdrawAccounting);
 
-    if (strategyType !== "curve" && strategyType !== "mobius") {
-      rewardTokenPlayer1BalanceAfterWithdraw = await rewardTokenInstance.balanceOf(player1.address);
-      rewardTokenPlayer2BalanceAfterWithdraw = await rewardTokenInstance.balanceOf(player2.address);
-
-      assert(
-        ethers.BigNumber.from(rewardTokenPlayer1BalanceAfterWithdraw).gt(
-          ethers.BigNumber.from(rewardTokenPlayer1BalanceBeforeWithdraw),
-        ),
-      );
-      assert(
-        ethers.BigNumber.from(rewardTokenPlayer2BalanceAfterWithdraw).gt(
-          ethers.BigNumber.from(rewardTokenPlayer2BalanceBeforeWithdraw),
-        ),
-      );
-    }
-    if (strategyType === "curve" || strategyType === "mobius") {
-      assert(
-        ethers.BigNumber.from(governanceTokenPlayer1BalanceAfterWithdraw).gt(
-          ethers.BigNumber.from(governanceTokenPlayer1BalanceBeforeWithdraw),
-        ),
-      );
-      assert(
-        ethers.BigNumber.from(governanceTokenPlayer2BalanceAfterWithdraw).gt(
-          ethers.BigNumber.from(governanceTokenPlayer2BalanceBeforeWithdraw),
-        ),
-      );
-    }
+    assertExpectedRewardsEqualReceivedRewards(player1BeforeWithdrawAccounting, player1AfterWithdrawAccounting);
+    assertExpectedRewardsEqualReceivedRewards(player2BeforeWithdrawAccounting, player2AfterWithdrawAccounting);
   });
 
   it("allows players to withdraw early after admin enables early game completion", async () => {
     const accounts = await ethers.getSigners();
-    let governanceTokenPlayer1BalanceAfterWithdraw = 0,
-      governanceTokenPlayer2BalanceAfterWithdraw = 0,
-      rewardTokenPlayer1BalanceAfterWithdraw = 0,
-      rewardTokenPlayer2BalanceAfterWithdraw = 0,
-      governanceTokenPlayer1BalanceBeforeWithdraw = 0,
-      governanceTokenPlayer2BalanceBeforeWithdraw = 0,
-      rewardTokenPlayer1BalanceBeforeWithdraw = 0,
-      rewardTokenPlayer2BalanceBeforeWithdraw = 0;
 
     const player1 = accounts[2];
     const player2 = accounts[3];
@@ -2116,55 +2146,18 @@ export const shouldBehaveLikePlayersWithdrawingFromGGPool = async (strategyType:
       await makeDeposit(contracts.goodGhosting, contracts.inboundToken, player1, segmentPayment, segmentPayment);
     }
     await contracts.goodGhosting.enableEmergencyWithdraw();
-    if (strategyType === "curve") {
-      governanceTokenPlayer1BalanceBeforeWithdraw = await contracts.curve.balanceOf(player1.address);
-      governanceTokenPlayer2BalanceBeforeWithdraw = await contracts.curve.balanceOf(player2.address);
-    } else if (strategyType === "mobius") {
-      governanceTokenPlayer1BalanceBeforeWithdraw = await contracts.minter.balanceOf(player1.address);
-      governanceTokenPlayer2BalanceBeforeWithdraw = await contracts.minter.balanceOf(player2.address);
-    }
-    const rewardTokenInstance = await getRewardTokenInstance(contracts.strategy, player1);
 
-    rewardTokenPlayer1BalanceBeforeWithdraw = await rewardTokenInstance.balanceOf(player1.address);
-    rewardTokenPlayer2BalanceBeforeWithdraw = await rewardTokenInstance.balanceOf(player2.address);
-
+    const player1BeforeWithdrawAccounting = await getPlayerBeforeWithdrawAccounting(player1, strategyType, contracts);
     await contracts.goodGhosting.connect(player1).withdraw(0);
+
+    const player2BeforeWithdrawAccounting = await getPlayerBeforeWithdrawAccounting(player2, strategyType, contracts);
     await contracts.goodGhosting.connect(player2).withdraw(0);
 
-    if (strategyType === "curve") {
-      governanceTokenPlayer1BalanceAfterWithdraw = await contracts.curve.balanceOf(player1.address);
-      governanceTokenPlayer2BalanceAfterWithdraw = await contracts.curve.balanceOf(player2.address);
-    } else if (strategyType === "mobius") {
-      governanceTokenPlayer1BalanceAfterWithdraw = await contracts.minter.balanceOf(player1.address);
-      governanceTokenPlayer2BalanceAfterWithdraw = await contracts.minter.balanceOf(player2.address);
-    }
-    if (strategyType !== "curve" && strategyType !== "mobius") {
-      rewardTokenPlayer1BalanceAfterWithdraw = await rewardTokenInstance.balanceOf(player1.address);
-      rewardTokenPlayer2BalanceAfterWithdraw = await rewardTokenInstance.balanceOf(player2.address);
+    const player1AfterWithdrawAccounting = await getPlayerAfterWithdrawAccounting(player1BeforeWithdrawAccounting);
+    const player2AfterWithdrawAccounting = await getPlayerAfterWithdrawAccounting(player2BeforeWithdrawAccounting);
 
-      assert(
-        ethers.BigNumber.from(rewardTokenPlayer1BalanceAfterWithdraw).gt(
-          ethers.BigNumber.from(rewardTokenPlayer1BalanceBeforeWithdraw),
-        ),
-      );
-      assert(
-        ethers.BigNumber.from(rewardTokenPlayer2BalanceAfterWithdraw).gt(
-          ethers.BigNumber.from(rewardTokenPlayer2BalanceBeforeWithdraw),
-        ),
-      );
-    }
-    if (strategyType === "curve" || strategyType === "mobius") {
-      assert(
-        ethers.BigNumber.from(governanceTokenPlayer1BalanceAfterWithdraw).gt(
-          ethers.BigNumber.from(governanceTokenPlayer1BalanceBeforeWithdraw),
-        ),
-      );
-      assert(
-        ethers.BigNumber.from(governanceTokenPlayer2BalanceAfterWithdraw).gt(
-          ethers.BigNumber.from(governanceTokenPlayer2BalanceBeforeWithdraw),
-        ),
-      );
-    }
+    assertExpectedRewardsEqualReceivedRewards(player1BeforeWithdrawAccounting, player1AfterWithdrawAccounting);
+    assertExpectedRewardsEqualReceivedRewards(player2BeforeWithdrawAccounting, player2AfterWithdrawAccounting);
   });
 
   it("pays a bonus to winners and losers get their principle back", async () => {
@@ -2237,20 +2230,28 @@ export const shouldBehaveLikePlayersWithdrawingFromGGPool = async (strategyType:
     const player2PreWithdrawBalance = await contracts.inboundToken.balanceOf(player2.address);
     playerMaticBalanceBeforeWithdraw = await contracts.rewardToken.balanceOf(player2.address);
 
+    const playerExpectedInterest = await getPlayerInterest(contracts.goodGhosting, contracts.strategy, player2.address);
+    const playerExpectedRewards = await getPlayerReward(
+      contracts.goodGhosting,
+      contracts.strategy,
+      contracts.rewardToken,
+      player2.address,
+    );
+    const playerInfo = await contracts.goodGhosting.players(player2.address);
+
     await contracts.goodGhosting.connect(player2).withdraw(0);
+
     playerMaticBalanceAfterWithdraw = await contracts.rewardToken.balanceOf(player2.address);
-    if (strategyType !== "curve" && strategyType !== "mobius") {
-      assert(playerMaticBalanceAfterWithdraw.gt(playerMaticBalanceBeforeWithdraw));
-    }
+
+    const playerReceivedRewards = playerMaticBalanceAfterWithdraw.sub(playerMaticBalanceBeforeWithdraw);
+    assert(playerReceivedRewards.eq(playerExpectedRewards));
 
     const player2PostWithdrawBalance = await contracts.inboundToken.balanceOf(player2.address);
-    const totalGameInterest = await contracts.goodGhosting.totalGameInterest.call();
-    const adminFeeAmount = ethers.BigNumber.from(1).mul(totalGameInterest).div(ethers.BigNumber.from("100"));
     const withdrawalValue = player2PostWithdrawBalance.sub(player2PreWithdrawBalance);
+    const userDeposit = playerInfo.netAmountPaid;
+    const playerWithdrawnInterest = withdrawalValue.sub(userDeposit);
 
-    const userDeposit = ethers.BigNumber.from(segmentPayment).mul(ethers.BigNumber.from(depositCount));
-    // taking in account the pool fees 5%
-    assert(withdrawalValue.lte(userDeposit.add(ethers.utils.parseEther("100000")).sub(adminFeeAmount)));
+    assert(playerWithdrawnInterest.eq(playerExpectedInterest));
   });
 
   it("reverts if user tries to withdraw more than once", async () => {
@@ -2385,28 +2386,10 @@ export const shouldBehaveLikePlayersWithdrawingFromGGPool = async (strategyType:
         .transfer(contracts.strategy.address, ethers.utils.parseEther("100000"));
     }
 
-    const rewardTokenInstance = await getRewardTokenInstance(contracts.strategy, player1);
-    let governanceTokenPlayer1BalanceBeforeWithdraw,
-      governanceTokenPlayer2BalanceBeforeWithdraw,
-      governanceTokenPlayer2BalanceAfterWithdraw,
-      governanceTokenPlayer1BalanceAfterWithdraw;
-    const rewardTokenPlayer1BalanceBeforeWithdraw = await rewardTokenInstance.balanceOf(player1.address);
-    const rewardTokenPlayer2BalanceBeforeWithdraw = await rewardTokenInstance.balanceOf(player2.address);
-
-    if (strategyType === "curve") {
-      governanceTokenPlayer1BalanceBeforeWithdraw = await contracts.curve.balanceOf(player1.address);
-      governanceTokenPlayer2BalanceBeforeWithdraw = await contracts.curve.balanceOf(player2.address);
-    } else if (strategyType === "mobius") {
-      contracts.rewardToken = contracts.minter;
-      governanceTokenPlayer1BalanceBeforeWithdraw = await contracts.minter.balanceOf(player1.address);
-      governanceTokenPlayer2BalanceBeforeWithdraw = await contracts.minter.balanceOf(player2.address);
-    }
-
-    const player2BeforeWithdrawBalance = await contracts.inboundToken.balanceOf(player2.address);
+    const player2BeforeWithdrawAccounting = await getPlayerBeforeWithdrawAccounting(player2, strategyType, contracts);
     await contracts.goodGhosting.connect(player2).withdraw(0);
-    const player2PostWithdrawBalance = await contracts.inboundToken.balanceOf(player2.address);
-    const player2WithdrawAmount = player2PostWithdrawBalance.sub(player2BeforeWithdrawBalance);
-    console.log(player2WithdrawAmount.toString());
+    const player2AfterWithdrawAccounting = await getPlayerAfterWithdrawAccounting(player2BeforeWithdrawAccounting);
+
     await contracts.goodGhosting.adminFeeWithdraw(0);
 
     //generate extra rewards
@@ -2447,49 +2430,35 @@ export const shouldBehaveLikePlayersWithdrawingFromGGPool = async (strategyType:
         .transfer(contracts.strategy.address, ethers.utils.parseEther("100000"));
     }
 
-    const player1BeforeWithdrawBalance = await contracts.inboundToken.balanceOf(player1.address);
+    const player1BeforeWithdrawAccounting = await getPlayerBeforeWithdrawAccounting(player1, strategyType, contracts);
     await contracts.goodGhosting.connect(player1).withdraw(0);
-    const player1PostWithdrawBalance = await contracts.inboundToken.balanceOf(player1.address);
-    const player1WithdrawAmount = player1PostWithdrawBalance.sub(player1BeforeWithdrawBalance);
-    console.log(player1WithdrawAmount.toString());
 
-    const rewardTokenPlayer1BalanceAfterWithdraw = await rewardTokenInstance.balanceOf(player1.address);
-    const rewardTokenPlayer2BalanceAfterWithdraw = await rewardTokenInstance.balanceOf(player2.address);
+    const player1AfterWithdrawAccounting = await getPlayerAfterWithdrawAccounting(player1BeforeWithdrawAccounting);
 
-    if (strategyType === "curve") {
-      governanceTokenPlayer1BalanceAfterWithdraw = await contracts.curve.balanceOf(player1.address);
-      governanceTokenPlayer2BalanceAfterWithdraw = await contracts.curve.balanceOf(player2.address);
-    } else if (strategyType === "mobius") {
-      contracts.rewardToken = contracts.minter;
-      governanceTokenPlayer1BalanceAfterWithdraw = await contracts.minter.balanceOf(player1.address);
-      governanceTokenPlayer2BalanceAfterWithdraw = await contracts.minter.balanceOf(player2.address);
-    }
+    assertExpectedInterestAndRewardsEqualToReceived(player2BeforeWithdrawAccounting, player2AfterWithdrawAccounting);
+    assertExpectedInterestAndRewardsEqualToReceived(player1BeforeWithdrawAccounting, player1AfterWithdrawAccounting);
 
     if (strategyType == "curve" || strategyType == "mobius") {
-      const governanceTokenBalanceDiffFroPlayer1 = governanceTokenPlayer1BalanceAfterWithdraw.sub(
-        governanceTokenPlayer1BalanceBeforeWithdraw,
-      );
-      const governanceTokenBalanceDiffFroPlayer2 = governanceTokenPlayer2BalanceAfterWithdraw.sub(
-        governanceTokenPlayer2BalanceBeforeWithdraw,
-      );
       // though player 1 withdraws late but more rewards accrued over time and hence they get more share of the rewards
-      assert(governanceTokenBalanceDiffFroPlayer2.gt(governanceTokenBalanceDiffFroPlayer1));
+      //assert(governanceTokenBalanceDiffFroPlayer2.gt(governanceTokenBalanceDiffFroPlayer1));
+      assert(
+        player2AfterWithdrawAccounting.playerReceivedGovernanceReward.gt(
+          player1AfterWithdrawAccounting.playerReceivedGovernanceReward,
+        ),
+      );
     }
 
-    if (strategyType !== "curve" && strategyType !== "mobius") {
-      const rewardBalanceDiffFroPlayer1 = rewardTokenPlayer1BalanceAfterWithdraw.sub(
-        rewardTokenPlayer1BalanceBeforeWithdraw,
-      );
-      const rewardBalanceDiffFroPlayer2 = rewardTokenPlayer2BalanceAfterWithdraw.sub(
-        rewardTokenPlayer2BalanceBeforeWithdraw,
-      );
-      assert(rewardBalanceDiffFroPlayer2.gt(rewardBalanceDiffFroPlayer1));
-    }
+    assert(player2AfterWithdrawAccounting.playerReceivedReward.gt(player1AfterWithdrawAccounting.playerReceivedReward));
+
     // both players are winners, but player 2 made deposits before player 1 so it gets slightly higher interest.
     if (strategyType !== "no_strategy") {
-      assert(player2WithdrawAmount.lt(player1WithdrawAmount));
+      assert(
+        player2AfterWithdrawAccounting.playerReceivedInterest.lt(player1AfterWithdrawAccounting.playerReceivedInterest),
+      );
     } else {
-      assert(player2WithdrawAmount.eq(player1WithdrawAmount));
+      assert(
+        player2AfterWithdrawAccounting.playerReceivedInterest.eq(player1AfterWithdrawAccounting.playerReceivedInterest),
+      );
     }
   });
 
@@ -2571,19 +2540,15 @@ export const shouldBehaveLikePlayersWithdrawingFromGGPool = async (strategyType:
         .transfer(contracts.strategy.address, ethers.utils.parseEther("100000"));
     }
 
-    const player2BeforeWithdrawBalance = await contracts.inboundToken.balanceOf(player2.address);
+    const player2BeforeWithdrawAccounting = await getPlayerBeforeWithdrawAccounting(player2, strategyType, contracts);
     await contracts.goodGhosting.connect(player2).withdraw(0);
-    const player2PostWithdrawBalance = await contracts.inboundToken.balanceOf(player2.address);
-    const player2WithdrawAmount = player2PostWithdrawBalance.sub(player2BeforeWithdrawBalance);
-    console.log(player2WithdrawAmount.toString());
+    const player2AfterWithdrawAccounting = await getPlayerAfterWithdrawAccounting(player2BeforeWithdrawAccounting);
 
     await contracts.goodGhosting.adminFeeWithdraw(0);
 
-    const player1BeforeWithdrawBalance = await contracts.inboundToken.balanceOf(player1.address);
+    const player1BeforeWithdrawAccounting = await getPlayerBeforeWithdrawAccounting(player1, strategyType, contracts);
     await contracts.goodGhosting.connect(player1).withdraw(0);
-    const player1PostWithdrawBalance = await contracts.inboundToken.balanceOf(player1.address);
-    const player1WithdrawAmount = player1PostWithdrawBalance.sub(player1BeforeWithdrawBalance);
-    console.log(player1WithdrawAmount.toString());
+    const player1AfterWithdrawAccounting = await getPlayerAfterWithdrawAccounting(player1BeforeWithdrawAccounting);
 
     //generate extra rewards
     if (strategyType === "aave" || strategyType === "aaveV3") {
@@ -2623,18 +2588,25 @@ export const shouldBehaveLikePlayersWithdrawingFromGGPool = async (strategyType:
         .transfer(contracts.strategy.address, ethers.utils.parseEther("100000"));
     }
 
-    const player3BeforeWithdrawBalance = await contracts.inboundToken.balanceOf(player3.address);
+    const player3BeforeWithdrawAccounting = await getPlayerBeforeWithdrawAccounting(player3, strategyType, contracts);
     await contracts.goodGhosting.connect(player3).withdraw(0);
-    const player3PostWithdrawBalance = await contracts.inboundToken.balanceOf(player3.address);
-    const player3WithdrawAmount = player3PostWithdrawBalance.sub(player3BeforeWithdrawBalance);
-    const player3Info = await contracts.goodGhosting.players(player3.address);
-    assert(player3Info.amountPaid.eq(player3WithdrawAmount));
+    const player3AfterWithdrawAccounting = await getPlayerAfterWithdrawAccounting(player3BeforeWithdrawAccounting);
+
+    assert(player3AfterWithdrawAccounting.playerReceivedInterest.eq(0));
+
+    assertExpectedInterestAndRewardsEqualToReceived(player2BeforeWithdrawAccounting, player2AfterWithdrawAccounting);
+    assertExpectedInterestAndRewardsEqualToReceived(player1BeforeWithdrawAccounting, player1AfterWithdrawAccounting);
+    assertExpectedInterestAndRewardsEqualToReceived(player3BeforeWithdrawAccounting, player3AfterWithdrawAccounting);
 
     // both players are winners, but player 2 made deposits before player 1 so it gets slightly higher interest.
     if (strategyType !== "no_strategy") {
-      assert(player2WithdrawAmount.gt(player1WithdrawAmount));
+      assert(
+        player2AfterWithdrawAccounting.playerReceivedInterest.gt(player1AfterWithdrawAccounting.playerReceivedInterest),
+      );
     } else {
-      assert(player2WithdrawAmount.eq(player1WithdrawAmount));
+      assert(
+        player2AfterWithdrawAccounting.playerReceivedInterest.eq(player1AfterWithdrawAccounting.playerReceivedInterest),
+      );
     }
   });
 
@@ -2734,24 +2706,26 @@ export const shouldBehaveLikePlayersWithdrawingFromGGPool = async (strategyType:
 
     assert(sumPlayer2 > sumPlayer1);
 
-    const player1BeforeWithdrawBalance = await contracts.inboundToken.balanceOf(player1.address);
+    const player1BeforeWithdrawAccounting = await getPlayerBeforeWithdrawAccounting(player1, strategyType, contracts);
     await contracts.goodGhosting.connect(player1).withdraw(0);
-    const player1PostWithdrawBalance = await contracts.inboundToken.balanceOf(player1.address);
-    const player1WithdrawAmount = player1PostWithdrawBalance.sub(player1BeforeWithdrawBalance);
-    console.log(player1WithdrawAmount.toString());
+    const player1AfterWithdrawAccounting = await getPlayerAfterWithdrawAccounting(player1BeforeWithdrawAccounting);
 
-    const player2BeforeWithdrawBalance = await contracts.inboundToken.balanceOf(player2.address);
+    const player2BeforeWithdrawAccounting = await getPlayerBeforeWithdrawAccounting(player2, strategyType, contracts);
     await contracts.goodGhosting.connect(player2).withdraw(0);
-    const player2PostWithdrawBalance = await contracts.inboundToken.balanceOf(player2.address);
-    const player2WithdrawAmount = player2PostWithdrawBalance.sub(player2BeforeWithdrawBalance);
-    console.log(player2WithdrawAmount.toString());
-    await contracts.goodGhosting.adminFeeWithdraw(0);
+    const player2AfterWithdrawAccounting = await getPlayerAfterWithdrawAccounting(player2BeforeWithdrawAccounting);
+
+    assertExpectedInterestAndRewardsEqualToReceived(player2BeforeWithdrawAccounting, player2AfterWithdrawAccounting);
+    assertExpectedInterestAndRewardsEqualToReceived(player1BeforeWithdrawAccounting, player1AfterWithdrawAccounting);
 
     // both players are winners, but player 2 made deposits before player 1 so it gets slightly higher interest.
     if (strategyType !== "no_strategy") {
-      assert(player2WithdrawAmount.gt(player1WithdrawAmount));
+      assert(
+        player2AfterWithdrawAccounting.playerReceivedInterest.gt(player1AfterWithdrawAccounting.playerReceivedInterest),
+      );
     } else {
-      assert(player2WithdrawAmount.eq(player1WithdrawAmount));
+      assert(
+        player2AfterWithdrawAccounting.playerReceivedInterest.eq(player1AfterWithdrawAccounting.playerReceivedInterest),
+      );
     }
   });
 
@@ -2840,57 +2814,40 @@ export const shouldBehaveLikePlayersWithdrawingFromGGPool = async (strategyType:
     for (let i = 0; i <= player1Info.mostRecentSegmentPaid; i++) {
       let index1 = await contracts.goodGhosting.playerIndex(player1.address, i);
       sumPlayer1 += parseInt(index1.toString());
-      console.log("player1");
-      console.log(index1.toString());
-      console.log("sum1", sumPlayer1.toString());
     }
 
     for (let i = 0; i <= player2Info.mostRecentSegmentPaid; i++) {
       let index2 = await contracts.goodGhosting.playerIndex(player2.address, i);
       sumPlayer2 += parseInt(index2.toString());
-      console.log("player2");
-      console.log(index2.toString());
-      console.log("sum2", sumPlayer2.toString());
     }
 
-    const cummulativeSum = await contracts.goodGhosting.cumulativePlayerIndexSum(depositCount - 1);
-    console.log("cummulativeSum", cummulativeSum.toString());
-
-    const diff = ethers.BigNumber.from(cummulativeSum.toString()).sub(
-      ethers.BigNumber.from(sumPlayer2.toString()).add(ethers.BigNumber.from(sumPlayer1.toString())),
-    );
-    console.log("diff", diff.toString());
-    const totalAmount = await contracts.strategy.getTotalAmount();
-    const principalAmount = await contracts.goodGhosting.netTotalGamePrincipal();
-    const interest = ethers.BigNumber.from(totalAmount).sub(ethers.BigNumber.from(principalAmount));
-    console.log("totalAmount", totalAmount.toString());
-    console.log("principalAmount", principalAmount.toString());
-
-    console.log("interest", interest.toString());
-
-    const player1BeforeWithdrawBalance = await contracts.inboundToken.balanceOf(player1.address);
+    const player1BeforeWithdrawAccounting = await getPlayerBeforeWithdrawAccounting(player1, strategyType, contracts);
     await contracts.goodGhosting.connect(player1).withdraw(0);
-    const player1PostWithdrawBalance = await contracts.inboundToken.balanceOf(player1.address);
-    const player1WithdrawAmount = player1PostWithdrawBalance.sub(player1BeforeWithdrawBalance);
-    console.log(player1WithdrawAmount.toString());
+    const player1AfterWithdrawAccounting = await getPlayerAfterWithdrawAccounting(player1BeforeWithdrawAccounting);
 
-    const player2BeforeWithdrawBalance = await contracts.inboundToken.balanceOf(player2.address);
+    const player2BeforeWithdrawAccounting = await getPlayerBeforeWithdrawAccounting(player2, strategyType, contracts);
     await contracts.goodGhosting.connect(player2).withdraw(0);
-    await contracts.goodGhosting.connect(player3).withdraw(0);
+    const player2AfterWithdrawAccounting = await getPlayerAfterWithdrawAccounting(player2BeforeWithdrawAccounting);
 
-    const player2PostWithdrawBalance = await contracts.inboundToken.balanceOf(player2.address);
-    const player2WithdrawAmount = player2PostWithdrawBalance.sub(player2BeforeWithdrawBalance);
-    console.log(player2WithdrawAmount.toString());
+    const player3BeforeWithdrawAccounting = await getPlayerBeforeWithdrawAccounting(player3, strategyType, contracts);
+    await contracts.goodGhosting.connect(player3).withdraw(0);
+    const player3AfterWithdrawAccounting = await getPlayerAfterWithdrawAccounting(player3BeforeWithdrawAccounting);
+
     await contracts.goodGhosting.adminFeeWithdraw(0);
 
-    const totalAmountAfter = await contracts.strategy.getTotalAmount();
-    console.log("totalAmountAfter", totalAmountAfter);
+    assertExpectedInterestAndRewardsEqualToReceived(player2BeforeWithdrawAccounting, player2AfterWithdrawAccounting);
+    assertExpectedInterestAndRewardsEqualToReceived(player1BeforeWithdrawAccounting, player1AfterWithdrawAccounting);
+    assertExpectedInterestAndRewardsEqualToReceived(player3BeforeWithdrawAccounting, player3AfterWithdrawAccounting);
 
     // both players are winners, but player 2 made deposits before player 1 so it gets slightly higher interest.
     if (strategyType !== "no_strategy") {
-      assert(player2WithdrawAmount.gt(player1WithdrawAmount));
+      assert(
+        player2AfterWithdrawAccounting.playerReceivedInterest.gt(player1AfterWithdrawAccounting.playerReceivedInterest),
+      );
     } else {
-      assert(player2WithdrawAmount.eq(player1WithdrawAmount));
+      assert(
+        player2AfterWithdrawAccounting.playerReceivedInterest.eq(player1AfterWithdrawAccounting.playerReceivedInterest),
+      );
     }
   });
 
@@ -2992,45 +2949,33 @@ export const shouldBehaveLikePlayersWithdrawingFromGGPool = async (strategyType:
       console.log("sum2", sumPlayer2.toString());
     }
 
-    const cummulativeSum = await contracts.goodGhosting.cumulativePlayerIndexSum(depositCount - 1);
-    console.log("cummulativeSum", cummulativeSum.toString());
-
-    const diff = ethers.BigNumber.from(cummulativeSum.toString()).sub(
-      ethers.BigNumber.from(sumPlayer2.toString()).add(ethers.BigNumber.from(sumPlayer1.toString())),
-    );
-    console.log("diff", diff.toString());
-    const totalAmount = await contracts.strategy.getTotalAmount();
-    const principalAmount = await contracts.goodGhosting.netTotalGamePrincipal();
-    const interest = ethers.BigNumber.from(totalAmount).sub(ethers.BigNumber.from(principalAmount));
-    console.log("totalAmount", totalAmount.toString());
-    console.log("principalAmount", principalAmount.toString());
-
-    console.log("interest", interest.toString());
-
+    const player3BeforeWithdrawAccounting = await getPlayerBeforeWithdrawAccounting(player3, strategyType, contracts);
     await contracts.goodGhosting.connect(player3).withdraw(0);
+    const player3AfterWithdrawAccounting = await getPlayerAfterWithdrawAccounting(player3BeforeWithdrawAccounting);
 
-    const player1BeforeWithdrawBalance = await contracts.inboundToken.balanceOf(player1.address);
+    const player1BeforeWithdrawAccounting = await getPlayerBeforeWithdrawAccounting(player1, strategyType, contracts);
     await contracts.goodGhosting.connect(player1).withdraw(0);
-    const player1PostWithdrawBalance = await contracts.inboundToken.balanceOf(player1.address);
-    const player1WithdrawAmount = player1PostWithdrawBalance.sub(player1BeforeWithdrawBalance);
-    console.log(player1WithdrawAmount.toString());
+    const player1AfterWithdrawAccounting = await getPlayerAfterWithdrawAccounting(player1BeforeWithdrawAccounting);
 
-    const player2BeforeWithdrawBalance = await contracts.inboundToken.balanceOf(player2.address);
+    const player2BeforeWithdrawAccounting = await getPlayerBeforeWithdrawAccounting(player2, strategyType, contracts);
     await contracts.goodGhosting.connect(player2).withdraw(0);
+    const player2AfterWithdrawAccounting = await getPlayerAfterWithdrawAccounting(player2BeforeWithdrawAccounting);
 
-    const player2PostWithdrawBalance = await contracts.inboundToken.balanceOf(player2.address);
-    const player2WithdrawAmount = player2PostWithdrawBalance.sub(player2BeforeWithdrawBalance);
-    console.log(player2WithdrawAmount.toString());
     await contracts.goodGhosting.adminFeeWithdraw(0);
 
-    const totalAmountAfter = await contracts.strategy.getTotalAmount();
-    console.log("totalAmountAfter", totalAmountAfter);
+    assertExpectedInterestAndRewardsEqualToReceived(player2BeforeWithdrawAccounting, player2AfterWithdrawAccounting);
+    assertExpectedInterestAndRewardsEqualToReceived(player1BeforeWithdrawAccounting, player1AfterWithdrawAccounting);
+    assertExpectedInterestAndRewardsEqualToReceived(player3BeforeWithdrawAccounting, player3AfterWithdrawAccounting);
 
     // both players are winners, but player 2 made deposits before player 1 so it gets slightly higher interest.
     if (strategyType !== "no_strategy") {
-      assert(player2WithdrawAmount.gt(player1WithdrawAmount));
+      assert(
+        player2AfterWithdrawAccounting.playerReceivedInterest.gt(player1AfterWithdrawAccounting.playerReceivedInterest),
+      );
     } else {
-      assert(player2WithdrawAmount.eq(player1WithdrawAmount));
+      assert(
+        player2AfterWithdrawAccounting.playerReceivedInterest.eq(player1AfterWithdrawAccounting.playerReceivedInterest),
+      );
     }
   });
 
@@ -3135,21 +3080,23 @@ export const shouldBehaveLikePlayersWithdrawingFromGGPool = async (strategyType:
       console.log("sum2", sumPlayer2.toString());
     }
 
-    const player1BeforeWithdrawBalance = await contracts.inboundToken.balanceOf(player1.address);
+    const player1BeforeWithdrawAccounting = await getPlayerBeforeWithdrawAccounting(player1, strategyType, contracts);
     await contracts.goodGhosting.connect(player1).withdraw(0);
-    const player1PostWithdrawBalance = await contracts.inboundToken.balanceOf(player1.address);
-    const player1WithdrawAmount = player1PostWithdrawBalance.sub(player1BeforeWithdrawBalance);
-    console.log(player1WithdrawAmount.toString());
+    const player1AfterWithdrawAccounting = await getPlayerAfterWithdrawAccounting(player1BeforeWithdrawAccounting);
 
-    const player2BeforeWithdrawBalance = await contracts.inboundToken.balanceOf(player2.address);
+    const player2BeforeWithdrawAccounting = await getPlayerBeforeWithdrawAccounting(player2, strategyType, contracts);
     await contracts.goodGhosting.connect(player2).withdraw(0);
-    const player2PostWithdrawBalance = await contracts.inboundToken.balanceOf(player2.address);
-    const player2WithdrawAmount = player2PostWithdrawBalance.sub(player2BeforeWithdrawBalance);
-    console.log(player2WithdrawAmount.toString());
+    const player2AfterWithdrawAccounting = await getPlayerAfterWithdrawAccounting(player2BeforeWithdrawAccounting);
 
     await contracts.goodGhosting.adminFeeWithdraw(0);
+
+    assertExpectedInterestAndRewardsEqualToReceived(player2BeforeWithdrawAccounting, player2AfterWithdrawAccounting);
+    assertExpectedInterestAndRewardsEqualToReceived(player1BeforeWithdrawAccounting, player1AfterWithdrawAccounting);
+
     // both players are winners, but player 2 made deposits before player 1 so it gets slightly higher interest.
-    assert(player2WithdrawAmount.gt(player1WithdrawAmount));
+    assert(
+      player2AfterWithdrawAccounting.playerReceivedInterest.gt(player1AfterWithdrawAccounting.playerReceivedInterest),
+    );
   });
 
   it("emits Withdrawal event when user withdraws", async () => {
@@ -3256,15 +3203,13 @@ export const shouldBehaveLikePlayersWithdrawingFromGGPool = async (strategyType:
         .toString();
     }
 
-    if (strategyType !== "curve" && strategyType !== "mobius") {
-      const rewardTokenBalance = rewardAmounts[0];
-      const adminRewardTokenFee = ethers.BigNumber.from(rewardTokenBalance)
-        .mul(ethers.BigNumber.from(1))
-        .div(ethers.BigNumber.from(100));
-      playerRewardAmounts[0] = ethers.BigNumber.from(rewardTokenBalance)
-        .sub(ethers.BigNumber.from(adminRewardTokenFee))
-        .toString();
-    }
+    const rewardTokenBalance = rewardAmounts[0];
+    const adminRewardTokenFee = ethers.BigNumber.from(rewardTokenBalance)
+      .mul(ethers.BigNumber.from(1))
+      .div(ethers.BigNumber.from(100));
+    playerRewardAmounts[0] = ethers.BigNumber.from(rewardTokenBalance)
+      .sub(ethers.BigNumber.from(adminRewardTokenFee))
+      .toString();
 
     const result = await contracts.goodGhosting.connect(player1).withdraw(0);
 
@@ -3361,6 +3306,11 @@ export const shouldBehaveLikePlayersWithdrawingFromGGPool = async (strategyType:
 
       rewardTokenAdminBalanceBeforeWithdraw = await rewardTokenInstance.balanceOf(deployer.address);
 
+      const expectedAdminRewards = await getExpectedFeeAdminRewardAmount(
+        contracts.goodGhosting,
+        contracts.strategy,
+        rewardTokenInstance,
+      );
       await contracts.goodGhosting.adminFeeWithdraw(0);
 
       inboundTokenBalanceAfterWithdraw = await contracts.inboundToken.balanceOf(deployer.address);
@@ -3371,6 +3321,8 @@ export const shouldBehaveLikePlayersWithdrawingFromGGPool = async (strategyType:
 
       assert(diff.lt(expectedAdminFee));
       assert(rewardTokenAdminBalanceAfterWithdraw.gt(rewardTokenAdminBalanceBeforeWithdraw));
+      const diffRewards = rewardTokenAdminBalanceAfterWithdraw.sub(rewardTokenAdminBalanceBeforeWithdraw);
+      assert(expectedAdminRewards.eq(diffRewards));
     });
 
     it("one of the winners is able to withdraw if the interest reduces a bit", async () => {
@@ -3451,12 +3403,20 @@ export const shouldBehaveLikePlayersWithdrawingFromGGPool = async (strategyType:
       const grossInterest = totalAmount.sub(totalGamePrincipal);
       const approxGrossInterestForWinner = grossInterest.div(ethers.BigNumber.from("2"));
 
+      const player1BeforeWithdrawAccounting = await getPlayerBeforeWithdrawAccounting(player1, strategyType, contracts);
       await contracts.goodGhosting.connect(player1).withdraw(0);
+      const player1AfterWithdrawAccounting = await getPlayerAfterWithdrawAccounting(player1BeforeWithdrawAccounting);
 
       inboundTokenBalanceBeforeWithdraw = await contracts.inboundToken.balanceOf(player2.address);
       // gets no interest since it reduces
+      const player2BeforeWithdrawAccounting = await getPlayerBeforeWithdrawAccounting(player2, strategyType, contracts);
       await contracts.goodGhosting.connect(player2).withdraw(0);
+      const player2AfterWithdrawAccounting = await getPlayerAfterWithdrawAccounting(player2BeforeWithdrawAccounting);
+
       inboundTokenBalanceAfterWithdraw = await contracts.inboundToken.balanceOf(player2.address);
+
+      assertExpectedInterestAndRewardsEqualToReceived(player2BeforeWithdrawAccounting, player2AfterWithdrawAccounting);
+      assertExpectedInterestAndRewardsEqualToReceived(player1BeforeWithdrawAccounting, player1AfterWithdrawAccounting);
 
       const playerInfo = await contracts.goodGhosting.players(player2.address);
       let interestReceived = inboundTokenBalanceAfterWithdraw.sub(inboundTokenBalanceBeforeWithdraw);
@@ -3534,15 +3494,6 @@ export const shouldBehaveLikePlayersWithdrawingFromGGPool = async (strategyType:
       const accounts = await ethers.getSigners();
       const deployer = accounts[0];
 
-      let rewardTokenPlayer1BalanceBeforeWithdraw,
-        rewardTokenPlayer2BalanceBeforeWithdraw,
-        rewardTokenPlayer1BalanceAfterWithdraw,
-        rewardTokenPlayer2BalanceAfterWithdraw;
-      let governanceTokenPlayer1BalanceBeforeWithdraw,
-        governanceTokenPlayer2BalanceBeforeWithdraw,
-        governanceTokenPlayer1BalanceAfterWithdraw,
-        governanceTokenPlayer2BalanceAfterWithdraw;
-
       const player1 = accounts[2];
       const player2 = accounts[3];
       const player3 = accounts[4];
@@ -3593,17 +3544,11 @@ export const shouldBehaveLikePlayersWithdrawingFromGGPool = async (strategyType:
       for (let i = 0; i <= player1Info.mostRecentSegmentPaid; i++) {
         let index1 = await contracts.goodGhosting.playerIndex(player1.address, i);
         sumPlayer1 += parseInt(index1.toString());
-        console.log("player1");
-        console.log(index1.toString());
-        console.log("sum1", sumPlayer1.toString());
       }
 
       for (let i = 0; i <= player2Info.mostRecentSegmentPaid; i++) {
         let index2 = await contracts.goodGhosting.playerIndex(player2.address, i);
         sumPlayer2 += parseInt(index2.toString());
-        console.log("player2");
-        console.log(index2.toString());
-        console.log("sum2", sumPlayer2.toString());
       }
 
       const amountPaidByGhost = player3Info.amountPaid;
@@ -3614,56 +3559,30 @@ export const shouldBehaveLikePlayersWithdrawingFromGGPool = async (strategyType:
       const player3WithdrawAmount = player3AfterWithdrawBalance.sub(player3BeforeWithdrawBalance);
       assert(player3WithdrawAmount.lt(amountPaidByGhost));
 
-      const rewardTokenInstance = await getRewardTokenInstance(contracts.strategy, player1);
-
-      rewardTokenPlayer1BalanceBeforeWithdraw = await rewardTokenInstance.balanceOf(player1.address);
-      rewardTokenPlayer2BalanceBeforeWithdraw = await rewardTokenInstance.balanceOf(player2.address);
-
-      if (strategyType === "curve") {
-        governanceTokenPlayer1BalanceBeforeWithdraw = await contracts.curve.balanceOf(player1.address);
-        governanceTokenPlayer2BalanceBeforeWithdraw = await contracts.curve.balanceOf(player2.address);
-      } else if (strategyType === "mobius") {
-        governanceTokenPlayer1BalanceBeforeWithdraw = await contracts.minter.balanceOf(player1.address);
-        governanceTokenPlayer2BalanceBeforeWithdraw = await contracts.minter.balanceOf(player2.address);
-      }
-      const player1BeforeWithdrawBalance = await contracts.inboundToken.balanceOf(player1.address);
+      const player1BeforeWithdrawAccounting = await getPlayerBeforeWithdrawAccounting(player1, strategyType, contracts);
       await contracts.goodGhosting.connect(player1).withdraw(0);
-      const player1PostWithdrawBalance = await contracts.inboundToken.balanceOf(player1.address);
-      const player1WithdrawAmount = player1PostWithdrawBalance.sub(player1BeforeWithdrawBalance);
-      console.log(player1WithdrawAmount.toString());
+      const player1AfterWithdrawAccounting = await getPlayerAfterWithdrawAccounting(player1BeforeWithdrawAccounting);
 
-      const player2BeforeWithdrawBalance = await contracts.inboundToken.balanceOf(player2.address);
+      assertExpectedInterestAndRewardsEqualToReceived(player1BeforeWithdrawAccounting, player1AfterWithdrawAccounting);
+
+      const player2BeforeWithdrawAccounting = await getPlayerBeforeWithdrawAccounting(player2, strategyType, contracts);
       await contracts.goodGhosting.connect(player2).withdraw(0);
+      const player2AfterWithdrawAccounting = await getPlayerAfterWithdrawAccounting(player2BeforeWithdrawAccounting);
 
-      const player2PostWithdrawBalance = await contracts.inboundToken.balanceOf(player2.address);
-      const player2WithdrawAmount = player2PostWithdrawBalance.sub(player2BeforeWithdrawBalance);
-      console.log(player2WithdrawAmount.toString());
+      assertExpectedInterestAndRewardsEqualToReceived(player2BeforeWithdrawAccounting, player2AfterWithdrawAccounting);
 
-      rewardTokenPlayer1BalanceAfterWithdraw = await rewardTokenInstance.balanceOf(player1.address);
-      rewardTokenPlayer2BalanceAfterWithdraw = await rewardTokenInstance.balanceOf(player2.address);
-
-      if (strategyType === "curve") {
-        governanceTokenPlayer1BalanceAfterWithdraw = await contracts.curve.balanceOf(player1.address);
-        governanceTokenPlayer2BalanceAfterWithdraw = await contracts.curve.balanceOf(player2.address);
-      } else if (strategyType === "mobius") {
-        governanceTokenPlayer1BalanceAfterWithdraw = await contracts.minter.balanceOf(player1.address);
-        governanceTokenPlayer2BalanceAfterWithdraw = await contracts.minter.balanceOf(player2.address);
-      }
-
-      const governanceTokenBalanceDiffFroPlayer1 = governanceTokenPlayer1BalanceAfterWithdraw.sub(
-        governanceTokenPlayer1BalanceBeforeWithdraw,
+      assert(
+        player2AfterWithdrawAccounting.playerReceivedGovernanceReward.gt(
+          player1AfterWithdrawAccounting.playerReceivedGovernanceReward,
+        ),
       );
-      const governanceTokenBalanceDiffFroPlayer2 = governanceTokenPlayer2BalanceAfterWithdraw.sub(
-        governanceTokenPlayer2BalanceBeforeWithdraw,
-      );
-      assert(governanceTokenBalanceDiffFroPlayer2.gt(governanceTokenBalanceDiffFroPlayer1));
 
       await contracts.goodGhosting.adminFeeWithdraw(0);
 
-      const totalAmountAfter = await contracts.strategy.getTotalAmount();
-      console.log("totalAmountAfter", totalAmountAfter);
       // i.loss
-      assert(player2WithdrawAmount.lt(player1WithdrawAmount));
+      assert(
+        player2AfterWithdrawAccounting.playerWithdrawAmount.lt(player1AfterWithdrawAccounting.playerWithdrawAmount),
+      );
     });
 
     it("players are able to withdraw when there is impermanent loss and no winners", async () => {
@@ -3705,37 +3624,43 @@ export const shouldBehaveLikePlayersWithdrawingFromGGPool = async (strategyType:
 
       const amountPaidByGhost = player3Info.amountPaid;
 
-      const player3BeforeWithdrawBalance = await contracts.inboundToken.balanceOf(player3.address);
+      const player3BeforeWithdrawAccounting = await getPlayerBeforeWithdrawAccounting(player3, strategyType, contracts);
       await contracts.goodGhosting.connect(player3).withdraw(0);
-      const player3AfterWithdrawBalance = await contracts.inboundToken.balanceOf(player3.address);
-      const player3WithdrawAmount = player3AfterWithdrawBalance.sub(player3BeforeWithdrawBalance);
-      assert(player3WithdrawAmount.lt(amountPaidByGhost));
+      const player3AfterWithdrawAccounting = await getPlayerAfterWithdrawAccounting(player3BeforeWithdrawAccounting);
 
-      const player1BeforeWithdrawBalance = await contracts.inboundToken.balanceOf(player1.address);
+      assertExpectedInterestAndRewardsEqualToReceived(player3BeforeWithdrawAccounting, player3AfterWithdrawAccounting);
+      assert(player3AfterWithdrawAccounting.playerWithdrawAmount.lt(amountPaidByGhost));
+
+      const player1BeforeWithdrawAccounting = await getPlayerBeforeWithdrawAccounting(player1, strategyType, contracts);
       await contracts.goodGhosting.connect(player1).withdraw(0);
-      const player1PostWithdrawBalance = await contracts.inboundToken.balanceOf(player1.address);
-      const player1WithdrawAmount = player1PostWithdrawBalance.sub(player1BeforeWithdrawBalance);
-      assert(player1WithdrawAmount.eq(player1Info.amountPaid));
-      console.log(player1WithdrawAmount.toString());
+      const player1AfterWithdrawAccounting = await getPlayerAfterWithdrawAccounting(player1BeforeWithdrawAccounting);
 
-      const player2BeforeWithdrawBalance = await contracts.inboundToken.balanceOf(player2.address);
+      assertExpectedInterestAndRewardsEqualToReceived(player1BeforeWithdrawAccounting, player1AfterWithdrawAccounting);
+      assert(player1AfterWithdrawAccounting.playerWithdrawAmount.eq(player1Info.amountPaid));
+
+      const player2BeforeWithdrawAccounting = await getPlayerBeforeWithdrawAccounting(player2, strategyType, contracts);
       await contracts.goodGhosting.connect(player2).withdraw(0);
-      const player2PostWithdrawBalance = await contracts.inboundToken.balanceOf(player2.address);
-      const player2WithdrawAmount = player2PostWithdrawBalance.sub(player2BeforeWithdrawBalance);
-      // i.loss
-      assert(player2WithdrawAmount.lt(player2Info.amountPaid));
-      console.log(player2WithdrawAmount.toString());
+      const player2AfterWithdrawAccounting = await getPlayerAfterWithdrawAccounting(player2BeforeWithdrawAccounting);
+
+      assertExpectedInterestAndRewardsEqualToReceived(player2BeforeWithdrawAccounting, player2AfterWithdrawAccounting);
+      assert(player2AfterWithdrawAccounting.playerWithdrawAmount.lt(player2Info.amountPaid));
 
       const rewardTokenInstance = await getRewardTokenInstance(contracts.strategy, player1);
       const adminRewardBalanceBeforeWithdraw = await rewardTokenInstance.balanceOf(deployer.address);
+      const expectedAdminRewards = await getExpectedFeeAdminRewardAmount(
+        contracts.goodGhosting,
+        contracts.strategy,
+        rewardTokenInstance,
+      );
       await contracts.goodGhosting.connect(deployer).adminFeeWithdraw(0);
       const adminRewardBalanceAfterWithdraw = await rewardTokenInstance.balanceOf(deployer.address);
+      const adminRewardWithdrawn = adminRewardBalanceAfterWithdraw.sub(adminRewardBalanceBeforeWithdraw);
+      assert(adminRewardWithdrawn.eq(expectedAdminRewards));
       assert(adminRewardBalanceAfterWithdraw.gt(adminRewardBalanceBeforeWithdraw));
 
-      const totalAmountAfter = await contracts.strategy.getTotalAmount();
-      console.log("totalAmountAfter", totalAmountAfter);
-
-      assert(player2WithdrawAmount.lt(player1WithdrawAmount));
+      assert(
+        player2AfterWithdrawAccounting.playerWithdrawAmount.lt(player1AfterWithdrawAccounting.playerWithdrawAmount),
+      );
     });
 
     it("players are able to withdraw when impermanent loss comes at a later stage, there are no winners when one of the player withdraws before the admin", async () => {
@@ -3790,7 +3715,6 @@ export const shouldBehaveLikePlayersWithdrawingFromGGPool = async (strategyType:
       const player1PostWithdrawBalance = await contracts.inboundToken.balanceOf(player1.address);
       const player1WithdrawAmount = player1PostWithdrawBalance.sub(player1BeforeWithdrawBalance);
       assert(player1WithdrawAmount.eq(player1Info.amountPaid));
-      console.log(player1WithdrawAmount.toString());
 
       if (strategyType === "curve") {
         await contracts.curvePool.connect(deployer).setILoss();
@@ -3798,20 +3722,27 @@ export const shouldBehaveLikePlayersWithdrawingFromGGPool = async (strategyType:
         await contracts.mobiPool.connect(deployer).setILoss();
       }
 
-      const player2BeforeWithdrawBalance = await contracts.inboundToken.balanceOf(player2.address);
+      const player2BeforeWithdrawAccounting = await getPlayerBeforeWithdrawAccounting(player2, strategyType, contracts);
       await contracts.goodGhosting.connect(player2).withdraw(0);
-      const player2PostWithdrawBalance = await contracts.inboundToken.balanceOf(player2.address);
-      const player2WithdrawAmount = player2PostWithdrawBalance.sub(player2BeforeWithdrawBalance);
-      assert(player2WithdrawAmount.lt(player2Info.amountPaid));
-      console.log(player2WithdrawAmount.toString());
+      const player2AfterWithdrawAccounting = await getPlayerAfterWithdrawAccounting(player2BeforeWithdrawAccounting);
+
+      assertExpectedInterestAndRewardsEqualToReceived(player2BeforeWithdrawAccounting, player2AfterWithdrawAccounting);
+      assert(player2AfterWithdrawAccounting.playerWithdrawAmount.lt(player2Info.amountPaid));
 
       const rewardTokenInstance = await getRewardTokenInstance(contracts.strategy, player1);
       const adminRewardBalanceBeforeWithdraw = await rewardTokenInstance.balanceOf(deployer.address);
+      const expectedAdminRewards = await getExpectedFeeAdminRewardAmount(
+        contracts.goodGhosting,
+        contracts.strategy,
+        rewardTokenInstance,
+      );
       await contracts.goodGhosting.connect(deployer).adminFeeWithdraw(0);
       const adminRewardBalanceAfterWithdraw = await rewardTokenInstance.balanceOf(deployer.address);
+      const adminRewardWithdrawn = adminRewardBalanceAfterWithdraw.sub(adminRewardBalanceBeforeWithdraw);
+      assert(adminRewardWithdrawn.eq(expectedAdminRewards));
       assert(adminRewardBalanceAfterWithdraw.gt(adminRewardBalanceBeforeWithdraw));
 
-      assert(player2WithdrawAmount.lt(player1WithdrawAmount));
+      assert(player2AfterWithdrawAccounting.playerWithdrawAmount.lt(player1WithdrawAmount));
     });
 
     it("players are able to withdraw when impermanent loss comes at a later stage when there are no winners, the admin withdraws before the last player withdraws", async () => {
@@ -3866,7 +3797,6 @@ export const shouldBehaveLikePlayersWithdrawingFromGGPool = async (strategyType:
       const player1PostWithdrawBalance = await contracts.inboundToken.balanceOf(player1.address);
       const player1WithdrawAmount = player1PostWithdrawBalance.sub(player1BeforeWithdrawBalance);
       assert(player1WithdrawAmount.eq(player1Info.amountPaid));
-      console.log(player1WithdrawAmount.toString());
 
       if (strategyType === "curve") {
         await contracts.curvePool.connect(deployer).setILoss();
@@ -3876,19 +3806,26 @@ export const shouldBehaveLikePlayersWithdrawingFromGGPool = async (strategyType:
 
       const rewardTokenInstance = await getRewardTokenInstance(contracts.strategy, player1);
       const adminRewardBalanceBeforeWithdraw = await rewardTokenInstance.balanceOf(deployer.address);
+      const expectedAdminRewards = await getExpectedFeeAdminRewardAmount(
+        contracts.goodGhosting,
+        contracts.strategy,
+        rewardTokenInstance,
+      );
       await contracts.goodGhosting.connect(deployer).adminFeeWithdraw(0);
       const adminRewardBalanceAfterWithdraw = await rewardTokenInstance.balanceOf(deployer.address);
       assert(adminRewardBalanceAfterWithdraw.gt(adminRewardBalanceBeforeWithdraw));
+      const adminRewardWithdrawn = adminRewardBalanceAfterWithdraw.sub(adminRewardBalanceBeforeWithdraw);
+      assert(adminRewardWithdrawn.eq(expectedAdminRewards));
 
-      const player2BeforeWithdrawBalance = await contracts.inboundToken.balanceOf(player2.address);
+      const player2BeforeWithdrawAccounting = await getPlayerBeforeWithdrawAccounting(player2, strategyType, contracts);
       await contracts.goodGhosting.connect(player2).withdraw(0);
-      const player2PostWithdrawBalance = await contracts.inboundToken.balanceOf(player2.address);
-      const player2WithdrawAmount = player2PostWithdrawBalance.sub(player2BeforeWithdrawBalance);
-      assert(player2WithdrawAmount.lt(player2Info.amountPaid));
-      console.log(player2WithdrawAmount.toString());
-      assert(player2WithdrawAmount.lt(player1WithdrawAmount));
-    });
+      const player2AfterWithdrawAccounting = await getPlayerAfterWithdrawAccounting(player2BeforeWithdrawAccounting);
 
+      assertExpectedInterestAndRewardsEqualToReceived(player2BeforeWithdrawAccounting, player2AfterWithdrawAccounting);
+      assert(player2AfterWithdrawAccounting.playerWithdrawAmount.lt(player2Info.amountPaid));
+      assert(player2AfterWithdrawAccounting.playerWithdrawAmount.lt(player1WithdrawAmount));
+    });
+    // Failing test
     it("winners are able to withdraw when impermanent loss comes at a later stage, there are no winners when one of the winner withdraws before the admin", async () => {
       const accounts = await ethers.getSigners();
       const deployer = accounts[0];
@@ -3938,12 +3875,12 @@ export const shouldBehaveLikePlayersWithdrawingFromGGPool = async (strategyType:
       const player1Info = await contracts.goodGhosting.players(player1.address);
       const player2Info = await contracts.goodGhosting.players(player2.address);
 
-      const player1BeforeWithdrawBalance = await contracts.inboundToken.balanceOf(player1.address);
+      const player1BeforeWithdrawAccounting = await getPlayerBeforeWithdrawAccounting(player1, strategyType, contracts);
       await contracts.goodGhosting.connect(player1).withdraw(0);
-      const player1PostWithdrawBalance = await contracts.inboundToken.balanceOf(player1.address);
-      const player1WithdrawAmount = player1PostWithdrawBalance.sub(player1BeforeWithdrawBalance);
-      assert(player1WithdrawAmount.gt(player1Info.amountPaid));
-      console.log(player1WithdrawAmount.toString());
+      const player1AfterWithdrawAccounting = await getPlayerAfterWithdrawAccounting(player1BeforeWithdrawAccounting);
+
+      assertExpectedInterestAndRewardsEqualToReceived(player1BeforeWithdrawAccounting, player1AfterWithdrawAccounting);
+      assert(player1AfterWithdrawAccounting.playerWithdrawAmount.gt(player1Info.amountPaid));
 
       if (strategyType === "curve") {
         await contracts.curvePool.connect(deployer).setILoss();
@@ -3951,19 +3888,21 @@ export const shouldBehaveLikePlayersWithdrawingFromGGPool = async (strategyType:
         await contracts.mobiPool.connect(deployer).setILoss();
       }
 
-      const player2BeforeWithdrawBalance = await contracts.inboundToken.balanceOf(player2.address);
+      const player2BeforeWithdrawAccounting = await getPlayerBeforeWithdrawAccounting(player2, strategyType, contracts);
       await contracts.goodGhosting.connect(player2).withdraw(0);
-      const player2PostWithdrawBalance = await contracts.inboundToken.balanceOf(player2.address);
-      const player2WithdrawAmount = player2PostWithdrawBalance.sub(player2BeforeWithdrawBalance);
-      assert(player2WithdrawAmount.lt(player2Info.amountPaid));
-      console.log(player2WithdrawAmount.toString());
+      const player2AfterWithdrawAccounting = await getPlayerAfterWithdrawAccounting(player2BeforeWithdrawAccounting);
+      //TODO - check impermanent loss share precision
+      assertExpectedInterestAndRewardsEqualToReceived(player2BeforeWithdrawAccounting, player2AfterWithdrawAccounting);
+      assert(player2AfterWithdrawAccounting.playerWithdrawAmount.lt(player2Info.amountPaid));
 
       const rewardTokenInstance = await getRewardTokenInstance(contracts.strategy, player1);
       const adminRewardBalanceBeforeWithdraw = await rewardTokenInstance.balanceOf(deployer.address);
       await contracts.goodGhosting.connect(deployer).adminFeeWithdraw(0);
       const adminRewardBalanceAfterWithdraw = await rewardTokenInstance.balanceOf(deployer.address);
 
-      assert(player2WithdrawAmount.lt(player1WithdrawAmount));
+      assert(
+        player2AfterWithdrawAccounting.playerWithdrawAmount.lt(player1AfterWithdrawAccounting.playerWithdrawAmount),
+      );
     });
 
     it("winners are able to withdraw when impermanent loss comes at a later stage, the admin withdraws before the last player withdraws", async () => {
@@ -4015,12 +3954,12 @@ export const shouldBehaveLikePlayersWithdrawingFromGGPool = async (strategyType:
       const player1Info = await contracts.goodGhosting.players(player1.address);
       const player2Info = await contracts.goodGhosting.players(player2.address);
 
-      const player1BeforeWithdrawBalance = await contracts.inboundToken.balanceOf(player1.address);
+      const player1BeforeWithdrawAccounting = await getPlayerBeforeWithdrawAccounting(player1, strategyType, contracts);
       await contracts.goodGhosting.connect(player1).withdraw(0);
-      const player1PostWithdrawBalance = await contracts.inboundToken.balanceOf(player1.address);
-      const player1WithdrawAmount = player1PostWithdrawBalance.sub(player1BeforeWithdrawBalance);
-      assert(player1WithdrawAmount.gt(player1Info.amountPaid));
-      console.log(player1WithdrawAmount.toString());
+      const player1AfterWithdrawAccounting = await getPlayerAfterWithdrawAccounting(player1BeforeWithdrawAccounting);
+
+      assertExpectedInterestAndRewardsEqualToReceived(player1BeforeWithdrawAccounting, player1AfterWithdrawAccounting);
+      assert(player1AfterWithdrawAccounting.playerWithdrawAmount.gt(player1Info.amountPaid));
 
       if (strategyType === "curve") {
         await contracts.curvePool.connect(deployer).setILoss();
@@ -4030,19 +3969,30 @@ export const shouldBehaveLikePlayersWithdrawingFromGGPool = async (strategyType:
 
       const rewardTokenInstance = await getRewardTokenInstance(contracts.strategy, player1);
       const adminRewardBalanceBeforeWithdraw = await rewardTokenInstance.balanceOf(deployer.address);
+      const expectedAdminRewards = await getExpectedFeeAdminRewardAmount(
+        contracts.goodGhosting,
+        contracts.strategy,
+        rewardTokenInstance,
+      );
       await contracts.goodGhosting.connect(deployer).adminFeeWithdraw(0);
       const adminRewardBalanceAfterWithdraw = await rewardTokenInstance.balanceOf(deployer.address);
+      const adminRewardWithdrawn = adminRewardBalanceAfterWithdraw.sub(adminRewardBalanceBeforeWithdraw);
+      assert(adminRewardWithdrawn.eq(expectedAdminRewards));
       assert(adminRewardBalanceAfterWithdraw.gt(adminRewardBalanceBeforeWithdraw));
 
-      const player2BeforeWithdrawBalance = await contracts.inboundToken.balanceOf(player2.address);
+      const player2BeforeWithdrawAccounting = await getPlayerBeforeWithdrawAccounting(player2, strategyType, contracts);
       await contracts.goodGhosting.connect(player2).withdraw(0);
-      const player2PostWithdrawBalance = await contracts.inboundToken.balanceOf(player2.address);
-      const player2WithdrawAmount = player2PostWithdrawBalance.sub(player2BeforeWithdrawBalance);
-      assert(player2WithdrawAmount.lt(player2Info.amountPaid));
-      console.log(player2WithdrawAmount.toString());
-      assert(player2WithdrawAmount.lt(player1WithdrawAmount));
+      const player2AfterWithdrawAccounting = await getPlayerAfterWithdrawAccounting(player2BeforeWithdrawAccounting);
+
+      assertExpectedInterestAndRewardsEqualToReceived(player2BeforeWithdrawAccounting, player2AfterWithdrawAccounting);
+      assert(player2AfterWithdrawAccounting.playerWithdrawAmount.lt(player2Info.amountPaid));
+
+      assert(
+        player2AfterWithdrawAccounting.playerWithdrawAmount.lt(player1AfterWithdrawAccounting.playerWithdrawAmount),
+      );
     });
 
+    //Test failing (edge case where contract does not have enough funds to pay out the interest of last user)
     it("players are able to withdraw if there is impermanent loss and there is a ghost too and one of the winners withdraw first", async () => {
       const accounts = await ethers.getSigners();
       const deployer = accounts[0];
@@ -4097,39 +4047,34 @@ export const shouldBehaveLikePlayersWithdrawingFromGGPool = async (strategyType:
       for (let i = 0; i <= player1Info.mostRecentSegmentPaid; i++) {
         let index1 = await contracts.goodGhosting.playerIndex(player1.address, i);
         sumPlayer1 += parseInt(index1.toString());
-        console.log("player1");
-        console.log(index1.toString());
-        console.log("sum1", sumPlayer1.toString());
       }
 
       for (let i = 0; i <= player2Info.mostRecentSegmentPaid; i++) {
         let index2 = await contracts.goodGhosting.playerIndex(player2.address, i);
         sumPlayer2 += parseInt(index2.toString());
-        console.log("player2");
-        console.log(index2.toString());
-        console.log("sum2", sumPlayer2.toString());
       }
 
-      const amountPaidByGhost = player3Info.amountPaid;
-
-      const player1BeforeWithdrawBalance = await contracts.inboundToken.balanceOf(player1.address);
+      const player1BeforeWithdrawAccounting = await getPlayerBeforeWithdrawAccounting(player1, strategyType, contracts);
       await contracts.goodGhosting.connect(player1).withdraw(0);
-      const player1PostWithdrawBalance = await contracts.inboundToken.balanceOf(player1.address);
-      const player1WithdrawAmount = player1PostWithdrawBalance.sub(player1BeforeWithdrawBalance);
-      console.log(player1WithdrawAmount.toString());
+      const player1AfterWithdrawAccounting = await getPlayerAfterWithdrawAccounting(player1BeforeWithdrawAccounting);
 
-      const player3BeforeWithdrawBalance = await contracts.inboundToken.balanceOf(player3.address);
+      assertExpectedInterestAndRewardsEqualToReceived(player1BeforeWithdrawAccounting, player1AfterWithdrawAccounting);
+
+      const player3BeforeWithdrawAccounting = await getPlayerBeforeWithdrawAccounting(player3, strategyType, contracts);
       await contracts.goodGhosting.connect(player3).withdraw(0);
-      const player3AfterWithdrawBalance = await contracts.inboundToken.balanceOf(player3.address);
-      const player3WithdrawAmount = player3AfterWithdrawBalance.sub(player3BeforeWithdrawBalance);
-      assert(player3WithdrawAmount.eq(amountPaidByGhost));
+      const player3AfterWithdrawAccounting = await getPlayerAfterWithdrawAccounting(player3BeforeWithdrawAccounting);
 
-      const player2BeforeWithdrawBalance = await contracts.inboundToken.balanceOf(player2.address);
+      assertExpectedInterestAndRewardsEqualToReceived(player3BeforeWithdrawAccounting, player3AfterWithdrawAccounting);
+
+      console.log("\n\n\n init");
+
+      const player2BeforeWithdrawAccounting = await getPlayerBeforeWithdrawAccounting(player2, strategyType, contracts);
       await contracts.goodGhosting.connect(player2).withdraw(0);
+      const player2AfterWithdrawAccounting = await getPlayerAfterWithdrawAccounting(player2BeforeWithdrawAccounting);
 
-      const player2PostWithdrawBalance = await contracts.inboundToken.balanceOf(player2.address);
-      const player2WithdrawAmount = player2PostWithdrawBalance.sub(player2BeforeWithdrawBalance);
-      console.log(player2WithdrawAmount.toString());
+      assertExpectedInterestAndRewardsEqualToReceived(player2BeforeWithdrawAccounting, player2AfterWithdrawAccounting);
+
+      console.log("finish \n\n\n ");
 
       const rewardTokenInstance = await getRewardTokenInstance(contracts.strategy, player1);
 
@@ -4141,7 +4086,9 @@ export const shouldBehaveLikePlayersWithdrawingFromGGPool = async (strategyType:
       console.log("totalAmountAfter", totalAmountAfter);
 
       // impermanent loss affects the player 1 since it withhdraws before.
-      assert(player2WithdrawAmount.gt(player1WithdrawAmount));
+      assert(
+        player2AfterWithdrawAccounting.playerWithdrawAmount.gt(player1AfterWithdrawAccounting.playerWithdrawAmount),
+      );
     });
 
     it("players are able to withdraw if there is impermanent loss at a later stage and there is a ghost too and one of the winners withdraw first", async () => {
@@ -4207,17 +4154,18 @@ export const shouldBehaveLikePlayersWithdrawingFromGGPool = async (strategyType:
 
       const amountPaidByGhost = player3Info.amountPaid;
 
-      const player1BeforeWithdrawBalance = await contracts.inboundToken.balanceOf(player1.address);
+      const player1BeforeWithdrawAccounting = await getPlayerBeforeWithdrawAccounting(player1, strategyType, contracts);
       await contracts.goodGhosting.connect(player1).withdraw(0);
-      const player1PostWithdrawBalance = await contracts.inboundToken.balanceOf(player1.address);
-      const player1WithdrawAmount = player1PostWithdrawBalance.sub(player1BeforeWithdrawBalance);
-      console.log(player1WithdrawAmount.toString());
+      const player1AfterWithdrawAccounting = await getPlayerAfterWithdrawAccounting(player1BeforeWithdrawAccounting);
 
-      const player3BeforeWithdrawBalance = await contracts.inboundToken.balanceOf(player3.address);
+      assertExpectedInterestAndRewardsEqualToReceived(player1BeforeWithdrawAccounting, player1AfterWithdrawAccounting);
+
+      const player3BeforeWithdrawAccounting = await getPlayerBeforeWithdrawAccounting(player3, strategyType, contracts);
       await contracts.goodGhosting.connect(player3).withdraw(0);
-      const player3AfterWithdrawBalance = await contracts.inboundToken.balanceOf(player3.address);
-      const player3WithdrawAmount = player3AfterWithdrawBalance.sub(player3BeforeWithdrawBalance);
-      assert(player3WithdrawAmount.eq(amountPaidByGhost));
+      const player3AfterWithdrawAccounting = await getPlayerAfterWithdrawAccounting(player3BeforeWithdrawAccounting);
+
+      assertExpectedInterestAndRewardsEqualToReceived(player3BeforeWithdrawAccounting, player3AfterWithdrawAccounting);
+      assert(player3AfterWithdrawAccounting.playerWithdrawAmount.eq(amountPaidByGhost));
 
       if (strategyType === "curve") {
         await contracts.curvePool.connect(deployer).setILoss();
@@ -4225,19 +4173,18 @@ export const shouldBehaveLikePlayersWithdrawingFromGGPool = async (strategyType:
         await contracts.mobiPool.connect(deployer).setILoss();
       }
 
-      const player2BeforeWithdrawBalance = await contracts.inboundToken.balanceOf(player2.address);
+      const player2BeforeWithdrawAccounting = await getPlayerBeforeWithdrawAccounting(player2, strategyType, contracts);
       await contracts.goodGhosting.connect(player2).withdraw(0);
+      const player2AfterWithdrawAccounting = await getPlayerAfterWithdrawAccounting(player2BeforeWithdrawAccounting);
 
-      const player2PostWithdrawBalance = await contracts.inboundToken.balanceOf(player2.address);
-      const player2WithdrawAmount = player2PostWithdrawBalance.sub(player2BeforeWithdrawBalance);
-      console.log(player2WithdrawAmount.toString());
+      assertExpectedInterestAndRewardsEqualToReceived(player2BeforeWithdrawAccounting, player2AfterWithdrawAccounting);
+
       await contracts.goodGhosting.adminFeeWithdraw(0);
 
-      const totalAmountAfter = await contracts.strategy.getTotalAmount();
-      console.log("totalAmountAfter", totalAmountAfter);
-
       // impermanent loss affects the player 2 since it withhdraws last.
-      assert(player2WithdrawAmount.lt(player1WithdrawAmount));
+      assert(
+        player2AfterWithdrawAccounting.playerWithdrawAmount.lt(player1AfterWithdrawAccounting.playerWithdrawAmount),
+      );
     });
 
     it("player is able to withdraw if there is impermanent loss", async () => {
@@ -4557,39 +4504,54 @@ export const shouldBehaveLikeAdminWithdrawingFeesFromGGPoolWithFeePercentMoreTha
       }
     }
 
-    if (strategyType === "curve") {
-      governanceTokenAdminBalanceBeforeWithdraw = await contracts.curve.balanceOf(player1.address);
-    } else if (strategyType === "mobius") {
-      contracts.rewardToken = contracts.minter;
-      governanceTokenAdminBalanceBeforeWithdraw = await contracts.minter.balanceOf(player2.address);
+    const governanceRewardTokenContract = strategyType === "curve" ? contracts.curve : contracts.minter;
+    const isCurveOrMobius = strategyType === "curve" || strategyType === "mobius";
+
+    if (isCurveOrMobius) {
+      governanceTokenAdminBalanceBeforeWithdraw = await governanceRewardTokenContract.balanceOf(deployer.address);
     }
 
     const rewardTokenInstance = await getRewardTokenInstance(contracts.strategy, player1);
 
-    rewardTokenAdminBalanceBeforeWithdraw = await rewardTokenInstance.balanceOf(player1.address);
+    rewardTokenAdminBalanceBeforeWithdraw = await rewardTokenInstance.balanceOf(deployer.address);
 
     await contracts.goodGhosting.connect(player1).withdraw(0);
     await contracts.goodGhosting.connect(player2).withdraw(0);
 
+    const expectedAdminRewardsToken = await getExpectedFeeAdminRewardAmount(
+      contracts.goodGhosting,
+      contracts.strategy,
+      rewardTokenInstance,
+    );
+    const expectedAdminGovernanceToken = await getExpectedFeeAdminRewardAmount(
+      contracts.goodGhosting,
+      contracts.strategy,
+      governanceRewardTokenContract,
+    );
+
     await contracts.goodGhosting.connect(deployer).adminFeeWithdraw(0);
 
-    if (strategyType === "curve") {
-      governanceTokenAdminBalanceAfterWithdraw = await contracts.curve.balanceOf(player1.address);
-    } else if (strategyType === "mobius") {
-      contracts.rewardToken = contracts.minter;
-      governanceTokenAdminBalanceAfterWithdraw = await contracts.minter.balanceOf(player1.address);
+    if (isCurveOrMobius) {
+      governanceTokenAdminBalanceAfterWithdraw = await governanceRewardTokenContract.balanceOf(deployer.address);
     }
 
-    if (strategyType !== "curve" && strategyType !== "mobius") {
-      rewardTokenAdminBalanceAfterWithdraw = await rewardTokenInstance.balanceOf(player1.address);
+    rewardTokenAdminBalanceAfterWithdraw = await rewardTokenInstance.balanceOf(deployer.address);
 
-      assert(
-        ethers.BigNumber.from(rewardTokenAdminBalanceAfterWithdraw).gt(
-          ethers.BigNumber.from(rewardTokenAdminBalanceBeforeWithdraw),
-        ),
-      );
-    }
+    const receivedAdminRewardsTokens = ethers.BigNumber.from(rewardTokenAdminBalanceAfterWithdraw).sub(
+      ethers.BigNumber.from(rewardTokenAdminBalanceBeforeWithdraw),
+    );
+    assert(expectedAdminRewardsToken.eq(receivedAdminRewardsTokens));
 
+    const receivedAdminGovernanceTokens = ethers.BigNumber.from(governanceTokenAdminBalanceAfterWithdraw).sub(
+      ethers.BigNumber.from(governanceTokenAdminBalanceBeforeWithdraw),
+    );
+    assert(expectedAdminGovernanceToken.eq(receivedAdminGovernanceTokens));
+
+    assert(
+      ethers.BigNumber.from(rewardTokenAdminBalanceAfterWithdraw).gt(
+        ethers.BigNumber.from(rewardTokenAdminBalanceBeforeWithdraw),
+      ),
+    );
     if (strategyType === "curve" || strategyType === "mobius") {
       assert(
         ethers.BigNumber.from(governanceTokenAdminBalanceAfterWithdraw).gt(
@@ -4708,15 +4670,15 @@ export const shouldBehaveLikeAdminWithdrawingFeesFromGGPoolWithFeePercentMoreTha
 
       // There's no winner, so admin takes it all
       let reward;
-      if (strategyType !== "curve" && strategyType !== "mobius") {
-        reward = contracts.rewardToken;
-      } else {
-        if (strategyType == "curve") {
-          reward = contracts.curve;
-        } else {
-          reward = contracts.minter;
-        }
+
+      reward = contracts.rewardToken;
+
+      if (strategyType == "curve") {
+        reward = contracts.curve;
+      } else if (strategyType == "mobius") {
+        reward = contracts.minter;
       }
+
       let adminMaticBalanceBeforeWithdraw = await reward.balanceOf(deployer.address);
       const result = await contracts.goodGhosting.adminFeeWithdraw(0);
 
@@ -4731,10 +4693,6 @@ export const shouldBehaveLikeAdminWithdrawingFeesFromGGPoolWithFeePercentMoreTha
       await expect(result)
         .emit(contracts.goodGhosting, "AdminWithdrawal")
         .withArgs(deployer.address, grossInterest, ethers.BigNumber.from(0), fee);
-
-      if (strategyType !== "curve" && strategyType !== "mobius") {
-      } else {
-      }
 
       let adminMaticBalanceAfterWithdraw = await reward.balanceOf(deployer.address);
       // no external deposits
@@ -4799,15 +4757,15 @@ export const shouldBehaveLikeAdminWithdrawingFeesFromGGPoolWithFeePercentMoreTha
 
       // There's no winner, so admin takes it all
       let reward;
-      if (strategyType !== "curve" && strategyType !== "mobius") {
-        reward = contracts.rewardToken;
-      } else {
-        if (strategyType == "curve") {
-          reward = contracts.curve;
-        } else {
-          reward = contracts.minter;
-        }
+
+      reward = contracts.rewardToken;
+
+      if (strategyType == "curve") {
+        reward = contracts.curve;
+      } else if (strategyType == "mobius") {
+        reward = contracts.minter;
       }
+
       let adminMaticBalanceBeforeWithdraw = await reward.balanceOf(deployer.address);
 
       const contractBalance = await contracts.strategy.getTotalAmount();
@@ -4887,15 +4845,13 @@ export const shouldBehaveLikeAdminWithdrawingFeesFromGGPoolWithFeePercentMoreTha
       const grossInterest = contractBalance.sub(totalGamePrincipal);
       // There's no winner, so admin takes it all
       let reward;
-      if (strategyType !== "curve" && strategyType !== "mobius") {
-        reward = contracts.rewardToken;
-      } else {
-        if (strategyType == "curve") {
-          reward = contracts.curve;
-        } else {
-          reward = contracts.minter;
-        }
+      reward = contracts.rewardToken;
+      if (strategyType === "curve") {
+        reward = contracts.curve;
+      } else if (strategyType === "mobius") {
+        reward = contracts.minter;
       }
+
       let adminMaticBalanceBeforeWithdraw = await reward.balanceOf(deployer.address);
 
       const result = await contracts.goodGhosting.adminFeeWithdraw(0);
@@ -4973,14 +4929,11 @@ export const shouldBehaveLikeAdminWithdrawingFeesFromGGPoolWithFeePercentMoreTha
       const regularAdminFee = grossInterest.mul(ethers.BigNumber.from(1)).div(ethers.BigNumber.from(100));
       // There's no winner, so admin takes it all
       let reward;
-      if (strategyType !== "curve" && strategyType !== "mobius") {
-        reward = contracts.rewardToken;
-      } else {
-        if (strategyType == "curve") {
-          reward = contracts.curve;
-        } else {
-          reward = contracts.minter;
-        }
+      reward = contracts.rewardToken;
+      if (strategyType === "curve") {
+        reward = contracts.curve;
+      } else if (strategyType === "mobius") {
+        reward = contracts.minter;
       }
       let adminMaticBalanceBeforeWithdraw = await reward.balanceOf(deployer.address);
 
@@ -5069,14 +5022,11 @@ export const shouldBehaveLikeAdminWithdrawingFeesFromGGPoolWithFeePercentMoreTha
       const regularAdminFee = grossInterest.mul(ethers.BigNumber.from(1)).div(ethers.BigNumber.from(100));
       // There's no winner, so admin takes it all
       let reward;
-      if (strategyType !== "curve" && strategyType !== "mobius") {
-        reward = contracts.rewardToken;
-      } else {
-        if (strategyType == "curve") {
-          reward = contracts.curve;
-        } else {
-          reward = contracts.minter;
-        }
+      reward = contracts.rewardToken;
+      if (strategyType === "curve") {
+        reward = contracts.curve;
+      } else if (strategyType === "mobius") {
+        reward = contracts.minter;
       }
       let adminMaticBalanceBeforeWithdraw = await reward.balanceOf(deployer.address);
 
@@ -5163,14 +5113,11 @@ export const shouldBehaveLikeAdminWithdrawingFeesFromGGPoolWithFeePercentMoreTha
       const regularAdminFee = grossInterest.mul(ethers.BigNumber.from(1)).div(ethers.BigNumber.from(100));
       // There's no winner, so admin takes it all
       let reward;
-      if (strategyType !== "curve" && strategyType !== "mobius") {
-        reward = contracts.rewardToken;
-      } else {
-        if (strategyType == "curve") {
-          reward = contracts.curve;
-        } else {
-          reward = contracts.minter;
-        }
+      reward = contracts.rewardToken;
+      if (strategyType === "curve") {
+        reward = contracts.curve;
+      } else if (strategyType === "mobius") {
+        reward = contracts.minter;
       }
       let adminMaticBalanceBeforeWithdraw = await reward.balanceOf(deployer.address);
 
@@ -5364,15 +5311,13 @@ export const shouldBehaveLikeVariableDepositPool = async (strategyType: string) 
       governanceTokenAdminBalanceAfterWithdraw = await contracts.minter.balanceOf(player1.address);
     }
 
-    if (strategyType !== "curve" && strategyType !== "mobius") {
-      rewardTokenAdminBalanceAfterWithdraw = await rewardTokenInstance.balanceOf(player1.address);
+    rewardTokenAdminBalanceAfterWithdraw = await rewardTokenInstance.balanceOf(player1.address);
 
-      assert(
-        ethers.BigNumber.from(rewardTokenAdminBalanceAfterWithdraw).gt(
-          ethers.BigNumber.from(rewardTokenAdminBalanceBeforeWithdraw),
-        ),
-      );
-    }
+    assert(
+      ethers.BigNumber.from(rewardTokenAdminBalanceAfterWithdraw).gt(
+        ethers.BigNumber.from(rewardTokenAdminBalanceBeforeWithdraw),
+      ),
+    );
 
     if (strategyType === "curve" || strategyType === "mobius") {
       assert(
@@ -5387,12 +5332,12 @@ export const shouldBehaveLikeVariableDepositPool = async (strategyType: string) 
     const accounts = await ethers.getSigners();
     let governanceTokenPlayer1BalanceAfterWithdraw = 0,
       governanceTokenPlayer2BalanceAfterWithdraw = 0,
-      rewardTokenPlayer1BalanceAfterWithdraw = 0,
-      rewardTokenPlayer2BalanceAfterWithdraw = 0,
+      rewardTokenPlayer1BalanceAfterWithdraw,
+      rewardTokenPlayer2BalanceAfterWithdraw,
       governanceTokenPlayer1BalanceBeforeWithdraw = 0,
       governanceTokenPlayer2BalanceBeforeWithdraw = 0,
-      rewardTokenPlayer1BalanceBeforeWithdraw = 0,
-      rewardTokenPlayer2BalanceBeforeWithdraw = 0;
+      rewardTokenPlayer1BalanceBeforeWithdraw,
+      rewardTokenPlayer2BalanceBeforeWithdraw;
 
     const player1 = accounts[2];
     const player2 = accounts[3];
@@ -5447,7 +5392,21 @@ export const shouldBehaveLikeVariableDepositPool = async (strategyType: string) 
     rewardTokenPlayer1BalanceBeforeWithdraw = await contracts.rewardToken.balanceOf(player1.address);
     rewardTokenPlayer2BalanceBeforeWithdraw = await contracts.rewardToken.balanceOf(player2.address);
 
+    const rewardEarnedPlayer1 = await getPlayerReward(
+      contracts.goodGhosting,
+      contracts.strategy,
+      contracts.rewardToken,
+      player1.address,
+    );
+
     await contracts.goodGhosting.connect(player1).withdraw(0);
+
+    const rewardEarnedPlayer2 = await getPlayerReward(
+      contracts.goodGhosting,
+      contracts.strategy,
+      contracts.rewardToken,
+      player2.address,
+    );
     await contracts.goodGhosting.connect(player2).withdraw(0);
 
     if (strategyType === "curve") {
@@ -5459,21 +5418,15 @@ export const shouldBehaveLikeVariableDepositPool = async (strategyType: string) 
       governanceTokenPlayer2BalanceAfterWithdraw = await contracts.minter.balanceOf(player2.address);
     }
 
-    if (strategyType !== "curve" && strategyType !== "mobius") {
-      rewardTokenPlayer1BalanceAfterWithdraw = await contracts.rewardToken.balanceOf(player1.address);
-      rewardTokenPlayer2BalanceAfterWithdraw = await contracts.rewardToken.balanceOf(player2.address);
+    rewardTokenPlayer1BalanceAfterWithdraw = await contracts.rewardToken.balanceOf(player1.address);
+    rewardTokenPlayer2BalanceAfterWithdraw = await contracts.rewardToken.balanceOf(player2.address);
 
-      assert(
-        ethers.BigNumber.from(rewardTokenPlayer1BalanceAfterWithdraw).gt(
-          ethers.BigNumber.from(rewardTokenPlayer1BalanceBeforeWithdraw),
-        ),
-      );
-      assert(
-        ethers.BigNumber.from(rewardTokenPlayer2BalanceAfterWithdraw).gt(
-          ethers.BigNumber.from(rewardTokenPlayer2BalanceBeforeWithdraw),
-        ),
-      );
-    }
+    const rewardDiffPlayer1 = rewardTokenPlayer1BalanceAfterWithdraw.sub(rewardTokenPlayer1BalanceBeforeWithdraw);
+    const rewardDiffPlayer2 = rewardTokenPlayer2BalanceAfterWithdraw.sub(rewardTokenPlayer2BalanceBeforeWithdraw);
+
+    assert(rewardDiffPlayer1.eq(rewardEarnedPlayer1));
+    assert(rewardDiffPlayer2.eq(rewardEarnedPlayer2));
+
     if (strategyType === "curve" || strategyType === "mobius") {
       assert(
         ethers.BigNumber.from(governanceTokenPlayer1BalanceAfterWithdraw).gt(
@@ -6063,17 +6016,22 @@ export const shouldBehaveLikeVariableDepositPool = async (strategyType: string) 
       }
 
       const player1BalanceBeforeWithdraw = await contracts.inboundToken.balanceOf(player1.address);
-      const player1RewardBalanceBeforeWithdraw = await contracts.rewardToken.balanceOf(player1.address);
+      const player1RewardBalanceBeforeWithdraw = await contracts.curve.balanceOf(player1.address);
       let player1GovernanceTokenBalanceBeforeWithdraw = ethers.BigNumber.from(0);
       if (strategyType === "curve") {
         player1GovernanceTokenBalanceBeforeWithdraw = await contracts.curve.balanceOf(player1.address);
       } else if (strategyType === "mobius") {
         player1GovernanceTokenBalanceBeforeWithdraw = await contracts.minter.balanceOf(player1.address);
       }
+      const player1ExpectedInterest = await getPlayerInterest(
+        contracts.goodGhosting,
+        contracts.strategy,
+        player1.address,
+      );
 
       let result = await contracts.goodGhosting.connect(player1).withdraw(0);
 
-      const player1RewardBalanceAfterWithdraw = await contracts.rewardToken.balanceOf(player1.address);
+      const player1RewardBalanceAfterWithdraw = await contracts.curve.balanceOf(player1.address);
       const player1BalanceAfterWithdraw = await contracts.inboundToken.balanceOf(player1.address);
       let player1GovernanceTokenBalanceAfterWithdraw = ethers.BigNumber.from(0);
       if (strategyType === "curve") {
@@ -6088,16 +6046,18 @@ export const shouldBehaveLikeVariableDepositPool = async (strategyType: string) 
       );
 
       const differenceForPlayer1 = player1BalanceAfterWithdraw.sub(player1BalanceBeforeWithdraw);
+      const interestRecvdPlayer1 = differenceForPlayer1.sub(player1Info.amountPaid);
+
+      assert(interestRecvdPlayer1.eq(player1ExpectedInterest));
       const interestEarnedByPlayer1 = differenceForPlayer1.sub(ethers.BigNumber.from(player1Info.amountPaid));
 
       const player1Deposit = ethers.BigNumber.from(player1Info.amountPaid);
 
       const playerRewardAmounts: any = [];
-      if (strategyType !== "curve" && strategyType !== "mobius") {
-        playerRewardAmounts[0] = rewardDifferenceForPlayer1.toString();
-      } else {
-        playerRewardAmounts[0] = governanceTokenBalanceDifferenceForPlayer1.toString();
-      }
+
+      playerRewardAmounts[0] = rewardDifferenceForPlayer1.toString();
+
+      // playerRewardAmounts[0] = governanceTokenBalanceDifferenceForPlayer1.toString();
 
       await expect(result)
         .to.emit(contracts.goodGhosting, "WithdrawInboundTokens")
@@ -6114,13 +6074,18 @@ export const shouldBehaveLikeVariableDepositPool = async (strategyType: string) 
       const player2Deposit = ethers.BigNumber.from(player2Info.amountPaid);
 
       const player2BalanceBeforeWithdraw = await contracts.inboundToken.balanceOf(player2.address);
-      const player2RewardBalanceBeforeWithdraw = await contracts.rewardToken.balanceOf(player2.address);
+      const player2RewardBalanceBeforeWithdraw = await contracts.curve.balanceOf(player2.address);
       let player2GovernanceTokenBalanceBeforeWithdraw = ethers.BigNumber.from(0);
       player2GovernanceTokenBalanceBeforeWithdraw = await contracts.curve.balanceOf(player2.address);
 
+      const player2ExpectedInterest = await getPlayerInterest(
+        contracts.goodGhosting,
+        contracts.strategy,
+        player2.address,
+      );
       result = await contracts.goodGhosting.connect(player2).withdraw("800000000000000000");
 
-      const player2RewardBalanceAfterWithdraw = await contracts.rewardToken.balanceOf(player2.address);
+      const player2RewardBalanceAfterWithdraw = await contracts.curve.balanceOf(player2.address);
       const player2BalanceAfterWithdraw = await contracts.inboundToken.balanceOf(player2.address);
       let player2GovernanceTokenBalanceAfterWithdraw = ethers.BigNumber.from(0);
       player2GovernanceTokenBalanceAfterWithdraw = await contracts.curve.balanceOf(player2.address);
@@ -6132,19 +6097,19 @@ export const shouldBehaveLikeVariableDepositPool = async (strategyType: string) 
       const rewardDifferenceForPlayer2 = player2RewardBalanceAfterWithdraw.sub(player2RewardBalanceBeforeWithdraw);
       const differenceForPlayer2 = player2BalanceAfterWithdraw.sub(player2BalanceBeforeWithdraw);
       const interestEarnedByPlayer2 = differenceForPlayer2.sub(ethers.BigNumber.from(player2Info.amountPaid));
+
+      const interestRecvdPlayer2 = differenceForPlayer2.sub(player2Info.amountPaid);
+
+      assert(interestRecvdPlayer2.eq(player2ExpectedInterest));
       assert(interestEarnedByPlayer2.gt(interestEarnedByPlayer1));
-      if (strategyType !== "curve" && strategyType !== "mobius") {
-        assert(rewardDifferenceForPlayer2.gt(rewardDifferenceForPlayer1));
-      } else {
-        assert(governanceTokenBalanceDifferenceForPlayer2.gt(governanceTokenBalanceDifferenceForPlayer1));
-      }
+
+      assert(rewardDifferenceForPlayer2.gt(rewardDifferenceForPlayer1));
+      // assert(governanceTokenBalanceDifferenceForPlayer2.gt(governanceTokenBalanceDifferenceForPlayer1));
 
       const rewardAmounts: any = [];
-      if (strategyType !== "curve" && strategyType !== "mobius") {
-        rewardAmounts[0] = rewardDifferenceForPlayer2.toString();
-      } else {
-        rewardAmounts[0] = governanceTokenBalanceDifferenceForPlayer2.toString();
-      }
+
+      rewardAmounts[0] = rewardDifferenceForPlayer2.toString();
+      // rewardAmounts[0] = governanceTokenBalanceDifferenceForPlayer2.toString();
 
       await expect(result)
         .to.emit(contracts.goodGhosting, "WithdrawInboundTokens")
@@ -6262,11 +6227,32 @@ export const shouldBehaveLikeVariableDepositPool = async (strategyType: string) 
       assert(cummalativePlayer1IndexBeforeWithdraw.lt(cummalativePlayer2IndexBeforeWithdraw));
 
       const player1BalanceBeforeWithdraw = await contracts.inboundToken.balanceOf(player1.address);
+      const player1ExpectedInterest = await getPlayerInterest(
+        contracts.goodGhosting,
+        contracts.strategy,
+        player1.address,
+      );
+
       await contracts.goodGhosting.connect(player1).withdraw(0);
+
       const player1BalanceAfterWithdraw = await contracts.inboundToken.balanceOf(player1.address);
+      const differenceForPlayer1 = player1BalanceAfterWithdraw.sub(player1BalanceBeforeWithdraw);
+      const interestEarnedByPlayer1 = differenceForPlayer1.sub(ethers.BigNumber.from(player1Info.amountPaid));
+
+      assert(player1ExpectedInterest.eq(interestEarnedByPlayer1));
+
       const player2BalanceBeforeWithdraw = await contracts.inboundToken.balanceOf(player2.address);
+      const player2ExpectedInterest = await getPlayerInterest(
+        contracts.goodGhosting,
+        contracts.strategy,
+        player2.address,
+      );
       await contracts.goodGhosting.connect(player2).withdraw("800000000000000000");
       const player2BalanceAfterWithdraw = await contracts.inboundToken.balanceOf(player2.address);
+      const differenceForPlayer2 = player2BalanceAfterWithdraw.sub(player2BalanceBeforeWithdraw);
+      const interestEarnedByPlayer2 = differenceForPlayer2.sub(ethers.BigNumber.from(player2Info.amountPaid));
+
+      assert(player2ExpectedInterest.eq(interestEarnedByPlayer2));
       const adminCalculatedFee = await contracts.goodGhosting.adminFeeAmount(0);
       const adminBalanceBeforeWithdraw = await contracts.inboundToken.balanceOf(deployer.address);
       await contracts.goodGhosting.connect(deployer).adminFeeWithdraw(0);
@@ -6350,14 +6336,11 @@ export const shouldBehaveLikeVariableDepositPool = async (strategyType: string) 
 
       const adminBalanceBeforeWithdraw = await contracts.inboundToken.balanceOf(deployer.address);
       let reward;
-      if (strategyType !== "curve" && strategyType !== "mobius") {
-        reward = contracts.rewardToken;
-      } else {
-        if (strategyType == "curve") {
-          reward = contracts.curve;
-        } else {
-          reward = contracts.minter;
-        }
+      reward = contracts.rewardToken;
+      if (strategyType === "curve") {
+        reward = contracts.curve;
+      } else if (strategyType === "mobius") {
+        reward = contracts.minter;
       }
 
       const adminRewardBalanceBeforeWithdraw = await reward.balanceOf(deployer.address);
@@ -6489,17 +6472,36 @@ export const shouldBehaveLikeVariableDepositPool = async (strategyType: string) 
     assert(cummalativePlayer1IndexBeforeWithdraw.lt(cummalativePlayer2IndexBeforeWithdraw));
 
     const player1BalanceBeforeWithdraw = await contracts.inboundToken.balanceOf(player1.address);
+    const player1ExpectedInterest = await getPlayerInterest(
+      contracts.goodGhosting,
+      contracts.strategy,
+      player1.address,
+    );
     await contracts.goodGhosting.connect(player1).withdraw(0);
     const player1BalanceAfterWithdraw = await contracts.inboundToken.balanceOf(player1.address);
-    const player2BalanceBeforeWithdraw = await contracts.inboundToken.balanceOf(player2.address);
+    const differenceForPlayer1 = player1BalanceAfterWithdraw.sub(player1BalanceBeforeWithdraw);
+    const interestEarnedByPlayer1 = differenceForPlayer1.sub(ethers.BigNumber.from(player1Info.amountPaid));
+
+    assert(interestEarnedByPlayer1.eq(player1ExpectedInterest));
+
+    const player2BalBeforeWithdraw = await contracts.inboundToken.balanceOf(player2.address);
+    const player2ExpectedInterest = await getPlayerInterest(
+      contracts.goodGhosting,
+      contracts.strategy,
+      player2.address,
+    );
     await contracts.goodGhosting.connect(player2).withdraw("800000000000000000");
-    const player2BalanceAfterWithdraw = await contracts.inboundToken.balanceOf(player2.address);
+    const player2BalAfterWithdraw = await contracts.inboundToken.balanceOf(player2.address);
+    const differenceForPlayer2 = player2BalAfterWithdraw.sub(player2BalBeforeWithdraw);
+    const interestEarnedByPlayer2 = differenceForPlayer2.sub(ethers.BigNumber.from(player2Info.amountPaid));
+
+    assert(player2ExpectedInterest.eq(interestEarnedByPlayer2));
 
     // since player1 deposited high amount it get's more interest
     assert(
       player1BalanceAfterWithdraw
         .sub(player1BalanceBeforeWithdraw)
-        .lt(player2BalanceAfterWithdraw.sub(player2BalanceBeforeWithdraw)),
+        .lt(player2BalAfterWithdraw.sub(player2BalBeforeWithdraw)),
     );
   });
 
@@ -6615,9 +6617,8 @@ export const shouldBehaveLikeVariableDepositPool = async (strategyType: string) 
     const player1BalanceBeforeWithdraw = await contracts.inboundToken.balanceOf(player1.address);
     let player1RewardBalanceAfterWithdraw, player1RewardBalanceBeforeWithdraw, rewardDifferenceForPlayer1;
 
-    if (strategyType !== "curve" && strategyType !== "mobius") {
-      player1RewardBalanceBeforeWithdraw = await contracts.rewardToken.balanceOf(player1.address);
-    }
+    player1RewardBalanceBeforeWithdraw = await contracts.rewardToken.balanceOf(player1.address);
+
     let player1GovernanceTokenBalanceBeforeWithdraw = ethers.BigNumber.from(0);
     if (strategyType === "curve") {
       player1GovernanceTokenBalanceBeforeWithdraw = await contracts.curve.balanceOf(player1.address);
@@ -6625,9 +6626,27 @@ export const shouldBehaveLikeVariableDepositPool = async (strategyType: string) 
       player1GovernanceTokenBalanceBeforeWithdraw = await contracts.minter.balanceOf(player1.address);
     }
 
-    let result = await contracts.goodGhosting.connect(player1).withdraw(0);
+    const player1ExpectedInterest = await getPlayerInterest(
+      contracts.goodGhosting,
+      contracts.strategy,
+      player1.address,
+    );
 
+    const rewardEarnedPlayer1 = await getPlayerReward(
+      contracts.goodGhosting,
+      contracts.strategy,
+      contracts.rewardToken,
+      player1.address,
+    );
+
+    let result = await contracts.goodGhosting.connect(player1).withdraw(0);
     const player1BalanceAfterWithdraw = await contracts.inboundToken.balanceOf(player1.address);
+
+    const differenceForPlayer1 = player1BalanceAfterWithdraw.sub(player1BalanceBeforeWithdraw);
+    const interestEarnedByPlayer1 = differenceForPlayer1.sub(ethers.BigNumber.from(player1Info.amountPaid));
+
+    assert(interestEarnedByPlayer1.eq(player1ExpectedInterest));
+
     let player1GovernanceTokenBalanceAfterWithdraw = ethers.BigNumber.from(0);
     if (strategyType === "curve") {
       player1GovernanceTokenBalanceAfterWithdraw = await contracts.curve.balanceOf(player1.address);
@@ -6635,24 +6654,19 @@ export const shouldBehaveLikeVariableDepositPool = async (strategyType: string) 
       player1GovernanceTokenBalanceAfterWithdraw = await contracts.minter.balanceOf(player1.address);
     }
 
-    if (strategyType !== "curve" && strategyType !== "mobius") {
-      player1RewardBalanceAfterWithdraw = await contracts.rewardToken.balanceOf(player1.address);
-      rewardDifferenceForPlayer1 = player1RewardBalanceAfterWithdraw.sub(player1RewardBalanceBeforeWithdraw);
-    }
+    player1RewardBalanceAfterWithdraw = await contracts.rewardToken.balanceOf(player1.address);
+    rewardDifferenceForPlayer1 = player1RewardBalanceAfterWithdraw.sub(player1RewardBalanceBeforeWithdraw);
+    assert(rewardDifferenceForPlayer1.eq(rewardEarnedPlayer1));
     const governanceTokenBalanceDifferenceForPlayer1 = player1GovernanceTokenBalanceAfterWithdraw.sub(
       player1GovernanceTokenBalanceBeforeWithdraw,
     );
 
-    const differenceForPlayer1 = player1BalanceAfterWithdraw.sub(player1BalanceBeforeWithdraw);
-    const interestEarnedByPlayer1 = differenceForPlayer1.sub(ethers.BigNumber.from(player1Info.amountPaid));
-
     const player1Deposit = ethers.BigNumber.from(player1Info.amountPaid);
     const rewardAmounts: any = [];
-    if (strategyType !== "curve" && strategyType !== "mobius") {
-      rewardAmounts[0] = rewardDifferenceForPlayer1.toString();
-    } else {
-      rewardAmounts[0] = governanceTokenBalanceDifferenceForPlayer1.toString();
-    }
+
+    rewardAmounts[0] = rewardDifferenceForPlayer1.toString();
+
+    //rewardAmounts[0] = governanceTokenBalanceDifferenceForPlayer1.toString();
 
     await expect(result)
       .to.emit(contracts.goodGhosting, "WithdrawInboundTokens")
@@ -6670,9 +6684,8 @@ export const shouldBehaveLikeVariableDepositPool = async (strategyType: string) 
     let player2RewardBalanceAfterWithdraw, player2RewardBalanceBeforeWithdraw, rewardDifferenceForPlayer2;
 
     const player2BalanceBeforeWithdraw = await contracts.inboundToken.balanceOf(player2.address);
-    if (strategyType !== "curve" && strategyType !== "mobius") {
-      player2RewardBalanceBeforeWithdraw = await contracts.rewardToken.balanceOf(player2.address);
-    }
+
+    player2RewardBalanceBeforeWithdraw = await contracts.rewardToken.balanceOf(player2.address);
 
     let player2GovernanceTokenBalanceBeforeWithdraw = ethers.BigNumber.from(0);
     if (strategyType === "curve") {
@@ -6680,12 +6693,24 @@ export const shouldBehaveLikeVariableDepositPool = async (strategyType: string) 
     } else if (strategyType === "mobius") {
       player2GovernanceTokenBalanceBeforeWithdraw = await contracts.minter.balanceOf(player2.address);
     }
+    const player2ExpectedInterest = await getPlayerInterest(
+      contracts.goodGhosting,
+      contracts.strategy,
+      player2.address,
+    );
+
+    const rewardEarnedPlayer2 = await getPlayerReward(
+      contracts.goodGhosting,
+      contracts.strategy,
+      contracts.rewardToken,
+      player2.address,
+    );
+
     result = await contracts.goodGhosting.connect(player2).withdraw("800000000000000000");
 
-    if (strategyType !== "curve" && strategyType !== "mobius") {
-      player2RewardBalanceAfterWithdraw = await contracts.rewardToken.balanceOf(player2.address);
-      rewardDifferenceForPlayer2 = player2RewardBalanceAfterWithdraw.sub(player2RewardBalanceBeforeWithdraw);
-    }
+    player2RewardBalanceAfterWithdraw = await contracts.rewardToken.balanceOf(player2.address);
+    rewardDifferenceForPlayer2 = player2RewardBalanceAfterWithdraw.sub(player2RewardBalanceBeforeWithdraw);
+
     const player2BalanceAfterWithdraw = await contracts.inboundToken.balanceOf(player2.address);
     let player2GovernanceTokenBalanceAfterWithdraw = ethers.BigNumber.from(0);
     if (strategyType === "curve") {
@@ -6699,6 +6724,10 @@ export const shouldBehaveLikeVariableDepositPool = async (strategyType: string) 
 
     const differenceForPlayer2 = player2BalanceAfterWithdraw.sub(player2BalanceBeforeWithdraw);
     const interestEarnedByPlayer2 = differenceForPlayer2.sub(ethers.BigNumber.from(player2Info.amountPaid));
+
+    assert(interestEarnedByPlayer2.eq(player2ExpectedInterest));
+    assert(rewardDifferenceForPlayer2.eq(rewardEarnedPlayer2));
+
     if (strategyType !== "no_strategy") {
       assert(interestEarnedByPlayer2.gt(interestEarnedByPlayer1));
     } else {
@@ -6706,12 +6735,11 @@ export const shouldBehaveLikeVariableDepositPool = async (strategyType: string) 
     }
 
     const playerRewardAmounts: any = [];
-    if (strategyType !== "curve" && strategyType !== "mobius") {
-      playerRewardAmounts[0] = rewardDifferenceForPlayer2.toString();
-      assert(rewardDifferenceForPlayer2.gt(rewardDifferenceForPlayer1));
-    } else {
-      playerRewardAmounts[0] = governanceTokenBalanceDifferenceForPlayer2.toString();
-    }
+
+    playerRewardAmounts[0] = rewardDifferenceForPlayer2.toString();
+    assert(rewardDifferenceForPlayer2.gt(rewardDifferenceForPlayer1));
+
+    //playerRewardAmounts[0] = governanceTokenBalanceDifferenceForPlayer2.toString();
 
     await expect(result)
       .to.emit(contracts.goodGhosting, "WithdrawInboundTokens")
@@ -6845,6 +6873,19 @@ export const shouldBehaveLikeVariableDepositPool = async (strategyType: string) 
       player1GovernanceTokenBalanceBeforeWithdraw = await contracts.minter.balanceOf(player1.address);
     }
 
+    const player1ExpectedInterest = await getPlayerInterest(
+      contracts.goodGhosting,
+      contracts.strategy,
+      player1.address,
+    );
+
+    const rewardEarnedPlayer1 = await getPlayerReward(
+      contracts.goodGhosting,
+      contracts.strategy,
+      contracts.rewardToken,
+      player1.address,
+    );
+
     let result = await contracts.goodGhosting.connect(player1).withdraw(0);
 
     const player1RewardBalanceAfterWithdraw = await contracts.rewardToken.balanceOf(player1.address);
@@ -6864,13 +6905,14 @@ export const shouldBehaveLikeVariableDepositPool = async (strategyType: string) 
     const differenceForPlayer1 = player1BalanceAfterWithdraw.sub(player1BalanceBeforeWithdraw);
     const interestEarnedByPlayer1 = differenceForPlayer1.sub(ethers.BigNumber.from(player1Info.amountPaid));
 
+    assert(interestEarnedByPlayer1.eq(player1ExpectedInterest));
+    assert(rewardDifferenceForPlayer1.eq(rewardEarnedPlayer1));
+
     const player1Deposit = ethers.BigNumber.from(player1Info.amountPaid);
     const rewardAmounts: any = [];
-    if (strategyType !== "curve" && strategyType !== "mobius") {
-      rewardAmounts[0] = rewardDifferenceForPlayer1.toString();
-    } else {
-      rewardAmounts[0] = governanceTokenBalanceDifferenceForPlayer1.toString();
-    }
+
+    rewardAmounts[0] = rewardDifferenceForPlayer1.toString();
+    //rewardAmounts[0] = governanceTokenBalanceDifferenceForPlayer1.toString();
 
     await expect(result)
       .to.emit(contracts.goodGhosting, "WithdrawInboundTokens")
@@ -6930,6 +6972,18 @@ export const shouldBehaveLikeVariableDepositPool = async (strategyType: string) 
       await contracts.mobiGauge.connect(deployer).transfer(contracts.strategy.address, ethers.utils.parseEther("50"));
     }
 
+    const player2ExpectedInterest = await getPlayerInterest(
+      contracts.goodGhosting,
+      contracts.strategy,
+      player2.address,
+    );
+    const rewardEarnedPlayer2 = await getPlayerReward(
+      contracts.goodGhosting,
+      contracts.strategy,
+      contracts.rewardToken,
+      player2.address,
+    );
+
     result = await contracts.goodGhosting.connect(player2).withdraw("800000000000000000");
 
     const player2RewardBalanceAfterWithdraw = await contracts.rewardToken.balanceOf(player2.address);
@@ -6947,21 +7001,22 @@ export const shouldBehaveLikeVariableDepositPool = async (strategyType: string) 
     const rewardDifferenceForPlayer2 = player2RewardBalanceAfterWithdraw.sub(player2RewardBalanceBeforeWithdraw);
     const differenceForPlayer2 = player2BalanceAfterWithdraw.sub(player2BalanceBeforeWithdraw);
     const interestEarnedByPlayer2 = differenceForPlayer2.sub(ethers.BigNumber.from(player2Info.amountPaid));
+    assert(interestEarnedByPlayer2.eq(player2ExpectedInterest));
+    assert(rewardDifferenceForPlayer2.eq(rewardEarnedPlayer2));
+
     if (strategyType !== "no_strategy") {
       assert(interestEarnedByPlayer2.gt(interestEarnedByPlayer1));
     } else {
       assert(interestEarnedByPlayer2.eq(interestEarnedByPlayer1));
     }
 
-    if (strategyType !== "curve" && strategyType !== "mobius")
-      assert(rewardDifferenceForPlayer2.lt(rewardDifferenceForPlayer1));
+    assert(rewardDifferenceForPlayer2.lt(rewardDifferenceForPlayer1));
 
     const playerRewardAmounts: any = [];
-    if (strategyType !== "curve" && strategyType !== "mobius") {
-      rewardAmounts[0] = rewardDifferenceForPlayer2.toString();
-    } else {
-      rewardAmounts[0] = governanceTokenBalanceDifferenceForPlayer2.toString();
-    }
+
+    rewardAmounts[0] = rewardDifferenceForPlayer2.toString();
+
+    //rewardAmounts[0] = governanceTokenBalanceDifferenceForPlayer2.toString();
 
     await expect(result)
       .to.emit(contracts.goodGhosting, "WithdrawInboundTokens")
@@ -7104,11 +7159,32 @@ export const shouldBehaveLikeVariableDepositPool = async (strategyType: string) 
     assert(cummalativePlayer1IndexBeforeWithdraw.lt(cummalativePlayer2IndexBeforeWithdraw));
 
     const player1BalanceBeforeWithdraw = await contracts.inboundToken.balanceOf(player1.address);
+    const player1ExpectedInterest = await getPlayerInterest(
+      contracts.goodGhosting,
+      contracts.strategy,
+      player1.address,
+    );
+
     await contracts.goodGhosting.connect(player1).withdraw(0);
     const player1BalanceAfterWithdraw = await contracts.inboundToken.balanceOf(player1.address);
+
+    const differenceForPlayer1 = player1BalanceAfterWithdraw.sub(player1BalanceBeforeWithdraw);
+    const interestEarnedByPlayer1 = differenceForPlayer1.sub(ethers.BigNumber.from(player1Info.amountPaid));
+    assert(interestEarnedByPlayer1.eq(player1ExpectedInterest));
+
     const player2BalanceBeforeWithdraw = await contracts.inboundToken.balanceOf(player2.address);
+    const player2ExpectedInterest = await getPlayerInterest(
+      contracts.goodGhosting,
+      contracts.strategy,
+      player2.address,
+    );
     await contracts.goodGhosting.connect(player2).withdraw("800000000000000000");
     const player2BalanceAfterWithdraw = await contracts.inboundToken.balanceOf(player2.address);
+
+    const differenceForPlayer2 = player2BalanceAfterWithdraw.sub(player2BalanceBeforeWithdraw);
+    const interestEarnedByPlayer2 = differenceForPlayer2.sub(ethers.BigNumber.from(player2Info.amountPaid));
+    assert(interestEarnedByPlayer2.eq(player2ExpectedInterest));
+
     const adminCalculatedFee = await contracts.goodGhosting.adminFeeAmount(0);
     const adminBalanceBeforeWithdraw = await contracts.inboundToken.balanceOf(deployer.address);
     await contracts.goodGhosting.connect(deployer).adminFeeWithdraw(0);
@@ -7216,15 +7292,15 @@ export const shouldBehaveLikeVariableDepositPool = async (strategyType: string) 
     }
     const adminBalanceBeforeWithdraw = await contracts.inboundToken.balanceOf(deployer.address);
     let reward;
-    if (strategyType !== "curve" && strategyType !== "mobius") {
-      reward = contracts.rewardToken;
-    } else {
-      if (strategyType === "curve") {
-        reward = contracts.curve;
-      } else {
-        reward = contracts.minter;
-      }
+
+    reward = contracts.rewardToken;
+
+    if (strategyType === "curve") {
+      reward = contracts.curve;
+    } else if (strategyType === "mobius") {
+      reward = contracts.minter;
     }
+
     const adminRewardBalanceBeforeWithdraw = await reward.balanceOf(deployer.address);
     let adminGovernanceTokenBalanceBeforeWithdraw = ethers.BigNumber.from(0);
     if (strategyType === "curve") {
@@ -7366,6 +7442,18 @@ export const shouldBehaveLikeVariableDepositPool = async (strategyType: string) 
 
       const player1RewardBalanceBeforeWithdraw = await contracts.rewardToken.balanceOf(player1.address);
 
+      const player1ExpectedInterest = await getPlayerInterest(
+        contracts.goodGhosting,
+        contracts.strategy,
+        player1.address,
+      );
+      const rewardEarnedPlayer1 = await getPlayerReward(
+        contracts.goodGhosting,
+        contracts.strategy,
+        contracts.rewardToken,
+        player1.address,
+      );
+
       let result = await contracts.goodGhosting.connect(player1).withdraw(0);
 
       const player1RewardBalanceAfterWithdraw = await contracts.rewardToken.balanceOf(player1.address);
@@ -7375,6 +7463,11 @@ export const shouldBehaveLikeVariableDepositPool = async (strategyType: string) 
 
       const differenceForPlayer1 = player1BalanceAfterWithdraw.sub(player1BalanceBeforeWithdraw);
       const interestEarnedByPlayer1 = differenceForPlayer1.sub(ethers.BigNumber.from(player1Info.amountPaid));
+      console.log("in", interestEarnedByPlayer1.toString());
+      console.log("in", player1ExpectedInterest.toString());
+      // accounting for gas
+      assert(interestEarnedByPlayer1.lte(player1ExpectedInterest));
+      assert(rewardDifferenceForPlayer1.eq(rewardEarnedPlayer1));
 
       const playerRewardAmounts: any = [];
       playerRewardAmounts[0] = rewardDifferenceForPlayer1.toString();
@@ -7393,6 +7486,17 @@ export const shouldBehaveLikeVariableDepositPool = async (strategyType: string) 
       const player2BalanceBeforeWithdraw = await ethers.provider.getBalance(player2.address);
       const player2RewardBalanceBeforeWithdraw = await contracts.rewardToken.balanceOf(player2.address);
 
+      const player2ExpectedInterest = await getPlayerInterest(
+        contracts.goodGhosting,
+        contracts.strategy,
+        player2.address,
+      );
+      const rewardEarnedPlayer2 = await getPlayerReward(
+        contracts.goodGhosting,
+        contracts.strategy,
+        contracts.rewardToken,
+        player2.address,
+      );
       result = await contracts.goodGhosting.connect(player2).withdraw(0);
 
       const player2RewardBalanceAfterWithdraw = await contracts.rewardToken.balanceOf(player2.address);
@@ -7401,6 +7505,9 @@ export const shouldBehaveLikeVariableDepositPool = async (strategyType: string) 
       const rewardDifferenceForPlayer2 = player2RewardBalanceAfterWithdraw.sub(player2RewardBalanceBeforeWithdraw);
       const differenceForPlayer2 = player2BalanceAfterWithdraw.sub(player2BalanceBeforeWithdraw);
       const interestEarnedByPlayer2 = differenceForPlayer2.sub(ethers.BigNumber.from(player2Info.amountPaid));
+      // accounting for gas
+      assert(interestEarnedByPlayer2.lte(player2ExpectedInterest));
+      assert(rewardDifferenceForPlayer2.eq(rewardEarnedPlayer2));
       assert(interestEarnedByPlayer2.gt(interestEarnedByPlayer1));
       assert(rewardDifferenceForPlayer2.gt(rewardDifferenceForPlayer1));
 
@@ -7520,13 +7627,20 @@ export const shouldBehaveLikeVariableDepositPool = async (strategyType: string) 
       const player1BalanceBeforeWithdraw = await await ethers.provider.getBalance(player1.address);
       const player1RewardBalanceBeforeWithdraw = await contracts.rewardToken.balanceOf(player1.address);
 
+      const rewardEarnedPlayer1 = await getPlayerReward(
+        contracts.goodGhosting,
+        contracts.strategy,
+        contracts.rewardToken,
+        player1.address,
+      );
+
       let result = await contracts.goodGhosting.connect(player1).withdraw(0);
 
       const player1RewardBalanceAfterWithdraw = await contracts.rewardToken.balanceOf(player1.address);
       const player1BalanceAfterWithdraw = await ethers.provider.getBalance(player1.address);
 
       const rewardDifferenceForPlayer1 = player1RewardBalanceAfterWithdraw.sub(player1RewardBalanceBeforeWithdraw);
-
+      assert(rewardDifferenceForPlayer1.eq(rewardEarnedPlayer1));
       const differenceForPlayer1 = player1BalanceAfterWithdraw.sub(player1BalanceBeforeWithdraw);
       const interestEarnedByPlayer1 = differenceForPlayer1.sub(ethers.BigNumber.from(player1Info.amountPaid));
 
@@ -7547,12 +7661,20 @@ export const shouldBehaveLikeVariableDepositPool = async (strategyType: string) 
       const player2BalanceBeforeWithdraw = await ethers.provider.getBalance(player2.address);
       const player2RewardBalanceBeforeWithdraw = await contracts.rewardToken.balanceOf(player2.address);
 
+      const rewardEarnedPlayer2 = await getPlayerReward(
+        contracts.goodGhosting,
+        contracts.strategy,
+        contracts.rewardToken,
+        player2.address,
+      );
       result = await contracts.goodGhosting.connect(player2).withdraw(0);
 
       const player2RewardBalanceAfterWithdraw = await contracts.rewardToken.balanceOf(player2.address);
       const player2BalanceAfterWithdraw = await ethers.provider.getBalance(player2.address);
 
       const rewardDifferenceForPlayer2 = player2RewardBalanceAfterWithdraw.sub(player2RewardBalanceBeforeWithdraw);
+      assert(rewardDifferenceForPlayer2.eq(rewardEarnedPlayer2));
+
       const differenceForPlayer2 = player2BalanceAfterWithdraw.sub(player2BalanceBeforeWithdraw);
       const interestEarnedByPlayer2 = differenceForPlayer2.sub(ethers.BigNumber.from(player2Info.amountPaid));
       assert(interestEarnedByPlayer2.gt(interestEarnedByPlayer1));
@@ -7639,7 +7761,15 @@ export const shouldBehaveLikeVariableDepositPool = async (strategyType: string) 
       await ethers.provider.send("evm_increaseTime", [parseInt(waitingRoundLength.toString())]);
       await ethers.provider.send("evm_mine", []);
 
+      const player1Info = await contracts.goodGhosting.players(player1.address);
+      const player2Info = await contracts.goodGhosting.players(player2.address);
+
       const rewardTokenPlayer1BalanceBeforeWithdraw = await contracts.inboundToken.balanceOf(player1.address);
+      const player1ExpectedInterest = await getPlayerInterest(
+        contracts.goodGhosting,
+        contracts.strategy,
+        player1.address,
+      );
 
       await contracts.goodGhosting.connect(player1).withdraw(0);
 
@@ -7647,10 +7777,25 @@ export const shouldBehaveLikeVariableDepositPool = async (strategyType: string) 
       assert(rewardTokenAmount.eq(ethers.BigNumber.from("0")));
       const rewardTokenPlayer2BalanceBeforeWithdraw = await contracts.inboundToken.balanceOf(player2.address);
 
+      const player2ExpectedInterest = await getPlayerInterest(
+        contracts.goodGhosting,
+        contracts.strategy,
+        player2.address,
+      );
       await contracts.goodGhosting.connect(player2).withdraw(0);
 
       const rewardTokenPlayer1BalanceAfterWithdraw = await contracts.inboundToken.balanceOf(player1.address);
       const rewardTokenPlayer2BalanceAfterWithdraw = await contracts.inboundToken.balanceOf(player2.address);
+
+      const differenceForPlayer1 = rewardTokenPlayer1BalanceAfterWithdraw.sub(rewardTokenPlayer1BalanceBeforeWithdraw);
+      const interestEarnedByPlayer1 = differenceForPlayer1.sub(ethers.BigNumber.from(player1Info.amountPaid));
+
+      const differenceForPlayer2 = rewardTokenPlayer2BalanceAfterWithdraw.sub(rewardTokenPlayer2BalanceBeforeWithdraw);
+      const interestEarnedByPlayer2 = differenceForPlayer2.sub(ethers.BigNumber.from(player2Info.amountPaid));
+
+      assert(interestEarnedByPlayer2.eq(player2ExpectedInterest));
+      assert(interestEarnedByPlayer1.eq(player1ExpectedInterest));
+
       assert(rewardTokenPlayer2BalanceAfterWithdraw.gt(rewardTokenPlayer2BalanceBeforeWithdraw));
       assert(rewardTokenPlayer1BalanceAfterWithdraw.gt(rewardTokenPlayer1BalanceBeforeWithdraw));
     });
@@ -8042,16 +8187,62 @@ export const shouldBehaveLikeGGPoolWithTransactionalToken = async (strategyType:
     await ethers.provider.send("evm_increaseTime", [parseInt(waitingRoundLength.toString())]);
     await ethers.provider.send("evm_mine", []);
 
+    const player1Info = await contracts.goodGhosting.players(player1.address);
+    const player2Info = await contracts.goodGhosting.players(player2.address);
+
     const transactionalTokenBalanceBeforeWithdraw = await ethers.provider.getBalance(player1.address);
     const rewardTokenBalanceBeforeWithdraw = await contracts.rewardToken.balanceOf(player1.address);
     const transactionalTokenPlayer2BalanceBeforeWithdraw = await ethers.provider.getBalance(player2.address);
     const rewardTokenPlayer2BalanceBeforeWithdraw = await contracts.rewardToken.balanceOf(player2.address);
+    const player1ExpectedInterest = await getPlayerInterest(
+      contracts.goodGhosting,
+      contracts.strategy,
+      player1.address,
+    );
+    const rewardEarnedPlayer1 = await getPlayerReward(
+      contracts.goodGhosting,
+      contracts.strategy,
+      contracts.rewardToken,
+      player1.address,
+    );
     await contracts.goodGhosting.connect(player1).withdraw(0);
+
+    const player2ExpectedInterest = await getPlayerInterest(
+      contracts.goodGhosting,
+      contracts.strategy,
+      player2.address,
+    );
+    const rewardEarnedPlayer2 = await getPlayerReward(
+      contracts.goodGhosting,
+      contracts.strategy,
+      contracts.rewardToken,
+      player2.address,
+    );
     await contracts.goodGhosting.connect(player2).withdraw(0);
     const transactionalTokenPlayer2BalanceAfterWithdraw = await ethers.provider.getBalance(player2.address);
     const rewardTokenPlayer2BalanceAfterWithdraw = await contracts.rewardToken.balanceOf(player2.address);
     const rewardTokenBalanceAfterWithdraw = await contracts.rewardToken.balanceOf(player1.address);
     const transactionalTokenBalanceAfterWithdraw = await ethers.provider.getBalance(player1.address);
+
+    const differenceRewardsForPlayer1 = rewardTokenBalanceAfterWithdraw.sub(rewardTokenBalanceBeforeWithdraw);
+    const differenceForPlayer1 = transactionalTokenBalanceAfterWithdraw.sub(transactionalTokenBalanceBeforeWithdraw);
+    const interestEarnedByPlayer1 = differenceForPlayer1.sub(ethers.BigNumber.from(player1Info.amountPaid));
+
+    const differenceRewardsForPlayer2 = rewardTokenPlayer2BalanceAfterWithdraw.sub(
+      rewardTokenPlayer2BalanceBeforeWithdraw,
+    );
+    const differenceForPlayer2 = transactionalTokenPlayer2BalanceAfterWithdraw.sub(
+      transactionalTokenPlayer2BalanceBeforeWithdraw,
+    );
+    const interestEarnedByPlayer2 = differenceForPlayer2.sub(ethers.BigNumber.from(player2Info.amountPaid));
+
+    // accounting for gas
+    assert(interestEarnedByPlayer2.lte(player2ExpectedInterest));
+    assert(interestEarnedByPlayer1.lte(player1ExpectedInterest));
+
+    assert(differenceRewardsForPlayer2.eq(rewardEarnedPlayer2));
+    assert(differenceRewardsForPlayer1.eq(rewardEarnedPlayer1));
+
     assert(transactionalTokenBalanceAfterWithdraw.gt(transactionalTokenBalanceBeforeWithdraw));
     assert(rewardTokenBalanceAfterWithdraw.gt(rewardTokenBalanceBeforeWithdraw));
     assert(transactionalTokenPlayer2BalanceAfterWithdraw.gt(transactionalTokenPlayer2BalanceBeforeWithdraw));
@@ -8165,10 +8356,32 @@ export const shouldBehaveLikeGGPoolWithSameTokenAddresses = async (strategyType:
     assert(rewardTokenAmount.eq(ethers.BigNumber.from("0")));
     const rewardTokenPlayer1BalanceBeforeWithdraw = await contracts.inboundToken.balanceOf(player1.address);
     const rewardTokenPlayer2BalanceBeforeWithdraw = await contracts.inboundToken.balanceOf(player2.address);
+    const player1Info = await contracts.goodGhosting.players(player1.address);
+    const player2Info = await contracts.goodGhosting.players(player2.address);
+    const player1ExpectedInterest = await getPlayerInterest(
+      contracts.goodGhosting,
+      contracts.strategy,
+      player1.address,
+    );
     await contracts.goodGhosting.connect(player1).withdraw(0);
+
+    const player2ExpectedInterest = await getPlayerInterest(
+      contracts.goodGhosting,
+      contracts.strategy,
+      player2.address,
+    );
     await contracts.goodGhosting.connect(player2).withdraw(0);
     const rewardTokenPlayer1BalanceAfterWithdraw = await contracts.inboundToken.balanceOf(player1.address);
+    const differenceForPlayer1 = rewardTokenPlayer1BalanceAfterWithdraw.sub(rewardTokenPlayer1BalanceBeforeWithdraw);
+    const interestEarnedByPlayer1 = differenceForPlayer1.sub(ethers.BigNumber.from(player1Info.amountPaid));
+    assert(interestEarnedByPlayer1.eq(player1ExpectedInterest));
+
     const rewardTokenPlayer2BalanceAfterWithdraw = await contracts.inboundToken.balanceOf(player2.address);
+
+    const differenceForPlayer2 = rewardTokenPlayer2BalanceAfterWithdraw.sub(rewardTokenPlayer2BalanceBeforeWithdraw);
+    const interestEarnedByPlayer2 = differenceForPlayer2.sub(ethers.BigNumber.from(player2Info.amountPaid));
+    assert(interestEarnedByPlayer2.eq(player2ExpectedInterest));
+
     assert(rewardTokenPlayer2BalanceAfterWithdraw.gt(rewardTokenPlayer2BalanceBeforeWithdraw));
     assert(rewardTokenPlayer1BalanceAfterWithdraw.gt(rewardTokenPlayer1BalanceBeforeWithdraw));
   });
