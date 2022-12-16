@@ -161,7 +161,9 @@ module.exports = function (deployer, network, accounts) {
       deploymentResult.network = "polygon";
       const payload = await axios.get("https://gasstation-mainnet.matic.network");
       // converting to 1 eth worth of gwei
-      gasPrice = new BN(payload.data.fastest).mul(new BN(10 ** 9));
+      console.log("gas price options:", payload.data);
+      gasPrice = new BN(payload.data.fast).mul(new BN(10 ** 9));
+      console.log("gas price used:", payload.data.fast);
     }
     const strategyTx = await deployer.deploy(...strategyArgs, { gasPrice: gasPrice });
     let strategyInstance;
@@ -203,7 +205,7 @@ module.exports = function (deployer, network, accounts) {
     ];
 
     // Deploys the Pool Contract
-    const poolTx = await deployer.deploy(...deploymentArgs);
+    const poolTx = await deployer.deploy(...deploymentArgs, { gasPrice: gasPrice });
     const ggInstance = await goodGhostingContract.deployed();
 
     if (

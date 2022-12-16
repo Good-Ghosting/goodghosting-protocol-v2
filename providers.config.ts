@@ -33,6 +33,14 @@ exports.providers = {
         address: "0x385eeac5cb85a38a9a07a70c73e0a3271cfb54a7",
         decimals: 18,
       },
+      link: {
+        address: "0x53E0bca35eC356BD5ddDFebbD1Fc0fD03FaBad39",
+        decimals: 18,
+      },
+      cmt: {
+        address: "0x9Bc0abf87F9350cDE55b2CDA219871726d620Bf9",
+        decimals: 18,
+      },
     },
     strategies: {
       aaveV2: {
