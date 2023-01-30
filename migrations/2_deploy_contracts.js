@@ -154,7 +154,7 @@ module.exports = function (deployer, network, accounts) {
     }
     const deploymentResult = {};
     // converting to 1 eth worth of gwei default for celo
-    let gasPrice = new BN("1").mul(new BN(10 ** 9));
+    let gasPrice = new BN("5").mul(new BN(10 ** 9));
     if (network.includes("celo")) {
       deploymentResult.network = "celo";
     } else {
