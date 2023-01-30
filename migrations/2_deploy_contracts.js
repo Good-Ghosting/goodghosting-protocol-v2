@@ -207,12 +207,15 @@ module.exports = function (deployer, network, accounts) {
     // Deploys the Pool Contract
     const poolTx = await deployer.deploy(...deploymentArgs, { gasPrice: gasPrice });
     const ggInstance = await goodGhostingContract.deployed();
+    const deployerAccount = accounts[0];
+    let poolOwnerAccount = deployerAccount;
 
     if (
       config.deployConfigs.owner &&
       config.deployConfigs.owner != "0x" &&
       config.deployConfigs.owner != "0x0000000000000000000000000000000000000000"
     ) {
+      poolOwnerAccount = config.deployConfigs.owner;
       await ggInstance.transferOwnership(config.deployConfigs.owner);
     }
     await strategyInstance.transferOwnership(ggInstance.address);
@@ -225,7 +228,8 @@ module.exports = function (deployer, network, accounts) {
     const poolTxInfo = await web3.eth.getTransaction(poolTx.transactionHash);
     const strategyTxInfo = await web3.eth.getTransaction(strategyTx.transactionHash);
 
-    deploymentResult.poolOwner = accounts[0];
+    deploymentResult.deployer = deployerAccount;
+    deploymentResult.poolOwner = poolOwnerAccount;
     deploymentResult.poolAddress = ggInstance.address;
     deploymentResult.poolDeploymentHash = poolTx.transactionHash;
     if (config.deployConfigs.initialize) {
