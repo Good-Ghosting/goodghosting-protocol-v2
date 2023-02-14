@@ -69,14 +69,22 @@ export async function getTotalWinnerDeposits(contract: Pool): Promise<BigNumber>
 }
 
 async function getRawGameGrossInterest(goodGhostingContract: Pool, strategyContract: IStrategy) {
-  const contractBalance = await strategyContract.getTotalAmount();
+  const strategyContractBalance = await strategyContract.getTotalAmount();
   const totalGamePrincipal = await goodGhostingContract.netTotalGamePrincipal();
 
   const accounts = await ethers.getSigners();
-  const depositTokenContract = ERC20__factory.connect(await goodGhostingContract.inboundToken(), accounts[0]);
-  const sentTokens = await depositTokenContract.balanceOf(goodGhostingContract.address);
 
-  const totalAmount = contractBalance.add(sentTokens);
+  const isTransactionalToken = await goodGhostingContract.isTransactionalToken();
+
+  let sentTokens = BigNumber.from(0);
+  if (isTransactionalToken) {
+    sentTokens = await ethers.provider.getBalance(goodGhostingContract.address);
+  } else {
+    const depositTokenContract = ERC20__factory.connect(await goodGhostingContract.inboundToken(), accounts[0]);
+    sentTokens = await depositTokenContract.balanceOf(goodGhostingContract.address);
+  }
+
+  const totalAmount = strategyContractBalance.add(sentTokens);
   const totalInterest = totalAmount.sub(totalGamePrincipal);
 
   return totalInterest;
@@ -206,7 +214,6 @@ export async function getPlayerInterest(
   playerAddress: string,
 ): Promise<BigNumber> {
   const gameImpermanentLossShare = await getGameImpermanentLossShare(goodGhostingContract, strategyContract);
-
   if (gameImpermanentLossShare.lt(1)) {
     const playerDepositAmount = await getPlayerNetDepositAmount(goodGhostingContract, playerAddress);
 
@@ -226,7 +233,6 @@ export async function getPlayerInterest(
   const totalPlayerShare = await getPlayerShare(goodGhostingContract, playerAddress);
   const gameInterest = await getGameGrossInterest(goodGhostingContract, strategyContract);
   const playerInterest = gameInterest.mul(totalPlayerShare).div(multiplier).div(multiplier);
-
   return playerInterest;
 }
 

@@ -7439,9 +7439,7 @@ export const shouldBehaveLikeVariableDepositPool = async (strategyType: string) 
       assert(cummalativePlayer1IndexBeforeWithdraw.lt(cummalativePlayer2IndexBeforeWithdraw));
 
       const player1BalanceBeforeWithdraw = await ethers.provider.getBalance(player1.address);
-
       const player1RewardBalanceBeforeWithdraw = await contracts.rewardToken.balanceOf(player1.address);
-
       const player1ExpectedInterest = await getPlayerInterest(
         contracts.goodGhosting,
         contracts.strategy,
@@ -7453,12 +7451,10 @@ export const shouldBehaveLikeVariableDepositPool = async (strategyType: string) 
         contracts.rewardToken,
         player1.address,
       );
-
       let result = await contracts.goodGhosting.connect(player1).withdraw(0);
 
       const player1RewardBalanceAfterWithdraw = await contracts.rewardToken.balanceOf(player1.address);
       const player1BalanceAfterWithdraw = await ethers.provider.getBalance(player1.address);
-
       const rewardDifferenceForPlayer1 = player1RewardBalanceAfterWithdraw.sub(player1RewardBalanceBeforeWithdraw);
 
       const differenceForPlayer1 = player1BalanceAfterWithdraw.sub(player1BalanceBeforeWithdraw);
