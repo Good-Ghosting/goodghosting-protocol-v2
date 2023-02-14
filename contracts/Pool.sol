@@ -54,7 +54,7 @@ error RENOUNCE_OWNERSHIP_NOT_ALLOWED();
 */
 contract Pool is Ownable, Pausable, ReentrancyGuard {
     /// @notice Multiplier used for calculating playerIndex to avoid precision issues.
-    uint256 public constant MULTIPLIER = 10 ** 6;
+    uint256 public constant MULTIPLIER = 10 ** 12;
 
     /// @notice Maximum Flexible Deposit Amount in case of flexible pools.
     uint256 public immutable maxFlexibleSegmentPaymentAmount;
