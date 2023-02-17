@@ -3,17 +3,12 @@ pragma solidity 0.8.7;
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
 interface IMobiPool {
-
     /**
     @param amounts deposit amounts.
     @param minToMint min amount based on slippage.
     @param deadline timestamp value after this tx would revert.
     */
-    function addLiquidity(
-        uint256[] calldata amounts,
-        uint256 minToMint,
-        uint256 deadline
-    ) external returns (uint256);
+    function addLiquidity(uint256[] calldata amounts, uint256 minToMint, uint256 deadline) external returns (uint256);
 
     /**
     @param tokenAmount token amount to be removed.
@@ -52,7 +47,10 @@ interface IMobiPool {
         uint8 tokenIndex
     ) external view returns (uint256 availableTokenAmount);
 
-    function swapStorage() external view returns (uint256,uint256,uint256,uint256,uint256,uint256,uint256,uint256,address,address);
+    function swapStorage()
+        external
+        view
+        returns (uint256, uint256, uint256, uint256, uint256, uint256, uint256, uint256, address, address);
 
     function getToken(uint8 index) external view returns (IERC20);
 }

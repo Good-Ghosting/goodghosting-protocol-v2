@@ -42,15 +42,7 @@ contract LendingPoolAddressesProviderMock is
         return payable(address(this)); // cast to make it payable
     }
 
-    function getReserveTokensAddresses(address asset)
-        public
-        view
-        returns (
-            address,
-            address,
-            address
-        )
-    {
+    function getReserveTokensAddresses(address asset) public view returns (address, address, address) {
         return (address(this), address(this), address(this));
     }
 
@@ -97,33 +89,19 @@ contract LendingPoolAddressesProviderMock is
     function setLendingRateOracle(address _lendingRateOracle) public override {}
 
     /// ILendingPool interface
-    function deposit(
-        address _reserve,
-        uint256 _amount,
-        address onBehalfOf,
-        uint16 _referralCode
-    ) public override {
+    function deposit(address _reserve, uint256 _amount, address onBehalfOf, uint16 _referralCode) public override {
         IERC20 reserve = IERC20(_reserve);
         reserve.transferFrom(msg.sender, address(this), _amount);
         _mint(msg.sender, _amount);
     }
 
-    function supply(
-        address _reserve,
-        uint256 _amount,
-        address onBehalfOf,
-        uint16 _referralCode
-    ) public override {
+    function supply(address _reserve, uint256 _amount, address onBehalfOf, uint16 _referralCode) public override {
         IERC20 reserve = IERC20(_reserve);
         reserve.transferFrom(msg.sender, address(this), _amount);
         _mint(msg.sender, _amount);
     }
 
-    function withdraw(
-        address asset,
-        uint256 amount,
-        address to
-    ) public override(ILendingPool, ILendingPoolV3) {
+    function withdraw(address asset, uint256 amount, address to) public override(ILendingPool, ILendingPoolV3) {
         if (amount > IERC20(address(this)).balanceOf(msg.sender)) {
             amount = IERC20(address(this)).balanceOf(msg.sender);
         }
@@ -131,19 +109,11 @@ contract LendingPoolAddressesProviderMock is
         IERC20(asset).transfer(to, amount);
     }
 
-    function depositETH(
-        address lendingPool,
-        address onBehalfOf,
-        uint16 referralCode
-    ) public payable override {
+    function depositETH(address lendingPool, address onBehalfOf, uint16 referralCode) public payable override {
         _mint(msg.sender, msg.value);
     }
 
-    function withdrawETH(
-        address asset,
-        uint256 amount,
-        address to
-    ) public override {
+    function withdrawETH(address asset, uint256 amount, address to) public override {
         if (amount > IERC20(address(this)).balanceOf(msg.sender)) {
             amount = IERC20(address(this)).balanceOf(msg.sender);
         }
@@ -158,12 +128,7 @@ contract LendingPoolAddressesProviderMock is
     }
 
     //We need to bootstrap the pool with liquidity to pay interest
-    function addLiquidity(
-        address _reserve,
-        address _bank,
-        address _addr,
-        uint256 _amount
-    ) public {
+    function addLiquidity(address _reserve, address _bank, address _addr, uint256 _amount) public {
         IERC20 reserve = IERC20(_reserve);
         reserve.transferFrom(_addr, address(this), _amount);
         _mint(_bank, _amount);

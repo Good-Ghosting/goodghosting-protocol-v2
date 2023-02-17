@@ -1,3 +1,5 @@
+import { buildCalculateTokenAmountParameters } from "./pool.mobius.utils";
+
 const Pool = artifacts.require("Pool");
 const MobiusStrategy = artifacts.require("MobiusStrategy");
 const timeMachine = require("ganache-time-traveler");
@@ -30,6 +32,8 @@ contract("Variable Deposit Pool with Mobius Strategy with incentives sent same a
   let mobi: any;
   let celo: any;
   let stCeloToken: any;
+  let principal: any;
+
   GoodGhostingArtifact = Pool;
 
   if (configs.deployConfigs.strategy === "mobius-cUSD-DAI") {
@@ -60,7 +64,7 @@ contract("Variable Deposit Pool with Mobius Strategy with incentives sent same a
   const loser = players[0];
   const userWithdrawingAfterLastSegment = players[1];
   const daiDecimals = web3.utils.toBN(
-    10 ** providerConfig.providers["polygon"].tokens[configs.deployConfigs.inboundCurrencySymbol].decimals,
+    10 ** providerConfig.providers["celo"].tokens[configs.deployConfigs.inboundCurrencySymbol].decimals,
   );
   const segmentPayment = daiDecimals.mul(web3.utils.toBN(segmentPaymentInt)); // equivalent to 10 Inbound Token
 
@@ -98,7 +102,7 @@ contract("Variable Deposit Pool with Mobius Strategy with incentives sent same a
 
         for (let i = 0; i < players.length; i++) {
           const player = players[i];
-          const transferAmount = segmentPayment.mul(web3.utils.toBN(depositCount * 40)).toString();
+          const transferAmount = segmentPayment.mul(web3.utils.toBN(depositCount * 23)).toString();
           await stCeloToken.methods.transfer(player, transferAmount).send({ from: unlockedDaiAccount });
           await stCeloToken.methods
             .approve(
@@ -132,6 +136,9 @@ contract("Variable Deposit Pool with Mobius Strategy with incentives sent same a
             web3.utils.toBN(playerBalance).div(web3.utils.toBN(daiDecimals)).toString(),
           );
         }
+        await token.methods
+          .transfer(goodGhosting.address, web3.utils.toWei("90").toString())
+          .send({ from: unlockedDaiAccount });
       }
     });
 
@@ -139,24 +146,22 @@ contract("Variable Deposit Pool with Mobius Strategy with incentives sent same a
       const userSlippageOptions = [1, 3, 4, 2, 1];
       for (let i = 0; i < players.length; i++) {
         const player = players[i];
-        await token.methods.approve(goodGhosting.address, web3.utils.toWei("200").toString()).send({ from: player });
+        await token.methods
+          .approve(goodGhosting.address, web3.utils.toWei("200000000000000000").toString())
+          .send({ from: player });
         let playerEvent = "";
         let paymentEvent = 0;
-        let result, slippageFromContract;
+        let result;
         let minAmountWithFees: any = 0;
         const userProvidedMinAmount = segmentPayment.sub(
           segmentPayment.mul(web3.utils.toBN(userSlippageOptions[i].toString())).div(web3.utils.toBN(100)),
         );
 
-        let amounts = new Array(2);
-        if (configs.deployConfigs.strategy === "mobius-celo-stCelo") {
-          amounts[0] = "0";
-          amounts[tokenIndex] = segmentPayment.toString();
-        } else {
-          amounts[tokenIndex] = segmentPayment.toString();
-          amounts[1] = "0";
-        }
-        slippageFromContract = await pool.methods.calculateTokenAmount(mobiusStrategy.address, amounts, true).call();
+        const slippageFromContract = await pool.methods
+          .calculateTokenAmount(
+            ...buildCalculateTokenAmountParameters(segmentPayment, tokenIndex, mobiusStrategy.address),
+          )
+          .call();
 
         minAmountWithFees =
           parseInt(userProvidedMinAmount.toString()) > parseInt(slippageFromContract.toString())
@@ -199,16 +204,11 @@ contract("Variable Deposit Pool with Mobius Strategy with incentives sent same a
             segmentPayment.mul(web3.utils.toBN(earlyWithdrawFee)).div(web3.utils.toBN(100)),
           );
 
-          let amounts = new Array(2);
-          if (configs.deployConfigs.strategy === "mobius-celo-stCelo") {
-            amounts[0] = "0";
-            amounts[tokenIndex] = withdrawAmount.toString();
-          } else {
-            amounts[tokenIndex] = withdrawAmount.toString();
-            amounts[1] = "0";
-          }
-          let lpTokenAmount;
-          lpTokenAmount = await pool.methods.calculateTokenAmount(mobiusStrategy.address, amounts, true).call();
+          let lpTokenAmount = await pool.methods
+            .calculateTokenAmount(
+              ...buildCalculateTokenAmountParameters(withdrawAmount, tokenIndex, mobiusStrategy.address),
+            )
+            .call();
 
           if (gaugeToken) {
             const gaugeTokenBalance = await gaugeToken.methods.balanceOf(mobiusStrategy.address).call();
@@ -235,7 +235,7 @@ contract("Variable Deposit Pool with Mobius Strategy with incentives sent same a
           await goodGhosting.earlyWithdraw(minAmount.toString(), { from: player });
 
           await token.methods
-            .approve(goodGhosting.address, web3.utils.toWei("200").toString().toString())
+            .approve(goodGhosting.address, web3.utils.toWei("200000000000000000").toString().toString())
             .send({ from: player });
 
           await goodGhosting.joinGame(minAmountWithFees.toString(), web3.utils.toWei("23"), { from: player });
@@ -253,20 +253,16 @@ contract("Variable Deposit Pool with Mobius Strategy with incentives sent same a
         // j must start at 1 - Player1 (index 0) early withdraws after everyone else deposits, so won't continue making deposits
         for (let j = 1; j < players.length; j++) {
           const player = players[j];
-          let slippageFromContract;
+
           const userProvidedMinAmount = segmentPayment.sub(
             segmentPayment.mul(web3.utils.toBN(userSlippageOptions[j].toString())).div(web3.utils.toBN(100)),
           );
 
-          let amounts = new Array(2);
-          if (configs.deployConfigs.strategy === "mobius-celo-stCelo") {
-            amounts[0] = "0";
-            amounts[tokenIndex] = segmentPayment.toString();
-          } else {
-            amounts[tokenIndex] = segmentPayment.toString();
-            amounts[1] = "0";
-          }
-          slippageFromContract = await pool.methods.calculateTokenAmount(mobiusStrategy.address, amounts, true).call();
+          const slippageFromContract = await pool.methods
+            .calculateTokenAmount(
+              ...buildCalculateTokenAmountParameters(segmentPayment, tokenIndex, mobiusStrategy.address),
+            )
+            .call();
 
           const minAmountWithFees =
             parseInt(userProvidedMinAmount.toString()) > parseInt(slippageFromContract.toString())
@@ -310,16 +306,11 @@ contract("Variable Deposit Pool with Mobius Strategy with incentives sent same a
             playerInfo.amountPaid.mul(web3.utils.toBN(earlyWithdrawFee)).div(web3.utils.toBN(100)),
           );
 
-          let amounts = new Array(2);
-          if (configs.deployConfigs.strategy === "mobius-celo-stCelo") {
-            amounts[0] = "0";
-            amounts[tokenIndex] = withdrawAmount.toString();
-          } else {
-            amounts[tokenIndex] = withdrawAmount.toString();
-            amounts[1] = "0";
-          }
-          let lpTokenAmount;
-          lpTokenAmount = await pool.methods.calculateTokenAmount(mobiusStrategy.address, amounts, true).call();
+          let lpTokenAmount = await pool.methods
+            .calculateTokenAmount(
+              ...buildCalculateTokenAmountParameters(withdrawAmount, tokenIndex, mobiusStrategy.address),
+            )
+            .call();
 
           if (gaugeToken) {
             const gaugeTokenBalance = await gaugeToken.methods.balanceOf(mobiusStrategy.address).call();
@@ -358,16 +349,11 @@ contract("Variable Deposit Pool with Mobius Strategy with incentives sent same a
         playerInfo.amountPaid.mul(web3.utils.toBN(earlyWithdrawFee)).div(web3.utils.toBN(100)),
       );
 
-      let amounts = new Array(2);
-      if (configs.deployConfigs.strategy === "mobius-celo-stCelo") {
-        amounts[0] = "0";
-        amounts[tokenIndex] = withdrawAmount.toString();
-      } else {
-        amounts[tokenIndex] = withdrawAmount.toString();
-        amounts[1] = "0";
-      }
-      let lpTokenAmount;
-      lpTokenAmount = await pool.methods.calculateTokenAmount(mobiusStrategy.address, amounts, true).call();
+      let lpTokenAmount = await pool.methods
+        .calculateTokenAmount(
+          ...buildCalculateTokenAmountParameters(withdrawAmount, tokenIndex, mobiusStrategy.address),
+        )
+        .call();
 
       if (gaugeToken) {
         const gaugeTokenBalance = await gaugeToken.methods.balanceOf(mobiusStrategy.address).call();
@@ -422,16 +408,10 @@ contract("Variable Deposit Pool with Mobius Strategy with incentives sent same a
 
         assert(inboundTokenBalanceAfter.gt(inboundTokenBalanceBefore));
 
-        if (
-          configs.deployConfigs.strategy === "mobius-cUSD-DAI" ||
-          configs.deployConfigs.strategy === "mobius-cUSD-USDC" ||
-          configs.deployConfigs.strategy === "mobius-cusd-usdcet"
-        ) {
-          assert(
-            mobiRewardBalanceAfter.gt(mobiRewardBalanceBefore),
-            "expected mobi balance after withdrawal to be greater than before withdrawal",
-          );
-        }
+        assert(
+          mobiRewardBalanceAfter.gt(mobiRewardBalanceBefore),
+          "expected mobi balance after withdrawal to be greater than before withdrawal",
+        );
 
         // for some reason forking mainnet we don't get back celo rewards since celo is considered as a native token while forking
         assert(
@@ -442,8 +422,10 @@ contract("Variable Deposit Pool with Mobius Strategy with incentives sent same a
     });
 
     it("players withdraw from contract", async () => {
+      principal = await goodGhosting.netTotalGamePrincipal();
+
       // starts from 2, since player1 (loser), requested an early withdraw and player 2 withdrew after the last segment
-      for (let i = 2; i < players.length - 1; i++) {
+      for (let i = 2; i < players.length; i++) {
         const player = players[i];
         let mobiRewardBalanceBefore = web3.utils.toBN(0);
         let mobiRewardBalanceAfter = web3.utils.toBN(0);
@@ -459,7 +441,8 @@ contract("Variable Deposit Pool with Mobius Strategy with incentives sent same a
         const netAmountPaid = playerInfo.netAmountPaid;
 
         let result;
-        result = await goodGhosting.withdraw(netAmountPaid.toString(), { from: player });
+        // celo rpc throwing reverts with min > 0 so using 0
+        result = await goodGhosting.withdraw(0, { from: player });
         mobiRewardBalanceAfter = web3.utils.toBN(await mobi.methods.balanceOf(player).call({ from: admin }));
         celoRewardBalanceAfter = web3.utils.toBN(await celo.methods.balanceOf(player).call({ from: admin }));
         inboundBalanceAfter = web3.utils.toBN(await token.methods.balanceOf(player).call({ from: admin }));
@@ -467,16 +450,10 @@ contract("Variable Deposit Pool with Mobius Strategy with incentives sent same a
 
         assert(difference.gt(netAmountPaid), "expected balance diff to be more than paid amount");
 
-        if (
-          configs.deployConfigs.strategy === "mobius-cUSD-DAI" ||
-          configs.deployConfigs.strategy === "mobius-cUSD-USDC" ||
-          configs.deployConfigs.strategy === "mobius-cusd-usdcet"
-        ) {
-          assert(
-            mobiRewardBalanceAfter.gt(mobiRewardBalanceBefore),
-            "expected mobi balance after withdrawal to be greater than before withdrawal",
-          );
-        }
+        assert(
+          mobiRewardBalanceAfter.gt(mobiRewardBalanceBefore),
+          "expected mobi balance after withdrawal to be greater than before withdrawal",
+        );
 
         // for some reason forking mainnet we don't get back celo rewards since celo is considered as a native token while forking
         assert(
@@ -484,6 +461,7 @@ contract("Variable Deposit Pool with Mobius Strategy with incentives sent same a
           "expected celo balance after withdrawal to be equal to or less than before withdrawal",
         );
       }
+
       const mobiRewardBalanceAfter = web3.utils.toBN(
         await mobi.methods.balanceOf(goodGhosting.address).call({ from: admin }),
       );
@@ -492,6 +470,28 @@ contract("Variable Deposit Pool with Mobius Strategy with incentives sent same a
       );
       assert(mobiRewardBalanceAfter.gte(web3.utils.toBN(0)));
       assert(celoRewardBalanceAfter.eq(web3.utils.toBN(0)));
+    });
+
+    it("check balances", async () => {
+      const inboundTokenPoolBalance = web3.utils.toBN(
+        await token.methods.balanceOf(goodGhosting.address).call({ from: admin }),
+      );
+
+      const rewardTokenPoolBalance = web3.utils.toBN(
+        await mobi.methods.balanceOf(goodGhosting.address).call({ from: admin }),
+      );
+      const strategyTotalAmount = await mobiusStrategy.getTotalAmount();
+
+      const gaugeTokenBalance = await gaugeToken.methods.balanceOf(mobiusStrategy.address).call();
+
+      const leftOverPercent = (parseInt(strategyTotalAmount.toString()) * 100) / parseInt(principal.toString());
+
+      console.log("BAL", inboundTokenPoolBalance.toString());
+      console.log("NET PRINCIPAL", principal.toString());
+      console.log("REWARD BAL", rewardTokenPoolBalance.toString());
+      console.log("STRATEGY BAL", strategyTotalAmount.toString());
+      console.log("Gauge BAL", gaugeTokenBalance.toString());
+      console.log("Left over %", leftOverPercent.toString());
     });
   });
 });

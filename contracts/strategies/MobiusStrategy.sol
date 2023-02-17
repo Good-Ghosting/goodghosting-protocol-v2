@@ -221,16 +221,12 @@ contract MobiusStrategy is Ownable, IStrategy {
     @param _amount Amount to withdraw.
     @param _minAmount Slippage based amount to cover for impermanent loss scenario.
     */
-    function earlyWithdraw(
-        address _inboundCurrency,
-        uint256 _amount,
-        uint256 _minAmount
-    ) external override onlyOwner {
+    function earlyWithdraw(address _inboundCurrency, uint256 _amount, uint256 _minAmount) external override onlyOwner {
         // not checking for validity of deposit token here since with pool contract as the owner of the strategy the only way to transfer pool funds is by invest method so the check there is sufficient
         uint256[] memory amounts = new uint256[](2);
         amounts[inboundTokenIndex] = _amount;
 
-        uint256 poolWithdrawAmount = pool.calculateTokenAmount(address(this), amounts, true);
+        uint256 poolWithdrawAmount = pool.calculateTokenAmount(address(this), amounts, false);
         if (address(gauge) != address(0)) {
             uint256 gaugeBalance = gauge.balanceOf(address(this));
 
@@ -272,12 +268,12 @@ contract MobiusStrategy is Ownable, IStrategy {
     ) external override onlyOwner {
         uint256[] memory amounts = new uint256[](2);
         amounts[inboundTokenIndex] = _amount;
-        uint256 poolWithdrawAmount = pool.calculateTokenAmount(address(this), amounts, true);
+        uint256 poolWithdrawAmount = pool.calculateTokenAmount(address(this), amounts, false);
 
         if (address(gauge) != address(0)) {
             // not checking for validity of deposit token here since with pool contract as the owner of the strategy the only way to transfer pool funds is by invest method so the check there is sufficient
             if (!disableRewardTokenClaim) {
-                 if (address(minter) != address(0)) {
+                if (address(minter) != address(0)) {
                     // fetch rewards
                     minter.mint(address(gauge));
                 }
@@ -324,18 +320,30 @@ contract MobiusStrategy is Ownable, IStrategy {
     Returns total accumulated reward token amount.
     @param disableRewardTokenClaim Reward claim disable flag.
     */
-    function getAccumulatedRewardTokenAmounts(bool disableRewardTokenClaim)
-        external
-        override
-        returns (uint256[] memory)
-    {
+    function getAccumulatedRewardTokenAmounts(
+        bool disableRewardTokenClaim
+    ) external override returns (uint256[] memory) {
         // avoid multiple SLOADS
         IERC20[] memory _rewardTokens = rewardTokens;
         uint256[] memory amounts = new uint256[](_rewardTokens.length);
+        uint256 numRewards = _rewardTokens.length;
+
         if (!disableRewardTokenClaim) {
             if (address(gauge) != address(0)) {
                 // fetches claimable reward amounts
-                amounts[0] = gauge.claimable_tokens(address(this)); //mobi
+                for (uint256 i = 0; i < numRewards; ) {
+                    amounts[i] = gauge.claimable_tokens(address(this)) + _rewardTokens[i].balanceOf(address(this));
+                    unchecked {
+                        ++i;
+                    }
+                }
+            } else {
+                for (uint256 i = 0; i < numRewards; ) {
+                    amounts[i] = _rewardTokens[i].balanceOf(address(this));
+                    unchecked {
+                        ++i;
+                    }
+                }
             }
         }
         return amounts;

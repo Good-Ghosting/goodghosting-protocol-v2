@@ -24,6 +24,11 @@ contract MockCurveGauge is MintableERC20 {
         reserve.transfer(msg.sender, _value);
     }
 
+    //Only used on unit tests to simulate impermanent loss
+    function burnFrom(address account, uint256 amount) external {
+        _burn(account, amount);
+    }
+
     function deposit(uint256 _value) external {
         _mint(msg.sender, _value);
         reserve.transferFrom(msg.sender, address(this), _value);
@@ -49,4 +54,9 @@ contract MockCurveGauge is MintableERC20 {
     function claimable_reward_write(address _addr, address _token) external returns (uint256) {
         return IERC20(_token).balanceOf(address(this));
     }
+
+    function claimable_tokens(address addr) external returns (uint256) {
+        return curve.balanceOf(address(this));
+    }
+
 }

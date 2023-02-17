@@ -2,13 +2,24 @@
 pragma solidity 0.8.7;
 
 import "./Pool.sol";
-import "./MerkleValidator.sol";
+import "@openzeppelin/contracts/utils/cryptography/MerkleProof.sol";
 
 /**
 @notice Whitelisted version of the Pool Contract.
 @author Francis Odisi & Viraz Malhotra.
 */
-contract WhitelistedPool is Pool, MerkleValidator {
+contract WhitelistedPool is Pool {
+    error INVALID_PROOF();
+
+    /// @notice Merkle Root.
+    bytes32 public merkleRoot;
+
+
+    /// @param _merkleRoot Merkle root for the game
+    function setMerkleRoot(bytes32 _merkleRoot) internal {
+        merkleRoot = _merkleRoot;
+    }
+
     /**
         Creates a new instance of GoodGhosting game
         @param _inboundCurrency Smart contract address of inbound currency used for the game.
@@ -58,12 +69,10 @@ contract WhitelistedPool is Pool, MerkleValidator {
     @param _merkleRoot Merkle Root for whitelisted players.
     @param _incentiveToken Incentive token address
     */
-    function initializePool(bytes32 _merkleRoot, IERC20 _incentiveToken)
-        external
-        onlyOwner
-        whenGameIsNotInitialized
-        whenNotPaused
-    {
+    function initializePool(
+        bytes32 _merkleRoot,
+        IERC20 _incentiveToken
+    ) external onlyOwner whenGameIsNotInitialized whenNotPaused {
         setMerkleRoot(_merkleRoot);
         super.initialize(_incentiveToken);
     }
@@ -80,13 +89,10 @@ contract WhitelistedPool is Pool, MerkleValidator {
     /// @dev Must override function from parent contract (GoodGhosting.sol) and revert to enforce whitelisting.
     /// @param _minAmount Slippage based amount to cover for impermanent loss scenario.
     /// @param _depositAmount Variable Deposit Amount in case of a variable deposit pool.
-    function joinGame(uint256 _minAmount, uint256 _depositAmount)
-        external
-        payable
-        override
-        whenGameIsInitialized
-        whenNotPaused
-    {
+    function joinGame(
+        uint256 _minAmount,
+        uint256 _depositAmount
+    ) external payable override whenGameIsInitialized whenNotPaused {
         revert("Whitelisting enabled - use joinWhitelistedGame(uint256, bytes32[]) instead");
     }
 
@@ -102,7 +108,10 @@ contract WhitelistedPool is Pool, MerkleValidator {
         uint256 _minAmount,
         uint256 _depositAmount
     ) external payable whenNotPaused {
-        validate(index, msg.sender, true, merkleProof);
+        bytes32 node = keccak256(abi.encodePacked(index, msg.sender, true));
+        if (!MerkleProof.verify(merkleProof, merkleRoot, node))
+            revert INVALID_PROOF();
+        // validate(index, msg.sender, true, merkleProof);
         _joinGame(_minAmount, _depositAmount);
     }
 }

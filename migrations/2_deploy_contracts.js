@@ -87,7 +87,10 @@ module.exports = function (deployer, network, accounts) {
       : network.includes("test-polygon")
       ? providerConfig.providers["mumbai"].tokens[config.deployConfigs.inboundCurrencySymbol].decimals
       : providerConfig.providers["polygon"].tokens[config.deployConfigs.inboundCurrencySymbol].decimals;
-    const segmentPaymentWei = (config.deployConfigs.segmentPayment * 10 ** inboundCurrencyDecimals).toString();
+
+    const segmentPaymentWei = new BN(config.deployConfigs.segmentPayment)
+      .mul(new BN(10).pow(new BN(inboundCurrencyDecimals)))
+      .toString();
 
     const maxFlexibleSegmentPaymentAmountWei = new BN(maxFlexibleSegmentPaymentAmount)
       .mul(new BN(10).pow(new BN(inboundCurrencyDecimals)))
@@ -114,7 +117,7 @@ module.exports = function (deployer, network, accounts) {
         strategyConfig.minter,
         strategyConfig.lpToken,
         tokenIndexMapping[config.deployConfigs.strategy][config.deployConfigs.inboundCurrencySymbol],
-        config.deployConfigs.rewardTokens,
+        strategyConfig.rewardTokens,
       ];
     } else if (config.deployConfigs.strategy === "moola") {
       strategyArgs = [
@@ -149,7 +152,7 @@ module.exports = function (deployer, network, accounts) {
         strategyConfig.poolType,
         strategyConfig.gauge,
         strategyConfig.gaugeMinter,
-        config.deployConfigs.rewardTokens,
+        strategyConfig.rewardTokens,
       ];
     }
     const deploymentResult = {};
@@ -303,6 +306,7 @@ module.exports = function (deployer, network, accounts) {
       deploymentResult.strategyLPTokenAddress = strategyConfig.lpToken;
       deploymentResult.strategyTokenIndex =
         tokenIndexMapping[config.deployConfigs.strategy][config.deployConfigs.inboundCurrencySymbol];
+      deploymentResult.rewardTokenAdddresses = strategyConfig.rewardTokens;
       var mobiusStrategyParameterTypes = ["address", "address", "address", "address", "uint", "address[]"];
 
       var mobiusStrategyValues = [
@@ -367,6 +371,7 @@ module.exports = function (deployer, network, accounts) {
         tokenIndexMapping[config.deployConfigs.strategy][config.deployConfigs.inboundCurrencySymbol];
       deploymentResult.strategyPoolType = strategyConfig.poolType;
       deploymentResult.gaugeMinterAddress = strategyConfig.gaugeMinter;
+      deploymentResult.rewardTokenAdddresses = strategyConfig.rewardTokens;
       var curveStrategyParameterTypes = ["address", "address", "uint", "uint", "address", "address[]"];
       var curveStrategyValues = [
         deploymentResult.curvePoolAddress,

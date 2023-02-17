@@ -106,7 +106,7 @@ contract AaveStrategyV3 is Ownable, IStrategy {
         // avoid multiple SLOADS
         address[] memory _rewardTokens = rewardTokens;
         uint256 numRewards = _rewardTokens.length;
-        
+
         IERC20[] memory rewardTokenInstances = new IERC20[](numRewards);
         for (uint256 i = 0; i < numRewards; ) {
             rewardTokenInstances[i] = IERC20(_rewardTokens[i]);
@@ -212,11 +212,7 @@ contract AaveStrategyV3 is Ownable, IStrategy {
     @param _minAmount Used for aam strategies, since every strategy overrides from the same strategy interface hence it is defined here.
     _minAmount isn't needed in this strategy but since all strategies override from the same interface and the amm strategies need it hence it is used here.
     */
-    function earlyWithdraw(
-        address _inboundCurrency,
-        uint256 _amount,
-        uint256 _minAmount
-    ) external override onlyOwner {
+    function earlyWithdraw(address _inboundCurrency, uint256 _amount, uint256 _minAmount) external override onlyOwner {
         if (_inboundCurrency == address(0) || _inboundCurrency == address(wrappedTxToken)) {
             aToken.approve(address(wethGateway), _amount);
 
@@ -319,18 +315,37 @@ contract AaveStrategyV3 is Ownable, IStrategy {
     Returns total accumulated reward token amount.
     @param disableRewardTokenClaim Reward claim disable flag.
     */
-    function getAccumulatedRewardTokenAmounts(bool disableRewardTokenClaim)
-        external
-        view
-        override
-        returns (uint256[] memory)
-    {
-        if (!disableRewardTokenClaim && address(rewardsController) != address(0)) {
-            // Claims the rewards from the external pool
-            address[] memory assets = new address[](1);
-            assets[0] = address(aToken);
-            (, uint256[] memory unclaimedAmounts) = rewardsController.getAllUserRewards(assets, address(this));
-            return unclaimedAmounts;
+    function getAccumulatedRewardTokenAmounts(
+        bool disableRewardTokenClaim
+    ) external view override returns (uint256[] memory) {
+        if (!disableRewardTokenClaim) {
+            // avoid multiple SLOADS
+            address[] memory _rewardTokens = rewardTokens;
+            uint256 numRewards = _rewardTokens.length;
+
+            if (address(rewardsController) != address(0)) {
+                // Claims the rewards from the external pool
+                address[] memory assets = new address[](1);
+                assets[0] = address(aToken);
+                (, uint256[] memory unclaimedAmounts) = rewardsController.getAllUserRewards(assets, address(this));
+
+                for (uint256 i = 0; i < numRewards; ) {
+                    unclaimedAmounts[i] += IERC20(_rewardTokens[i]).balanceOf(address(this));
+                    unchecked {
+                        ++i;
+                    }
+                }
+                return unclaimedAmounts;
+            } else {
+                uint256[] memory amounts = new uint256[](numRewards);
+                for (uint256 i = 0; i < numRewards; ) {
+                    amounts[i] = IERC20(_rewardTokens[i]).balanceOf(address(this));
+                    unchecked {
+                        ++i;
+                    }
+                }
+                return amounts;
+            }
         } else {
             uint256[] memory amounts = new uint256[](rewardTokens.length);
             return amounts;

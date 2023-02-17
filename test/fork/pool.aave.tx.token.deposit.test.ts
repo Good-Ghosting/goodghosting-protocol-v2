@@ -43,22 +43,22 @@ describe("Aave Pool Fork Tests with the deposit token as transsactional token", 
     lendingPoolAddressProviderInstance = new ethers.Contract(
       providers["polygon"].strategies["aaveV2"].lendingPoolAddressProvider,
       lendingProvider.abi,
-      accounts[0],
+      accounts[7],
     );
     dataProviderInstance = new ethers.Contract(
       providers["polygon"].strategies["aaveV2"].dataProvider,
       dataProvider.abi,
-      accounts[0],
+      accounts[7],
     );
     incentiveControllerInstance = new ethers.Contract(
       providers["polygon"].strategies["aaveV2"].incentiveController,
       incentiveController.abi,
-      accounts[0],
+      accounts[7],
     );
 
-    wmaticInstance = new ethers.Contract(providers["polygon"].tokens["wmatic"].address, wmatic, accounts[0]);
+    wmaticInstance = new ethers.Contract(providers["polygon"].tokens["wmatic"].address, wmatic, accounts[7]);
 
-    strategy = await ethers.getContractFactory("AaveStrategy", accounts[0]);
+    strategy = await ethers.getContractFactory("AaveStrategy", accounts[7]);
     strategy = await strategy.deploy(
       lendingPoolAddressProviderInstance.address,
       providers["polygon"].strategies["aaveV2"].wethGateway,
@@ -68,7 +68,7 @@ describe("Aave Pool Fork Tests with the deposit token as transsactional token", 
       ZERO_ADDRESS,
     );
 
-    pool = await ethers.getContractFactory("Pool", accounts[0]);
+    pool = await ethers.getContractFactory("Pool", accounts[7]);
     pool = await pool.deploy(
       ZERO_ADDRESS,
       0,
@@ -84,7 +84,7 @@ describe("Aave Pool Fork Tests with the deposit token as transsactional token", 
       true,
     );
 
-    await strategy.connect(accounts[0]).transferOwnership(pool.address);
+    await strategy.connect(accounts[7]).transferOwnership(pool.address);
     await pool.initialize(ZERO_ADDRESS);
   });
 
@@ -163,9 +163,10 @@ describe("Aave Pool Fork Tests with the deposit token as transsactional token", 
   });
 
   it("admin is able to withdraw from the pool", async () => {
-    const inboundTokenBalanceBeforeWithdraw = await ethers.provider.getBalance(accounts[0].address);
-    await pool.connect(accounts[0]).adminFeeWithdraw(0);
-    const inboundTokenBalanceAfterWithdraw = await ethers.provider.getBalance(accounts[0].address);
+    const inboundTokenBalanceBeforeWithdraw = await ethers.provider.getBalance(accounts[7].address);
+    await pool.connect(accounts[7]).adminFeeWithdraw(0);
+    const inboundTokenBalanceAfterWithdraw = await ethers.provider.getBalance(accounts[7].address);
+
     // some tx token spent in gas
     assert(inboundTokenBalanceAfterWithdraw.lte(inboundTokenBalanceBeforeWithdraw));
   });

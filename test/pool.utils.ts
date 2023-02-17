@@ -261,9 +261,8 @@ export const deployPool = async (
 
     await rewardToken.mint(curveGauge.address, ethers.utils.parseEther("100000"));
     await curve.mint(curveGauge.address, ethers.utils.parseEther("100000"));
-    const rewardTokens = new Array(2);
-    rewardTokens[0] = rewardToken.address;
-    rewardTokens[1] = curve.address;
+    const rewardTokens = new Array();
+    rewardTokens[0] = curve.address;
 
     if (isInvestmentStrategy) {
       const curveStrategyDeployer = new CurveStrategy__factory(deployer);
@@ -273,7 +272,7 @@ export const deployPool = async (
           -1,
           curvePoolType,
           curveGauge.address,
-          gaugeminter.address,
+          ZERO_ADDRESS,
           rewardTokens,
         ),
       ).to.be.revertedWith("INVALID_INBOUND_TOKEN_INDEX()");
@@ -301,17 +300,6 @@ export const deployPool = async (
       ).to.be.revertedWith("INVALID_POOL()");
 
       await expect(
-        curveStrategyDeployer.deploy(
-          curvePool.address,
-          0,
-          curvePoolType,
-          ZERO_ADDRESS,
-          gaugeminter.address,
-          rewardTokens,
-        ),
-      ).to.be.revertedWith("INVALID_GAUGE()");
-
-      await expect(
         curveStrategyDeployer.deploy(curvePool.address, 0, curvePoolType, curveGauge.address, gaugeminter.address, [
           ZERO_ADDRESS,
         ]),
@@ -322,7 +310,7 @@ export const deployPool = async (
         0,
         curvePoolType,
         curveGauge.address,
-        gaugeminter.address,
+        ZERO_ADDRESS,
         rewardTokens,
       );
       if (isInboundToken) {
@@ -331,20 +319,19 @@ export const deployPool = async (
         );
       }
     }
+    rewardToken = curve;
   } else if (strategyType === "mobius") {
     const mockMobiTokenDeployer = new MintableERC20__factory(deployer);
     mobi = await mockMobiTokenDeployer.deploy("MOBI", "MOBI");
     const mockMinterTokenDeployer = new MockMobiusMinter__factory(deployer);
-    minter = await mockMinterTokenDeployer.deploy("CELO", "CELO");
+    minter = await mockMinterTokenDeployer.deploy("MOBI", "MOBI");
     const mobiPoolDeployer = new MockMobiusPool__factory(deployer);
     mobiPool = await mobiPoolDeployer.deploy("LP", "LP", inboundToken.address);
     const mobiGaugeDeployer = new MockMobiusGauge__factory(deployer);
-    mobiGauge = await mobiGaugeDeployer.deploy("LP-GAUGE", "LP-GAUGE", mobi.address, mobiPool.address);
-    await mobi.mint(mobiGauge.address, ethers.utils.parseEther("100000"));
+    mobiGauge = await mobiGaugeDeployer.deploy("LP-GAUGE", "LP-GAUGE", minter.address, mobiPool.address);
 
-    const rewardTokens = new Array(2);
+    const rewardTokens = new Array();
     rewardTokens[0] = minter.address;
-    rewardTokens[1] = mobi.address;
 
     await mobiPool.setGauge(mobiGauge.address);
     if (isInvestmentStrategy) {
@@ -521,7 +508,7 @@ export const deployPool = async (
         const mockCurveTokenDeployer = new MintableERC20__factory(deployer);
         const curve = await mockCurveTokenDeployer.deploy("CURVE", "CURVE");
         const rewardTokenDeployer = new MintableERC20__factory(deployer);
-        const rewardToken = await rewardTokenDeployer.deploy("TOKEN_NAME", "TOKEN_SYMBOL");
+        let rewardToken = await rewardTokenDeployer.deploy("TOKEN_NAME", "TOKEN_SYMBOL");
         const curvePoolDeployer = new MockCurvePool__factory(deployer);
         const curvePool = await curvePoolDeployer.deploy("LP", "LP", inboundToken.address);
         const curveGaugeDeployer = new MockCurveGauge__factory(deployer);
@@ -533,9 +520,8 @@ export const deployPool = async (
           rewardToken.address,
         );
 
-        const rewardTokens = new Array(2);
-        rewardTokens[0] = rewardToken.address;
-        rewardTokens[1] = curve.address;
+        const rewardTokens = new Array();
+        rewardTokens[0] = curve.address;
         await curvePool.setGauge(curveGauge.address);
 
         await rewardToken.mint(curveGauge.address, ethers.utils.parseEther("100000"));
@@ -548,9 +534,10 @@ export const deployPool = async (
           0,
           curvePoolType,
           curveGauge.address,
-          gaugeminter.address,
+          ZERO_ADDRESS,
           rewardTokens,
         );
+        rewardToken = curve;
       } else if (strategyType === "mobius") {
         const mockMobiTokenDeployer = new MintableERC20__factory(deployer);
         const mobi = await mockMobiTokenDeployer.deploy("MOBI", "MOBI");
@@ -559,12 +546,10 @@ export const deployPool = async (
         const mobiPoolDeployer = new MockMobiusPool__factory(deployer);
         const mobiPool = await mobiPoolDeployer.deploy("LP", "LP", inboundToken.address);
         const mobiGaugeDeployer = new MockMobiusGauge__factory(deployer);
-        const mobiGauge = await mobiGaugeDeployer.deploy("LP-GAUGE", "LP-GAUGE", mobi.address, mobiPool.address);
-        await mobi.mint(mobiGauge.address, ethers.utils.parseEther("100000"));
+        const mobiGauge = await mobiGaugeDeployer.deploy("LP-GAUGE", "LP-GAUGE", minter.address, mobiPool.address);
         await mobiPool.setGauge(mobiGauge.address);
-        const rewardTokens = new Array(2);
+        const rewardTokens = new Array();
         rewardTokens[0] = minter.address;
-        rewardTokens[1] = mobi.address;
         const mobiStrategyDeployer = new MobiusStrategy__factory(deployer);
 
         newStrategy = await mobiStrategyDeployer.deploy(
@@ -795,9 +780,8 @@ export const deployPoolWithMockStrategy = async (
     await rewardToken.mint(curveGauge.address, ethers.utils.parseEther("100000"));
     await curve.mint(curveGauge.address, ethers.utils.parseEther("100000"));
 
-    const rewardTokens = new Array(2);
-    rewardTokens[0] = rewardToken.address;
-    rewardTokens[1] = curve.address;
+    const rewardTokens = new Array();
+    rewardTokens[0] = curve.address;
     const mockCurveMinterDeployer = new MockCurveGaugeMinter__factory(deployer);
     const gaugeminter = await mockCurveMinterDeployer.deploy();
     const curveStrategyDeployer = new MockCurveStrategy__factory(deployer);
@@ -806,9 +790,10 @@ export const deployPoolWithMockStrategy = async (
       0,
       curvePoolType,
       curveGauge.address,
-      gaugeminter.address,
+      ZERO_ADDRESS,
       rewardTokens,
     );
+    rewardToken = curve;
   } else {
     const mockMobiTokenDeployer = new MintableERC20__factory(deployer);
     mobi = await mockMobiTokenDeployer.deploy("MOBI", "MOBI");
@@ -817,12 +802,10 @@ export const deployPoolWithMockStrategy = async (
     const mobiPoolDeployer = new MockMobiusPool__factory(deployer);
     mobiPool = await mobiPoolDeployer.deploy("LP", "LP", inboundToken.address);
     const mobiGaugeDeployer = new MockMobiusGauge__factory(deployer);
-    mobiGauge = await mobiGaugeDeployer.deploy("LP-GAUGE", "LP-GAUGE", mobi.address, mobiPool.address);
-    await mobi.mint(mobiGauge.address, ethers.utils.parseEther("100000"));
+    mobiGauge = await mobiGaugeDeployer.deploy("LP-GAUGE", "LP-GAUGE", minter.address, mobiPool.address);
     await mobiPool.setGauge(mobiGauge.address);
-    const rewardTokens = new Array(2);
+    const rewardTokens = new Array();
     rewardTokens[0] = minter.address;
-    rewardTokens[1] = mobi.address;
     const mobiStrategyDeployer = new MockMobiusStrategy__factory(deployer);
 
     strategy = await mobiStrategyDeployer.deploy(
@@ -1009,9 +992,11 @@ export const makeDeposit = async (
   const isTransactionalToken = await goodGhosting.isTransactionalToken();
   if (!isTransactionalToken) {
     await approveToken(inboundToken, player, goodGhosting.address, amount);
-    await goodGhosting.connect(player).makeDeposit(0, depositAmount);
+    const T = await goodGhosting.connect(player).makeDeposit(0, depositAmount);
+    await T.wait();
   } else {
-    await goodGhosting.connect(player).makeDeposit(0, depositAmount, { value: depositAmount });
+    const T = await goodGhosting.connect(player).makeDeposit(0, depositAmount, { value: depositAmount });
+    await T.wait();
   }
 };
 

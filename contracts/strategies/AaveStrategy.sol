@@ -120,7 +120,6 @@ contract AaveStrategy is Ownable, IStrategy {
         return 0;
     }
 
-
     //*********************************************************************//
     // -------------------------- constructor ---------------------------- //
     //*********************************************************************//
@@ -197,11 +196,7 @@ contract AaveStrategy is Ownable, IStrategy {
     @param _minAmount Used for aam strategies, since every strategy overrides from the same strategy interface hence it is defined here.
     _minAmount isn't needed in this strategy but since all strategies override from the same interface and the amm strategies need it hence it is used here.
     */
-    function earlyWithdraw(
-        address _inboundCurrency,
-        uint256 _amount,
-        uint256 _minAmount
-    ) external override onlyOwner {
+    function earlyWithdraw(address _inboundCurrency, uint256 _amount, uint256 _minAmount) external override onlyOwner {
         if (_inboundCurrency == address(0) || _inboundCurrency == address(rewardToken)) {
             aToken.approve(address(wethGateway), _amount);
 
@@ -299,12 +294,9 @@ contract AaveStrategy is Ownable, IStrategy {
     Returns total accumulated reward token amount.
     @param disableRewardTokenClaim Reward claim disable flag.
     */
-    function getAccumulatedRewardTokenAmounts(bool disableRewardTokenClaim)
-        external
-        view
-        override
-        returns (uint256[] memory)
-    {
+    function getAccumulatedRewardTokenAmounts(
+        bool disableRewardTokenClaim
+    ) external view override returns (uint256[] memory) {
         uint256 amount = 0;
         // safety check for external services calling this function.
         // Aave forks like Moola may not have an incentive controller (it is set to address(0)).
@@ -313,7 +305,9 @@ contract AaveStrategy is Ownable, IStrategy {
             // Claims the rewards from the external pool
             address[] memory assets = new address[](1);
             assets[0] = address(aToken);
-            amount = incentiveController.getRewardsBalance(assets, address(this));
+            amount =
+                incentiveController.getRewardsBalance(assets, address(this)) +
+                rewardToken.balanceOf(address(this));
         }
         uint256[] memory amounts = new uint256[](1);
         amounts[0] = amount;

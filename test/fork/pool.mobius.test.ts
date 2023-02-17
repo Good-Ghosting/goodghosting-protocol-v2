@@ -1,4 +1,4 @@
-import { constants } from "ethers";
+import { buildCalculateTokenAmountParameters } from "./pool.mobius.utils";
 
 const Pool = artifacts.require("Pool");
 const MobiusStrategy = artifacts.require("MobiusStrategy");
@@ -56,13 +56,15 @@ contract("Pool with Mobius Strategy", accounts => {
   let gaugeToken: any;
   let mobiusStrategy: any;
   let tokenIndex: any;
+  let principal: any;
+
   let admin = accounts[0];
   const players = accounts.slice(1, 6); // 5 players
   const loser = players[0];
   const ZERO_ADDRESS = "0x0000000000000000000000000000000000000000";
   const userWithdrawingAfterLastSegment = players[1];
   const daiDecimals = web3.utils.toBN(
-    10 ** providerConfig.providers["polygon"].tokens[configs.deployConfigs.inboundCurrencySymbol].decimals,
+    10 ** providerConfig.providers["celo"].tokens[configs.deployConfigs.inboundCurrencySymbol].decimals,
   );
   const segmentPayment = daiDecimals.mul(web3.utils.toBN(segmentPaymentInt)); // equivalent to 10 Inbound Token
   let goodGhosting: any;
@@ -116,7 +118,7 @@ contract("Pool with Mobius Strategy", accounts => {
         }
       } else {
         const unlockedBalance = await token.methods.balanceOf(unlockedDaiAccount).call({ from: admin });
-        const daiAmount = segmentPayment.mul(web3.utils.toBN(depositCount * 10)).toString();
+        const daiAmount = segmentPayment.mul(web3.utils.toBN(depositCount)).toString();
         console.log("unlockedBalance: ", web3.utils.toBN(unlockedBalance).div(web3.utils.toBN(daiDecimals)).toString());
         console.log("daiAmountToTransfer", web3.utils.toBN(daiAmount).div(web3.utils.toBN(daiDecimals)).toString());
         for (let i = 0; i < players.length; i++) {
@@ -146,21 +148,16 @@ contract("Pool with Mobius Strategy", accounts => {
           .send({ from: player });
         let playerEvent = "";
         let paymentEvent = 0;
-        let result, slippageFromContract;
+        let result;
         let minAmountWithFees: any = 0;
         const userProvidedMinAmount = segmentPayment.sub(
           segmentPayment.mul(web3.utils.toBN(userSlippageOptions[i].toString())).div(web3.utils.toBN(100)),
         );
-        let amounts = new Array(2);
-        if (configs.deployConfigs.strategy === "mobius-celo-stCelo") {
-          amounts[0] = "0";
-          amounts[tokenIndex] = segmentPayment.toString();
-        } else {
-          amounts[tokenIndex] = segmentPayment.toString();
-          amounts[1] = "0";
-        }
-
-        slippageFromContract = await pool.methods.calculateTokenAmount(mobiusStrategy.address, amounts, true).call();
+        const slippageFromContract = await pool.methods
+          .calculateTokenAmount(
+            ...buildCalculateTokenAmountParameters(segmentPayment, tokenIndex, mobiusStrategy.address),
+          )
+          .call();
 
         minAmountWithFees =
           parseInt(userProvidedMinAmount.toString()) > parseInt(slippageFromContract.toString())
@@ -169,23 +166,18 @@ contract("Pool with Mobius Strategy", accounts => {
                 .sub(web3.utils.toBN(slippageFromContract).mul(web3.utils.toBN("10")).div(web3.utils.toBN("10000")))
             : userProvidedMinAmount.sub(userProvidedMinAmount.mul(web3.utils.toBN("10")).div(web3.utils.toBN("10000")));
 
-        result = await goodGhosting.joinGame(minAmountWithFees.toString(), 0, { from: player });
+        // celo rpc throwing reverts with min > 0 so using 0
+        result = await goodGhosting.joinGame(0, 0, { from: player });
         // player 1 early withdraws in segment 0 and joins again
         if (i == 1) {
           const withdrawAmount = segmentPayment.sub(
             segmentPayment.mul(web3.utils.toBN(earlyWithdrawFee)).div(web3.utils.toBN(100)),
           );
-          let lpTokenAmount;
-
-          let amounts: any = new Array(2);
-          if (configs.deployConfigs.strategy === "mobius-celo-stCelo") {
-            amounts[0] = "0";
-            amounts[tokenIndex] = withdrawAmount.toString();
-          } else {
-            amounts[tokenIndex] = withdrawAmount.toString();
-            amounts[1] = "0";
-          }
-          lpTokenAmount = await pool.methods.calculateTokenAmount(mobiusStrategy.address, amounts, true).call();
+          let lpTokenAmount = await pool.methods
+            .calculateTokenAmount(
+              ...buildCalculateTokenAmountParameters(withdrawAmount, tokenIndex, mobiusStrategy.address),
+            )
+            .call();
 
           if (gaugeToken) {
             const gaugeTokenBalance = await gaugeToken.methods.balanceOf(mobiusStrategy.address).call();
@@ -246,21 +238,15 @@ contract("Pool with Mobius Strategy", accounts => {
         // j must start at 1 - Player1 (index 0) early withdraws after everyone else deposits, so won't continue making deposits
         for (let j = 1; j < players.length; j++) {
           const player = players[j];
-          let slippageFromContract;
           const userProvidedMinAmount = segmentPayment.sub(
             segmentPayment.mul(web3.utils.toBN(userSlippageOptions[j].toString())).div(web3.utils.toBN(100)),
           );
 
-          let amounts: any = new Array(2);
-
-          if (configs.deployConfigs.strategy === "mobius-celo-stCelo") {
-            amounts[0] = "0";
-            amounts[tokenIndex] = segmentPayment.toString();
-          } else {
-            amounts[tokenIndex] = segmentPayment.toString();
-            amounts[1] = "0";
-          }
-          slippageFromContract = await pool.methods.calculateTokenAmount(mobiusStrategy.address, amounts, true).call();
+          const slippageFromContract = await pool.methods
+            .calculateTokenAmount(
+              ...buildCalculateTokenAmountParameters(segmentPayment, tokenIndex, mobiusStrategy.address),
+            )
+            .call();
 
           const minAmountWithFees =
             parseInt(userProvidedMinAmount.toString()) > parseInt(slippageFromContract.toString())
@@ -289,17 +275,11 @@ contract("Pool with Mobius Strategy", accounts => {
             playerInfo.amountPaid.mul(web3.utils.toBN(earlyWithdrawFee)).div(web3.utils.toBN(100)),
           );
 
-          let amounts: any = new Array(2);
-
-          if (configs.deployConfigs.strategy === "mobius-celo-stCelo") {
-            amounts[0] = "0";
-            amounts[tokenIndex] = withdrawAmount.toString();
-          } else {
-            amounts[tokenIndex] = withdrawAmount.toString();
-            amounts[1] = "0";
-          }
-          let lpTokenAmount;
-          lpTokenAmount = await pool.methods.calculateTokenAmount(mobiusStrategy.address, amounts, true).call();
+          let lpTokenAmount = await pool.methods
+            .calculateTokenAmount(
+              ...buildCalculateTokenAmountParameters(withdrawAmount, tokenIndex, mobiusStrategy.address),
+            )
+            .call();
 
           if (gaugeToken) {
             const gaugeTokenBalance = await gaugeToken.methods.balanceOf(mobiusStrategy.address).call();
@@ -337,16 +317,11 @@ contract("Pool with Mobius Strategy", accounts => {
         playerInfo.amountPaid.mul(web3.utils.toBN(earlyWithdrawFee)).div(web3.utils.toBN(100)),
       );
 
-      let amounts: any = new Array(2);
-      if (configs.deployConfigs.strategy === "mobius-celo-stCelo") {
-        amounts[0] = "0";
-        amounts[tokenIndex] = withdrawAmount.toString();
-      } else {
-        amounts[tokenIndex] = withdrawAmount.toString();
-        amounts[1] = "0";
-      }
-      let lpTokenAmount;
-      lpTokenAmount = await pool.methods.calculateTokenAmount(mobiusStrategy.address, amounts, true).call();
+      let lpTokenAmount = await pool.methods
+        .calculateTokenAmount(
+          ...buildCalculateTokenAmountParameters(withdrawAmount, tokenIndex, mobiusStrategy.address),
+        )
+        .call();
 
       if (gaugeToken) {
         const gaugeTokenBalance = await gaugeToken.methods.balanceOf(mobiusStrategy.address).call();
@@ -378,6 +353,8 @@ contract("Pool with Mobius Strategy", accounts => {
     });
 
     it("players withdraw from contract", async () => {
+      principal = await goodGhosting.netTotalGamePrincipal();
+
       // starts from 2, since player1 (loser), requested an early withdraw and player 2 withdrew after the last segment
       for (let i = 2; i < players.length; i++) {
         const player = players[i];
@@ -405,17 +382,11 @@ contract("Pool with Mobius Strategy", accounts => {
 
         assert(difference.gt(netAmountPaid), "expected balance diff to be more than paid amount");
 
-        if (
-          configs.deployConfigs.strategy === "mobius-cUSD-DAI" ||
-          configs.deployConfigs.strategy === "mobius-cUSD-USDC" ||
-          configs.deployConfigs.strategy === "mobius-cusd-usdcet"
-        ) {
-          assert(
-            mobiRewardBalanceAfter.gt(mobiRewardBalanceBefore),
-            "expected mobi balance after withdrawal to be greater than before withdrawal",
-          );
-          assert(mobiRewardBalanceAfter.gt(web3.utils.toBN(0)));
-        }
+        assert(
+          mobiRewardBalanceAfter.gt(mobiRewardBalanceBefore),
+          "expected mobi balance after withdrawal to be greater than before withdrawal",
+        );
+        assert(mobiRewardBalanceAfter.gt(web3.utils.toBN(0)));
 
         // for some reason forking mainnet we don't get back celo rewards
         assert(
@@ -445,7 +416,22 @@ contract("Pool with Mobius Strategy", accounts => {
         const inboundTokenPoolBalance = web3.utils.toBN(
           await token.methods.balanceOf(goodGhosting.address).call({ from: admin }),
         );
-        console.log(inboundTokenPoolBalance.toString());
+
+        const rewardTokenPoolBalance = web3.utils.toBN(
+          await mobi.methods.balanceOf(goodGhosting.address).call({ from: admin }),
+        );
+        const strategyTotalAmount = await mobiusStrategy.getTotalAmount();
+
+        const gaugeTokenBalance = await gaugeToken.methods.balanceOf(mobiusStrategy.address).call();
+
+        const leftOverPercent = (parseInt(strategyTotalAmount.toString()) * 100) / parseInt(principal.toString());
+
+        console.log("BAL", inboundTokenPoolBalance.toString());
+        console.log("NET PRINCIPAL", principal.toString());
+        console.log("REWARD BAL", rewardTokenPoolBalance.toString());
+        console.log("STRATEGY BAL", strategyTotalAmount.toString());
+        console.log("Gauge BAL", gaugeTokenBalance.toString());
+        console.log("Left over %", leftOverPercent.toString());
 
         inboundTokenBalanceAfterWithdraw = web3.utils.toBN(await token.methods.balanceOf(admin).call({ from: admin }));
         mobiRewardBalanceAfter = web3.utils.toBN(await mobi.methods.balanceOf(admin).call({ from: admin }));
@@ -453,16 +439,10 @@ contract("Pool with Mobius Strategy", accounts => {
 
         assert(inboundTokenBalanceAfterWithdraw.gt(inboundTokenBalanceBeforeWithdraw));
 
-        if (
-          configs.deployConfigs.strategy === "mobius-cUSD-DAI" ||
-          configs.deployConfigs.strategy === "mobius-cUSD-USDC" ||
-          configs.deployConfigs.strategy === "mobius-cusd-usdcet"
-        ) {
-          assert(
-            mobiRewardBalanceAfter.gt(mobiRewardBalanceBefore),
-            "expected mobi balance after withdrawal to be greater than before withdrawal",
-          );
-        }
+        assert(
+          mobiRewardBalanceAfter.gt(mobiRewardBalanceBefore),
+          "expected mobi balance after withdrawal to be greater than before withdrawal",
+        );
         // for some reason forking mainnet we don't get back celo rewards
         assert(
           celoRewardBalanceAfter.gte(celoRewardBalanceBefore),

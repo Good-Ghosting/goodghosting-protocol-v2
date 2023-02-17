@@ -194,6 +194,7 @@ describe("Aave V3 Variable Deposit Pool Fork Tests with the deposit token as tra
     const inboundTokenBalanceBeforeWithdraw = await ethers.provider.getBalance(accounts[0].address);
     await pool.connect(accounts[0]).adminFeeWithdraw(0);
     const inboundTokenBalanceAfterWithdraw = await ethers.provider.getBalance(accounts[0].address);
-    assert(inboundTokenBalanceAfterWithdraw.gt(inboundTokenBalanceBeforeWithdraw));
+    // since the admin is player1 and there is gas too
+    assert(inboundTokenBalanceAfterWithdraw.lte(inboundTokenBalanceBeforeWithdraw));
   });
 });

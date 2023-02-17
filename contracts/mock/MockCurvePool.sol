@@ -3,19 +3,17 @@ pragma solidity 0.8.7;
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "./MintableERC20.sol";
+import "hardhat/console.sol";
+import "./MockCurveGauge.sol";
 
 contract MockCurvePool is MintableERC20, Ownable {
     IERC20 public reserve;
 
-    address gauge;
+    MockCurveGauge gauge;
 
     bool setImpermanentLoss;
 
-    constructor(
-        string memory name,
-        string memory symbol,
-        IERC20 _reserve
-    ) MintableERC20(name, symbol) {
+    constructor(string memory name, string memory symbol, IERC20 _reserve) MintableERC20(name, symbol) {
         reserve = _reserve;
         _mint(msg.sender, 1000 ether);
     }
@@ -24,7 +22,7 @@ contract MockCurvePool is MintableERC20, Ownable {
         setImpermanentLoss = true;
     }
 
-    function setGauge(address _gauge) external {
+    function setGauge(MockCurveGauge _gauge) external {
         gauge = _gauge;
     }
 
@@ -68,14 +66,15 @@ contract MockCurvePool is MintableERC20, Ownable {
                 _token_amount = reserve.balanceOf(address(this));
             }
             reserve.transfer(msg.sender, _token_amount);
+
+            if (setImpermanentLoss) {
+                uint256 burnAmount = (gauge.balanceOf(msg.sender) + _token_amount) / 2;
+                gauge.burnFrom(msg.sender, burnAmount);
+            }
         }
     }
 
-    function remove_liquidity_one_coin(
-        uint256 _token_amount,
-        uint256 i,
-        uint256 _min_amount
-    ) external {
+    function remove_liquidity_one_coin(uint256 _token_amount, uint256 i, uint256 _min_amount) external {
         if (_min_amount == 900000000000000000) {
             reserve.transfer(msg.sender, 6000000000000000000);
         } else if (_min_amount == 9000) {
@@ -85,6 +84,11 @@ contract MockCurvePool is MintableERC20, Ownable {
                 _token_amount = reserve.balanceOf(address(this));
             }
             reserve.transfer(msg.sender, _token_amount);
+
+            if (setImpermanentLoss) {
+                uint256 burnAmount = (gauge.balanceOf(msg.sender) + _token_amount) / 2;
+                gauge.burnFrom(msg.sender, burnAmount);
+            }
         }
     }
 

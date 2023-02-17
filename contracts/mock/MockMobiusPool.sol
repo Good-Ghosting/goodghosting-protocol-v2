@@ -11,11 +11,7 @@ contract MockMobiusPool is MintableERC20, Ownable {
 
     bool setImpermanentLoss;
 
-    constructor(
-        string memory name,
-        string memory symbol,
-        IERC20 _reserve
-    ) MintableERC20(name, symbol) {
+    constructor(string memory name, string memory symbol, IERC20 _reserve) MintableERC20(name, symbol) {
         reserve = _reserve;
     }
 
@@ -37,11 +33,7 @@ contract MockMobiusPool is MintableERC20, Ownable {
         return _amount;
     }
 
-    function addLiquidity(
-        uint256[] calldata amounts,
-        uint256 minToMint,
-        uint256 deadline
-    ) external returns (uint256) {
+    function addLiquidity(uint256[] calldata amounts, uint256 minToMint, uint256 deadline) external returns (uint256) {
         reserve.transferFrom(msg.sender, address(this), amounts[0]);
         _mint(msg.sender, amounts[0]);
         return amounts[0];
