@@ -2,7 +2,7 @@ const abi = require("ethereumjs-abi");
 const axios = require("axios");
 const BN = require("bn.js");
 const GoodGhostingContract = artifacts.require("Pool");
-const WhitelistedContract = artifacts.require("WhitelistedPool");
+// const WhitelistedContract = artifacts.require("WhitelistedPool");
 const MobiusStrategyArtifact = artifacts.require("MobiusStrategy");
 const MoolaStrategyArtifact = artifacts.require("AaveStrategy");
 const AaveV3StrategyArtifact = artifacts.require("AaveStrategyV3");
@@ -102,7 +102,7 @@ module.exports = function (deployer, network, accounts) {
     } else {
       maxPlayersCount = MAX_PLAYER_COUNT;
     }
-    const goodGhostingContract = config.deployConfigs.isWhitelisted ? WhitelistedContract : GoodGhostingContract; // defaults to Ethereum version
+    const goodGhostingContract = GoodGhostingContract; //config.deployConfigs.isWhitelisted ? WhitelistedContract : GoodGhostingContract; // defaults to Ethereum version
     let strategyArgs;
     if (
       config.deployConfigs.strategy === "mobius-cUSD-DAI" ||
