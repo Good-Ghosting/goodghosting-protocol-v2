@@ -625,6 +625,7 @@ export const deployPool = async (
 
     await expect(goodGhosting.initialize(incentiveTokenAddress)).to.be.revertedWith("GAME_ALREADY_INITIALIZED()");
   } else {
+    throw new Error("WhitelistedPool is not supported");
     const goodGhostingV2Deployer = new WhitelistedPool__factory(deployer);
 
     await expect(
