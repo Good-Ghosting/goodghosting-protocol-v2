@@ -1,10 +1,10 @@
-# GoodGhosting V2 Pool
+# HaloFi (prev. GoodGhosting) V2 Pool
 
-GoodGhosting is a DeFi Protocol currently live on Polygon & Celo, which is revolutionizing the savings domain by gamifying it and rewarding regular savers.
+HaloFi (prev. GoodGhosting) is a DeFi Protocol currently live on Polygon & Celo, which is revolutionizing the savings domain by gamifying it and rewarding regular savers.
 
 You can read more about the [V1 Version](https://github.com/Good-Ghosting/goodghosting-protocol-v1#readme) to get a better understanding of the protocol.
 
-With the GoodGhosting V2 Pool, we aim to improve on the protocol and make it more fair, rewarding and more yield generating opportunities for regular savers in addition to the hodl feature.
+With the HaloFi (prev. GoodGhosting) V2 Pool, we aim to improve on the protocol and make it more fair, rewarding and more yield generating opportunities for regular savers in addition to the hodl feature.
 
 ## Notable Features in V2 Pool
 
@@ -34,7 +34,7 @@ With the GoodGhosting V2 Pool, we aim to improve on the protocol and make it mor
 
 ## Pool Interest Accounting Math
 
-GoodGhosting Protocol v2 introduces better fairness in terms of interest and reward generation for winners.
+HaloFi (prev. GoodGhosting) Protocol v2 introduces better fairness in terms of interest and reward generation for winners.
 
 In V2 there are 2 phases of the game, **deposit rounds** & the **waiting round**, so there are different accounting mechanisms for both phases.
 
