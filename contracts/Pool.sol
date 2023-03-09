@@ -230,7 +230,9 @@ contract Pool is Ownable, Pausable, ReentrancyGuard {
         address indexed player,
         uint256 amount,
         uint256 totalGamePrincipal,
-        uint256 netTotalGamePrincipal
+        uint256 netTotalGamePrincipal,
+        uint256 depositedAmount,
+        uint256 depositedNetAmount
     );
 
     event AdminWithdrawal(
@@ -892,14 +894,16 @@ contract Pool is Ownable, Pausable, ReentrancyGuard {
                     } else {
                         // if there are winners then calculate the rise in admin fee & update both admin fee & interest accordingly
                         adminfeeShareForDifference = (difference * adminFee) / 100;
-                        totalGameInterest = difference > 0 ? _grossInterest - adminfeeShareForDifference : totalGameInterest;
+                        totalGameInterest = difference > 0
+                            ? _grossInterest - adminfeeShareForDifference
+                            : totalGameInterest;
                     }
                     _adminFeeAmount[0] += adminfeeShareForDifference;
                 } else {
                     // if _grossInterest is non zero then update admin fee & game interest with the new gross interest
                     uint256 adminfeeShareForDifference;
                     if (winnerCount == 0 || winnersLeftToWithdraw == 0) {
-                    // if there are no winners then set the _grossInterest as the admin share & total game interest
+                        // if there are no winners then set the _grossInterest as the admin share & total game interest
                         adminfeeShareForDifference = _grossInterest;
                         totalGameInterest = _grossInterest;
                     } else {
@@ -918,11 +922,13 @@ contract Pool is Ownable, Pausable, ReentrancyGuard {
                         uint256 difference = _grossRewardTokenAmount[i] - _rewardTokenAmounts[i];
                         uint256 adminfeeShareForDifference;
                         if (winnerCount == 0 || winnersLeftToWithdraw == 0) {
-                           adminfeeShareForDifference = difference;
-                           _rewardTokenAmounts[i] += difference;
+                            adminfeeShareForDifference = difference;
+                            _rewardTokenAmounts[i] += difference;
                         } else {
-                           adminfeeShareForDifference = (difference * adminFee) / 100;
-                           _rewardTokenAmounts[i] = difference > 0 ? _grossRewardTokenAmount[i] - adminfeeShareForDifference : _rewardTokenAmounts[i];
+                            adminfeeShareForDifference = (difference * adminFee) / 100;
+                            _rewardTokenAmounts[i] = difference > 0
+                                ? _grossRewardTokenAmount[i] - adminfeeShareForDifference
+                                : _rewardTokenAmounts[i];
                         }
                         _adminFeeAmount[i + 1] += adminfeeShareForDifference;
                     } else {
@@ -1451,7 +1457,14 @@ contract Pool is Ownable, Pausable, ReentrancyGuard {
         // only at the end of the function, in order to emit it w/ the correct withdrawal amount.
         // In case the safety checks above are evaluated to true, withdrawAmount is updated,
         // so we need the event to be emitted with the correct info.
-        emit EarlyWithdrawal(msg.sender, actualTransferredAmount, totalGamePrincipal, netTotalGamePrincipal);
+        emit EarlyWithdrawal(
+            msg.sender,
+            actualTransferredAmount,
+            totalGamePrincipal,
+            netTotalGamePrincipal,
+            player.amountPaid,
+            player.netAmountPaid
+        );
     }
 
     /**
