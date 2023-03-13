@@ -990,7 +990,7 @@ contract Pool is Ownable, Pausable, ReentrancyGuard {
                     }
                 }
             }
-            emit AdminFee(adminFeeAmount);
+            emit AdminFee(_adminFeeAmount);
         }
 
         // avoid SSTORE in loop
