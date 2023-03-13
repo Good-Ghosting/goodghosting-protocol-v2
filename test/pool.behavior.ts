@@ -1342,6 +1342,8 @@ export const shouldBehaveLikeEarlyWithdrawingGGPool = async (strategyType: strin
         playerInfo.amountPaid.sub(feeAmount),
         ethers.BigNumber.from(0),
         ethers.BigNumber.from(0),
+        playerInfo.amountPaid,
+        playerInfo.netAmountPaid,
       );
   });
 
@@ -1369,6 +1371,8 @@ export const shouldBehaveLikeEarlyWithdrawingGGPool = async (strategyType: strin
             playerInfo.amountPaid.sub(feeAmount),
             ethers.BigNumber.from(0),
             ethers.BigNumber.from(0),
+            playerInfo.amountPaid,
+            playerInfo.netAmountPaid,
           );
       } else {
         // protocol deposit of the prev. deposit
@@ -1409,6 +1413,8 @@ export const shouldBehaveLikeEarlyWithdrawingGGPool = async (strategyType: strin
         playerInfo.amountPaid.sub(feeAmount),
         ethers.BigNumber.from(0),
         ethers.BigNumber.from(0),
+        playerInfo.amountPaid,
+        playerInfo.netAmountPaid,
       );
   });
 
@@ -1480,6 +1486,8 @@ export const shouldBehaveLikeEarlyWithdrawingGGPool = async (strategyType: strin
         player1Info.amountPaid.sub(feeAmount),
         player2Info.amountPaid,
         player2Info.netAmountPaid,
+        player1Info.amountPaid,
+        player1Info.netAmountPaid,
       );
   });
 
@@ -8261,6 +8269,8 @@ export const shouldBehaveLikeGGPoolWithTransactionalToken = async (strategyType:
         playerInfo.amountPaid.sub(feeAmount),
         ethers.BigNumber.from(0),
         ethers.BigNumber.from(0),
+        playerInfo.amountPaid,
+        playerInfo.netAmountPaid,
       );
   });
 
@@ -8398,6 +8408,8 @@ export const shouldBehaveLikeGGPoolWithSameTokenAddresses = async (strategyType:
         playerInfo.amountPaid.sub(feeAmount),
         ethers.BigNumber.from(0),
         ethers.BigNumber.from(0),
+        playerInfo.amountPaid,
+        playerInfo.netAmountPaid,
       );
   });
 
