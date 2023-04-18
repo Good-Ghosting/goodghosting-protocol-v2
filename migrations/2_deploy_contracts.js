@@ -10,6 +10,7 @@ const CurveStrategyArtifact = artifacts.require("CurveStrategy");
 const NoExternalStrategyArtifact = artifacts.require("NoExternalStrategy");
 
 const fs = require("fs");
+const ethers = require("ethers");
 const config = require("../deploy.config");
 const providerConfig = require("../providers.config");
 const ZERO_ADDRESS = "0x0000000000000000000000000000000000000000";
@@ -88,14 +89,13 @@ module.exports = function (deployer, network, accounts) {
       ? providerConfig.providers["mumbai"].tokens[config.deployConfigs.inboundCurrencySymbol].decimals
       : providerConfig.providers["polygon"].tokens[config.deployConfigs.inboundCurrencySymbol].decimals;
 
-    const segmentPaymentWei = new BN(config.deployConfigs.segmentPayment)
-      .mul(new BN(10).pow(new BN(inboundCurrencyDecimals)))
+    const segmentPaymentWei = ethers.utils
+      .parseUnits(config.deployConfigs.segmentPayment.toString(), inboundCurrencyDecimals)
       .toString();
 
-    const maxFlexibleSegmentPaymentAmountWei = new BN(maxFlexibleSegmentPaymentAmount)
-      .mul(new BN(10).pow(new BN(inboundCurrencyDecimals)))
+    const maxFlexibleSegmentPaymentAmountWei = ethers.utils
+      .parseUnits(maxFlexibleSegmentPaymentAmount.toString(), inboundCurrencyDecimals)
       .toString();
-
     let maxPlayersCount;
     if (config.deployConfigs.maxPlayersCount && config.deployConfigs.maxPlayersCount != "") {
       maxPlayersCount = config.deployConfigs.maxPlayersCount;
