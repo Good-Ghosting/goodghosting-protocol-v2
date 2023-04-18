@@ -12,8 +12,8 @@ const ZERO_ADDRESS = "0x0000000000000000000000000000000000000000";
 const MAX_PLAYER_COUNT = "18446744073709551615";
 
 exports.deployConfigs = {
-  strategy: "no-external-strategy",
-  inboundCurrencySymbol: "cusd", // name of the inbound currency symbol. Must be defined in the object {providers.network} above.
+  strategy: "aaveV3",
+  inboundCurrencySymbol: "dai", // name of the inbound currency symbol. Must be defined in the object {providers.network} above.
   owner: ZERO_ADDRESS, //dummy address,
   depositCount: 2, // integer number of segments
   segmentLength: WEEK, // in seconds
@@ -31,6 +31,6 @@ exports.deployConfigs = {
   initialize: false,
   rewardTokens: [
     // providers.celo.tokens.symm.address,
-    providers.celo.tokens.ethix.address,
+    // providers.celo.tokens.ethix.address,
   ], // ONLY USED IF STRATEGY IS "NO_EXTERNAL_STRATEGY"
 };
