@@ -142,7 +142,7 @@ module.exports = function (deployer, network, accounts) {
           : providerConfig.providers["polygon"].tokens["wmatic"].address,
         inboundCurrencyAddress,
       ];
-    } else if (config.deployConfigs.strategy === "no-external-strategy") {
+    } else if (config.deployConfigs.strategy === "open") {
       strategyArgs = [NoExternalStrategyArtifact, inboundCurrencyAddress, config.deployConfigs.rewardTokens];
     } else {
       strategyArgs = [
@@ -186,8 +186,7 @@ module.exports = function (deployer, network, accounts) {
         config.deployConfigs.strategy == "aaveV3"
           ? await AaveV3StrategyArtifact.deployed()
           : await MoolaStrategyArtifact.deployed();
-    else if (config.deployConfigs.strategy === "no-external-strategy")
-      strategyInstance = await NoExternalStrategyArtifact.deployed();
+    else if (config.deployConfigs.strategy === "open") strategyInstance = await NoExternalStrategyArtifact.deployed();
     else strategyInstance = await CurveStrategyArtifact.deployed();
 
     // Prepares deployment arguments
@@ -358,7 +357,7 @@ module.exports = function (deployer, network, accounts) {
       deploymentResult.strategyEncodedParameters = abi
         .rawEncode(aaveStrategyParameterTypes, aaveStrategyValues)
         .toString("hex");
-    } else if (config.deployConfigs.strategy === "no-external-strategy") {
+    } else if (config.deployConfigs.strategy === "open") {
       var noExternalStrategyParameterTypes = ["address", "address[]"];
       var noExternalStrategyValues = [deploymentResult.inboundCurrencyAddress, deploymentResult.rewardTokenAdddresses];
       deploymentResult.strategyEncodedParameters = abi

@@ -313,7 +313,7 @@ slither . --filter-path "aave|Migrations.sol|merkle|mock|openzeppelin|polygon|aa
 
 After setting the required configs mentioned above, start by setting the `MNEMONIC` var (which is the 12 word seed phrase in your wallet) and the `RPC` var in the `.env` file. Then, make sure you have the correct [deployment configs ](https://github.com/Good-Ghosting/goodghosting-protocol-v2/blob/master/deploy.config.ts) are set. If a **whitelisted pool** needs to be deployed, make sure the merkle root is set and the [isWhitelisted var](https://github.com/Good-Ghosting/goodghosting-protocol-v2/blob/master/deploy.config.ts#L20) is `true`. If everything is ok, then just run `yarn deploy:polygon`.
 
-The [strategy value](https://github.com/Good-Ghosting/goodghosting-protocol-v2/blob/master/deploy.config.ts#L6) options in deploy config are: `"aaveV2", "aaveV3", "polygon-curve-aave", "polygon-curve-atricrypto" & "no-external-strategy"`.
+The [strategy value](https://github.com/Good-Ghosting/goodghosting-protocol-v2/blob/master/deploy.config.ts#L6) options in deploy config are: `"aaveV2", "aaveV3", "polygon-curve-aave", "polygon-curve-atricrypto" & "open"`.
 
 Here is a sample deployment log:
 
@@ -380,7 +380,7 @@ Summary
 
 After setting the required configs mentioned above, start by setting the `CELO_PRIVATE_KEY` var (which is a 8-24 word seed phrase for your wallet) & the `RPC` var in the `.env` file. Then, make sure you have the correct [deployment configs](./deploy.config.ts) set. If a **whitelisted pool** needs to be deployed, make sure the `merkle root` is properly set, and the [isWhitelisted var](https://github.com/Good-Ghosting/goodghosting-protocol-v2/blob/master/deploy.config.ts#L20) is `true`. Then, just run `yarn deploy:celo`.
 
-The [strategy value](https://github.com/Good-Ghosting/goodghosting-protocol-v2/blob/master/deploy.config.ts#L6) options in deploy config are: "aaveV2", "moola", "mobius-cUSD-DAI", "mobius-cUSD-USDC" & "no-external-strategy".
+The [strategy value](https://github.com/Good-Ghosting/goodghosting-protocol-v2/blob/master/deploy.config.ts#L6) options in deploy config are: "aaveV2", "moola", "mobius-cUSD-DAI", "mobius-cUSD-USDC" & "open".
 
 Here is a sample deployment log:
 
@@ -441,7 +441,7 @@ Summary
 ## Polygon
 
 To verify contracts on polygon we use the [truffle-plugin-verify](https://github.com/rkalis/truffle-plugin-verify#usage) package. The only requirement is to have a Polygonscan API Key, which can be created on polygonscan. Once created, set the API KEY value to the key `POLYGONSCAN_API_KEY` in your `.env` file. Based on the strategy that was deployed, run any of these commands:
-`yarn verify:polygon:curve` or `yarn verify:polygon:aaveV2` or `yarn verify:polygon:aaveV3` or `yarn verify:polygon:no-external-strategy`.
+`yarn verify:polygon:curve` or `yarn verify:polygon:aaveV2` or `yarn verify:polygon:aaveV3` or `yarn verify:polygon:open`.
 
 ## Celo
 

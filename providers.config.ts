@@ -82,7 +82,7 @@ exports.providers = {
         gaugeMinter: "0x0000000000000000000000000000000000000000",
         rewardTokens: ["0xc3c7d422809852031b44ab29eec9f1eff2a58756"],
       },
-      //"no-external-strategy": {}, // REWARD TOKENS MUST BE CONFIGURED IN `deploy.configs.js` file
+      //"open": {}, // REWARD TOKENS MUST BE CONFIGURED IN `deploy.configs.js` file
     },
   },
   mumbai: {
@@ -222,7 +222,7 @@ exports.providers = {
         lpToken: "0x0000000000000000000000000000000000000000",
         rewardTokens: ["0x73a210637f6F6B7005512677Ba6B3C96bb4AA44B"],
       },
-      //"no-external-strategy": {}, // REWARD TOKENS MUST BE CONFIGURED IN `deploy.configs.js` file
+      //"open": {}, // REWARD TOKENS MUST BE CONFIGURED IN `deploy.configs.js` file
     },
   },
 };

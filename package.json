@@ -81,7 +81,7 @@
     "verify:polygon:curve": "truffle run verify Pool CurveStrategy --network polygon --debug",
     "verify:polygon:aaveV2": "truffle run verify Pool AaveStrategy  --network polygon --debug",
     "verify:polygon:aaveV3": "truffle run verify Pool AaveStrategyV3 --network polygon --debug",
-    "verify:polygon:no-external-strategy": "truffle run verify Pool NoExternalStrategy --network polygon --debug",
+    "verify:polygon:open": "truffle run verify Pool NoExternalStrategy --network polygon --debug",
     "lint": "yarn lint:sol && yarn lint:ts && yarn prettier:check",
     "lint:sol": "solhint --config ./.solhint.json --max-warnings 0 \"contracts/**/*.sol\"",
     "lint:ts": "eslint --config ./.eslintrc.yaml --ignore-path ./.eslintignore --ext .js,.ts .",
