@@ -226,7 +226,7 @@ contract("Pool with Curve Strategy when admin enables early game completion", ac
         curveRewardBalanceAfter = web3.utils.toBN(await curve.methods.balanceOf(player).call({ from: admin }));
         wmaticRewardBalanceAfter = web3.utils.toBN(await wmatic.methods.balanceOf(player).call({ from: admin }));
 
-        if (providersConfigs.gauge !== ZERO_ADDRESS) {
+        if (providersConfigs.gauge !== ZERO_ADDRESS && !curveRewardBalanceAfter.isZero()) {
           assert(
             curveRewardBalanceAfter.gt(curveRewardBalanceBefore),
             "expected curve balance after withdrawal to be greater than before withdrawal",

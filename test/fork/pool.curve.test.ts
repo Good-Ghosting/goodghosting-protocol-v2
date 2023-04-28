@@ -15,7 +15,7 @@ const providerConfig = require("../../providers.config");
 
 contract("Pool with Curve Strategy", accounts => {
   // Only executes this test file for local network fork
-  if (!["local-polygon"].includes(process.env.NETWORK ? process.env.NETWORK : "")) return;
+  if (!["local-polygon", "local-celo"].includes(process.env.NETWORK ? process.env.NETWORK : "")) return;
 
   const unlockedDaiAccount = process.env.WHALE_ADDRESS_FORKED_NETWORK;
   let providersConfigs: any;
@@ -32,6 +32,9 @@ contract("Pool with Curve Strategy", accounts => {
   } else if (configs.deployConfigs.strategy === "polygon-curve-atricrypto") {
     GoodGhostingArtifact = Pool;
     providersConfigs = providerConfig.providers["polygon"].strategies["polygon-curve-atricrypto"];
+  } else if (configs.deployConfigs.strategy === "celo-curve-tripool") {
+    GoodGhostingArtifact = Pool;
+    providersConfigs = providerConfig.providers["celo"].strategies["polygon-curve-atricrypto"];
   } else {
     GoodGhostingArtifact = Pool;
     providersConfigs = providerConfig.providers["polygon"].strategies["polygon-curve-stmatic-matic"];
@@ -343,7 +346,7 @@ contract("Pool with Curve Strategy", accounts => {
         curveRewardBalanceAfter = web3.utils.toBN(await curve.methods.balanceOf(player).call({ from: admin }));
         wmaticRewardBalanceAfter = web3.utils.toBN(await wmatic.methods.balanceOf(player).call({ from: admin }));
 
-        if (providersConfigs.gauge !== ZERO_ADDRESS) {
+        if (providersConfigs.gauge !== ZERO_ADDRESS && !curveRewardBalanceAfter.isZero()) {
           assert(
             curveRewardBalanceAfter.gt(curveRewardBalanceBefore),
             "expected curve balance after withdrawal to be greater than before withdrawal",

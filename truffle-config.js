@@ -57,6 +57,7 @@ module.exports = {
       host: "127.0.0.1",
       port: 8545,
       network_id: "*",
+      gasPrice: 900000000000,
     },
     "local-variable-polygon": {
       host: "127.0.0.1",

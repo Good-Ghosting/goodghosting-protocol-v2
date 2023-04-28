@@ -5,7 +5,7 @@ import { solidity } from "ethereum-waffle";
 import {
   LendingPoolAddressesProviderMock__factory,
   Pool__factory,
-  WhitelistedPool__factory,
+  //WhitelistedPool__factory,
   AaveStrategy__factory,
   AaveStrategyV3__factory,
   MintableERC20__factory,
@@ -17,7 +17,6 @@ import {
   MockCurvePool__factory,
   MockCurveStrategy__factory,
   MockCurveGaugeMinter__factory,
-  MockCurveGaugeMinter,
   MockMobiusStrategy__factory,
   MockMobiusPool__factory,
   MockMobiusGauge__factory,
@@ -626,7 +625,8 @@ export const deployPool = async (
     await expect(goodGhosting.initialize(incentiveTokenAddress)).to.be.revertedWith("GAME_ALREADY_INITIALIZED()");
   } else {
     throw new Error("WhitelistedPool is not supported");
-    const goodGhostingV2Deployer = new WhitelistedPool__factory(deployer);
+    // const goodGhostingV2Deployer = new WhitelistedPool__factory(deployer);
+    const goodGhostingV2Deployer: any = null;
 
     await expect(
       goodGhostingV2Deployer.deploy(
