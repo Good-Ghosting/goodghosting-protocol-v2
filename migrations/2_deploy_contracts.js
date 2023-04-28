@@ -237,23 +237,32 @@ module.exports = function (deployer, network, accounts) {
     const ggInstance = await goodGhostingContract.deployed();
     let poolOwnerAccount = deployerAccount;
 
+    console.log(`\n\nStarting... Transfer ownership of strategy contract "${strategyInstance.address}" to pool contract "${ggInstance.address}"`);
+    await strategyInstance.transferOwnership(ggInstance.address, { ...txGasConfig });
+    console.log(`Completed... Transferred ownership of strategy contract "${strategyInstance.address}" to pool contract "${ggInstance.address}"`);
+
+    if (config.deployConfigs.initialize) {
+      console.log(`\n\nStarting... Initialize pool contract "${ggInstance.address}" with params:`);
+      console.log(`merkleRoot: "${config.deployConfigs.isWhitelisted ? config.deployConfigs.merkleroot : ''}"`);
+      console.log(`incentive token: "${config.deployConfigs.incentiveToken}"`);
+      config.deployConfigs.isWhitelisted
+        ? await ggInstance.initializePool(config.deployConfigs.merkleroot, config.deployConfigs.incentiveToken, {
+            ...txGasConfig,
+          })
+        : await ggInstance.initialize(config.deployConfigs.incentiveToken, { ...txGasConfig });
+      console.log(`Completed... Initialize pool contract "${ggInstance.address}"`);
+    }
     if (
       config.deployConfigs.owner &&
       config.deployConfigs.owner != "0x" &&
       config.deployConfigs.owner != "0x0000000000000000000000000000000000000000"
     ) {
       poolOwnerAccount = config.deployConfigs.owner;
+      console.log(`\n\nStarting... Transfer ownership of pool contract "${ggInstance.address}" to new owner "${config.deployConfigs.owner}"`);
       await ggInstance.transferOwnership(config.deployConfigs.owner, { ...txGasConfig });
+      console.log(`Completed... Transferred ownership of pool contract "${ggInstance.address}" to new owner "${config.deployConfigs.owner}"`);
     }
-    await strategyInstance.transferOwnership(ggInstance.address, { ...txGasConfig });
 
-    if (config.deployConfigs.initialize) {
-      config.deployConfigs.isWhitelisted
-        ? await ggInstance.initializePool(config.deployConfigs.merkleroot, config.deployConfigs.incentiveToken, {
-            ...txGasConfig,
-          })
-        : await ggInstance.initialize(config.deployConfigs.incentiveToken, { ...txGasConfig });
-    }
     const poolTxInfo = await web3.eth.getTransaction(poolTx.transactionHash);
     const strategyTxInfo = await web3.eth.getTransaction(strategyTx.transactionHash);
 
