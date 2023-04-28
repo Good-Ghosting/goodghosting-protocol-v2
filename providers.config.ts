@@ -181,6 +181,10 @@ exports.providers = {
         address: "0x9995cc8F20Db5896943Afc8eE0ba463259c931ed",
         decimals: 18,
       },
+      gd: {
+        address: "0x62B8B11039FcfE5aB0C56E502b1C372A3d2a9c7A",
+        decimals: 18,
+      }
     },
     strategies: {
       moola: {
