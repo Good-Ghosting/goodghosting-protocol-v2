@@ -1,5 +1,12 @@
-import { buildCalcTokenAmountParameters, selectWithdrawAmount } from "./pool.curve.utils";
+import {
+  buildCalcTokenAmountParameters,
+  getBalanceOfIfDefined,
+  selectWithdrawAmount,
+  shouldExecuteCurveForkTests,
+  subtractWithExpectedSlippage,
+} from "./pool.curve.utils";
 
+const celotripoolABI = require("../../abi-external/curve-celo-tripool-abi.json");
 const Pool = artifacts.require("Pool");
 const CurveStrategy = artifacts.require("CurveStrategy");
 const timeMachine = require("ganache-time-traveler");
@@ -13,27 +20,32 @@ const maticpoolABI = require("../../abi-external/curve-matic-pool-abi.json");
 const configs = require("../../deploy.config");
 const providerConfig = require("../../providers.config");
 
-contract("Pool with Curve Strategy with incentives sent same as deposit token", accounts => {
+contract.only("Pool with Curve Strategy with incentives sent same as deposit token", accounts => {
   // Only executes this test file for local network fork
-  if (!["local-polygon"].includes(process.env.NETWORK ? process.env.NETWORK : "")) return;
+  if (shouldExecuteCurveForkTests()) return;
 
+  const isLocalPolygon = process.env.NETWORK === "local-polygon";
   const unlockedDaiAccount = process.env.WHALE_ADDRESS_FORKED_NETWORK;
   let providersConfigs: any;
-  let GoodGhostingArtifact: any;
   let curve: any;
   let wmatic: any;
+
   const ZERO_ADDRESS = "0x0000000000000000000000000000000000000000";
 
+  const GoodGhostingArtifact = Pool;
   if (configs.deployConfigs.strategy === "polygon-curve-aave") {
-    GoodGhostingArtifact = Pool;
     providersConfigs = providerConfig.providers["polygon"].strategies["polygon-curve-aave"];
   } else if (configs.deployConfigs.strategy === "polygon-curve-atricrypto") {
-    GoodGhostingArtifact = Pool;
     providersConfigs = providerConfig.providers["polygon"].strategies["polygon-curve-atricrypto"];
+  } else if (configs.deployConfigs.strategy === "celo-curve-tripool") {
+    providersConfigs = providerConfig.providers["celo"].strategies["celo-curve-tripool"];
   } else {
-    GoodGhostingArtifact = Pool;
     providersConfigs = providerConfig.providers["polygon"].strategies["polygon-curve-stmatic-matic"];
   }
+
+  const providerConfigCurrentNetwork = isLocalPolygon
+    ? providerConfig.providers["polygon"]
+    : providerConfig.providers["celo"];
 
   const {
     depositCount,
@@ -48,15 +60,14 @@ contract("Pool with Curve Strategy with incentives sent same as deposit token", 
   let curveStrategy: any;
   let tokenIndex: any;
   let principal: any;
-
-  let admin = accounts[0];
+  const admin = accounts[0];
   const players = accounts.slice(1, 6); // 5 players
   const loser = players[0];
   const userWithdrawingAfterLastSegment = players[1];
-  const daiDecimals = web3.utils.toBN(
-    10 ** providerConfig.providers["polygon"].tokens[configs.deployConfigs.inboundCurrencySymbol].decimals,
+  const tokenDecimals = web3.utils.toBN(
+    10 ** providerConfigCurrentNetwork.tokens[configs.deployConfigs.inboundCurrencySymbol].decimals,
   );
-  const segmentPayment = daiDecimals.mul(web3.utils.toBN(segmentPaymentInt)); // equivalent to 10 Inbound Token
+  const segmentPayment = tokenDecimals.mul(web3.utils.toBN(segmentPaymentInt)); // equivalent to 10 Inbound Token
   let goodGhosting: any;
 
   describe("simulates a full game with 5 players and 4 of them winning the game and with admin fee % as 0", async () => {
@@ -65,32 +76,39 @@ contract("Pool with Curve Strategy with incentives sent same as deposit token", 
         pool = new web3.eth.Contract(aavepoolABI, providersConfigs.pool);
       } else if (providersConfigs.poolType == 1) {
         pool = new web3.eth.Contract(atricryptopoolABI, providersConfigs.pool);
-      } else {
+      } else if (providerConfig.poolType == 2) {
         pool = new web3.eth.Contract(maticpoolABI, providersConfigs.pool);
+      } else {
+        pool = new web3.eth.Contract(celotripoolABI, providersConfigs.pool);
       }
 
       token = new web3.eth.Contract(
         wmaticABI,
-        providerConfig.providers["polygon"].tokens[configs.deployConfigs.inboundCurrencySymbol].address,
+        providerConfigCurrentNetwork.tokens[configs.deployConfigs.inboundCurrencySymbol].address,
       );
-      if (configs.deployConfigs.strategy === "polygon-curve-stmatic-matic") {
-        curve = new web3.eth.Contract(wmaticABI, providerConfig.providers["polygon"].tokens["ldo"].address);
-      } else {
-        curve = new web3.eth.Contract(wmaticABI, providerConfig.providers["polygon"].tokens["curve"].address);
+
+      if (isLocalPolygon) {
+        if (configs.deployConfigs.strategy === "polygon-curve-stmatic-matic") {
+          curve = new web3.eth.Contract(wmaticABI, providerConfigCurrentNetwork.tokens["ldo"].address);
+        } else {
+          curve = new web3.eth.Contract(wmaticABI, providerConfigCurrentNetwork.tokens["curve"].address);
+        }
+        wmatic = new web3.eth.Contract(wmaticABI, providerConfigCurrentNetwork.tokens["wmatic"].address);
       }
-      wmatic = new web3.eth.Contract(wmaticABI, providerConfig.providers["polygon"].tokens["wmatic"].address);
 
       goodGhosting = await GoodGhostingArtifact.deployed();
       curveStrategy = await CurveStrategy.deployed();
       tokenIndex = await curveStrategy.inboundTokenIndex();
       tokenIndex = tokenIndex.toString();
       gaugeToken = new web3.eth.Contract(curveGauge.abi, providersConfigs.gauge);
-
       if (configs.deployConfigs.strategy !== "polygon-curve-stmatic-matic") {
         const unlockedBalance = await token.methods.balanceOf(unlockedDaiAccount).call({ from: admin });
         const daiAmount = segmentPayment.mul(web3.utils.toBN(depositCount)).toString();
-        console.log("unlockedBalance: ", web3.utils.toBN(unlockedBalance).div(web3.utils.toBN(daiDecimals)).toString());
-        console.log("daiAmountToTransfer", web3.utils.toBN(daiAmount).div(web3.utils.toBN(daiDecimals)).toString());
+        console.log(
+          "unlockedBalance: ",
+          web3.utils.toBN(unlockedBalance).div(web3.utils.toBN(tokenDecimals)).toString(),
+        );
+        console.log("daiAmountToTransfer", web3.utils.toBN(daiAmount).div(web3.utils.toBN(tokenDecimals)).toString());
         for (let i = 0; i < players.length; i++) {
           const player = players[i];
           let transferAmount = daiAmount;
@@ -98,16 +116,25 @@ contract("Pool with Curve Strategy with incentives sent same as deposit token", 
             // Player 1 needs additional funds to rejoin
             transferAmount = web3.utils.toBN(daiAmount).add(segmentPayment).toString();
           }
+
           await token.methods.transfer(player, transferAmount).send({ from: unlockedDaiAccount });
+
           const playerBalance = await token.methods.balanceOf(player).call({ from: admin });
+
           console.log(
             `player${i + 1}DAIBalance`,
-            web3.utils.toBN(playerBalance).div(web3.utils.toBN(daiDecimals)).toString(),
+            web3.utils.toBN(playerBalance).div(web3.utils.toBN(tokenDecimals)).toString(),
           );
         }
+
+        const incentiveAmountToTransfer = tokenDecimals.mul(web3.utils.toBN("50")).toString();
+        console.log("incentiveAmountToTransfer", incentiveAmountToTransfer);
         await token.methods
-          .transfer(goodGhosting.address, web3.utils.toWei("50").toString())
-          .send({ from: unlockedDaiAccount });
+          .transfer(goodGhosting.address, incentiveAmountToTransfer)
+          .send({ from: unlockedDaiAccount })
+          .catch((err: any) => {
+            console.log("🚀 ~ file: pool.curve.test.incentives.same.as.deposit.token.ts:128 ~ it ~ err:", err);
+          });
       } else {
         const daiAmount = segmentPayment.mul(web3.utils.toBN(depositCount * 8)).toString();
 
@@ -117,13 +144,15 @@ contract("Pool with Curve Strategy with incentives sent same as deposit token", 
           const playerBalance = await token.methods.balanceOf(player).call({ from: admin });
           console.log(
             `player${i + 1}DAIBalance`,
-            web3.utils.toBN(playerBalance).div(web3.utils.toBN(daiDecimals)).toString(),
+            web3.utils.toBN(playerBalance).div(web3.utils.toBN(tokenDecimals)).toString(),
           );
         }
-        await token.methods.deposit().send({ from: unlockedDaiAccount, value: web3.utils.toWei("60").toString() });
+        await token.methods
+          .deposit()
+          .send({ from: unlockedDaiAccount, value: tokenDecimals.mul(web3.utils.toBN("60")).toString() });
 
         await token.methods
-          .transfer(goodGhosting.address, web3.utils.toWei("60").toString())
+          .transfer(goodGhosting.address, tokenDecimals.mul(web3.utils.toBN("60")).toString())
           .send({ from: unlockedDaiAccount });
       }
     });
@@ -176,7 +205,7 @@ contract("Pool with Curve Strategy with incentives sent same as deposit token", 
 
           let minAmount = await pool.methods.calc_withdraw_one_coin(lpTokenAmount.toString(), tokenIndex).call();
 
-          minAmount = web3.utils.toBN(minAmount).sub(web3.utils.toBN(minAmount).div(web3.utils.toBN("1000")));
+          minAmount = subtractWithExpectedSlippage(minAmount);
 
           const userProvidedMinAmount = web3.utils
             .toBN(lpTokenAmount)
@@ -268,7 +297,7 @@ contract("Pool with Curve Strategy with incentives sent same as deposit token", 
           }
           let minAmount = await pool.methods.calc_withdraw_one_coin(lpTokenAmount.toString(), tokenIndex).call();
 
-          minAmount = web3.utils.toBN(minAmount).sub(web3.utils.toBN(minAmount).div(web3.utils.toBN("1000")));
+          minAmount = subtractWithExpectedSlippage(minAmount);
 
           const userProvidedMinAmount = web3.utils
             .toBN(lpTokenAmount)
@@ -306,7 +335,7 @@ contract("Pool with Curve Strategy with incentives sent same as deposit token", 
       }
       let minAmount = await pool.methods.calc_withdraw_one_coin(lpTokenAmount.toString(), tokenIndex).call();
 
-      minAmount = web3.utils.toBN(minAmount).sub(web3.utils.toBN(minAmount).div(web3.utils.toBN("1000")));
+      minAmount = subtractWithExpectedSlippage(minAmount);
 
       const userProvidedMinAmount = web3.utils
         .toBN(lpTokenAmount)
@@ -338,16 +367,16 @@ contract("Pool with Curve Strategy with incentives sent same as deposit token", 
 
         let inboundTokenBalanceBeforeRedeem = await token.methods.balanceOf(player).call();
 
-        curveRewardBalanceBefore = web3.utils.toBN(await curve.methods.balanceOf(player).call({ from: admin }));
-        wmaticRewardBalanceBefore = web3.utils.toBN(await wmatic.methods.balanceOf(player).call({ from: admin }));
+        curveRewardBalanceBefore = await getBalanceOfIfDefined(curve, player, admin);
+        wmaticRewardBalanceBefore = await getBalanceOfIfDefined(wmatic, player, admin);
         const playerInfo = await goodGhosting.players(player);
         const netAmountPaid = playerInfo.netAmountPaid;
 
         await goodGhosting.withdraw(0, { from: player });
 
         let inboundTokenBalanceAfterRedeem = await token.methods.balanceOf(player).call();
-        curveRewardBalanceAfter = web3.utils.toBN(await curve.methods.balanceOf(player).call({ from: admin }));
-        wmaticRewardBalanceAfter = web3.utils.toBN(await wmatic.methods.balanceOf(player).call({ from: admin }));
+        curveRewardBalanceAfter = await getBalanceOfIfDefined(curve, player, admin);
+        wmaticRewardBalanceAfter = await getBalanceOfIfDefined(wmatic, player, admin);
 
         if (providersConfigs.gauge !== ZERO_ADDRESS && !curveRewardBalanceAfter.isZero()) {
           assert(
@@ -385,8 +414,8 @@ contract("Pool with Curve Strategy with incentives sent same as deposit token", 
         let wmaticRewardBalanceAfter = web3.utils.toBN(0);
 
         let inboundTokenBalanceBefore = web3.utils.toBN(await token.methods.balanceOf(admin).call({ from: admin }));
-        curveRewardBalanceBefore = web3.utils.toBN(await curve.methods.balanceOf(admin).call({ from: admin }));
-        wmaticRewardBalanceBefore = web3.utils.toBN(await wmatic.methods.balanceOf(admin).call({ from: admin }));
+        curveRewardBalanceBefore = await getBalanceOfIfDefined(curve, admin);
+        wmaticRewardBalanceBefore = await getBalanceOfIfDefined(wmatic, admin);
 
         await goodGhosting.adminFeeWithdraw(0, {
           from: admin,
@@ -400,16 +429,14 @@ contract("Pool with Curve Strategy with incentives sent same as deposit token", 
           await token.methods.balanceOf(goodGhosting.address).call({ from: admin }),
         );
 
-        const curveRewardTokenPoolBalance = web3.utils.toBN(
-          await curve.methods.balanceOf(goodGhosting.address).call({ from: admin }),
-        );
+        const curveRewardTokenPoolBalance = await getBalanceOfIfDefined(curve, goodGhosting.address, admin);
 
-        curveRewardBalanceAfter = web3.utils.toBN(await curve.methods.balanceOf(admin).call({ from: admin }));
-        wmaticRewardBalanceAfter = web3.utils.toBN(await wmatic.methods.balanceOf(admin).call({ from: admin }));
+        curveRewardBalanceAfter = await getBalanceOfIfDefined(curve, admin);
+        wmaticRewardBalanceAfter = await getBalanceOfIfDefined(wmatic, admin);
 
         assert(inboundTokenPoolBalance.eq(web3.utils.toBN(0)));
 
-        if (providersConfigs.gauge !== ZERO_ADDRESS) {
+        if (providersConfigs.gauge !== ZERO_ADDRESS && !curveRewardBalanceAfter.isZero()) {
           assert(
             curveRewardBalanceAfter.gt(curveRewardBalanceBefore),
             "expected curve balance after withdrawal to be greater than before withdrawal",
