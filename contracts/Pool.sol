@@ -1322,7 +1322,9 @@ contract Pool is Ownable, Pausable, ReentrancyGuard {
         if (_adminFeeAmount[0] != 0 || _claimableRewards) {
             // safety check in case some incentives in the form of the deposit tokens are transferred to the pool
             uint256 _amountToRedeem = getRedemptionValue(_adminFeeAmount[0], strategy.getTotalAmount());
-            strategy.redeem(inboundToken, _amountToRedeem, _minAmount, disableRewardTokenClaim);
+            if (_amountToRedeem != 0) {
+                strategy.redeem(inboundToken, _amountToRedeem, _minAmount, disableRewardTokenClaim);
+            }
 
             // need the updated value for the event
             // balance check before transferring the funds
