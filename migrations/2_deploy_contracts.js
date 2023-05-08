@@ -49,6 +49,11 @@ const tokenIndexMapping = {
     cusd: 0,
     usdcet: 1,
   },
+  "celo-curve-tripool": {
+    cusd: 0,
+    usdc: 1,
+    usdt: 2,
+  },
 };
 
 module.exports = function (deployer, network, accounts) {
