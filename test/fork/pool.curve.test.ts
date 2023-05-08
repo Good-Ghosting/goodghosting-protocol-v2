@@ -19,7 +19,7 @@ const celotripoolABI = require("../../abi-external/curve-celo-tripool-abi.json")
 const configs = require("../../deploy.config");
 const providerConfig = require("../../providers.config");
 
-contract.only("Pool with Curve Strategy", accounts => {
+contract("Pool with Curve Strategy", accounts => {
   // Only executes this test file for local network fork
   if (!["local-polygon", "local-celo"].includes(process.env.NETWORK ? process.env.NETWORK : "")) return;
 
@@ -118,7 +118,7 @@ contract.only("Pool with Curve Strategy", accounts => {
             transferAmount = web3.utils.toBN(daiAmount).add(segmentPayment).toString();
           }
 
-          await token.methods.transfer(player, web3.utils.toBN("10000")).send({ from: unlockedDaiAccount });
+          //await token.methods.transfer(player, web3.utils.toBN("10000")).send({ from: unlockedDaiAccount });
           await token.methods.transfer(player, web3.utils.toBN(transferAmount)).send({ from: unlockedDaiAccount });
           const playerBalance = await token.methods.balanceOf(player).call({ from: admin });
           console.log(
