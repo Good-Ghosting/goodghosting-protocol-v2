@@ -104,7 +104,7 @@ contract("Pool with Curve Strategy with extra reward tokens sent to strategy & w
       }
       if (curve) {
         await curve.methods
-          .transfer(curveStrategy.address, tokenDecimals.mul(web3.utils.toBN("0.5")).toString())
+          .transfer(curveStrategy.address, tokenDecimals.mul(web3.utils.toBN("1")).toString())
           .send({ from: unlockedDaiAccount });
       }
     });

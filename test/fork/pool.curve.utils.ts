@@ -129,13 +129,17 @@ export function getCurveAndWMaticTokensContract(): {
 
   const isLocalPolygon = process.env.NETWORK === "local-polygon";
 
+  const providerConfigCurrentNetwork = isLocalPolygon
+    ? providerConfig.providers["polygon"]
+    : providerConfig.providers["celo"];
+
   if (isLocalPolygon) {
     if (configs.deployConfigs.strategy === "polygon-curve-stmatic-matic") {
-      curveContract = new web3.eth.Contract(wmaticABI, providerConfig.tokens["ldo"].address);
+      curveContract = new web3.eth.Contract(wmaticABI, providerConfigCurrentNetwork.tokens["ldo"].address);
     } else {
-      curveContract = new web3.eth.Contract(wmaticABI, providerConfig.tokens["curve"].address);
+      curveContract = new web3.eth.Contract(wmaticABI, providerConfigCurrentNetwork.tokens["curve"].address);
     }
-    wmaticContract = new web3.eth.Contract(wmaticABI, providerConfig.tokens["wmatic"].address);
+    wmaticContract = new web3.eth.Contract(wmaticABI, providerConfigCurrentNetwork.tokens["wmatic"].address);
   }
 
   return { curveContract, wmaticContract };
