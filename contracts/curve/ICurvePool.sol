@@ -1,6 +1,8 @@
 pragma solidity 0.8.7;
 
-interface ICurvePool {
+import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+
+interface ICurvePool is IERC20 {
     /**
     @param _amounts deposit amounts.
     @param _min_mint_amount min amount based on slippage.
@@ -53,6 +55,14 @@ interface ICurvePool {
         uint256 _min_amount,
         bool _use_underlying
     ) external returns (uint256);
+
+    /**
+    @param _token_amount token amount to be removed.
+    @param i token index.
+    @param _min_amount min amount based on slippage.
+    
+    */
+    function remove_liquidity_one_coin(uint256 _token_amount, int128 i, uint256 _min_amount) external returns (uint256);
 
     /**
     @param _token_amount token amount to be removed.
