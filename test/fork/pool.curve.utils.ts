@@ -66,8 +66,16 @@ export function shouldExecuteCurveForkTests(): boolean {
   return !["local-polygon", "local-celo"].includes(process.env.NETWORK ?? "");
 }
 
+export function shouldExecuteCurveForkVariableDepositTests(): boolean {
+  return !["local-variable-polygon", "local-variable-celo"].includes(process.env.NETWORK ?? "");
+}
+
+export function isNetworkLocalPolygon(): boolean {
+  return process.env.NETWORK === "local-polygon" || process.env.NETWORK === "local-variable-polygon";
+}
+
 export function getProvidersConfigCurrentNetwork(): { strategyConfig: any; providerConfig: any } {
-  const isLocalPolygon = process.env.NETWORK === "local-polygon";
+  const isLocalPolygon = isNetworkLocalPolygon();
 
   let strategyConfig: any;
 
@@ -127,7 +135,7 @@ export function getCurveAndWMaticTokensContract(): {
   let curveContract: any | undefined;
   let wmaticContract: any | undefined;
 
-  const isLocalPolygon = process.env.NETWORK === "local-polygon";
+  const isLocalPolygon = isNetworkLocalPolygon();
 
   const providerConfigCurrentNetwork = isLocalPolygon
     ? providerConfig.providers["polygon"]
