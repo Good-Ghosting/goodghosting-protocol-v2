@@ -45,6 +45,10 @@ exports.providers = {
         address: "0x9Bc0abf87F9350cDE55b2CDA219871726d620Bf9",
         decimals: 18,
       },
+      usdt: {
+        address: "0xc2132D05D31c914a87C6611C10748AEb04B58e8F",
+        decimals: 6,
+      },
     },
     strategies: {
       aaveV2: {
