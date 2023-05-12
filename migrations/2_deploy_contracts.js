@@ -1,6 +1,5 @@
 const abi = require("ethereumjs-abi");
 const axios = require("axios");
-const BN = require("bn.js");
 const GoodGhostingContract = artifacts.require("Pool");
 // const WhitelistedContract = artifacts.require("WhitelistedPool");
 const MobiusStrategyArtifact = artifacts.require("MobiusStrategy");
@@ -60,6 +59,10 @@ module.exports = function (deployer, network, accounts) {
   if (["test", "soliditycoverage"].includes(network)) return;
 
   deployer.then(async () => {
+    const deployerAccount = accounts[0];
+    // eslint-disable-next-line no-undef
+    console.log("Deployer account: ", deployerAccount);
+
     const maxFlexibleSegmentPaymentAmount = config.deployConfigs.maxFlexibleSegmentPaymentAmount;
     const flexibleSegmentPayment = config.deployConfigs.flexibleSegmentPayment;
 
@@ -156,19 +159,42 @@ module.exports = function (deployer, network, accounts) {
       ];
     }
     const deploymentResult = {};
+    let txGasConfig = {};
     // converting to 1 eth worth of gwei default for celo
-    let gasPrice = new BN("5").mul(new BN(10 ** 9));
     if (network.includes("celo")) {
       deploymentResult.network = "celo";
+      txGasConfig = { gasPrice: ethers.utils.parseUnits("5", "gwei").toString() };
     } else {
       deploymentResult.network = "polygon";
-      const payload = await axios.get("https://gasstation-mainnet.matic.network");
-      // converting to 1 eth worth of gwei
-      console.log("gas price options:", payload.data);
-      gasPrice = new BN(payload.data.fast).mul(new BN(10 ** 9));
-      console.log("gas price used:", payload.data.fast);
+      try {
+        const payload = await axios.get("https://gasstation-mainnet.matic.network/v2");
+        // eslint-disable-next-line no-undef
+        console.log("gas price options:", payload.data);
+        const roundedMaxPriorityFee = Math.round(payload.data.fast.maxPriorityFee).toString();
+        const roundedMaxFee = Math.round(payload.data.fast.maxFee).toString();
+        txGasConfig = {
+          maxPriorityFeePerGas: ethers.utils.parseUnits(roundedMaxPriorityFee, "gwei").toString(),
+          maxFeePerGas: ethers.utils.parseUnits(roundedMaxFee, "gwei").toString(),
+        };
+      } catch (error) {
+        // eslint-disable-next-line no-undef
+        console.log('error fetching gas price from "https://gasstation-mainnet.matic.network/v2".');
+        // eslint-disable-next-line no-undef
+        console.log("error details:");
+        // eslint-disable-next-line no-undef
+        console.log(error);
+        // eslint-disable-next-line no-undef
+        console.log(`using polygon's fallback gas price configs`);
+        txGasConfig = {
+          maxPriorityFeePerGas: ethers.utils.parseUnits("550", "gwei").toString(),
+          maxFeePerGas: ethers.utils.parseUnits("60", "gwei").toString(),
+        };
+      }
     }
-    const strategyTx = await deployer.deploy(...strategyArgs, { gasPrice: gasPrice });
+
+    // eslint-disable-next-line no-undef
+    console.log("gas price used:", txGasConfig);
+    const strategyTx = await deployer.deploy(...strategyArgs, txGasConfig);
     let strategyInstance;
     if (
       config.deployConfigs.strategy === "mobius-cUSD-DAI" ||
@@ -207,26 +233,36 @@ module.exports = function (deployer, network, accounts) {
     ];
 
     // Deploys the Pool Contract
-    const poolTx = await deployer.deploy(...deploymentArgs, { gasPrice: gasPrice });
+    const poolTx = await deployer.deploy(...deploymentArgs, txGasConfig);
     const ggInstance = await goodGhostingContract.deployed();
-    const deployerAccount = accounts[0];
     let poolOwnerAccount = deployerAccount;
 
+    console.log(`\n\nStarting... Transfer ownership of strategy contract "${strategyInstance.address}" to pool contract "${ggInstance.address}"`);
+    await strategyInstance.transferOwnership(ggInstance.address, { ...txGasConfig });
+    console.log(`Completed... Transferred ownership of strategy contract "${strategyInstance.address}" to pool contract "${ggInstance.address}"`);
+
+    if (config.deployConfigs.initialize) {
+      console.log(`\n\nStarting... Initialize pool contract "${ggInstance.address}" with params:`);
+      console.log(`merkleRoot: "${config.deployConfigs.isWhitelisted ? config.deployConfigs.merkleroot : ''}"`);
+      console.log(`incentive token: "${config.deployConfigs.incentiveToken}"`);
+      config.deployConfigs.isWhitelisted
+        ? await ggInstance.initializePool(config.deployConfigs.merkleroot, config.deployConfigs.incentiveToken, {
+            ...txGasConfig,
+          })
+        : await ggInstance.initialize(config.deployConfigs.incentiveToken, { ...txGasConfig });
+      console.log(`Completed... Initialize pool contract "${ggInstance.address}"`);
+    }
     if (
       config.deployConfigs.owner &&
       config.deployConfigs.owner != "0x" &&
       config.deployConfigs.owner != "0x0000000000000000000000000000000000000000"
     ) {
       poolOwnerAccount = config.deployConfigs.owner;
-      await ggInstance.transferOwnership(config.deployConfigs.owner);
+      console.log(`\n\nStarting... Transfer ownership of pool contract "${ggInstance.address}" to new owner "${config.deployConfigs.owner}"`);
+      await ggInstance.transferOwnership(config.deployConfigs.owner, { ...txGasConfig });
+      console.log(`Completed... Transferred ownership of pool contract "${ggInstance.address}" to new owner "${config.deployConfigs.owner}"`);
     }
-    await strategyInstance.transferOwnership(ggInstance.address);
 
-    if (config.deployConfigs.initialize) {
-      config.deployConfigs.isWhitelisted
-        ? await ggInstance.initializePool(config.deployConfigs.merkleroot, config.deployConfigs.incentiveToken)
-        : await ggInstance.initialize(config.deployConfigs.incentiveToken);
-    }
     const poolTxInfo = await web3.eth.getTransaction(poolTx.transactionHash);
     const strategyTxInfo = await web3.eth.getTransaction(strategyTx.transactionHash);
 
