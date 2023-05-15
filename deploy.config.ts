@@ -33,5 +33,5 @@ exports.deployConfigs = {
     // providers.celo.tokens.symm.address,
     // providers.celo.tokens.ethix.address,
   ], // ONLY USED IF STRATEGY IS "NO_EXTERNAL_STRATEGY"
-  addToRegistry: true, // true/false - when true, adds deployed contracts to registry if possible (registry address and deployer's permission also verified before adding to registry)
+  addToRegistry: false, // true/false - when true, adds deployed contracts to registry if possible (registry address and deployer's permission also verified before adding to registry)
 };
