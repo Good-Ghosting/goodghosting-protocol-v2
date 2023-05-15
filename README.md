@@ -284,7 +284,7 @@ To run the integrated test scenarios forking from Mainnet (Polygon or Celo) you'
 #### Celo
 
 Since hardhat currently does not support celo, we use truffle for celo fork tests. To start open a terminal window and run
-`npx ganache-cli -f https://forno.celo.org/ -m "clutchaptain shoe salt awake harvest setup primary inmate ugly among become" -i 999 --unlock {WHALE_ADDRESS_FORKED_NETWORK}`. In a second terminal window run
+`npx ganache-cli -f https://forno.celo.org/ -m "clutchaptain shoe salt awake harvest setup primary inmate ugly among become" -i 999 --gasPrice 900000000000 --unlock {WHALE_ADDRESS_FORKED_NETWORK}`. In a second terminal window run
 `yarn test:fork:celo` for fixed deposit pool or `yarn test:fork:variable:celo` for variable deposit pool/
 
 # Security Tools
