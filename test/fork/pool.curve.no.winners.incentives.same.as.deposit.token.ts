@@ -63,7 +63,9 @@ contract("Deposit Pool with Curve Strategy with no winners with incentives sent 
       curveStrategy = await CurveStrategy.deployed();
       tokenIndex = await curveStrategy.inboundTokenIndex();
       tokenIndex = tokenIndex.toString();
-      gaugeToken = new web3.eth.Contract(curveGauge.abi, strategyConfig.gauge);
+      if (gaugeToken) {
+        gaugeToken = new web3.eth.Contract(curveGauge.abi, strategyConfig.gauge);
+      }
 
       if (configs.deployConfigs.strategy !== "polygon-curve-stmatic-matic") {
         const unlockedBalance = await token.methods.balanceOf(unlockedDaiAccount).call({ from: admin });
@@ -164,9 +166,12 @@ contract("Deposit Pool with Curve Strategy with no winners with incentives sent 
             .calc_token_amount(...buildCalcTokenAmountParameters(toLpValue, tokenIndex, strategyConfig.poolType))
             .call();
 
-          const gaugeTokenBalance = await gaugeToken.methods.balanceOf(curveStrategy.address).call();
+          const gaugeTokenBalance = await getBalanceOfIfDefined(gaugeToken, curveStrategy.address);
 
-          if (parseInt(gaugeTokenBalance.toString()) < parseInt(lpTokenAmount.toString())) {
+          if (
+            !gaugeTokenBalance.isZero() &&
+            parseInt(gaugeTokenBalance.toString()) < parseInt(lpTokenAmount.toString())
+          ) {
             lpTokenAmount = gaugeTokenBalance;
           }
 
@@ -292,7 +297,7 @@ contract("Deposit Pool with Curve Strategy with no winners with incentives sent 
 
         const strategyTotalAmount = await curveStrategy.getTotalAmount();
 
-        const gaugeTokenBalance = await gaugeToken.methods.balanceOf(curveStrategy.address).call();
+        const gaugeTokenBalance = await getBalanceOfIfDefined(gaugeToken, curveStrategy.address);
 
         const leftOverPercent = (parseInt(strategyTotalAmount.toString()) * 100) / parseInt(principal.toString());
 

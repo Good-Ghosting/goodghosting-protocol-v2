@@ -71,7 +71,9 @@ contract("Pool with Curve Strategy with incentive tokens sent to pool", accounts
       curveStrategy = await CurveStrategy.deployed();
       tokenIndex = await curveStrategy.inboundTokenIndex();
       tokenIndex = tokenIndex.toString();
-      gaugeToken = new web3.eth.Contract(curveGauge.abi, strategyConfig.gauge);
+      if (gaugeToken) {
+        gaugeToken = new web3.eth.Contract(curveGauge.abi, strategyConfig.gauge);
+      }
       if (configs.deployConfigs.strategy !== "polygon-curve-stmatic-matic") {
         const unlockedBalance = await token.methods.balanceOf(unlockedDaiAccount).call({ from: admin });
         const daiAmount = segmentPayment.mul(web3.utils.toBN(depositCount)).toString();
@@ -152,9 +154,12 @@ contract("Pool with Curve Strategy with incentive tokens sent to pool", accounts
             .calc_token_amount(...buildCalcTokenAmountParameters(toLpValue, tokenIndex, strategyConfig.poolType))
             .call();
 
-          const gaugeTokenBalance = await gaugeToken.methods.balanceOf(curveStrategy.address).call();
+          const gaugeTokenBalance = await getBalanceOfIfDefined(gaugeToken, curveStrategy.address);
 
-          if (parseInt(gaugeTokenBalance.toString()) < parseInt(lpTokenAmount.toString())) {
+          if (
+            !gaugeTokenBalance.isZero() &&
+            parseInt(gaugeTokenBalance.toString()) < parseInt(lpTokenAmount.toString())
+          ) {
             lpTokenAmount = gaugeTokenBalance;
           }
 
@@ -246,8 +251,11 @@ contract("Pool with Curve Strategy with incentive tokens sent to pool", accounts
             .calc_token_amount(...buildCalcTokenAmountParameters(toLpValue, tokenIndex, strategyConfig.poolType))
             .call();
 
-          const gaugeTokenBalance = await gaugeToken.methods.balanceOf(curveStrategy.address).call();
-          if (parseInt(gaugeTokenBalance.toString()) < parseInt(lpTokenAmount.toString())) {
+          const gaugeTokenBalance = await getBalanceOfIfDefined(gaugeToken, curveStrategy.address);
+          if (
+            !gaugeTokenBalance.isZero() &&
+            parseInt(gaugeTokenBalance.toString()) < parseInt(lpTokenAmount.toString())
+          ) {
             lpTokenAmount = gaugeTokenBalance;
           }
           let minAmount = await pool.methods.calc_withdraw_one_coin(lpTokenAmount.toString(), tokenIndex).call();
@@ -284,8 +292,8 @@ contract("Pool with Curve Strategy with incentive tokens sent to pool", accounts
         .calc_token_amount(...buildCalcTokenAmountParameters(toLpValue, tokenIndex, strategyConfig.poolType))
         .call();
 
-      const gaugeTokenBalance = await gaugeToken.methods.balanceOf(curveStrategy.address).call();
-      if (parseInt(gaugeTokenBalance.toString()) < parseInt(lpTokenAmount.toString())) {
+      const gaugeTokenBalance = await getBalanceOfIfDefined(gaugeToken, curveStrategy.address);
+      if (!gaugeTokenBalance.isZero() && parseInt(gaugeTokenBalance.toString()) < parseInt(lpTokenAmount.toString())) {
         lpTokenAmount = gaugeTokenBalance;
       }
       let minAmount = await pool.methods.calc_withdraw_one_coin(lpTokenAmount.toString(), tokenIndex).call();
@@ -396,7 +404,7 @@ contract("Pool with Curve Strategy with incentive tokens sent to pool", accounts
 
         const strategyTotalAmount = await curveStrategy.getTotalAmount();
 
-        const gaugeTokenBalance = await gaugeToken.methods.balanceOf(curveStrategy.address).call();
+        const gaugeTokenBalance = await getBalanceOfIfDefined(gaugeToken, curveStrategy.address);
 
         const leftOverPercent = (parseInt(strategyTotalAmount.toString()) * 100) / parseInt(principal.toString());
 
@@ -408,7 +416,7 @@ contract("Pool with Curve Strategy with incentive tokens sent to pool", accounts
         console.log("Left over %", leftOverPercent.toString());
 
         // accounting for some dust amount checks the balance is less than the extra amount we added i.e 0.5
-        assert(inboundcrvTokenPoolBalance.lt(web3.utils.toBN("500000000000000000")));
+        assert(inboundcrvTokenPoolBalance.lt(web3.utils.toBN("300000000000000000")));
 
         assert(inboundincentiveTokenPoolBalance.eq(web3.utils.toBN("0")));
       }
