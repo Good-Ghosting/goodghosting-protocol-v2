@@ -107,8 +107,14 @@ contract CurveStrategy is Ownable, IStrategy {
                 return totalAccumulatedAmount;
             }
             return 0;
+        } else {
+            if (poolType == LENDING_POOL || poolType == PLAIN_3_BASIC) {
+                return pool.calc_withdraw_one_coin(lpToken.balanceOf(address(this)), inboundTokenIndex);
+            } else {
+                return
+                    pool.calc_withdraw_one_coin(lpToken.balanceOf(address(this)), uint256(uint128(inboundTokenIndex)));
+            }
         }
-        return 0;
     }
 
     /** 
@@ -595,6 +601,13 @@ contract CurveStrategy is Ownable, IStrategy {
                         unchecked {
                             ++i;
                         }
+                    }
+                }
+            } else {
+                for (uint256 i = 0; i < numRewards; ) {
+                    amounts[i] = _rewardTokens[i].balanceOf(address(this));
+                    unchecked {
+                        ++i;
                     }
                 }
             }
