@@ -282,10 +282,12 @@ module.exports = function (deployer, network, accounts) {
     }
 
     // Add pool and strategy to registry,  if applicable
+    let addToRegistryStatus = "skipped";
+    let addToRegistryMessage = `Skipped... "addToRegistry" deployment configs set to "false".`;
+    const registryAddress = process.env.REGISTRY_ADDRESS ?? "";
     if (config?.deployConfigs?.addToRegistry) {
       try {
         console.log(`\n\nStarting... Add deployed contracts to registry`);
-        const registryAddress = process.env.REGISTRY_ADDRESS;
         console.log("Selected Registry:", registryAddress ?? "NOT FOUND");
 
         if (registryAddress) {
@@ -304,22 +306,25 @@ module.exports = function (deployer, network, accounts) {
               ...txGasConfig,
             });
             await t.wait();
-            console.log(
-              `Completed... Added deployed contracts to registry: "${ggInstance.address}", "${strategyInstance.address}"`,
-            );
+            addToRegistryMessage = `Completed... Added deployed contracts to registry: "${ggInstance.address}", "${strategyInstance.address}"`;
+            addToRegistryStatus = "completed";
           } else {
-            console.log(`Skipped... Deployer Account does not have required permission to add contracts to registry.`);
+            addToRegistryMessage = `Skipped... Deployer Account does not have required permission to add contracts to registry.`;
           }
         } else {
-          console.log(`Skipped... No registry address found to add deployed contracts to.`);
+          addToRegistryMessage = `Skipped... No registry address found to add deployed contracts to.`;
         }
       } catch (error) {
-        console.log(`ERROR... Cannot add deployed contracts to registry due to error.`);
+        const errosMsg = error?.message ?? "exception error with no specific error message";
+        addToRegistryStatus = "error";
+        addToRegistryMessage = `ERROR... Cannot add deployed contracts to registry due to error: "${errosMsg}".`;
         console.log(`--------------- BEGIN OF ERROR - Add Contract to Registry ---------------\n`);
         console.log(error);
         console.log(`\n--------------- END OF ERROR - Add Contract to Registry ---------------`);
       }
     }
+    // prints out result of adding contracts to registry.
+    console.log(addToRegistryMessage);
 
     const poolTxInfo = await web3.eth.getTransaction(poolTx.transactionHash);
     const strategyTxInfo = await web3.eth.getTransaction(strategyTx.transactionHash);
@@ -357,6 +362,8 @@ module.exports = function (deployer, network, accounts) {
     if (config.deployConfigs.isWhitelisted) {
       deploymentResult.merkleroot = config.deployConfigs.merkleroot;
     }
+    deploymentResult.addToRegistryStatus = addToRegistryStatus;
+    deploymentResult.addToRegistryMessage = addToRegistryMessage;
     var poolParameterTypes = [
       "address", // inboundCurrencyAddress,
       "uint256", // maxFlexibleSegmentPaymentAmount
