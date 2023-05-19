@@ -284,7 +284,11 @@ module.exports = function (deployer, network, accounts) {
     // Add pool and strategy to registry,  if applicable
     let addToRegistryStatus = "skipped";
     let addToRegistryMessage = `Skipped... "addToRegistry" deployment configs set to "false".`;
-    const registryAddress = process.env.REGISTRY_ADDRESS ?? "";
+    let registryAddress = process.env.REGISTRY_ADDRESS ?? "";
+    if (registryAddress.toLowerCase() === ZERO_ADDRESS) {
+      registryAddress = "";
+    }
+
     if (config?.deployConfigs?.addToRegistry) {
       try {
         console.log(`\n\nStarting... Add deployed contracts to registry`);
