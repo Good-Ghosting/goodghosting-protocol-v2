@@ -57,7 +57,7 @@ exports.providers = {
         lendingPoolAddressProvider: "0xa97684ead0e402dC232d5A977953DF7ECBaB3CDb",
         dataProvider: "0x69FA688f1Dc47d4B5d8029D5a35FB7a548310654",
         incentiveController: "0x929EC64c34a17401F460460D4B9390518E5B473e",
-        wethGateway: "0x9BdB5fcc80A49640c7872ac089Cc0e00A98451B6",
+        wethGateway: "0x1e4b7A6b903680eab0c5dAbcb8fD429cD2a9598c",
       },
       "polygon-curve-aave": {
         pool: "0x445FE580eF8d70FF569aB36e80c647af338db351",
@@ -184,7 +184,7 @@ exports.providers = {
       gd: {
         address: "0x62B8B11039FcfE5aB0C56E502b1C372A3d2a9c7A",
         decimals: 18,
-      }
+      },
     },
     strategies: {
       moola: {
