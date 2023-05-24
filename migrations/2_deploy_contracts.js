@@ -1,3 +1,5 @@
+/* global console, process, web3 */
+
 const abi = require("ethereumjs-abi");
 const axios = require("axios");
 const GoodGhostingContract = artifacts.require("Pool");
@@ -7,12 +9,16 @@ const MoolaStrategyArtifact = artifacts.require("AaveStrategy");
 const AaveV3StrategyArtifact = artifacts.require("AaveStrategyV3");
 const CurveStrategyArtifact = artifacts.require("CurveStrategy");
 const NoExternalStrategyArtifact = artifacts.require("NoExternalStrategy");
+const RegistryAbi = require("../abi-external/registry.json");
 
 const fs = require("fs");
 const ethers = require("ethers");
 const config = require("../deploy.config");
 const providerConfig = require("../providers.config");
 const ZERO_ADDRESS = "0x0000000000000000000000000000000000000000";
+
+// Immutable
+const OPERATOR_ROLE = "0x97667070c54ef182b0f5858b034beac1b6f3089aa2d3188bb1e8929f4fa9b929";
 
 // used for amm strategies
 const tokenIndexMapping = {
@@ -237,13 +243,19 @@ module.exports = function (deployer, network, accounts) {
     const ggInstance = await goodGhostingContract.deployed();
     let poolOwnerAccount = deployerAccount;
 
-    console.log(`\n\nStarting... Transfer ownership of strategy contract "${strategyInstance.address}" to pool contract "${ggInstance.address}"`);
+    // Transfer strategy ownership to pool
+    console.log(
+      `\n\nStarting... Transfer ownership of strategy contract "${strategyInstance.address}" to pool contract "${ggInstance.address}"`,
+    );
     await strategyInstance.transferOwnership(ggInstance.address, { ...txGasConfig });
-    console.log(`Completed... Transferred ownership of strategy contract "${strategyInstance.address}" to pool contract "${ggInstance.address}"`);
+    console.log(
+      `Completed... Transferred ownership of strategy contract "${strategyInstance.address}" to pool contract "${ggInstance.address}"`,
+    );
 
+    // Initialize pool if applicable
     if (config.deployConfigs.initialize) {
       console.log(`\n\nStarting... Initialize pool contract "${ggInstance.address}" with params:`);
-      console.log(`merkleRoot: "${config.deployConfigs.isWhitelisted ? config.deployConfigs.merkleroot : ''}"`);
+      console.log(`merkleRoot: "${config.deployConfigs.isWhitelisted ? config.deployConfigs.merkleroot : ""}"`);
       console.log(`incentive token: "${config.deployConfigs.incentiveToken}"`);
       config.deployConfigs.isWhitelisted
         ? await ggInstance.initializePool(config.deployConfigs.merkleroot, config.deployConfigs.incentiveToken, {
@@ -252,16 +264,71 @@ module.exports = function (deployer, network, accounts) {
         : await ggInstance.initialize(config.deployConfigs.incentiveToken, { ...txGasConfig });
       console.log(`Completed... Initialize pool contract "${ggInstance.address}"`);
     }
+
+    // Transfer pool's ownership if applicable
     if (
       config.deployConfigs.owner &&
       config.deployConfigs.owner != "0x" &&
       config.deployConfigs.owner != "0x0000000000000000000000000000000000000000"
     ) {
       poolOwnerAccount = config.deployConfigs.owner;
-      console.log(`\n\nStarting... Transfer ownership of pool contract "${ggInstance.address}" to new owner "${config.deployConfigs.owner}"`);
+      console.log(
+        `\n\nStarting... Transfer ownership of pool contract "${ggInstance.address}" to new owner "${config.deployConfigs.owner}"`,
+      );
       await ggInstance.transferOwnership(config.deployConfigs.owner, { ...txGasConfig });
-      console.log(`Completed... Transferred ownership of pool contract "${ggInstance.address}" to new owner "${config.deployConfigs.owner}"`);
+      console.log(
+        `Completed... Transferred ownership of pool contract "${ggInstance.address}" to new owner "${config.deployConfigs.owner}"`,
+      );
     }
+
+    // Add pool and strategy to registry,  if applicable
+    let addToRegistryStatus = "skipped";
+    let addToRegistryMessage = `Skipped... "addToRegistry" deployment configs set to "false".`;
+    let registryAddress = process.env.REGISTRY_ADDRESS ?? "";
+    if (registryAddress.toLowerCase() === ZERO_ADDRESS) {
+      registryAddress = "";
+    }
+
+    if (config?.deployConfigs?.addToRegistry) {
+      try {
+        console.log(`\n\nStarting... Add deployed contracts to registry`);
+        console.log("Selected Registry:", registryAddress ?? "NOT FOUND");
+
+        if (registryAddress) {
+          const provider = new ethers.providers.Web3Provider(web3.currentProvider);
+          const signer = provider.getSigner(deployerAccount);
+          const registryInstance = new ethers.Contract(registryAddress, RegistryAbi, signer);
+
+          const hasPermission = await registryInstance.hasRole(OPERATOR_ROLE, deployerAccount, {
+            from: deployerAccount,
+          });
+          console.log("[pre-check completed] Deployer have required permissions on registry?: ", hasPermission);
+
+          if (hasPermission) {
+            const t = await registryInstance.addContract([ggInstance.address, strategyInstance.address], {
+              from: deployerAccount,
+              ...txGasConfig,
+            });
+            await t.wait();
+            addToRegistryMessage = `Completed... Added deployed contracts to registry: "${ggInstance.address}", "${strategyInstance.address}"`;
+            addToRegistryStatus = "completed";
+          } else {
+            addToRegistryMessage = `Skipped... Deployer Account does not have required permission to add contracts to registry.`;
+          }
+        } else {
+          addToRegistryMessage = `Skipped... No registry address found to add deployed contracts to.`;
+        }
+      } catch (error) {
+        const errosMsg = error?.message ?? "exception error with no specific error message";
+        addToRegistryStatus = "error";
+        addToRegistryMessage = `ERROR... Cannot add deployed contracts to registry due to error: "${errosMsg}".`;
+        console.log(`--------------- BEGIN OF ERROR - Add Contract to Registry ---------------\n`);
+        console.log(error);
+        console.log(`\n--------------- END OF ERROR - Add Contract to Registry ---------------`);
+      }
+    }
+    // prints out result of adding contracts to registry.
+    console.log(addToRegistryMessage);
 
     const poolTxInfo = await web3.eth.getTransaction(poolTx.transactionHash);
     const strategyTxInfo = await web3.eth.getTransaction(strategyTx.transactionHash);
@@ -299,6 +366,9 @@ module.exports = function (deployer, network, accounts) {
     if (config.deployConfigs.isWhitelisted) {
       deploymentResult.merkleroot = config.deployConfigs.merkleroot;
     }
+    deploymentResult.addToRegistryStatus = addToRegistryStatus;
+    deploymentResult.addToRegistryMessage = addToRegistryMessage;
+    deploymentResult.registryAddress = registryAddress;
     var poolParameterTypes = [
       "address", // inboundCurrencyAddress,
       "uint256", // maxFlexibleSegmentPaymentAmount

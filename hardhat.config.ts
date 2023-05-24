@@ -22,9 +22,12 @@ const chainIds = {
 };
 
 // Ensure that we have all the environment variables we need.
-const mnemonic: string | undefined = process.env.MNEMONIC;
+let mnemonic: string | undefined = process.env.MNEMONIC;
 if (!mnemonic) {
-  throw new Error("Please set your MNEMONIC in a .env file");
+  console.warn(`Warning: ENV variable "MNEMONIC" NOT FOUND. Please set your "MNEMONIC" in a .env file if needed.`);
+  console.info(`Info: MNEMONIC is required for "polygon network" but not for "celo network".`);
+  console.info("Info: A default value was temporarily set to MNEMONIC (env variable) to prevent compilation errors.");
+  mnemonic = "here is where your twelve words mnemonic should be put my friend";
 }
 
 const infuraApiKey: string | undefined = process.env.RPC;
