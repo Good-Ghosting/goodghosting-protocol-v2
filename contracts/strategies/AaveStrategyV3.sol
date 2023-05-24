@@ -185,7 +185,7 @@ contract AaveStrategyV3 is Ownable, IStrategy {
     @notice
     Deposits funds into aave.
     @param _inboundCurrency Address of the inbound token.
-    @param _minAmount Used for aam strategies, since every strategy overrides from the same strategy interface hence it is defined here.
+    @param _minAmount Used for amm strategies, since every strategy overrides from the same strategy interface hence it is defined here.
     _minAmount isn't needed in this strategy but since all strategies override from the same interface and the amm strategies need it hence it is used here.
     */
     function invest(address _inboundCurrency, uint256 _minAmount) external payable override onlyOwner {
