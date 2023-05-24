@@ -895,7 +895,7 @@ contract Pool is Ownable, Pausable, ReentrancyGuard {
                         // if there are winners then calculate the rise in admin fee & update both admin fee & interest accordingly
                         adminfeeShareForDifference = (difference * adminFee) / 100;
                         totalGameInterest = difference > 0
-                            ? _grossInterest - adminfeeShareForDifference
+                            ? _grossInterest - (_adminFeeAmount[0] + adminfeeShareForDifference)
                             : totalGameInterest;
                     }
                     _adminFeeAmount[0] += adminfeeShareForDifference;
@@ -1322,9 +1322,8 @@ contract Pool is Ownable, Pausable, ReentrancyGuard {
         if (_adminFeeAmount[0] != 0 || _claimableRewards) {
             // safety check in case some incentives in the form of the deposit tokens are transferred to the pool
             uint256 _amountToRedeem = getRedemptionValue(_adminFeeAmount[0], strategy.getTotalAmount());
-            if (_amountToRedeem != 0) {
-                strategy.redeem(inboundToken, _amountToRedeem, _minAmount, disableRewardTokenClaim);
-            }
+
+            strategy.redeem(inboundToken, _amountToRedeem, _minAmount, disableRewardTokenClaim);
 
             // need the updated value for the event
             // balance check before transferring the funds
@@ -1445,8 +1444,8 @@ contract Pool is Ownable, Pausable, ReentrancyGuard {
             }
 
             // segment counter calculation needed for ui as backup in case graph goes down
-            if (segmentCounter[currentSegment] != 0) {
-                segmentCounter[currentSegment] -= 1;
+            if (segmentCounter[player.mostRecentSegmentPaid] != 0) {
+                segmentCounter[player.mostRecentSegmentPaid] -= 1;
             }
         }
 

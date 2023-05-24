@@ -456,95 +456,98 @@ contract CurveStrategy is Ownable, IStrategy {
                 // claim rewards in case minter is not set
             else if (address(gauge) != address(0)) gauge.claim_rewards();
         }
-        uint256 gaugeBalance;
-        if (poolType == LENDING_POOL) {
-            uint256[NUM_AAVE_TOKENS] memory amounts; // fixed-sized array is initialized w/ [0, 0, 0]
-            amounts[uint256(uint128(inboundTokenIndex))] = _amount;
-            uint256 poolWithdrawAmount = pool.calc_token_amount(amounts, false);
 
-            if (address(gauge) != address(0)) {
-                gaugeBalance = gauge.balanceOf(address(this));
-                // safety check
-                // the amm mock contracts are common for all kinds of scenariuo's and it is not possible to mock this particular scenario, this is a very rare scenario to occur in production and hasn't been observed in the fork tests.
-                if (gaugeBalance < poolWithdrawAmount) {
-                    poolWithdrawAmount = gaugeBalance;
+        if (_amount != 0) {
+            uint256 gaugeBalance;
+            if (poolType == LENDING_POOL) {
+                uint256[NUM_AAVE_TOKENS] memory amounts; // fixed-sized array is initialized w/ [0, 0, 0]
+                amounts[uint256(uint128(inboundTokenIndex))] = _amount;
+                uint256 poolWithdrawAmount = pool.calc_token_amount(amounts, false);
+
+                if (address(gauge) != address(0)) {
+                    gaugeBalance = gauge.balanceOf(address(this));
+                    // safety check
+                    // the amm mock contracts are common for all kinds of scenariuo's and it is not possible to mock this particular scenario, this is a very rare scenario to occur in production and hasn't been observed in the fork tests.
+                    if (gaugeBalance < poolWithdrawAmount) {
+                        poolWithdrawAmount = gaugeBalance;
+                    }
+
+                    gauge.withdraw(poolWithdrawAmount);
                 }
 
-                gauge.withdraw(poolWithdrawAmount);
-            }
+                pool.remove_liquidity_one_coin(
+                    poolWithdrawAmount,
+                    inboundTokenIndex,
+                    _minAmount,
+                    true // redeems underlying coin (dai, usdc, usdt), instead of aTokens
+                );
+            } else if (poolType == DEPOSIT_ZAP) {
+                uint256[NUM_ATRI_CRYPTO_TOKENS] memory amounts; // fixed-sized array is initialized w/ [0, 0, 0, 0, 0]
+                amounts[uint256(uint128(inboundTokenIndex))] = _amount;
+                uint256 poolWithdrawAmount = pool.calc_token_amount(amounts, false);
 
-            pool.remove_liquidity_one_coin(
-                poolWithdrawAmount,
-                inboundTokenIndex,
-                _minAmount,
-                true // redeems underlying coin (dai, usdc, usdt), instead of aTokens
-            );
-        } else if (poolType == DEPOSIT_ZAP) {
-            uint256[NUM_ATRI_CRYPTO_TOKENS] memory amounts; // fixed-sized array is initialized w/ [0, 0, 0, 0, 0]
-            amounts[uint256(uint128(inboundTokenIndex))] = _amount;
-            uint256 poolWithdrawAmount = pool.calc_token_amount(amounts, false);
+                if (address(gauge) != address(0)) {
+                    gaugeBalance = gauge.balanceOf(address(this));
+                    // safety check
+                    // the amm mock contracts are common for all kinds of scenariuo's and it is not possible to mock this particular scenario, this is a very rare scenario to occur in production and hasn't been observed in the fork tests.
+                    if (gaugeBalance < poolWithdrawAmount) {
+                        poolWithdrawAmount = gaugeBalance;
+                    }
 
-            if (address(gauge) != address(0)) {
-                gaugeBalance = gauge.balanceOf(address(this));
-                // safety check
-                // the amm mock contracts are common for all kinds of scenariuo's and it is not possible to mock this particular scenario, this is a very rare scenario to occur in production and hasn't been observed in the fork tests.
-                if (gaugeBalance < poolWithdrawAmount) {
-                    poolWithdrawAmount = gaugeBalance;
+                    gauge.withdraw(poolWithdrawAmount);
                 }
-
-                gauge.withdraw(poolWithdrawAmount);
-            }
-            /*
+                /*
                     Code of curve's aave and curve's atricrypto pools are completely different.
                     Curve's Aave Pool (pool type 0): in this contract, all funds "sit" in the pool's smart contract.
                     Curve's Atricrypto pool (pool type 1): this contract integrates with other pools
                     and funds sit in those pools. Hence, an approval transaction is required because
                     it is communicating with external contracts
             */
-            lpToken.approve(address(pool), poolWithdrawAmount);
-            pool.remove_liquidity_one_coin(poolWithdrawAmount, uint256(uint128(inboundTokenIndex)), _minAmount);
-        } else if (poolType == PLAIN_3_BASIC) {
-            uint256[NUM_PLAIN_3_BASIC_TOKENS] memory amounts; // fixed-sized array is initialized w/ [0, 0, 0, 0, 0]
-            amounts[uint256(uint128(inboundTokenIndex))] = _amount;
-            uint256 poolWithdrawAmount = pool.calc_token_amount(amounts, false);
+                lpToken.approve(address(pool), poolWithdrawAmount);
+                pool.remove_liquidity_one_coin(poolWithdrawAmount, uint256(uint128(inboundTokenIndex)), _minAmount);
+            } else if (poolType == PLAIN_3_BASIC) {
+                uint256[NUM_PLAIN_3_BASIC_TOKENS] memory amounts; // fixed-sized array is initialized w/ [0, 0, 0, 0, 0]
+                amounts[uint256(uint128(inboundTokenIndex))] = _amount;
+                uint256 poolWithdrawAmount = pool.calc_token_amount(amounts, false);
 
-            if (address(gauge) != address(0)) {
-                gaugeBalance = gauge.balanceOf(address(this));
-                // safety check
-                // the amm mock contracts are common for all kinds of scenariuo's and it is not possible to mock this particular scenario, this is a very rare scenario to occur in production and hasn't been observed in the fork tests.
-                if (gaugeBalance < poolWithdrawAmount) {
-                    poolWithdrawAmount = gaugeBalance;
+                if (address(gauge) != address(0)) {
+                    gaugeBalance = gauge.balanceOf(address(this));
+                    // safety check
+                    // the amm mock contracts are common for all kinds of scenariuo's and it is not possible to mock this particular scenario, this is a very rare scenario to occur in production and hasn't been observed in the fork tests.
+                    if (gaugeBalance < poolWithdrawAmount) {
+                        poolWithdrawAmount = gaugeBalance;
+                    }
+
+                    gauge.withdraw(poolWithdrawAmount);
                 }
 
-                gauge.withdraw(poolWithdrawAmount);
-            }
+                lpToken.approve(address(pool), poolWithdrawAmount);
+                pool.remove_liquidity_one_coin(poolWithdrawAmount, inboundTokenIndex, _minAmount);
+            } else {
+                uint256[NUM_MATIC_POOL_TOKENS] memory amounts; // fixed-sized array is initialized w/ [0, 0]
+                amounts[uint256(uint128(inboundTokenIndex))] = _amount;
+                uint256 poolWithdrawAmount = pool.calc_token_amount(amounts);
 
-            lpToken.approve(address(pool), poolWithdrawAmount);
-            pool.remove_liquidity_one_coin(poolWithdrawAmount, inboundTokenIndex, _minAmount);
-        } else {
-            uint256[NUM_MATIC_POOL_TOKENS] memory amounts; // fixed-sized array is initialized w/ [0, 0]
-            amounts[uint256(uint128(inboundTokenIndex))] = _amount;
-            uint256 poolWithdrawAmount = pool.calc_token_amount(amounts);
+                if (address(gauge) != address(0)) {
+                    gaugeBalance = gauge.balanceOf(address(this));
+                    // safety check
+                    // the amm mock contracts are common for all kinds of scenariuo's and it is not possible to mock this particular scenario, this is a very rare scenario to occur in production and hasn't been observed in the fork tests.
+                    if (gaugeBalance < poolWithdrawAmount) {
+                        poolWithdrawAmount = gaugeBalance;
+                    }
 
-            if (address(gauge) != address(0)) {
-                gaugeBalance = gauge.balanceOf(address(this));
-                // safety check
-                // the amm mock contracts are common for all kinds of scenariuo's and it is not possible to mock this particular scenario, this is a very rare scenario to occur in production and hasn't been observed in the fork tests.
-                if (gaugeBalance < poolWithdrawAmount) {
-                    poolWithdrawAmount = gaugeBalance;
+                    gauge.withdraw(poolWithdrawAmount);
                 }
-
-                gauge.withdraw(poolWithdrawAmount);
-            }
-            /*
+                /*
                 Code of curve's aave and curve's atricrypto pools are completely different.
                 Curve's Aave Pool (pool type 0): in this contract, all funds "sit" in the pool's smart contract.
                 Curve's Atricrypto pool (pool type 1): this contract integrates with other pools
                 and funds sit in those pools. Hence, an approval transaction is required because
                 it is communicating with external contracts
             */
-            lpToken.approve(address(pool), poolWithdrawAmount);
-            pool.remove_liquidity_one_coin(poolWithdrawAmount, uint256(uint128(inboundTokenIndex)), _minAmount);
+                lpToken.approve(address(pool), poolWithdrawAmount);
+                pool.remove_liquidity_one_coin(poolWithdrawAmount, uint256(uint128(inboundTokenIndex)), _minAmount);
+            }
         }
 
         // avoid multiple SLOADS
