@@ -368,6 +368,7 @@ module.exports = function (deployer, network, accounts) {
     }
     deploymentResult.addToRegistryStatus = addToRegistryStatus;
     deploymentResult.addToRegistryMessage = addToRegistryMessage;
+    deploymentResult.registryAddress = registryAddress;
     var poolParameterTypes = [
       "address", // inboundCurrencyAddress,
       "uint256", // maxFlexibleSegmentPaymentAmount
