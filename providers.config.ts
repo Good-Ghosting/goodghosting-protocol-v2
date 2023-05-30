@@ -45,6 +45,10 @@ exports.providers = {
         address: "0x9Bc0abf87F9350cDE55b2CDA219871726d620Bf9",
         decimals: 18,
       },
+      usdt: {
+        address: "0xc2132D05D31c914a87C6611C10748AEb04B58e8F",
+        decimals: 6,
+      },
     },
     strategies: {
       aaveV2: {
@@ -189,12 +193,12 @@ exports.providers = {
         address: "0x9995cc8F20Db5896943Afc8eE0ba463259c931ed",
         decimals: 18,
       },
-      "good-dollar": {
-        address: "0x62B8B11039FcfE5aB0C56E502b1C372A3d2a9c7A",
-        decimals: 18,
-      },
       curve: {
         address: "0x173fd7434B8B50dF08e3298f173487ebDB35FD14",
+        decimals: 18,
+      },
+      gd: {
+        address: "0x62B8B11039FcfE5aB0C56E502b1C372A3d2a9c7A",
         decimals: 18,
       },
     },

@@ -47,32 +47,44 @@ module.exports = {
     celo: {
       provider: kit.connection.web3.currentProvider, // CeloProvider
       network_id: 42220,
+      gas: 9017622,
+      gasPrice: 100000000000,
     },
     "test-celo": {
       // alfajores
       provider: kit.connection.web3.currentProvider, // CeloProvider
       network_id: 44787,
+      gas: 9017622,
+      gasPrice: 100000000000,
     },
     "local-polygon": {
       host: "127.0.0.1",
       port: 8545,
       network_id: "*",
       gasPrice: 900000000000,
+      gas: 9017622,
+      // gasPrice: 100000000000,
     },
     "local-variable-polygon": {
       host: "127.0.0.1",
       port: 8545,
       network_id: "*",
+      gas: 9_017_622,
+      // gasPrice: 100_000_000_000,
     },
     "local-celo": {
       host: "127.0.0.1",
       port: 8545,
       network_id: "*",
+      gas: 9017622,
+      gasPrice: 100000000000,
     },
     "local-variable-celo": {
       host: "127.0.0.1",
       port: 8545,
       network_id: "*",
+      gas: 9017622,
+      gasPrice: 100000000000,
     },
     polygon: {
       provider: () =>
@@ -85,7 +97,7 @@ module.exports = {
         ),
       network_id: 137, // Polygon mainnet id
       networkCheckTimeout: 60000,
-      gas: 7017622,
+      gas: 8000000,
       gasPrice: 200000000000, // 200 Gwei
       confirmations: 2, // # of confs to wait between deployments. (default: 0)
       timeoutBlocks: 50, // # of blocks before a deployment times out  (minimum/default: 50)
@@ -103,7 +115,8 @@ module.exports = {
         ),
       network_id: 80001, // Polygon testnet id
       networkCheckTimeout: 60000,
-      gasPrice: 60000000000, // 200 Gwei
+      gas: 7017622,
+      gasPrice: 200000000000, // 200 Gwei
       confirmations: 2, // # of confs to wait between deployments. (default: 0)
       timeoutBlocks: 50, // # of blocks before a deployment times out  (minimum/default: 50)
       skipDryRun: false, // Skip dry run before migrations? (default: false for public nets )
