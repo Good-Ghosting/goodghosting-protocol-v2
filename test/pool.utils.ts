@@ -27,6 +27,7 @@ import {
   Pool,
 } from "../src/types";
 import * as wmatic from "../artifacts/contracts/mock/MintableERC20.sol/MintableERC20.json";
+import { BigNumber } from "ethers";
 
 chai.use(solidity);
 const { expect } = chai;
@@ -1019,3 +1020,8 @@ export const shouldNotBeAbleToDeposit = async (
     ).to.be.revertedWith(revertReason);
   }
 };
+
+//Chai predicates matchers
+export function isGreaterThanZero(x: BigNumber): boolean {
+  return BigNumber.isBigNumber(x) && x.gt(0);
+}
