@@ -7,6 +7,7 @@ import * as lendingProvider from "../../artifacts/contracts/aaveV3/IPoolAddresse
 import * as incentiveController from "../../artifacts/contracts/aaveV3/IRewardsController.sol/IRewardsController.json";
 import * as wmatic from "../../artifacts/contracts/mock/MintableERC20.sol/MintableERC20.json";
 import * as dataProvider from "../../artifacts/contracts/mock/LendingPoolAddressesProviderMock.sol/LendingPoolAddressesProviderMock.json";
+import { isGreaterThanZero } from "../pool.utils";
 
 chai.use(solidity);
 const { expect } = chai;
@@ -120,7 +121,14 @@ describe("Aave V3 Pool Fork Tests when admin enables early game completion", () 
         await pool.connect(accounts[i]).earlyWithdraw(0);
         await expect(pool.connect(accounts[i]).joinGame(0, 0))
           .to.emit(pool, "JoinedGame")
-          .withArgs(accounts[i].address, ethers.BigNumber.from(segmentPayment), ethers.BigNumber.from(segmentPayment));
+          .withArgs(
+            accounts[i].address,
+            ethers.BigNumber.from(segmentPayment),
+            ethers.BigNumber.from(segmentPayment),
+            isGreaterThanZero,
+            isGreaterThanZero,
+            isGreaterThanZero,
+          );
       }
     }
   });
