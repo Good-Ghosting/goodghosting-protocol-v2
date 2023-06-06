@@ -1522,10 +1522,11 @@ contract Pool is Ownable, Pausable, ReentrancyGuard {
         uint256 _impermanentLossShare = impermanentLossShare;
 
         uint256 payout;
+        uint64 segment = depositCountMemory == 0 ? 0 : uint64(depositCountMemory - 1);
 
         if (_isWinner(player, depositCountMemory)) {
             // determining last game segment considering the possibility of emergencyWithdraw
-            uint64 segment = depositCountMemory == 0 ? 0 : uint64(depositCountMemory - 1);
+
             (
                 uint256 playerIndexSharePercentage,
                 uint256 playerDepositAmountSharePercentage,
@@ -1588,8 +1589,8 @@ contract Pool is Ownable, Pausable, ReentrancyGuard {
             totalIncentiveAmount,
             rewardTokenAmounts,
             impermanentLossShare,
-            cumulativePlayerIndexSum[_currentSegment],
-            totalWinnerDepositsPerSegment[_currentSegment]
+            cumulativePlayerIndexSum[segment],
+            totalWinnerDepositsPerSegment[segment]
         );
     }
 
