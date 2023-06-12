@@ -120,6 +120,30 @@ module.exports = {
       timeoutBlocks: 50, // # of blocks before a deployment times out  (minimum/default: 50)
       skipDryRun: false, // Skip dry run before migrations? (default: false for public nets )
     },
+    base: {
+      provider: () =>
+        new HDWalletProvider(
+          process.env.MNEMONIC,
+          process.env.RPC,
+          0, //address_index
+          10, // num_addresses
+          true, // shareNonce
+        ),
+      network_id: 84531, // TODO: replace by Base mainnet id
+      skipDryRun: true, // Skip dry run before migrations? (default: false for public nets )
+    },
+    "test-base": {
+      provider: () =>
+        new HDWalletProvider(
+          process.env.MNEMONIC,
+          process.env.RPC,
+          0, //address_index
+          10, // num_addresses
+          true, // shareNonce
+        ),
+      network_id: 84531, // base goerli network id
+      skipDryRun: true, // Skip dry run before migrations? (default: false for public nets )
+    },
   },
 
   compilers: {
