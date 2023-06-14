@@ -237,8 +237,8 @@ exports.providers = {
   base: {
     tokens: {
       usdc: {
-        address: "0x2e9F75DF8839ff192Da27e977CD154FD1EAE03cf",
-        decimals: 18,
+        address: "0x90281524640dfb463e1eeb0975a85ab9aa0e07df",
+        decimals: 6,
       },
       weth: {
         address: "0x231401dC8b53338d78c08f83CC4EBc74148196d0",
