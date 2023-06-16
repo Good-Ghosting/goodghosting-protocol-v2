@@ -61,7 +61,7 @@ exports.providers = {
         lendingPoolAddressProvider: "0xa97684ead0e402dC232d5A977953DF7ECBaB3CDb",
         dataProvider: "0x69FA688f1Dc47d4B5d8029D5a35FB7a548310654",
         incentiveController: "0x929EC64c34a17401F460460D4B9390518E5B473e",
-        wethGateway: "0x9BdB5fcc80A49640c7872ac089Cc0e00A98451B6",
+        wethGateway: "0x1e4b7A6b903680eab0c5dAbcb8fD429cD2a9598c",
       },
       "polygon-curve-aave": {
         pool: "0x445FE580eF8d70FF569aB36e80c647af338db351",
@@ -109,7 +109,7 @@ exports.providers = {
         lendingPoolAddressProvider: "0x5343b5bA672Ae99d627A1C87866b8E53F47Db2E6",
         dataProvider: "0x8f57153F18b7273f9A814b93b31Cb3f9b035e7C2",
         incentiveController: "0xa982Aef90A37675C0E321e3e2f3aDC959fB89351",
-        wethGateway: "0x2a58E9bbb5434FdA7FF78051a4B82cb0EF669C17",
+        wethGateway: "0x1e4b7A6b903680eab0c5dAbcb8fD429cD2a9598c",
       },
     },
   },
@@ -140,6 +140,14 @@ exports.providers = {
       cusd: {
         address: "0x765DE816845861e75A25fCA122bb6898B8B1282a",
         decimals: 18,
+      },
+      usdc: {
+        address: "0x37f750B7cC259A2f741AF45294f6a16572CF5cAd",
+        decimals: 6,
+      },
+      usdt: {
+        address: "0x617f3112bf5397D0467D315cC709EF968D9ba546",
+        decimals: 6,
       },
       celo: {
         address: "0x471EcE3750Da237f93B8E339c536989b8978a438",
@@ -183,6 +191,10 @@ exports.providers = {
       },
       ethix: {
         address: "0x9995cc8F20Db5896943Afc8eE0ba463259c931ed",
+        decimals: 18,
+      },
+      curve: {
+        address: "0x173fd7434B8B50dF08e3298f173487ebDB35FD14",
         decimals: 18,
       },
       gd: {
@@ -229,6 +241,13 @@ exports.providers = {
         minter: "0x5F0200CA03196D5b817E2044a0Bb0D837e0A7823",
         lpToken: "0x0000000000000000000000000000000000000000",
         rewardTokens: ["0x73a210637f6F6B7005512677Ba6B3C96bb4AA44B"],
+      },
+      "celo-curve-tripool": {
+        pool: "0x32fd7e563c6521ab4d59ce3277bcfbe3317cfd63",
+        gauge: "0x18c45c10a0f41bc3ed8d6324c687335179a40b28",
+        poolType: 3,
+        gaugeMinter: "0xabC000d88f23Bb45525E447528DBF656A9D55bf5",
+        rewardTokens: ["0x173fd7434B8B50dF08e3298f173487ebDB35FD14"],
       },
       //"open": {}, // REWARD TOKENS MUST BE CONFIGURED IN `deploy.configs.js` file
     },
