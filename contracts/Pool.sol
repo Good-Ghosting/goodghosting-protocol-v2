@@ -205,9 +205,24 @@ contract Pool is Ownable, Pausable, ReentrancyGuard {
     //*********************************************************************//
     // ------------------------- events -------------------------- //
     //*********************************************************************//
-    event JoinedGame(address indexed player, uint256 amount, uint256 netAmount);
+    event JoinedGame(
+        address indexed player,
+        uint256 amount,
+        uint256 netAmount,
+        uint256 playerIndex,
+        uint256 cumulativePlayerIndexSum,
+        uint256 totalWinnerDepositsPerSegment
+    );
 
-    event Deposit(address indexed player, uint256 indexed segment, uint256 amount, uint256 netAmount);
+    event Deposit(
+        address indexed player,
+        uint256 indexed segment,
+        uint256 amount,
+        uint256 netAmount,
+        uint256 playerIndex,
+        uint256 cumulativePlayerIndexSum,
+        uint256 totalWinnerDepositsPerSegment
+    );
 
     event WithdrawInboundTokens(address indexed player, uint256 amount);
 
@@ -223,7 +238,9 @@ contract Pool is Ownable, Pausable, ReentrancyGuard {
         uint256 totalGameInterest,
         uint256 totalIncentiveAmount,
         uint256[] totalRewardAmounts,
-        uint256 impermanentLossShare
+        uint256 impermanentLossShare,
+        uint256 cumulativePlayerIndexSum,
+        uint256 totalWinnerDepositsPerSegment
     );
 
     event EarlyWithdrawal(
@@ -232,7 +249,9 @@ contract Pool is Ownable, Pausable, ReentrancyGuard {
         uint256 totalGamePrincipal,
         uint256 netTotalGamePrincipal,
         uint256 depositedAmount,
-        uint256 depositedNetAmount
+        uint256 depositedNetAmount,
+        uint256 cumulativePlayerIndexSum,
+        uint256 totalWinnerDepositsPerSegment
     );
 
     event AdminWithdrawal(
@@ -895,7 +914,7 @@ contract Pool is Ownable, Pausable, ReentrancyGuard {
                         // if there are winners then calculate the rise in admin fee & update both admin fee & interest accordingly
                         adminfeeShareForDifference = (difference * adminFee) / 100;
                         totalGameInterest = difference > 0
-                            ? _grossInterest - adminfeeShareForDifference
+                            ? _grossInterest - (_adminFeeAmount[0] + adminfeeShareForDifference)
                             : totalGameInterest;
                     }
                     _adminFeeAmount[0] += adminfeeShareForDifference;
@@ -990,12 +1009,12 @@ contract Pool is Ownable, Pausable, ReentrancyGuard {
                     }
                 }
             }
-            emit AdminFee(_adminFeeAmount);
         }
 
         // avoid SSTORE in loop
         rewardTokenAmounts = _rewardTokenAmounts;
         adminFeeAmount = _adminFeeAmount;
+        emit AdminFee(_adminFeeAmount);
     }
 
     /**
@@ -1004,7 +1023,9 @@ contract Pool is Ownable, Pausable, ReentrancyGuard {
     @param _depositAmount Variable Deposit Amount in case of a variable deposit pool.
     */
     function _joinGame(uint256 _minAmount, uint256 _depositAmount) internal virtual {
-        if (getCurrentSegment() != 0) {
+        uint64 _currentSegment = getCurrentSegment();
+
+        if (_currentSegment != 0) {
             revert GAME_ALREADY_STARTED();
         }
         bool canRejoin = players[msg.sender].canRejoin;
@@ -1053,8 +1074,16 @@ contract Pool is Ownable, Pausable, ReentrancyGuard {
             iterablePlayers.push(msg.sender);
         }
 
-        emit JoinedGame(msg.sender, amount, netAmount);
         _transferInboundTokenToContract(_minAmount, amount, netAmount);
+
+        emit JoinedGame(
+            msg.sender,
+            amount,
+            netAmount,
+            playerIndex[msg.sender][_currentSegment],
+            cumulativePlayerIndexSum[_currentSegment],
+            totalWinnerDepositsPerSegment[_currentSegment]
+        );
     }
 
     /**
@@ -1322,6 +1351,7 @@ contract Pool is Ownable, Pausable, ReentrancyGuard {
         if (_adminFeeAmount[0] != 0 || _claimableRewards) {
             // safety check in case some incentives in the form of the deposit tokens are transferred to the pool
             uint256 _amountToRedeem = getRedemptionValue(_adminFeeAmount[0], strategy.getTotalAmount());
+
             strategy.redeem(inboundToken, _amountToRedeem, _minAmount, disableRewardTokenClaim);
 
             // need the updated value for the event
@@ -1443,8 +1473,8 @@ contract Pool is Ownable, Pausable, ReentrancyGuard {
             }
 
             // segment counter calculation needed for ui as backup in case graph goes down
-            if (segmentCounter[currentSegment] != 0) {
-                segmentCounter[currentSegment] -= 1;
+            if (segmentCounter[player.mostRecentSegmentPaid] != 0) {
+                segmentCounter[player.mostRecentSegmentPaid] -= 1;
             }
         }
 
@@ -1463,7 +1493,9 @@ contract Pool is Ownable, Pausable, ReentrancyGuard {
             totalGamePrincipal,
             netTotalGamePrincipal,
             player.amountPaid,
-            player.netAmountPaid
+            player.netAmountPaid,
+            cumulativePlayerIndexSum[currentSegment],
+            totalWinnerDepositsPerSegment[currentSegment]
         );
     }
 
@@ -1490,10 +1522,11 @@ contract Pool is Ownable, Pausable, ReentrancyGuard {
         uint256 _impermanentLossShare = impermanentLossShare;
 
         uint256 payout;
+        uint64 segment = depositCountMemory == 0 ? 0 : uint64(depositCountMemory - 1);
 
         if (_isWinner(player, depositCountMemory)) {
             // determining last game segment considering the possibility of emergencyWithdraw
-            uint64 segment = depositCountMemory == 0 ? 0 : uint64(depositCountMemory - 1);
+
             (
                 uint256 playerIndexSharePercentage,
                 uint256 playerDepositAmountSharePercentage,
@@ -1521,8 +1554,9 @@ contract Pool is Ownable, Pausable, ReentrancyGuard {
             strategy.redeem(inboundToken, _amountToRedeem, _minAmount, disableRewardTokenClaim);
         }
 
+        uint64 _currentSegment = getCurrentSegment();
         // sets withdrawalSegment for the player
-        player.withdrawalSegment = getCurrentSegment();
+        player.withdrawalSegment = _currentSegment;
         if (_impermanentLossShare != 0) {
             // resetting I.Loss Share % after every withdrawal to be consistent
             impermanentLossShare = 0;
@@ -1554,7 +1588,9 @@ contract Pool is Ownable, Pausable, ReentrancyGuard {
             totalGameInterest,
             totalIncentiveAmount,
             rewardTokenAmounts,
-            impermanentLossShare
+            impermanentLossShare,
+            cumulativePlayerIndexSum[segment],
+            totalWinnerDepositsPerSegment[segment]
         );
     }
 
@@ -1614,8 +1650,18 @@ contract Pool is Ownable, Pausable, ReentrancyGuard {
         if (netAmount == 0) {
             revert INVALID_NET_DEPOSIT_AMOUNT();
         }
-        emit Deposit(msg.sender, currentSegment, amount, netAmount);
+
         _transferInboundTokenToContract(_minAmount, amount, netAmount);
+
+        emit Deposit(
+            msg.sender,
+            currentSegment,
+            amount,
+            netAmount,
+            playerIndex[msg.sender][currentSegment],
+            cumulativePlayerIndexSum[currentSegment],
+            totalWinnerDepositsPerSegment[currentSegment]
+        );
     }
 
     // Fallback Functions for calldata and reciever for handling only ether transfer

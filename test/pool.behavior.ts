@@ -16,6 +16,7 @@ import {
   advanceToEndOfGame,
   joinGamePaySegmentsAndNotComplete,
   getRewardTokenInstance,
+  isGreaterThanZero,
 } from "./pool.utils";
 
 import { MintableERC20__factory } from "../src/types";
@@ -854,7 +855,14 @@ export const shouldBehaveLikeJoiningGGPool = async (strategyType: string) => {
     await approveToken(contracts.inboundToken, player1, contracts.goodGhosting.address, segmentPayment);
     await expect(contracts.goodGhosting.connect(player1).joinGame(0, segmentPayment))
       .to.emit(contracts.goodGhosting, "JoinedGame")
-      .withArgs(player1.address, ethers.BigNumber.from(segmentPayment), ethers.BigNumber.from(segmentPayment));
+      .withArgs(
+        player1.address,
+        ethers.BigNumber.from(segmentPayment),
+        ethers.BigNumber.from(segmentPayment),
+        isGreaterThanZero,
+        isGreaterThanZero,
+        isGreaterThanZero,
+      );
   });
 };
 
@@ -1104,6 +1112,9 @@ export const shouldBehaveLikeDepositingGGPool = async (strategyType: string) => 
         currentSegment,
         ethers.BigNumber.from(segmentPayment),
         ethers.BigNumber.from(segmentPayment),
+        isGreaterThanZero,
+        isGreaterThanZero,
+        isGreaterThanZero,
       );
   });
 
@@ -1344,6 +1355,8 @@ export const shouldBehaveLikeEarlyWithdrawingGGPool = async (strategyType: strin
         ethers.BigNumber.from(0),
         playerInfo.amountPaid,
         playerInfo.netAmountPaid,
+        isGreaterThanZero,
+        isGreaterThanZero,
       );
   });
 
@@ -1373,6 +1386,8 @@ export const shouldBehaveLikeEarlyWithdrawingGGPool = async (strategyType: strin
             ethers.BigNumber.from(0),
             playerInfo.amountPaid,
             playerInfo.netAmountPaid,
+            isGreaterThanZero,
+            isGreaterThanZero,
           );
       } else {
         // protocol deposit of the prev. deposit
@@ -1415,6 +1430,8 @@ export const shouldBehaveLikeEarlyWithdrawingGGPool = async (strategyType: strin
         ethers.BigNumber.from(0),
         playerInfo.amountPaid,
         playerInfo.netAmountPaid,
+        isGreaterThanZero,
+        isGreaterThanZero,
       );
   });
 
@@ -1488,6 +1505,8 @@ export const shouldBehaveLikeEarlyWithdrawingGGPool = async (strategyType: strin
         player2Info.netAmountPaid,
         player1Info.amountPaid,
         player1Info.netAmountPaid,
+        isGreaterThanZero,
+        isGreaterThanZero,
       );
   });
 
@@ -8271,6 +8290,8 @@ export const shouldBehaveLikeGGPoolWithTransactionalToken = async (strategyType:
         ethers.BigNumber.from(0),
         playerInfo.amountPaid,
         playerInfo.netAmountPaid,
+        isGreaterThanZero,
+        isGreaterThanZero,
       );
   });
 
@@ -8410,6 +8431,8 @@ export const shouldBehaveLikeGGPoolWithSameTokenAddresses = async (strategyType:
         ethers.BigNumber.from(0),
         playerInfo.amountPaid,
         playerInfo.netAmountPaid,
+        isGreaterThanZero,
+        isGreaterThanZero,
       );
   });
 

@@ -7,6 +7,7 @@ import * as lendingProvider from "../../artifacts/contracts/aave/ILendingPoolAdd
 import * as incentiveController from "../../artifacts/contracts/aave/IncentiveController.sol/IncentiveController.json";
 import * as wmatic from "../../artifacts/contracts/mock/MintableERC20.sol/MintableERC20.json";
 import * as dataProvider from "../../artifacts/contracts/mock/LendingPoolAddressesProviderMock.sol/LendingPoolAddressesProviderMock.json";
+import { isGreaterThanZero } from "../pool.utils";
 
 chai.use(solidity);
 const { expect } = chai;
@@ -121,7 +122,14 @@ describe("Aave Pool Fork Tests where no player wins", () => {
         await pool.connect(accounts[i]).earlyWithdraw(0);
         await expect(pool.connect(accounts[i]).joinGame(0, 0))
           .to.emit(pool, "JoinedGame")
-          .withArgs(accounts[i].address, ethers.BigNumber.from(segmentPayment), ethers.BigNumber.from(segmentPayment));
+          .withArgs(
+            accounts[i].address,
+            ethers.BigNumber.from(segmentPayment),
+            ethers.BigNumber.from(segmentPayment),
+            isGreaterThanZero,
+            isGreaterThanZero,
+            isGreaterThanZero,
+          );
       }
     }
   });
@@ -143,7 +151,16 @@ describe("Aave Pool Fork Tests where no player wins", () => {
 
         await expect(pool.connect(accounts[0]).earlyWithdraw(0))
           .to.emit(pool, "EarlyWithdrawal")
-          .withArgs(accounts[0].address, playerInfo.amountPaid.sub(feeAmount), totalPrincipal, totaNetlPrincipal);
+          .withArgs(
+            accounts[0].address,
+            playerInfo.amountPaid.sub(feeAmount),
+            totalPrincipal,
+            totaNetlPrincipal,
+            playerInfo.amountPaid,
+            playerInfo.netAmountPaid,
+            isGreaterThanZero,
+            isGreaterThanZero,
+          );
       }
       const currentSegment = await pool.getCurrentSegment();
 

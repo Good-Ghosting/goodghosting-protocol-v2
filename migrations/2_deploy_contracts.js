@@ -19,6 +19,7 @@ const ZERO_ADDRESS = "0x0000000000000000000000000000000000000000";
 
 // Immutable
 const OPERATOR_ROLE = "0x97667070c54ef182b0f5858b034beac1b6f3089aa2d3188bb1e8929f4fa9b929";
+const POLYGON_GAS_STATION_URL = "https://gasstation.polygon.technology/v2";
 
 // used for amm strategies
 const tokenIndexMapping = {
@@ -53,6 +54,11 @@ const tokenIndexMapping = {
   "mobius-cusd-usdcet": {
     cusd: 0,
     usdcet: 1,
+  },
+  "celo-curve-tripool": {
+    cusd: 0,
+    usdc: 1,
+    usdt: 2,
   },
 };
 
@@ -166,7 +172,7 @@ module.exports = function (deployer, network, accounts) {
     } else if (network.includes("polygon")) {
       deploymentResult.network = "polygon";
       try {
-        const payload = await axios.get("https://gasstation-mainnet.matic.network/v2");
+        const payload = await axios.get(POLYGON_GAS_STATION_URL);
         // eslint-disable-next-line no-undef
         console.log("gas price options:", payload.data);
         const roundedMaxPriorityFee = Math.round(payload.data.fast.maxPriorityFee).toString();
@@ -177,7 +183,7 @@ module.exports = function (deployer, network, accounts) {
         };
       } catch (error) {
         // eslint-disable-next-line no-undef
-        console.log('error fetching gas price from "https://gasstation-mainnet.matic.network/v2".');
+        console.log(`error fetching gas price from "${POLYGON_GAS_STATION_URL}".`);
         // eslint-disable-next-line no-undef
         console.log("error details:");
         // eslint-disable-next-line no-undef

@@ -8,6 +8,7 @@ import * as incentiveController from "../../artifacts/contracts/aaveV3/IRewardsC
 const wmatic = require("../../abi-external/wmatic.abi.json");
 
 import * as dataProvider from "../../artifacts/contracts/mock/LendingPoolAddressesProviderMock.sol/LendingPoolAddressesProviderMock.json";
+import { isGreaterThanZero } from "../pool.utils";
 
 chai.use(solidity);
 const { expect } = chai;
@@ -105,7 +106,14 @@ describe("Aave V3 Variable Deposit Pool Fork Tests with the deposit token as tra
           pool.connect(accounts[i]).joinGame(0, ethers.utils.parseEther("5"), { value: ethers.utils.parseEther("5") }),
         )
           .to.emit(pool, "JoinedGame")
-          .withArgs(accounts[i].address, ethers.utils.parseEther("5"), ethers.utils.parseEther("5"));
+          .withArgs(
+            accounts[i].address,
+            ethers.utils.parseEther("5"),
+            ethers.utils.parseEther("5"),
+            isGreaterThanZero,
+            isGreaterThanZero,
+            isGreaterThanZero,
+          );
       }
     }
   });
@@ -128,7 +136,16 @@ describe("Aave V3 Variable Deposit Pool Fork Tests with the deposit token as tra
           .div(ethers.BigNumber.from(100)); // fee is set as an integer, so needs to be converted to a percentage
         await expect(pool.connect(accounts[0]).earlyWithdraw(0))
           .to.emit(pool, "EarlyWithdrawal")
-          .withArgs(accounts[0].address, playerInfo.amountPaid.sub(feeAmount), totalPrincipal, totaNetlPrincipal);
+          .withArgs(
+            accounts[0].address,
+            playerInfo.amountPaid.sub(feeAmount),
+            totalPrincipal,
+            totaNetlPrincipal,
+            playerInfo.amountPaid,
+            playerInfo.netAmountPaid,
+            isGreaterThanZero,
+            isGreaterThanZero,
+          );
       }
       const currentSegment = await pool.getCurrentSegment();
 
@@ -145,6 +162,9 @@ describe("Aave V3 Variable Deposit Pool Fork Tests with the deposit token as tra
               currentSegment,
               ethers.utils.parseEther("20"),
               ethers.utils.parseEther("20"),
+              isGreaterThanZero,
+              isGreaterThanZero,
+              isGreaterThanZero,
             );
         } else {
           await expect(
@@ -153,7 +173,15 @@ describe("Aave V3 Variable Deposit Pool Fork Tests with the deposit token as tra
               .makeDeposit(0, ethers.utils.parseEther("5"), { value: ethers.utils.parseEther("5") }),
           )
             .to.emit(pool, "Deposit")
-            .withArgs(accounts[j].address, currentSegment, ethers.utils.parseEther("5"), ethers.utils.parseEther("5"));
+            .withArgs(
+              accounts[j].address,
+              currentSegment,
+              ethers.utils.parseEther("5"),
+              ethers.utils.parseEther("5"),
+              isGreaterThanZero,
+              isGreaterThanZero,
+              isGreaterThanZero,
+            );
         }
       }
     }

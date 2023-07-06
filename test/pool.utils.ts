@@ -5,7 +5,7 @@ import { solidity } from "ethereum-waffle";
 import {
   LendingPoolAddressesProviderMock__factory,
   Pool__factory,
-  WhitelistedPool__factory,
+  //WhitelistedPool__factory,
   AaveStrategy__factory,
   AaveStrategyV3__factory,
   MintableERC20__factory,
@@ -17,7 +17,6 @@ import {
   MockCurvePool__factory,
   MockCurveStrategy__factory,
   MockCurveGaugeMinter__factory,
-  MockCurveGaugeMinter,
   MockMobiusStrategy__factory,
   MockMobiusPool__factory,
   MockMobiusGauge__factory,
@@ -28,6 +27,7 @@ import {
   Pool,
 } from "../src/types";
 import * as wmatic from "../artifacts/contracts/mock/MintableERC20.sol/MintableERC20.json";
+import { BigNumber } from "ethers";
 
 chai.use(solidity);
 const { expect } = chai;
@@ -626,7 +626,8 @@ export const deployPool = async (
     await expect(goodGhosting.initialize(incentiveTokenAddress)).to.be.revertedWith("GAME_ALREADY_INITIALIZED()");
   } else {
     throw new Error("WhitelistedPool is not supported");
-    const goodGhostingV2Deployer = new WhitelistedPool__factory(deployer);
+    // const goodGhostingV2Deployer = new WhitelistedPool__factory(deployer);
+    const goodGhostingV2Deployer: any = null;
 
     await expect(
       goodGhostingV2Deployer.deploy(
@@ -1019,3 +1020,8 @@ export const shouldNotBeAbleToDeposit = async (
     ).to.be.revertedWith(revertReason);
   }
 };
+
+//Chai predicates matchers
+export function isGreaterThanZero(x: BigNumber): boolean {
+  return BigNumber.isBigNumber(x) && x.gt(0);
+}

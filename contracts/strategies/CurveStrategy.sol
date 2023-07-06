@@ -52,6 +52,9 @@ contract CurveStrategy is Ownable, IStrategy {
     /// @notice total tokens in matic pool
     uint64 public constant NUM_MATIC_POOL_TOKENS = 2;
 
+    /// @notice total tokens in any plain 3 basic pool
+    uint64 public constant NUM_PLAIN_3_BASIC_TOKENS = 3;
+
     /// @notice identifies the "Lending Pool" Type
     uint64 public constant LENDING_POOL = 0;
 
@@ -60,6 +63,9 @@ contract CurveStrategy is Ownable, IStrategy {
 
     /// @notice identifies the "Generic Pool" Type
     uint64 public constant GENERIC_POOL = 2;
+
+    /// @notice identifies the "Plain 3 Basic Pool" Type
+    uint64 public constant PLAIN_3_BASIC = 3;
 
     /// @notice curve lp token
     IERC20 public lpToken;
@@ -90,7 +96,7 @@ contract CurveStrategy is Ownable, IStrategy {
             uint256 gaugeBalance = gauge.balanceOf(address(this));
             if (gaugeBalance != 0) {
                 uint256 totalAccumulatedAmount = 0;
-                if (poolType == LENDING_POOL) {
+                if (poolType == LENDING_POOL || poolType == PLAIN_3_BASIC) {
                     totalAccumulatedAmount = pool.calc_withdraw_one_coin(gaugeBalance, inboundTokenIndex);
                 } else {
                     totalAccumulatedAmount = pool.calc_withdraw_one_coin(
@@ -101,8 +107,14 @@ contract CurveStrategy is Ownable, IStrategy {
                 return totalAccumulatedAmount;
             }
             return 0;
+        } else {
+            if (poolType == LENDING_POOL || poolType == PLAIN_3_BASIC) {
+                return pool.calc_withdraw_one_coin(lpToken.balanceOf(address(this)), inboundTokenIndex);
+            } else {
+                return
+                    pool.calc_withdraw_one_coin(lpToken.balanceOf(address(this)), uint256(uint128(inboundTokenIndex)));
+            }
         }
-        return 0;
     }
 
     /** 
@@ -121,6 +133,11 @@ contract CurveStrategy is Ownable, IStrategy {
             amounts[uint256(uint128(inboundTokenIndex))] = _amount;
             uint256 poolWithdrawAmount = pool.calc_token_amount(amounts, true);
             return pool.calc_withdraw_one_coin(poolWithdrawAmount, uint256(uint128(inboundTokenIndex)));
+        } else if (poolType == PLAIN_3_BASIC) {
+            uint256[NUM_PLAIN_3_BASIC_TOKENS] memory amounts; // fixed-sized array is initialized w/ [0, 0, 0]
+            amounts[uint256(uint128(inboundTokenIndex))] = _amount;
+            uint256 poolWithdrawAmount = pool.calc_token_amount(amounts, true);
+            return pool.calc_withdraw_one_coin(poolWithdrawAmount, inboundTokenIndex);
         } else {
             uint256[NUM_MATIC_POOL_TOKENS] memory amounts; // fixed-sized array is initialized w/ [0, 0]
             amounts[uint256(uint128(inboundTokenIndex))] = _amount;
@@ -136,7 +153,7 @@ contract CurveStrategy is Ownable, IStrategy {
     */
     // UPDATE - A4 Audit Report
     function getUnderlyingAsset() external view override returns (address) {
-        if (poolType == GENERIC_POOL) {
+        if (poolType == GENERIC_POOL || poolType == PLAIN_3_BASIC) {
             return pool.coins(uint256(uint128(inboundTokenIndex)));
         }
         return pool.underlying_coins(uint256(uint128(inboundTokenIndex)));
@@ -163,6 +180,10 @@ contract CurveStrategy is Ownable, IStrategy {
             uint256[NUM_ATRI_CRYPTO_TOKENS] memory amounts; // fixed-sized array is initialized w/ [0, 0, 0, 0, 0]
             amounts[uint256(uint128(inboundTokenIndex))] = _amount;
             return pool.calc_token_amount(amounts, true);
+        } else if (poolType == PLAIN_3_BASIC) {
+            uint256[NUM_PLAIN_3_BASIC_TOKENS] memory amounts; // fixed-sized array is initialized w/ [0, 0, 0]
+            amounts[uint256(uint128(inboundTokenIndex))] = _amount;
+            return pool.calc_token_amount(amounts, true);
         } else {
             uint256[NUM_MATIC_POOL_TOKENS] memory amounts; // fixed-sized array is initialized w/ [0, 0]
             amounts[uint256(uint128(inboundTokenIndex))] = _amount;
@@ -175,7 +196,7 @@ contract CurveStrategy is Ownable, IStrategy {
     Returns the fee (for amm strategies)
     */
     function getFee() external view override returns (uint256) {
-        if (poolType == LENDING_POOL || poolType == GENERIC_POOL) {
+        if (poolType == LENDING_POOL || poolType == GENERIC_POOL || poolType == PLAIN_3_BASIC) {
             return pool.fee();
         }
         address undderlyingPool = pool.pool();
@@ -204,7 +225,7 @@ contract CurveStrategy is Ownable, IStrategy {
             revert INVALID_POOL();
         }
 
-        if (_poolType > GENERIC_POOL) {
+        if (_poolType > PLAIN_3_BASIC) {
             revert INVALID_POOL();
         }
 
@@ -212,7 +233,8 @@ contract CurveStrategy is Ownable, IStrategy {
             (_inboundTokenIndex < 0) ||
             (_poolType == LENDING_POOL && uint128(_inboundTokenIndex) >= NUM_AAVE_TOKENS) ||
             (_poolType == DEPOSIT_ZAP && uint128(_inboundTokenIndex) >= NUM_ATRI_CRYPTO_TOKENS) ||
-            (_poolType == GENERIC_POOL && uint128(_inboundTokenIndex) >= NUM_MATIC_POOL_TOKENS)
+            (_poolType == GENERIC_POOL && uint128(_inboundTokenIndex) >= NUM_MATIC_POOL_TOKENS) ||
+            (_poolType == PLAIN_3_BASIC && uint128(_inboundTokenIndex) >= NUM_PLAIN_3_BASIC_TOKENS)
         ) {
             revert INVALID_INBOUND_TOKEN_INDEX();
         }
@@ -235,6 +257,8 @@ contract CurveStrategy is Ownable, IStrategy {
         rewardTokens = _rewardTokens;
         if (_poolType == LENDING_POOL) {
             lpToken = IERC20(_pool.lp_token());
+        } else if (_poolType == PLAIN_3_BASIC) {
+            lpToken = IERC20(_pool);
         } else {
             lpToken = IERC20(_pool.token());
         }
@@ -251,7 +275,10 @@ contract CurveStrategy is Ownable, IStrategy {
         if (msg.value != 0) {
             revert CANNOT_ACCEPT_TRANSACTIONAL_TOKEN();
         }
-        if (poolType == GENERIC_POOL && pool.coins(uint256(uint128(inboundTokenIndex))) != _inboundCurrency) {
+        if (
+            (poolType == GENERIC_POOL || poolType == PLAIN_3_BASIC) &&
+            pool.coins(uint256(uint128(inboundTokenIndex))) != _inboundCurrency
+        ) {
             revert INVALID_DEPOSIT_TOKEN();
         } else if (
             (poolType == DEPOSIT_ZAP || poolType == LENDING_POOL) &&
@@ -276,6 +303,10 @@ contract CurveStrategy is Ownable, IStrategy {
             pool.add_liquidity(amounts, _minAmount, true);
         } else if (poolType == DEPOSIT_ZAP) {
             uint256[NUM_ATRI_CRYPTO_TOKENS] memory amounts; // fixed-sized array is initialized w/ [0, 0, 0, 0, 0]
+            amounts[uint256(uint128(inboundTokenIndex))] = contractBalance;
+            pool.add_liquidity(amounts, _minAmount);
+        } else if (poolType == PLAIN_3_BASIC) {
+            uint256[NUM_PLAIN_3_BASIC_TOKENS] memory amounts; // fixed-sized array is initialized w/ [0, 0, 0]
             amounts[uint256(uint128(inboundTokenIndex))] = contractBalance;
             pool.add_liquidity(amounts, _minAmount);
         } else {
@@ -348,6 +379,24 @@ contract CurveStrategy is Ownable, IStrategy {
             */
             lpToken.approve(address(pool), poolWithdrawAmount);
             pool.remove_liquidity_one_coin(poolWithdrawAmount, uint256(uint128(inboundTokenIndex)), _minAmount);
+        } else if (poolType == PLAIN_3_BASIC) {
+            uint256[NUM_PLAIN_3_BASIC_TOKENS] memory amounts; // fixed-sized array is initialized w/ [0, 0, 0]
+            amounts[uint256(uint128(inboundTokenIndex))] = _amount;
+            uint256 poolWithdrawAmount = pool.calc_token_amount(amounts, false);
+
+            if (address(gauge) != address(0)) {
+                gaugeBalance = gauge.balanceOf(address(this));
+                // safety check
+                // the amm mock contracts are common for all kinds of scenariuo's and it is not possible to mock this particular scenario, this is a very rare scenario to occur in production and hasn't been observed in the fork tests.
+                if (gaugeBalance < poolWithdrawAmount) {
+                    poolWithdrawAmount = gaugeBalance;
+                }
+
+                gauge.withdraw(poolWithdrawAmount);
+            }
+
+            lpToken.approve(address(pool), poolWithdrawAmount);
+            pool.remove_liquidity_one_coin(poolWithdrawAmount, inboundTokenIndex, _minAmount);
         } else {
             uint256[NUM_MATIC_POOL_TOKENS] memory amounts; // fixed-sized array is initialized w/ [0, 0]
             amounts[uint256(uint128(inboundTokenIndex))] = _amount;
@@ -407,77 +456,98 @@ contract CurveStrategy is Ownable, IStrategy {
                 // claim rewards in case minter is not set
             else if (address(gauge) != address(0)) gauge.claim_rewards();
         }
-        uint256 gaugeBalance;
-        if (poolType == LENDING_POOL) {
-            uint256[NUM_AAVE_TOKENS] memory amounts; // fixed-sized array is initialized w/ [0, 0, 0]
-            amounts[uint256(uint128(inboundTokenIndex))] = _amount;
-            uint256 poolWithdrawAmount = pool.calc_token_amount(amounts, false);
 
-            if (address(gauge) != address(0)) {
-                gaugeBalance = gauge.balanceOf(address(this));
-                // safety check
-                // the amm mock contracts are common for all kinds of scenariuo's and it is not possible to mock this particular scenario, this is a very rare scenario to occur in production and hasn't been observed in the fork tests.
-                if (gaugeBalance < poolWithdrawAmount) {
-                    poolWithdrawAmount = gaugeBalance;
+        if (_amount != 0) {
+            uint256 gaugeBalance;
+            if (poolType == LENDING_POOL) {
+                uint256[NUM_AAVE_TOKENS] memory amounts; // fixed-sized array is initialized w/ [0, 0, 0]
+                amounts[uint256(uint128(inboundTokenIndex))] = _amount;
+                uint256 poolWithdrawAmount = pool.calc_token_amount(amounts, false);
+
+                if (address(gauge) != address(0)) {
+                    gaugeBalance = gauge.balanceOf(address(this));
+                    // safety check
+                    // the amm mock contracts are common for all kinds of scenariuo's and it is not possible to mock this particular scenario, this is a very rare scenario to occur in production and hasn't been observed in the fork tests.
+                    if (gaugeBalance < poolWithdrawAmount) {
+                        poolWithdrawAmount = gaugeBalance;
+                    }
+
+                    gauge.withdraw(poolWithdrawAmount);
                 }
 
-                gauge.withdraw(poolWithdrawAmount);
-            }
+                pool.remove_liquidity_one_coin(
+                    poolWithdrawAmount,
+                    inboundTokenIndex,
+                    _minAmount,
+                    true // redeems underlying coin (dai, usdc, usdt), instead of aTokens
+                );
+            } else if (poolType == DEPOSIT_ZAP) {
+                uint256[NUM_ATRI_CRYPTO_TOKENS] memory amounts; // fixed-sized array is initialized w/ [0, 0, 0, 0, 0]
+                amounts[uint256(uint128(inboundTokenIndex))] = _amount;
+                uint256 poolWithdrawAmount = pool.calc_token_amount(amounts, false);
 
-            pool.remove_liquidity_one_coin(
-                poolWithdrawAmount,
-                inboundTokenIndex,
-                _minAmount,
-                true // redeems underlying coin (dai, usdc, usdt), instead of aTokens
-            );
-        } else if (poolType == DEPOSIT_ZAP) {
-            uint256[NUM_ATRI_CRYPTO_TOKENS] memory amounts; // fixed-sized array is initialized w/ [0, 0, 0, 0, 0]
-            amounts[uint256(uint128(inboundTokenIndex))] = _amount;
-            uint256 poolWithdrawAmount = pool.calc_token_amount(amounts, false);
+                if (address(gauge) != address(0)) {
+                    gaugeBalance = gauge.balanceOf(address(this));
+                    // safety check
+                    // the amm mock contracts are common for all kinds of scenariuo's and it is not possible to mock this particular scenario, this is a very rare scenario to occur in production and hasn't been observed in the fork tests.
+                    if (gaugeBalance < poolWithdrawAmount) {
+                        poolWithdrawAmount = gaugeBalance;
+                    }
 
-            if (address(gauge) != address(0)) {
-                gaugeBalance = gauge.balanceOf(address(this));
-                // safety check
-                // the amm mock contracts are common for all kinds of scenariuo's and it is not possible to mock this particular scenario, this is a very rare scenario to occur in production and hasn't been observed in the fork tests.
-                if (gaugeBalance < poolWithdrawAmount) {
-                    poolWithdrawAmount = gaugeBalance;
+                    gauge.withdraw(poolWithdrawAmount);
                 }
-
-                gauge.withdraw(poolWithdrawAmount);
-            }
-            /*
+                /*
                     Code of curve's aave and curve's atricrypto pools are completely different.
                     Curve's Aave Pool (pool type 0): in this contract, all funds "sit" in the pool's smart contract.
                     Curve's Atricrypto pool (pool type 1): this contract integrates with other pools
                     and funds sit in those pools. Hence, an approval transaction is required because
                     it is communicating with external contracts
             */
-            lpToken.approve(address(pool), poolWithdrawAmount);
-            pool.remove_liquidity_one_coin(poolWithdrawAmount, uint256(uint128(inboundTokenIndex)), _minAmount);
-        } else {
-            uint256[NUM_MATIC_POOL_TOKENS] memory amounts; // fixed-sized array is initialized w/ [0, 0]
-            amounts[uint256(uint128(inboundTokenIndex))] = _amount;
-            uint256 poolWithdrawAmount = pool.calc_token_amount(amounts);
+                lpToken.approve(address(pool), poolWithdrawAmount);
+                pool.remove_liquidity_one_coin(poolWithdrawAmount, uint256(uint128(inboundTokenIndex)), _minAmount);
+            } else if (poolType == PLAIN_3_BASIC) {
+                uint256[NUM_PLAIN_3_BASIC_TOKENS] memory amounts; // fixed-sized array is initialized w/ [0, 0, 0, 0, 0]
+                amounts[uint256(uint128(inboundTokenIndex))] = _amount;
+                uint256 poolWithdrawAmount = pool.calc_token_amount(amounts, false);
 
-            if (address(gauge) != address(0)) {
-                gaugeBalance = gauge.balanceOf(address(this));
-                // safety check
-                // the amm mock contracts are common for all kinds of scenariuo's and it is not possible to mock this particular scenario, this is a very rare scenario to occur in production and hasn't been observed in the fork tests.
-                if (gaugeBalance < poolWithdrawAmount) {
-                    poolWithdrawAmount = gaugeBalance;
+                if (address(gauge) != address(0)) {
+                    gaugeBalance = gauge.balanceOf(address(this));
+                    // safety check
+                    // the amm mock contracts are common for all kinds of scenariuo's and it is not possible to mock this particular scenario, this is a very rare scenario to occur in production and hasn't been observed in the fork tests.
+                    if (gaugeBalance < poolWithdrawAmount) {
+                        poolWithdrawAmount = gaugeBalance;
+                    }
+
+                    gauge.withdraw(poolWithdrawAmount);
                 }
 
-                gauge.withdraw(poolWithdrawAmount);
-            }
-            /*
+                lpToken.approve(address(pool), poolWithdrawAmount);
+                pool.remove_liquidity_one_coin(poolWithdrawAmount, inboundTokenIndex, _minAmount);
+            } else {
+                uint256[NUM_MATIC_POOL_TOKENS] memory amounts; // fixed-sized array is initialized w/ [0, 0]
+                amounts[uint256(uint128(inboundTokenIndex))] = _amount;
+                uint256 poolWithdrawAmount = pool.calc_token_amount(amounts);
+
+                if (address(gauge) != address(0)) {
+                    gaugeBalance = gauge.balanceOf(address(this));
+                    // safety check
+                    // the amm mock contracts are common for all kinds of scenariuo's and it is not possible to mock this particular scenario, this is a very rare scenario to occur in production and hasn't been observed in the fork tests.
+                    if (gaugeBalance < poolWithdrawAmount) {
+                        poolWithdrawAmount = gaugeBalance;
+                    }
+
+                    gauge.withdraw(poolWithdrawAmount);
+                }
+                /*
                 Code of curve's aave and curve's atricrypto pools are completely different.
                 Curve's Aave Pool (pool type 0): in this contract, all funds "sit" in the pool's smart contract.
                 Curve's Atricrypto pool (pool type 1): this contract integrates with other pools
                 and funds sit in those pools. Hence, an approval transaction is required because
                 it is communicating with external contracts
             */
-            lpToken.approve(address(pool), poolWithdrawAmount);
-            pool.remove_liquidity_one_coin(poolWithdrawAmount, uint256(uint128(inboundTokenIndex)), _minAmount);
+                lpToken.approve(address(pool), poolWithdrawAmount);
+                pool.remove_liquidity_one_coin(poolWithdrawAmount, uint256(uint128(inboundTokenIndex)), _minAmount);
+            }
         }
 
         // avoid multiple SLOADS
@@ -518,7 +588,7 @@ contract CurveStrategy is Ownable, IStrategy {
 
         if (!disableRewardTokenClaim) {
             if (address(gauge) != address(0)) {
-                if (poolType == DEPOSIT_ZAP || poolType == LENDING_POOL) {
+                if (poolType == DEPOSIT_ZAP || poolType == LENDING_POOL || poolType == PLAIN_3_BASIC) {
                     for (uint256 i = 0; i < numRewards; ) {
                         // using the curve method which is using the same logic so better to use that and this method is a non-view hence
                         amounts[i] = gauge.claimable_tokens(address(this)) + _rewardTokens[i].balanceOf(address(this));
@@ -534,6 +604,13 @@ contract CurveStrategy is Ownable, IStrategy {
                         unchecked {
                             ++i;
                         }
+                    }
+                }
+            } else {
+                for (uint256 i = 0; i < numRewards; ) {
+                    amounts[i] = _rewardTokens[i].balanceOf(address(this));
+                    unchecked {
+                        ++i;
                     }
                 }
             }
