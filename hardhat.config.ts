@@ -20,6 +20,7 @@ const chainIds = {
   ropsten: 3,
   polygon: 137,
   base: 84531, // TODO: update to base mainnet id
+  baseGoerli: 84531, // TODO: update to base mainnet id
 };
 
 // Ensure that we have all the environment variables we need.
@@ -74,7 +75,8 @@ const config: HardhatUserConfig = {
     rinkeby: getChainConfig("rinkeby"),
     ropsten: getChainConfig("ropsten"),
     polygon: getChainConfig("polygon"),
-    baseGoerli: getChainConfig("base"),
+    baseGoerli: getChainConfig("baseGoerli"),
+    base: getChainConfig("base"),
   },
   paths: {
     artifacts: "./artifacts",

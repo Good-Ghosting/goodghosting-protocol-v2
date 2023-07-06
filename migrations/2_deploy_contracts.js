@@ -190,8 +190,11 @@ module.exports = function (deployer, network, accounts) {
         };
       }
     } else if (network.includes("base")) {
-      // base implementation here. nothing for now.
-      txGasConfig = { gasPrice: ethers.utils.parseUnits("0.2", "gwei").toString() };
+      // TODO: update once base mainnet is live
+      txGasConfig = {
+        maxPriorityFeePerGas: ethers.utils.parseUnits("0.2", "gwei").toString(),
+        maxFeePerGas: ethers.utils.parseUnits("0.4", "gwei").toString(),
+      };
     }
 
     // eslint-disable-next-line no-undef
