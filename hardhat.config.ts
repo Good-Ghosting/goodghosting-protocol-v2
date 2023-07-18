@@ -19,8 +19,8 @@ const chainIds = {
   rinkeby: 4,
   ropsten: 3,
   polygon: 137,
-  base: 84531, // TODO: update to base mainnet id
-  baseGoerli: 84531, // TODO: update to base mainnet id
+  base: 8453,
+  baseGoerli: 84531,
 };
 
 // Ensure that we have all the environment variables we need.

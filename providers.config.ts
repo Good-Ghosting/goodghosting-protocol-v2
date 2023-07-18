@@ -252,25 +252,44 @@ exports.providers = {
       //"open": {}, // REWARD TOKENS MUST BE CONFIGURED IN `deploy.configs.js` file
     },
   },
-  // TODO: using base goerli data for now. Needs update prior production deployment
   base: {
+    tokens: {
+      // usdc: {
+      //   address: "0x90281524640dfb463e1eeb0975a85ab9aa0e07df",
+      //   decimals: 6,
+      // },
+      weth: {
+        address: "0x4200000000000000000000000000000000000006",
+        decimals: 18,
+      },
+    },
+    strategies: {
+      // aaveV3: {
+      //   lendingPoolAddressProvider: "",
+      //   dataProvider: "",
+      //   incentiveController: "",
+      //   wethGateway: "",
+      // },
+    },
+  },
+  baseGoerli: {
     tokens: {
       usdc: {
         address: "0x90281524640dfb463e1eeb0975a85ab9aa0e07df",
         decimals: 6,
       },
       weth: {
-        address: "0x231401dC8b53338d78c08f83CC4EBc74148196d0",
+        address: "0x4200000000000000000000000000000000000006",
         decimals: 18,
       },
     },
     strategies: {
-      aaveV3: {
-        lendingPoolAddressProvider: "",
-        dataProvider: "",
-        incentiveController: "",
-        wethGateway: "",
-      },
+      // aaveV3: {
+      //   lendingPoolAddressProvider: "",
+      //   dataProvider: "",
+      //   incentiveController: "",
+      //   wethGateway: "",
+      // },
     },
   },
 };

@@ -72,7 +72,7 @@ function getProviderNetworkName(network) {
   }
 
   if (network.includes("base")) {
-    return network.includes("test-base") ? "test-base" : "base";
+    return network.includes("test-base") ? "baseGoerli" : "base";
   }
   throw new Error("Unsupported network provider configs");
 }
@@ -195,11 +195,15 @@ module.exports = function (deployer, network, accounts) {
           maxFeePerGas: ethers.utils.parseUnits("60", "gwei").toString(),
         };
       }
-    } else if (network.includes("base")) {
-      // TODO: update once base mainnet is live
+    } else if (network.includes("test-base")) {
       txGasConfig = {
-        maxPriorityFeePerGas: ethers.utils.parseUnits("0.2", "gwei").toString(),
-        maxFeePerGas: ethers.utils.parseUnits("0.4", "gwei").toString(),
+        maxPriorityFeePerGas: ethers.utils.parseUnits("0.002", "gwei").toString(),
+        maxFeePerGas: ethers.utils.parseUnits("0.004", "gwei").toString(),
+      };
+    } else if (network.includes("base")) {
+      txGasConfig = {
+        maxPriorityFeePerGas: ethers.utils.parseUnits("0.002", "gwei").toString(),
+        maxFeePerGas: ethers.utils.parseUnits("0.004", "gwei").toString(),
       };
     }
 

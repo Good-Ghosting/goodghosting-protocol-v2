@@ -130,7 +130,7 @@ module.exports = {
           10, // num_addresses
           true, // shareNonce
         ),
-      network_id: 84531, // TODO: replace by Base mainnet id
+      network_id: 8453,
       skipDryRun: true, // Skip dry run before migrations? (default: false for public nets )
     },
     "test-base": {
