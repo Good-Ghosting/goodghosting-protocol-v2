@@ -132,6 +132,10 @@ module.exports = {
         ),
       network_id: 8453,
       skipDryRun: true, // Skip dry run before migrations? (default: false for public nets )
+      gas: 10000000,
+      networkCheckTimeout: 60000,
+      confirmations: 2, // # of confs to wait between deployments. (default: 0)
+      timeoutBlocks: 50, // # of blocks before a deployment times out  (minimum/default: 50)
     },
     "test-base": {
       provider: () =>
@@ -143,7 +147,11 @@ module.exports = {
           true, // shareNonce
         ),
       network_id: 84531, // base goerli network id
-      skipDryRun: true, // Skip dry run before migrations? (default: false for public nets )
+      skipDryRun: true, // Skip dry run before migrations? (default: false for public nets)
+      gas: 10000000,
+      networkCheckTimeout: 60000,
+      confirmations: 2, // # of confs to wait between deployments. (default: 0)
+      timeoutBlocks: 50, // # of blocks before a deployment times out  (minimum/default: 50)
     },
   },
 
