@@ -62,6 +62,21 @@ const tokenIndexMapping = {
   },
 };
 
+function getProviderNetworkName(network) {
+  if (network.includes("celo")) {
+    return network.includes("test-celo") ? "alfajores" : "celo";
+  }
+
+  if (network.includes("polygon")) {
+    return network.includes("test-polygon") ? "mumbai" : "polygon";
+  }
+
+  if (network.includes("base")) {
+    return network.includes("test-base") ? "baseGoerli" : "base";
+  }
+  throw new Error("Unsupported network provider configs");
+}
+
 module.exports = function (deployer, network, accounts) {
   // Injects network name into process .env variable to make accessible on test suite.
   process.env.NETWORK = network;
@@ -77,32 +92,12 @@ module.exports = function (deployer, network, accounts) {
 
     const maxFlexibleSegmentPaymentAmount = config.deployConfigs.maxFlexibleSegmentPaymentAmount;
     const flexibleSegmentPayment = config.deployConfigs.flexibleSegmentPayment;
-
-    const strategyConfig =
-      providerConfig.providers[
-        network.includes("celo")
-          ? network.includes("test-celo")
-            ? "alfajores"
-            : "celo"
-          : network.includes("test-polygon")
-          ? "mumbai"
-          : "polygon"
-      ].strategies[config.deployConfigs.strategy];
-
-    const inboundCurrencyAddress = network.includes("celo")
-      ? network.includes("test-celo")
-        ? providerConfig.providers["alfajores"].tokens[config.deployConfigs.inboundCurrencySymbol].address
-        : providerConfig.providers["celo"].tokens[config.deployConfigs.inboundCurrencySymbol].address
-      : network.includes("test-polygon")
-      ? providerConfig.providers["mumbai"].tokens[config.deployConfigs.inboundCurrencySymbol].address
-      : providerConfig.providers["polygon"].tokens[config.deployConfigs.inboundCurrencySymbol].address;
-    const inboundCurrencyDecimals = network.includes("celo")
-      ? network.includes("test-celo")
-        ? providerConfig.providers["alfajores"].tokens[config.deployConfigs.inboundCurrencySymbol].decimals
-        : providerConfig.providers["celo"].tokens[config.deployConfigs.inboundCurrencySymbol].decimals
-      : network.includes("test-polygon")
-      ? providerConfig.providers["mumbai"].tokens[config.deployConfigs.inboundCurrencySymbol].decimals
-      : providerConfig.providers["polygon"].tokens[config.deployConfigs.inboundCurrencySymbol].decimals;
+    const providerNetwork = getProviderNetworkName(network);
+    const strategyConfig = providerConfig.providers[providerNetwork].strategies[config.deployConfigs.strategy];
+    const inboundCurrencyAddress =
+      providerConfig.providers[providerNetwork].tokens[config.deployConfigs.inboundCurrencySymbol].address;
+    const inboundCurrencyDecimals =
+      providerConfig.providers[providerNetwork].tokens[config.deployConfigs.inboundCurrencySymbol].decimals;
 
     const segmentPaymentWei = ethers.utils
       .parseUnits(config.deployConfigs.segmentPayment.toString(), inboundCurrencyDecimals)
@@ -152,9 +147,7 @@ module.exports = function (deployer, network, accounts) {
         strategyConfig.wethGateway,
         strategyConfig.dataProvider,
         strategyConfig.incentiveController,
-        network.includes("test-polygon")
-          ? providerConfig.providers["mumbai"].tokens["wmatic"].address
-          : providerConfig.providers["polygon"].tokens["wmatic"].address,
+        providerConfig.providers[providerNetwork].tokens["wmatic"].address,
         inboundCurrencyAddress,
       ];
     } else if (config.deployConfigs.strategy === "open") {
@@ -171,12 +164,12 @@ module.exports = function (deployer, network, accounts) {
       ];
     }
     const deploymentResult = {};
-    let txGasConfig = {};
+    let txGasConfig = undefined;
     // converting to 1 eth worth of gwei default for celo
     if (network.includes("celo")) {
       deploymentResult.network = "celo";
       txGasConfig = { gasPrice: ethers.utils.parseUnits("5", "gwei").toString() };
-    } else {
+    } else if (network.includes("polygon")) {
       deploymentResult.network = "polygon";
       try {
         const payload = await axios.get(POLYGON_GAS_STATION_URL);
@@ -202,6 +195,16 @@ module.exports = function (deployer, network, accounts) {
           maxFeePerGas: ethers.utils.parseUnits("60", "gwei").toString(),
         };
       }
+    } else if (network.includes("test-base")) {
+      txGasConfig = {
+        maxPriorityFeePerGas: ethers.utils.parseUnits("90", "wei").toString(),
+        maxFeePerGas: ethers.utils.parseUnits("120", "wei").toString(),
+      };
+    } else if (network.includes("base")) {
+      txGasConfig = {
+        maxPriorityFeePerGas: ethers.utils.parseUnits("90", "wei").toString(),
+        maxFeePerGas: ethers.utils.parseUnits("120", "wei").toString(),
+      };
     }
 
     // eslint-disable-next-line no-undef

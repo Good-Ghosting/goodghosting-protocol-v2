@@ -252,4 +252,26 @@ exports.providers = {
       //"open": {}, // REWARD TOKENS MUST BE CONFIGURED IN `deploy.configs.js` file
     },
   },
+  base: {
+    tokens: {
+      weth: {
+        address: "0x4200000000000000000000000000000000000006",
+        decimals: 18,
+      },
+    },
+    strategies: {},
+  },
+  baseGoerli: {
+    tokens: {
+      usdc: {
+        address: "0x90281524640dfb463e1eeb0975a85ab9aa0e07df",
+        decimals: 6,
+      },
+      weth: {
+        address: "0x4200000000000000000000000000000000000006",
+        decimals: 18,
+      },
+    },
+    strategies: {},
+  },
 };

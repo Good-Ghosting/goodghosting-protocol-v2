@@ -19,6 +19,8 @@ const chainIds = {
   rinkeby: 4,
   ropsten: 3,
   polygon: 137,
+  base: 8453,
+  baseGoerli: 84531,
 };
 
 // Ensure that we have all the environment variables we need.
@@ -73,6 +75,8 @@ const config: HardhatUserConfig = {
     rinkeby: getChainConfig("rinkeby"),
     ropsten: getChainConfig("ropsten"),
     polygon: getChainConfig("polygon"),
+    baseGoerli: getChainConfig("baseGoerli"),
+    base: getChainConfig("base"),
   },
   paths: {
     artifacts: "./artifacts",

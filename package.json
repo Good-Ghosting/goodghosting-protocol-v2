@@ -78,6 +78,8 @@
     "deploy:polygon": "truffle deploy -f 2 --network polygon --reset",
     "deploy:test:celo": "truffle deploy -f 2 --network test-celo --reset",
     "deploy:test:polygon": "truffle deploy -f 2 --network test-polygon --reset",
+    "deploy:baseGoerli": "truffle deploy -f 2 --network test-base --reset",
+    "deploy:base": "truffle deploy -f 2 --network base --reset",
     "verify:polygon:curve": "truffle run verify Pool CurveStrategy --network polygon --debug",
     "verify:polygon:aaveV2": "truffle run verify Pool AaveStrategy  --network polygon --debug",
     "verify:polygon:aaveV3": "truffle run verify Pool AaveStrategyV3 --network polygon --debug",
