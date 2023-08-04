@@ -258,13 +258,25 @@ exports.providers = {
         address: "0x4200000000000000000000000000000000000006",
         decimals: 18,
       },
+      dai: {
+        address: "0x50c5725949A6F0c72E6C4a641F24049A917DB0Cb",
+        decimals: 18,
+      },
+      usdbc: {
+        address: "0xd9aAEc86B65D86f6A7B5B1b0c42FFA531710b6CA",
+        decimals: 6,
+      },
     },
     strategies: {},
   },
   baseGoerli: {
     tokens: {
-      usdc: {
+      usdchalofi: {
         address: "0x90281524640dfb463e1eeb0975a85ab9aa0e07df",
+        decimals: 6,
+      },
+      usdbc: {
+        address: "0x853154e2A5604E5C74a2546E2871Ad44932eB92C",
         decimals: 6,
       },
       weth: {
