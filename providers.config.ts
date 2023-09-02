@@ -267,7 +267,14 @@ exports.providers = {
         decimals: 6,
       },
     },
-    strategies: {},
+    strategies: {
+      aaveV3: {
+        lendingPoolAddressProvider: "0xe20fCBdBfFC4Dd138cE8b2E6FBb6CB49777ad64D",
+        dataProvider: "0x2d8A3C5677189723C4cB8873CfC9C8976FDF38Ac",
+        incentiveController: "0xf9cc4F0D883F1a1eb2c253bdb46c254Ca51E1F44",
+        wethGateway: "0x18CD499E3d7ed42FEbA981ac9236A278E4Cdc2ee",
+      },
+    },
   },
   baseGoerli: {
     tokens: {

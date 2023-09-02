@@ -147,7 +147,7 @@ module.exports = function (deployer, network, accounts) {
         strategyConfig.wethGateway,
         strategyConfig.dataProvider,
         strategyConfig.incentiveController,
-        providerConfig.providers[providerNetwork].tokens["wmatic"].address,
+        providerNetwork === "base" ? ZERO_ADDRESS : providerConfig.providers[providerNetwork].tokens["wmatic"].address,
         inboundCurrencyAddress,
       ];
     } else if (config.deployConfigs.strategy === "open") {
@@ -455,11 +455,18 @@ module.exports = function (deployer, network, accounts) {
         .rawEncode(moolaStrategyParameterTypes, moolaStrategyValues)
         .toString("hex");
     } else if (config.deployConfigs.strategy === "aaveV2" || config.deployConfigs.strategy === "aaveV3") {
+      let rewardTokenName = "";
+      if (providerNetwork === "polygon" || providerNetwork === "mumbai") {
+        rewardTokenName = "wmatic";
+      }
       deploymentResult.lendingPoolProviderAaveAddress = strategyConfig.lendingPoolAddressProvider;
       deploymentResult.wethGatewayAaveAddress = strategyConfig.wethGateway;
       deploymentResult.dataProviderAaveAddress = strategyConfig.dataProvider;
       deploymentResult.incentiveControllerAaveAddress = strategyConfig.incentiveController;
-      deploymentResult.rewardTokenAaveAddress = providerConfig.providers["polygon"].tokens["wmatic"].address;
+      deploymentResult.rewardTokenAaveAddress =
+        providerNetwork && rewardTokenName
+          ? providerConfig.providers[providerNetwork].tokens[rewardTokenName].address
+          : ZERO_ADDRESS;
       var aaveStrategyParameterTypes = ["address", "address", "address", "address", "address", "address"];
       var aaveStrategyValues = [
         deploymentResult.lendingPoolProviderAaveAddress,

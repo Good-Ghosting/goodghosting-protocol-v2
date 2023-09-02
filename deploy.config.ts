@@ -12,16 +12,16 @@ const ZERO_ADDRESS = "0x0000000000000000000000000000000000000000";
 const MAX_PLAYER_COUNT = "18446744073709551615";
 
 exports.deployConfigs = {
-  strategy: "aaveV3",
-  inboundCurrencySymbol: "dai", // name of the inbound currency symbol. Must be defined in the object {providers.network} above.
+  strategy: "open",
+  inboundCurrencySymbol: "usdbc", // name of the inbound currency symbol. Must be defined in the object {providers.network} above.
   owner: ZERO_ADDRESS, //dummy address,
-  depositCount: 2, // integer number of segments
-  segmentLength: WEEK, // in seconds
-  waitingRoundSegmentLength: WEEK, // in seconds
-  flexibleSegmentPayment: false,
+  depositCount: 1, // integer number of segments
+  segmentLength: 10 * MINUTE, // in seconds
+  waitingRoundSegmentLength: 10 * MINUTE, // in seconds
+  flexibleSegmentPayment: true,
   isTransactionalToken: false,
-  maxFlexibleSegmentPaymentAmount: 0,
-  segmentPayment: 1, // amount of tokens - i.e. 10 equals to 10 TOKENS (DAI, ETH, etc.);
+  maxFlexibleSegmentPaymentAmount: 10,
+  segmentPayment: 0, // amount of tokens - i.e. 10 equals to 10 TOKENS (DAI, ETH, etc.);
   earlyWithdrawFee: 1, // i.e. 10 equals to 10%
   adminFee: 5, // i.e. 5 equals to 5%
   maxPlayersCount: MAX_PLAYER_COUNT, // max quantity of players allowed.
