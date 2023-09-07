@@ -197,13 +197,13 @@ module.exports = function (deployer, network, accounts) {
       }
     } else if (network.includes("test-base")) {
       txGasConfig = {
-        maxPriorityFeePerGas: ethers.utils.parseUnits("90000", "wei").toString(),
-        maxFeePerGas: ethers.utils.parseUnits("120000", "wei").toString(),
+        maxPriorityFeePerGas: ethers.utils.parseUnits("0.001", "gwei").toString(),
+        maxFeePerGas: ethers.utils.parseUnits("0.05", "gwei").toString(),
       };
     } else if (network.includes("base")) {
       txGasConfig = {
-        maxPriorityFeePerGas: ethers.utils.parseUnits("900000", "wei").toString(),
-        maxFeePerGas: ethers.utils.parseUnits("1200000", "wei").toString(),
+        maxPriorityFeePerGas: ethers.utils.parseUnits("0.001", "gwei").toString(),
+        maxFeePerGas: ethers.utils.parseUnits("0.05", "gwei").toString(),
       };
     }
 
