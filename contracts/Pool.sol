@@ -1022,7 +1022,7 @@ contract Pool is Ownable, Pausable, ReentrancyGuard {
     @param _minAmount Slippage based amount to cover for impermanent loss scenario.
     @param _depositAmount Variable Deposit Amount in case of a variable deposit pool.
     */
-    function _joinGame(uint256 _minAmount, uint256 _depositAmount) internal virtual {
+    function _joinGame(uint256 _minAmount, uint256 _depositAmount, bool _withTransfer) internal virtual {
         uint64 _currentSegment = getCurrentSegment();
 
         if (_currentSegment != 0) {
@@ -1074,7 +1074,7 @@ contract Pool is Ownable, Pausable, ReentrancyGuard {
             iterablePlayers.push(msg.sender);
         }
 
-        _transferInboundTokenToContract(_minAmount, amount, netAmount);
+        _transferInboundTokenToContract(_minAmount, amount, netAmount, _withTransfer);
 
         emit JoinedGame(
             msg.sender,
@@ -1092,11 +1092,14 @@ contract Pool is Ownable, Pausable, ReentrancyGuard {
         @param _minAmount Slippage based amount to cover for impermanent loss scenario.
         @param _depositAmount Variable Deposit Amount in case of a variable deposit pool.
         @param _netDepositAmount Net deposit amount.
+        @param _withTransfer false if using onTokenTransfer
+
      */
     function _transferInboundTokenToContract(
         uint256 _minAmount,
         uint256 _depositAmount,
-        uint256 _netDepositAmount
+        uint256 _netDepositAmount,
+        bool _withTransfer
     ) internal virtual {
         // this scenario given the inputs to the mock contract methods isn't possible to mock locally
         // UPDATE - H1 Audit Report
@@ -1151,7 +1154,7 @@ contract Pool is Ownable, Pausable, ReentrancyGuard {
         totalGamePrincipal += _depositAmount;
         netTotalGamePrincipal += _netDepositAmount;
 
-        if (!isTransactionalToken) {
+        if (!isTransactionalToken && withTransfer) {
             bool success = IERC20(inboundToken).transferFrom(msg.sender, address(strategy), _depositAmount);
             if (!success) {
                 revert TOKEN_TRANSFER_FAILURE();
@@ -1410,6 +1413,25 @@ contract Pool is Ownable, Pausable, ReentrancyGuard {
     }
 
     /**
+    @dev Allows a player to join/deposit using onTokenTransfer.
+    @param _token the incoming token
+    @param _depositAmount Variable Deposit Amount in case of a variable deposit pool.
+    @param _data expected to be encoded (uint256 _minAmount, bool _isJoin) for _minAmount slippage based amount to cover for impermanent loss scenario and to mark if join or deposit.
+    */
+    function onTokenTransfer(
+        address _token,
+        uint256 _depositAmount,
+        bytes memory _data,
+    ) external virtual whenGameIsInitialized whenNotPaused whenGameIsNotCompleted nonReentrant {
+        require(_token == inboundToken, "token");
+        (uint256 _minAmount, bool _isJoin) = abi.decode(data,(uint256,bool));
+        if(_isJoin)
+            _joinGame(_minAmount, _depositAmount, false);
+        else
+            _makeDeposit(_minAmount, _depositAmount, false);
+    }
+
+    /**
     @dev Allows a player to withdraw funds before the game ends. An early withdrawal fee is charged.
     @param _minAmount Slippage based amount to cover for impermanent loss scenario in case of a amm strategy like curve or mobius.
     */
@@ -1599,7 +1621,16 @@ contract Pool is Ownable, Pausable, ReentrancyGuard {
     @param _minAmount Slippage based amount to cover for impermanent loss scenario.
     @param _depositAmount Variable Deposit Amount in case of a variable deposit pool.
     */
-    function makeDeposit(uint256 _minAmount, uint256 _depositAmount) external payable whenNotPaused nonReentrant {
+    function makeDeposit(uint256 _minAmount, uint256 _depositAmount) external payable whenNotPaused nonReentrant{
+        _makeDeposit(_mintAmount,_depositAmount, true);
+    }
+
+    /**
+    @dev Allows players to make deposits for the game segments, after joining the game.
+    @param _minAmount Slippage based amount to cover for impermanent loss scenario.
+    @param _depositAmount Variable Deposit Amount in case of a variable deposit pool.
+    */
+    function _makeDeposit(uint256 _minAmount, uint256 _depositAmount, bool _withTransfer) internal  {
         if (players[msg.sender].withdrawn) {
             revert PLAYER_ALREADY_WITHDREW_EARLY();
         }
@@ -1651,7 +1682,7 @@ contract Pool is Ownable, Pausable, ReentrancyGuard {
             revert INVALID_NET_DEPOSIT_AMOUNT();
         }
 
-        _transferInboundTokenToContract(_minAmount, amount, netAmount);
+        _transferInboundTokenToContract(_minAmount, amount, netAmount, _withTransfer);
 
         emit Deposit(
             msg.sender,
